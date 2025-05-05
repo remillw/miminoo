@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('password');
             $table->foreignId('role_id')->nullable()->constrained()->onDelete('cascade');
             $table->boolean('is_verified')->default(false);
-            table
+            $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
