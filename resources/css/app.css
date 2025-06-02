@@ -28,6 +28,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
 
+  --color-primaryopacity: var(--primaryopacity);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
 
@@ -184,4 +185,8 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.primaryopacity {
+  background-color: hsl(15 100% 67% 20%);
 }
