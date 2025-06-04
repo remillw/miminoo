@@ -14,7 +14,14 @@ interface Props {
 const props = defineProps<Props>();
 
 const isExternal = computed(() => {
-    return props.external || props.href.startsWith('http') || props.href.startsWith('mailto:') || props.href.startsWith('tel:');
+    if (props.external) return true;
+
+    try {
+        const url = new URL(props.href, window.location.origin);
+        return url.origin !== window.location.origin;
+    } catch {
+        return false;
+    }
 });
 </script>
 
@@ -29,7 +36,7 @@ const isExternal = computed(() => {
     >
         <slot />
     </a>
-    
+
     <Link
         v-else
         :href="href"
