@@ -5,6 +5,41 @@ import ParentSidebar from '@/components/dashboard/parent/ParentSidebar.vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Mail, Phone, MapPin, Pencil } from 'lucide-vue-next'
+import { Camera } from 'lucide-vue-next';
+import { ref } from 'vue';
+
+const removeChild = (index: number) => {
+  form.value.enfants.splice(index, 1)
+}
+
+const addChild = () => {
+  form.value.enfants.push({ nom: '', age: '', unite: 'ans' })
+}
+
+
+const form = ref({
+  prenom: 'Sophie',
+  nom: 'Martin',
+  email: 'sophie.martin@gmail.com',
+  phone: '06 12 56 43 78',
+  adresse: '15 rue des Lilas, 75016 Paris',
+  enfants: [
+    { nom: 'Lucas', age: '5', unite: 'ans' },
+    { nom: 'Emma', age: '8', unite: 'mois' }
+  ]
+})
+const submitForm = () => {
+  // TODO : Appel API ou form.post() via Inertia
+  isEditing.value = false
+}
+
+
+const isEditing = ref(false)
+
+const toggleEdit = () => {
+  isEditing.value = !isEditing.value
+}
+
 </script>
 
 <template>
@@ -23,77 +58,105 @@ import { Mail, Phone, MapPin, Pencil } from 'lucide-vue-next'
           </div>
 
           <!-- Header avatar -->
-          <div class="relative rounded-xl bg-gradient-to-r from-orange-100 to-orange-200 p-6 mb-6 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <div class="relative">
-                <img src="/storage/babysitter-test.png" class="h-20 w-20 rounded-full object-cover border-4 border-white" />
-                <div class="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow">
-                  <Pencil class="h-4 w-4 text-gray-500" />
-                </div>
-              </div>
-              <div>
-                <h2 class="text-xl font-semibold text-gray-800">Sophie Martin</h2>
-                <p class="text-gray-600 text-sm">Parent de 2 enfants</p>
-              </div>
-            </div>
-            <button class="bg-primary text-white font-semibold px-4 py-2 rounded-md hover:bg-orange-500">
-              Modifier
-            </button>
-          </div>
+<div class="relative rounded-t-[2rem] bg-gradient-to-b from-primary/10 to-orange-50 p-6 md:p-8 flex items-center justify-between mb-0">
+    <!-- Avatar + Infos -->
+    <div class="flex items-center gap-6">
+      <div class="relative">
+        <img src="/storage/babysitter-test.png" class="h-24 w-24 rounded-full object-cover border-4 border-white shadow" />
+        <div class="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md">
+          <Camera class="h-4 w-4 text-gray-500" />
+        </div>
+      </div>
+      <div>
+        <h2 class="text-2xl font-semibold text-gray-900">Sophie Martin</h2>
+        <p class="text-sm text-gray-500">Parent de 2 enfants</p>
+      </div>
+    </div>
 
+ <!-- BOUTON MODIFIER (quand non en édition) -->
+<button
+  v-if="!isEditing"
+  class="bg-primary text-white font-semibold px-6 py-2 rounded hover:bg-orange-500 transition"
+  @click="toggleEdit"
+>
+  Modifier
+</button>
+
+
+  </div>
           <!-- Formulaire -->
-          <div class="space-y-6">
+<div class="bg-white rounded-b-xl p-6 space-y-6"> 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label for="prenom">Prénom</Label>
-                <Input id="prenom" type="text" model-value="Sophie" disabled />
-              </div>
+                <Label class="mb-3" for="prenom">Prénom</Label>
+<Input id="prenom" type="text" v-model="form.prenom" :disabled="!isEditing" />              </div>
               <div>
-                <Label for="nom">Nom</Label>
-                <Input id="nom" type="text" model-value="Martin" disabled />
-              </div>
+                <Label class="mb-3" for="nom">Nom</Label>
+<Input id="nom" type="text" v-model="form.nom" :disabled="!isEditing" />              </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label for="email">Email</Label>
+                <Label class="mb-3" for="email">Email</Label>
                 <div class="relative">
                   <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input id="email" type="email" model-value="sophie.martin@gmail.com" class="pl-10" disabled />
+<Input id="email" type="email" v-model="form.email" :disabled="!isEditing" class="pl-10" />
                 </div>
               </div>
               <div>
-                <Label for="phone">Téléphone</Label>
+                <Label class="mb-3" for="phone">Téléphone</Label>
                 <div class="relative">
                   <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input id="phone" type="tel" model-value="06 12 56 43 78" class="pl-10" disabled />
+<Input id="phone" type="tel" v-model="form.phone" :disabled="!isEditing" class="pl-10" />
                 </div>
               </div>
             </div>
 
             <div>
-              <Label for="adresse">Adresse</Label>
+              <Label class="mb-3" for="adresse">Adresse</Label>
               <div class="relative">
                 <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input id="adresse" type="text" model-value="15 rue des Lilas, 75016 Paris" class="pl-10" disabled />
-              </div>
+<Input id="adresse" type="text" v-model="form.adresse" :disabled="!isEditing" class="pl-10" />              </div>
             </div>
 
             <!-- Enfants -->
             <div>
-              <h3 class="text-md font-medium text-gray-700 mb-2">Enfants</h3>
+              <h3 class="text-md font-medium text-black mb-3">Enfants</h3>
               <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <Input type="text" model-value="Lucas" disabled />
-                  <Input type="text" model-value="5" class="w-16 text-center" disabled />
-                  <span class="text-sm text-gray-500">ans</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <Input type="text" model-value="Emma" disabled />
-                  <Input type="text" model-value="8" class="w-16 text-center" disabled />
-                  <span class="text-sm text-gray-500">mois</span>
-                </div>
-              </div>
+  <div
+    v-for="(enfant, index) in form.enfants"
+    :key="index"
+    class="flex items-center gap-2"
+  >
+    <Input v-model="enfant.nom" :disabled="!isEditing" class="flex-1" />
+    <Input v-model="enfant.age" :disabled="!isEditing" class="w-16 text-center" />
+    <select
+      v-model="enfant.unite"
+      :disabled="!isEditing"
+      class="border border-gray-300 rounded-md text-sm px-2 py-1"
+    >
+      <option value="ans">ans</option>
+      <option value="mois">mois</option>
+    </select>
+    <button
+      v-if="isEditing"
+      @click="removeChild(index)"
+      class="text-red-600 text-sm hover:underline"
+    >
+      Supprimer
+    </button>
+  </div>
+
+  <!-- Bouton Ajouter un enfant -->
+  <div
+    v-if="isEditing"
+    class="border border-dashed border-gray-300 rounded-md text-center text-gray-400 py-2 text-sm cursor-pointer hover:text-gray-600"
+    @click="addChild"
+  >
+    + Ajouter un enfant
+  </div>
+</div>
+
             </div>
 
             <!-- Vérification -->
@@ -107,6 +170,22 @@ import { Mail, Phone, MapPin, Pencil } from 'lucide-vue-next'
                 <p>Votre identité a été vérifiée le <strong>10 mars 2024</strong></p>
               </div>
             </div>
+            <!-- BOUTONS EN BAS DU FORMULAIRE -->
+<div v-if="isEditing" class="flex justify-end gap-4 pt-6">
+  <button
+    class="bg-gray-100 text-primary font-semibold px-6 py-2 rounded hover:bg-gray-200 transition"
+    @click="toggleEdit"
+  >
+    Annuler
+  </button>
+  <button
+    class="bg-primary text-white font-semibold px-6 py-2 rounded hover:bg-orange-500 transition"
+    @click="submitForm"
+  >
+    Enregistrer les modifications
+  </button>
+</div>
+
           </div>
         </div>
       </main>
