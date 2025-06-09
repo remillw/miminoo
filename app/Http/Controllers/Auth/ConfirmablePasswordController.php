@@ -17,6 +17,14 @@ class ConfirmablePasswordController extends Controller
      */
     public function show(): Response
     {
+        $user = auth()->user();
+        
+        // Si l'utilisateur utilise uniquement Google, pas besoin de confirmation
+        if ($user && $user->isGoogleOnlyUser()) {
+            session()->put('auth.password_confirmed_at', time());
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+        
         return Inertia::render('auth/ConfirmPassword');
     }
 
@@ -25,8 +33,16 @@ class ConfirmablePasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        
+        // Si l'utilisateur utilise uniquement Google, confirmation automatique
+        if ($user && $user->isGoogleOnlyUser()) {
+            $request->session()->put('auth.password_confirmed_at', time());
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+        
         if (! Auth::guard('web')->validate([
-            'email' => $request->user()->email,
+            'email' => $user->email,
             'password' => $request->password,
         ])) {
             throw ValidationException::withMessages([

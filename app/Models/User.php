@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use App\Models\Role;
 use App\Models\ParentProfile;
 use App\Models\BabysitterProfile;
+use App\Models\Address;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -21,11 +22,17 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'firstname',
+        'lastname',
         'email',
         'password',
         'role_id',
         'is_verified',
+        'status',
+        'google_id',
+        'avatar',
+        'address_id',
+        'email_verified_at',
     ];
 
     /**
@@ -53,9 +60,30 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /**
+     * Vérifier si l'utilisateur a un mot de passe défini
+     */
+    public function hasPassword(): bool
+    {
+        return !empty($this->password);
+    }
+
+    /**
+     * Vérifier si l'utilisateur utilise uniquement Google
+     */
+    public function isGoogleOnlyUser(): bool
+    {
+        return !empty($this->google_id) && empty($this->password);
+    }
+
      public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function address()
+    {
+        return $this->belongsTo(Address::class);
     }
 
     public function parentProfile()

@@ -1,5 +1,5 @@
 <template>
-    <footer class="mt-8 border-t bg-white">
+    <footer class=" border-t bg-white">
         <div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 text-sm text-gray-700 md:grid-cols-4">
             <div>
                 <div class="text-primary mb-2 flex items-center gap-2 text-xl font-bold"><span class="text-2xl">❤️</span> Miminoo</div>

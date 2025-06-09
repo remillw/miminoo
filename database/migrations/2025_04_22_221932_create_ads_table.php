@@ -14,10 +14,13 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->string('address');
+            $table->string('postal_code')->nullable();
+            $table->string('country')->nullable();
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
             $table->dateTime('date_start');
             $table->dateTime('date_end');
+            $table->json('additional_data')->nullable(); // Pour stocker enfants, tarif, etc.
             $table->enum('status', ['active', 'awaiting_payment', 'booked', 'completed', 'cancelled'])->default('active');
             $table->boolean('is_boosted')->default(false);
             $table->unsignedBigInteger('confirmed_application_id')->nullable(); // TEMP sans FK

@@ -7,6 +7,7 @@ use App\Models\Category;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -20,7 +21,8 @@ class SyncFromSaas extends Command
                            {--status= : Filtrer par status (draft, published)}
                            {--per-page=50 : Nombre d\'articles par page}
                            {--sync-categories : Synchroniser aussi les catégories}
-                           {--categories-only : Synchroniser seulement les catégories}';
+                           {--categories-only : Synchroniser seulement les catégories}
+                           {--sync-images : Télécharger et stocker les images localement}';
     
     protected $description = 'Synchronise les articles et catégories depuis le SaaS vers Laravel';
 
@@ -29,6 +31,7 @@ class SyncFromSaas extends Command
     private int $categoriesCreated = 0;
     private int $categoriesUpdated = 0;
     private int $articlesSkipped = 0;
+    private int $imagesDownloaded = 0;
 
     public function handle()
     {
@@ -40,6 +43,7 @@ class SyncFromSaas extends Command
         $perPage = (int) $this->option('per-page');
         $syncCategories = $this->option('sync-categories');
         $categoriesOnly = $this->option('categories-only');
+        $syncImages = $this->option('sync-images');
 
         if (!$apiKey) {
             $apiKey = config('webhook.api_key');
@@ -76,7 +80,7 @@ class SyncFromSaas extends Command
 
             // Synchroniser les articles si pas en mode categories-only
             if (!$categoriesOnly) {
-                $this->syncArticlesFromSaas($saasUrl, $apiKey, $force, $dryRun, $status, $perPage);
+                $this->syncArticlesFromSaas($saasUrl, $apiKey, $force, $dryRun, $status, $perPage, $syncImages);
             }
 
             // Afficher les résultats finaux
@@ -88,6 +92,7 @@ class SyncFromSaas extends Command
                 ['Articles ignorés', $this->articlesSkipped],
                 ['Catégories créées', $this->categoriesCreated],
                 ['Catégories mises à jour', $this->categoriesUpdated],
+                ['Images téléchargées', $this->imagesDownloaded],
                 ['Mode', $dryRun ? 'DRY-RUN' : 'RÉEL'],
             ]);
 
@@ -210,7 +215,7 @@ class SyncFromSaas extends Command
         }
     }
 
-    private function syncArticlesFromSaas(string $saasUrl, string $apiKey, bool $force, bool $dryRun, ?string $status, int $perPage): void
+    private function syncArticlesFromSaas(string $saasUrl, string $apiKey, bool $force, bool $dryRun, ?string $status, int $perPage, bool $syncImages): void
     {
         // Déterminer la dernière synchronisation
         $lastSync = $this->getLastSyncTime();
@@ -290,10 +295,59 @@ class SyncFromSaas extends Command
 
         foreach ($articles as $articleData) {
             if (!$dryRun) {
-                $this->processArticle($articleData);
+                $this->processArticle($articleData, $syncImages);
             } else {
                 // En mode dry-run, juste simuler
                 $externalId = $articleData['id'] ?? $articleData['external_id'] ?? null;
+                
+                // Debug: Afficher les données d'images en mode dry-run
+                if ($syncImages) {
+                    $this->info("🔍 Analyse des images - Article ID: {$externalId}");
+                    
+                    // Vérifier les images disponibles
+                    $coverImageUrl = $articleData['cover_image'] ?? $articleData['featured_image_url'] ?? $articleData['image'] ?? null;
+                    $hasOgImage = !empty($articleData['og_image']);
+                    $hasTwitterImage = !empty($articleData['twitter_image']);
+                    
+                    if ($coverImageUrl) {
+                        $this->info("✅ Image de couverture détectée: {$coverImageUrl}");
+                        $this->imagesDownloaded++;
+                    } else {
+                        $this->warn("⚠️  Aucune image de couverture trouvée (cover_image, featured_image_url, image sont null)");
+                    }
+                    
+                    if ($hasOgImage) {
+                        $this->info("✅ Image OG détectée: {$articleData['og_image']}");
+                        $this->imagesDownloaded++;
+                    }
+                    
+                    if ($hasTwitterImage) {
+                        $this->info("✅ Image Twitter détectée: {$articleData['twitter_image']}");
+                        $this->imagesDownloaded++;
+                    }
+                    
+                    // Vérifier les images dans le contenu
+                    $content = $articleData['content'] ?? '';
+                    $contentHtml = $articleData['content_html'] ?? '';
+                    $allContent = $content . ' ' . $contentHtml;
+                    
+                    if (preg_match_all('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $allContent, $matches)) {
+                        $imageCount = count($matches[1]);
+                        $this->info("✅ {$imageCount} image(s) détectée(s) dans le contenu");
+                        foreach ($matches[1] as $imageUrl) {
+                            $this->info("  - {$imageUrl}");
+                        }
+                        $this->imagesDownloaded += $imageCount;
+                    } else {
+                        $this->warn("⚠️  Aucune image trouvée dans le contenu");
+                        if (strlen($allContent) > 0) {
+                            $this->info("📄 Contenu analysé: " . Str::limit($allContent, 100));
+                        }
+                    }
+                    
+                    $this->newLine();
+                }
+                
                 if ($externalId) {
                     $existingArticle = Article::where('external_id', $externalId)->first();
                     if ($existingArticle) {
@@ -312,10 +366,10 @@ class SyncFromSaas extends Command
         $this->newLine();
     }
 
-    private function processArticle(array $articleData): void
+    private function processArticle(array $articleData, bool $syncImages): void
     {
         try {
-            DB::transaction(function () use ($articleData) {
+            DB::transaction(function () use ($articleData, $syncImages) {
                 // Déterminer l'external_id
                 $externalId = $articleData['id'] ?? $articleData['external_id'] ?? null;
                 
@@ -331,20 +385,77 @@ class SyncFromSaas extends Command
                 $data = [
                     'title' => $articleData['title'] ?? 'Sans titre',
                     'slug' => $this->generateUniqueSlug($articleData['title'] ?? 'sans-titre', $article?->id),
-                    'content' => $articleData['content'] ?? $articleData['excerpt'] ?? 'Contenu non disponible',
+                    'content' => $articleData['content'] ?? 'Contenu non disponible',
+                    'content_html' => $articleData['content_html'] ?? $articleData['content'] ?? null,
                     'excerpt' => $articleData['excerpt'] ?? null,
-                    'featured_image_url' => $articleData['featured_image_url'] ?? $articleData['image'] ?? null,
-                    'meta_title' => $articleData['meta_title'] ?? $articleData['seo_title'] ?? null,
+                    'cover_image' => null, // Sera mis à jour après téléchargement si syncImages est activé
+                    'meta_title' => $articleData['meta_title'] ?? $articleData['seo_title'] ?? $articleData['title'] ?? null,
                     'meta_description' => $articleData['meta_description'] ?? $articleData['seo_description'] ?? null,
+                    'meta_keywords' => $this->parseKeywords($articleData['meta_keywords'] ?? $articleData['keywords'] ?? null),
+                    'canonical_url' => $articleData['canonical_url'] ?? null,
                     'status' => $articleData['status'] ?? 'published',
+                    'scheduled_at' => $this->parseDate($articleData['scheduled_at'] ?? null),
+                    'is_featured' => $articleData['is_featured'] ?? false,
+                    'reading_time' => $this->calculateReadingTime($articleData['content'] ?? $articleData['content_html'] ?? ''),
+                    'word_count' => $this->calculateWordCount($articleData['content'] ?? $articleData['content_html'] ?? ''),
                     'author_name' => $articleData['author_name'] ?? $articleData['author'] ?? 'Auteur SaaS',
                     'author_bio' => $articleData['author_bio'] ?? null,
-                    'external_id' => $externalId,
+                    'og_title' => $articleData['og_title'] ?? $articleData['title'] ?? null,
+                    'og_description' => $articleData['og_description'] ?? $articleData['meta_description'] ?? null,
+                    'og_image' => null, // Sera mis à jour après téléchargement si syncImages est activé
+                    'twitter_title' => $articleData['twitter_title'] ?? $articleData['title'] ?? null,
+                    'twitter_description' => $articleData['twitter_description'] ?? $articleData['meta_description'] ?? null,
+                    'twitter_image' => null, // Sera mis à jour après téléchargement si syncImages est activé
+                    'schema_markup' => $this->parseSchemaMarkup($articleData['schema_markup'] ?? null),
                     'source' => 'saas',
+                    'external_id' => $externalId,
                     'webhook_received_at' => now(),
-                    'is_featured' => $articleData['is_featured'] ?? false,
-                    'reading_time' => $this->calculateReadingTime($articleData['content'] ?? ''),
+                    'webhook_data' => $articleData,
+                    'is_synced' => true,
                 ];
+
+                // Télécharger et stocker les images localement si demandé
+                if ($syncImages) {
+                    // Télécharger l'image de couverture
+                    $coverImageUrl = $articleData['cover_image'] ?? $articleData['featured_image_url'] ?? $articleData['image'] ?? null;
+                    if ($coverImageUrl) {
+                        $coverImagePath = $this->downloadAndStoreImage($coverImageUrl, $externalId, 'cover');
+                        if ($coverImagePath) {
+                            $data['cover_image'] = $coverImagePath;
+                        }
+                    }
+                    
+                    // Télécharger l'image OG si différente
+                    if (isset($articleData['og_image']) && $articleData['og_image'] !== $coverImageUrl) {
+                        $ogImagePath = $this->downloadAndStoreImage($articleData['og_image'], $externalId, 'og');
+                        if ($ogImagePath) {
+                            $data['og_image'] = $ogImagePath;
+                        }
+                    }
+                    
+                    // Télécharger l'image Twitter si différente
+                    if (isset($articleData['twitter_image']) && $articleData['twitter_image'] !== $coverImageUrl) {
+                        $twitterImagePath = $this->downloadAndStoreImage($articleData['twitter_image'], $externalId, 'twitter');
+                        if ($twitterImagePath) {
+                            $data['twitter_image'] = $twitterImagePath;
+                        }
+                    }
+                    
+                    // Traiter les images dans le contenu (téléchargement et remplacement des URLs)
+                    $downloadedUrls = []; // Pour éviter les doublons entre content et content_html
+                    
+                    if (!empty($data['content'])) {
+                        $result = $this->downloadContentImages($data['content'], $externalId, $downloadedUrls);
+                        $data['content'] = $result['content'];
+                        $downloadedUrls = $result['downloadedUrls'];
+                    }
+                    
+                    // Traiter les images dans le contenu HTML si présent ET différent
+                    if (!empty($data['content_html']) && $data['content_html'] !== $data['content']) {
+                        $result = $this->downloadContentImages($data['content_html'], $externalId, $downloadedUrls);
+                        $data['content_html'] = $result['content'];
+                    }
+                }
 
                 // Gérer la date de publication
                 if (isset($articleData['published_at']) && $articleData['published_at']) {
@@ -439,7 +550,7 @@ class SyncFromSaas extends Command
 
     private function calculateReadingTime(string $content): int
     {
-        $wordCount = str_word_count(strip_tags($content));
+        $wordCount = $this->calculateWordCount($content);
         $readingTime = ceil($wordCount / 200); // 200 mots par minute
         return max(1, $readingTime);
     }
@@ -453,5 +564,139 @@ class SyncFromSaas extends Command
             ->first();
 
         return $lastArticle ? $lastArticle->webhook_received_at : null;
+    }
+
+    private function downloadAndStoreImage(string $imageUrl, string $externalId, string $type = 'cover'): ?string
+    {
+        try {
+            $this->info("📥 Téléchargement de l'image {$type}...");
+
+            // Télécharger l'image
+            $response = Http::timeout(30)->get($imageUrl);
+
+            if (!$response->successful()) {
+                $this->warn("⚠️  Erreur lors de la récupération de l'image {$type}: " . $response->status());
+                return null;
+            }
+
+            $imageContent = $response->body();
+            
+            // Déterminer l'extension du fichier
+            $extension = pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION);
+            if (empty($extension)) {
+                $extension = 'jpg'; // Extension par défaut
+            }
+
+            // Créer le nom du fichier
+            $filename = "articles/{$externalId}_{$type}.{$extension}";
+            
+            // Stocker l'image localement
+            Storage::disk('public')->put($filename, $imageContent);
+
+            $this->info("✅ Image {$type} téléchargée et stockée avec succès !");
+            $this->imagesDownloaded++;
+            
+            // Retourner l'URL locale complète
+            if ($type === 'cover') {
+                return $filename; // Pour cover_image, on retourne juste le path
+            } else {
+                return asset('storage/' . $filename); // Pour les images du contenu, on retourne l'URL complète
+            }
+
+        } catch (\Exception $e) {
+            $this->warn("⚠️  Erreur lors du téléchargement de l'image {$type}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function parseKeywords($keywords): ?array
+    {
+        if (empty($keywords)) {
+            return null;
+        }
+
+        if (is_array($keywords)) {
+            return $keywords;
+        }
+
+        if (is_string($keywords)) {
+            return array_map('trim', explode(',', $keywords));
+        }
+
+        return null;
+    }
+
+    private function parseSchemaMarkup($schemaMarkup): ?array
+    {
+        if (empty($schemaMarkup)) {
+            return null;
+        }
+
+        if (is_array($schemaMarkup)) {
+            return $schemaMarkup;
+        }
+
+        if (is_string($schemaMarkup)) {
+            $decoded = json_decode($schemaMarkup, true);
+            return $decoded ?: null;
+        }
+
+        return null;
+    }
+
+    private function parseDate($date): ?Carbon
+    {
+        if (empty($date)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($date);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private function calculateWordCount(string $content): int
+    {
+        return str_word_count(strip_tags($content));
+    }
+
+    private function downloadContentImages(string $content, string $externalId, array &$downloadedUrls = []): array
+    {
+        if (empty($content)) {
+            return ['content' => $content, 'downloadedUrls' => $downloadedUrls];
+        }
+
+        // Pattern pour détecter les images dans le contenu (HTML et Markdown)
+        $patterns = [
+            // Images HTML: <img src="..." />
+            '/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i',
+            // Images Markdown: ![alt](url)
+            '/!\[[^\]]*\]\(([^)]+)\)/i',
+        ];
+
+        $imageCounter = count($downloadedUrls) + 1; // Continuer la numérotation
+
+        foreach ($patterns as $pattern) {
+            preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
+            
+            foreach ($matches as $match) {
+                $imageUrl = $match[1];
+                
+                // Vérifier si c'est une URL complète et qu'elle n'a pas déjà été téléchargée
+                if (filter_var($imageUrl, FILTER_VALIDATE_URL) && !in_array($imageUrl, $downloadedUrls)) {
+                    $localImageUrl = $this->downloadAndStoreImage($imageUrl, $externalId, "content_{$imageCounter}");
+                    if ($localImageUrl) {
+                        $content = str_replace($imageUrl, $localImageUrl, $content);
+                        $this->info("🖼️  Image du contenu remplacée: {$imageUrl} -> {$localImageUrl}");
+                    }
+                    $downloadedUrls[] = $imageUrl;
+                    $imageCounter++;
+                }
+            }
+        }
+
+        return ['content' => $content, 'downloadedUrls' => $downloadedUrls];
     }
 } 

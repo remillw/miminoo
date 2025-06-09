@@ -17,6 +17,9 @@ return new class extends Migration
             $table->longText('content'); // HTML reçu du webhook
             $table->text('excerpt')->nullable();
             $table->string('featured_image_url')->nullable();
+            $table->string('cover_image')->nullable();
+            $table->string('twitter_image')->nullable();
+            $table->string('og_image')->nullable();
             
             // SEO
             $table->string('meta_title')->nullable();
