@@ -11,6 +11,7 @@ import { router } from '@inertiajs/vue3';
 import { Calendar, Check, Clock, CreditCard, FileText, MapPin, Users } from 'lucide-vue-next';
 import { computed, nextTick, ref } from 'vue';
 
+
 interface Child {
     nom: string;
     age: string;
@@ -33,6 +34,7 @@ interface User {
         children_ages: Child[];
     };
 }
+const role = 'parent';
 
 interface Props {
     user: User;
@@ -45,6 +47,7 @@ const { showSuccess, showError } = useToast();
 // État du wizard
 const currentStep = ref(1);
 const totalSteps = 5;
+const completedSteps = ref(new Set<number>()); // Track des étapes confirmées
 
 // Données du formulaire
 const form = ref({
@@ -86,7 +89,7 @@ const isStepCompleted = (step: number) => {
         case 1:
             return form.value.date && form.value.start_time && form.value.end_time;
         case 2:
-            return form.value.children.length > 0;
+            return form.value.children.length > 0 && form.value.children.every(child => child.nom.trim() !== '');
         case 3:
             return form.value.address.trim() !== '';
         case 4:
@@ -116,6 +119,15 @@ const estimatedTotal = computed(() => {
     return (estimatedDuration.value * rate).toFixed(2);
 });
 
+// Calculer le pourcentage de progression
+const progressPercentage = computed(() => {
+    const completedCount = completedSteps.value.size;
+    if (currentStep.value > completedCount + 1) {
+        return ((completedCount + 1) / totalSteps) * 100;
+    }
+    return (completedCount / totalSteps) * 100;
+});
+
 // Initialiser les enfants depuis le profil
 const initializeChildren = () => {
     if (props.user.parentProfile?.children_ages && props.user.parentProfile.children_ages.length > 0) {
@@ -140,15 +152,27 @@ const removeChild = (index: number) => {
 
 // Navigation du wizard
 const nextStep = () => {
-    if (currentStep.value < totalSteps && canProceedToNext.value) {
-        currentStep.value++;
+  if (currentStep.value < totalSteps) {
+    // on passe toujours à la suite si c'est l'étape 4 ou si la validation standard passe
+    if (currentStep.value === 4 || canProceedToNext.value) {
+      // **si on est à l'étape 4 et que c'est vide**, on marque quand même comme complétée
+      if (currentStep.value === 4) {
+        completedSteps.value.add(4)
+      }
+      // **pour les autres**, on ne marque que si c'est validé
+      else if (canProceedToNext.value) {
+        completedSteps.value.add(currentStep.value)
+      }
+      currentStep.value++
 
-        // Charger Google Places à l'étape 3
-        if (currentStep.value === 3 && !isGoogleLoaded.value) {
-            loadGooglePlaces();
-        }
+      if (currentStep.value === 3 && !isGoogleLoaded.value) {
+        loadGooglePlaces()
+      }
     }
-};
+  }
+}
+
+
 
 const prevStep = () => {
     if (currentStep.value > 1) {
@@ -157,8 +181,14 @@ const prevStep = () => {
 };
 
 const goToStep = (step: number) => {
-    if (step <= currentStep.value || isStepCompleted(step - 1)) {
+    // Permettre de naviguer vers une étape si elle est complétée ou si c'est la suivante
+    if (completedSteps.value.has(step) || step === currentStep.value || (step === currentStep.value + 1 && canProceedToNext.value)) {
         currentStep.value = step;
+        
+        // Charger Google Places si on va à l'étape 3
+        if (step === 3 && !isGoogleLoaded.value) {
+            loadGooglePlaces();
+        }
     }
 };
 
@@ -269,84 +299,144 @@ initializeChildren();
                 <p class="text-gray-500">Trouvez la babysitter parfaite pour vos enfants</p>
             </div>
 
-            <!-- Stepper -->
+            <!-- Stepper Modern UX 2025 -->
             <div class="mb-8">
-                <div class="flex items-center justify-between">
-                    <div v-for="step in totalSteps" :key="step" class="flex items-center" :class="{ 'flex-1': step < totalSteps }">
-                        <!-- Icône de l'étape -->
-                        <div
-                            class="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 transition-all"
-                            :class="{
-                                'border-orange-500 bg-orange-500 text-white': currentStep === step,
-                                'border-orange-500 bg-orange-500 text-white': isStepCompleted(step),
-                                'border-gray-300 text-gray-400': currentStep !== step && !isStepCompleted(step),
-                            }"
-                            @click="goToStep(step)"
-                        >
-                            <Check v-if="isStepCompleted(step) && currentStep !== step" class="h-5 w-5" />
-                            <component v-else :is="stepIcons[step - 1]" class="h-5 w-5" />
-                        </div>
-
-                        <!-- Ligne de connexion -->
-                        <div
-                            v-if="step < totalSteps"
-                            class="mx-4 h-0.5 flex-1 transition-all"
-                            :class="{
-                                'bg-orange-500': isStepCompleted(step),
-                                'bg-gray-300': !isStepCompleted(step),
-                            }"
-                        />
+                <!-- Barre de progression principale -->
+                <div class="mb-6">
+                    <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                            class="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-500 ease-out"
+                            :style="{ width: `${progressPercentage}%` }"
+                        ></div>
+                    </div>
+                    <div class="flex justify-between mt-2 text-xs text-gray-500">
+                        <span>Étape {{ currentStep }} sur {{ totalSteps }}</span>
+                        <span>{{ Math.round(progressPercentage) }}% complété</span>
                     </div>
                 </div>
 
-                <!-- Titres des étapes -->
-                <div class="mt-4 flex justify-between">
-                    <div
-                        v-for="(title, index) in stepTitles"
-                        :key="index"
-                        class="text-sm font-medium"
-                        :class="{
-                            'text-orange-600': currentStep === index + 1 || isStepCompleted(index + 1),
-                            'text-gray-400': currentStep !== index + 1 && !isStepCompleted(index + 1),
-                        }"
-                    >
-                        {{ title }}
+                <!-- Étapes interactives -->
+                <div class="relative flex items-center justify-between">
+                    <div v-for="step in totalSteps" :key="step" class="flex flex-col items-center z-10">
+                        <!-- Cercle de l'étape avec animations -->
+                        <div
+                            class="group flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-3 transition-all duration-300 transform hover:scale-105"
+                            :class="{
+                                // Étape actuelle
+                                'border-orange-500 bg-primary text-white shadow-lg shadow-orange-200 scale-110': currentStep === step,
+                                // Étape complétée
+                                'border-green-500 bg-green-500 text-white shadow-lg shadow-green-200': completedSteps.has(step) && currentStep !== step,
+                                // Étape non visitée mais accessible
+                                'border-orange-200 bg-orange-50 text-primary hover:border-orange-300 hover:bg-orange-100': currentStep !== step && !completedSteps.has(step) && (step === currentStep + 1 && canProceedToNext),
+                                // Étape non accessible
+                                'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed': currentStep !== step && !completedSteps.has(step) && !(step === currentStep + 1 && canProceedToNext),
+                            }"
+                            @click="goToStep(step)"
+                        >
+                            <!-- Icône check pour les étapes complétées -->
+                            <div v-if="completedSteps.has(step) && currentStep !== step" 
+                                 class="animate-in zoom-in duration-300">
+                                <Check class="h-6 w-6" />
+                            </div>
+                            <!-- Icône de l'étape pour les autres -->
+                            <component v-else :is="stepIcons[step - 1]" class="h-6 w-6 transition-all duration-200" />
+                        </div>
+                        
+                        <!-- Titre de l'étape avec meilleur styling -->
+                        <div class="mt-3 text-center">
+                            <span
+                                class="text-sm font-medium transition-all duration-200"
+                                :class="{
+                                    'text-primary font-semibold': currentStep === step,
+                                    'text-green-600 font-medium': completedSteps.has(step) && currentStep !== step,
+                                    'text-gray-500': currentStep !== step && !completedSteps.has(step),
+                                }"
+                            >
+                                {{ stepTitles[step - 1] }}
+                            </span>
+                            <!-- Indicateur de progression sous le titre -->
+                            <div class="mt-1 h-1 w-16 mx-auto rounded-full transition-all duration-300"
+                                 :class="{
+                                     'bg-primary': currentStep === step,
+                                     'bg-green-500': completedSteps.has(step) && currentStep !== step,
+                                     'bg-transparent': currentStep !== step && !completedSteps.has(step),
+                                 }">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ligne de connexion entre les étapes -->
+                    <div class="absolute top-7 left-0 right-0 flex items-center -z-10">
+                        <div class="flex-1 flex items-center">
+                            <div v-for="i in totalSteps - 1" :key="i" class="flex-1 flex items-center">
+                                <div class="h-1 w-full transition-all duration-500"
+                                     :class="{
+                                         'bg-green-500': completedSteps.has(i),
+                                         'bg-primary': currentStep > i && !completedSteps.has(i),
+                                         'bg-gray-200': currentStep <= i && !completedSteps.has(i),
+                                     }">
+                                </div>
+                                <div class="w-14"></div> <!-- Espace pour le cercle suivant -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Contenu des étapes -->
-            <Card class="mb-6">
+            <Card class="mb-6 shadow-lg border-0">
                 <CardContent class="p-8">
-                    <!-- Étape 1: Date et horaires -->
-                    <div v-if="currentStep === 1">
-                        <h2 class="mb-6 text-xl font-semibold">Quand avez-vous besoin d'une babysitter ?</h2>
+ <!-- Étape 1: Date et horaires -->
+<div v-if="currentStep === 1">
+  <h2 class="mb-6 text-xl font-semibold">Quand avez-vous besoin d'une babysitter ?</h2>
 
-                        <div class="space-y-6">
-                            <!-- Date -->
-                            <div class="space-y-2">
-                                <Label for="date">Date</Label>
-                                <Input id="date" type="date" v-model="form.date" :min="new Date().toISOString().split('T')[0]" required />
-                            </div>
+  <div class="space-y-6">
+    <!-- Date -->
+    <div class="space-y-2">
+      <Label for="date">Date</Label>
+      <div class="relative">
+        <Calendar class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Input
+          id="date"
+          type="date"
+          v-model="form.date"
+          :min="new Date().toISOString().split('T')[0]"
+          class="pl-10"
+          required
+        />
+      </div>
+    </div>
 
-                            <!-- Horaires -->
-                            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                <div class="space-y-2">
-                                    <Label for="start_time">Heure de début</Label>
-                                    <div class="relative">
-                                        <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                        <Input id="start_time" type="time" v-model="form.start_time" class="pl-10" required />
-                                    </div>
-                                </div>
+    <!-- Horaires -->
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div class="space-y-2">
+        <Label for="start_time">Heure de début</Label>
+        <div class="relative">
+          <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            id="start_time"
+            type="time"
+            v-model="form.start_time"
+            class="pl-10"
+            required
+          />
+        </div>
+      </div>
 
-                                <div class="space-y-2">
-                                    <Label for="end_time">Heure de fin</Label>
-                                    <div class="relative">
-                                        <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                        <Input id="end_time" type="time" v-model="form.end_time" class="pl-10" required />
-                                    </div>
-                                </div>
-                            </div>
+      <div class="space-y-2">
+        <Label for="end_time">Heure de fin</Label>
+        <div class="relative">
+          <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            id="end_time"
+            type="time"
+            v-model="form.end_time"
+            class="pl-10"
+            required
+          />
+        </div>
+      </div>
+    </div>
 
                             <!-- Durée estimée -->
                             <div v-if="estimatedDuration > 0" class="rounded-lg bg-blue-50 p-4">
@@ -394,7 +484,7 @@ initializeChildren();
                                     class="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-2"
                                 >
                                     <div class="space-y-2">
-                                        <Label :for="`child-name-${index}`">Prénom de l'enfant {{ index + 1 }}</Label>
+                                        <Label :for="`child-name-${index}`">Prénom de l'enfant  {{ index + 1 }}</Label>
                                         <Input :id="`child-name-${index}`" v-model="child.nom" placeholder="ex: Sophie" required />
                                     </div>
 
@@ -404,7 +494,7 @@ initializeChildren();
                                             <Input :id="`child-age-${index}`" v-model="child.age" type="number" min="1" max="18" required />
                                         </div>
                                         <div class="space-y-2">
-                                            <Label :for="`child-unit-${index}`">Unité</Label>
+                                            <Label :for="`child-unit-${index}`">Âge en </Label>
                                             <Select v-model="child.unite">
                                                 <SelectTrigger>
                                                     <SelectValue />
@@ -433,14 +523,13 @@ initializeChildren();
                                     <Input
                                         id="address-input"
                                         v-model="form.address"
-                                        placeholder="Entrez votre adresse complète"
+                                        placeholder="Entrez une adresse complète"
                                         class="pl-10"
                                         required
                                     />
                                 </div>
                                 <p class="text-xs text-gray-500">
-                                    📍 Cette adresse nous permet de géolocaliser et prévenir les babysitters les plus proches. Seuls la ville et le
-                                    code postal seront affichés publiquement.
+                                    📍 Adresse permettant de géolocaliser et prévenir les babysitters les plus proches. Seuls la ville et le code postal seront affichés publiquement.
                                 </p>
                             </div>
                         </div>
@@ -458,7 +547,6 @@ initializeChildren();
                                     v-model="form.description"
                                     placeholder="Allergies, routines, activités préférées, consignes particulières..."
                                     rows="6"
-                                    required
                                 />
                             </div>
                         </div>
@@ -499,24 +587,38 @@ initializeChildren();
                 </CardContent>
             </Card>
 
-            <!-- Navigation -->
+            <!-- Navigation avec meilleur styling -->
             <div class="flex items-center justify-between">
-                <Button v-if="currentStep > 1" variant="outline" @click="prevStep" class="flex items-center gap-2"> ← Précédent </Button>
+                <Button 
+                    v-if="currentStep > 1" 
+                    variant="outline" 
+                    @click="prevStep" 
+                    class="flex items-center gap-2 px-6 py-3 hover:bg-gray-50 transition-all duration-200"
+                > 
+                    ← Précédent 
+                </Button>
                 <div v-else></div>
 
-                <Button
-                    v-if="currentStep < totalSteps"
-                    @click="nextStep"
-                    :disabled="!canProceedToNext"
-                    class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600"
-                >
-                    Suivant →
-                </Button>
+           <!-- Bouton « Suivant » / « Ignorer cette étape » -->
+<Button
+  v-if="currentStep < totalSteps"
+  @click="nextStep"
+  :disabled="currentStep !== 4 && !canProceedToNext"
+  class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+>
+  <span v-if="currentStep === 4 && !form.description.trim()">
+    Ignorer cette étape →
+  </span>
+  <span v-else>
+    Suivant →
+  </span>
+</Button>
+
                 <Button
                     v-else
                     @click="submitAnnouncement"
                     :disabled="!canProceedToNext"
-                    class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600"
+                    class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                     Publier l'annonce →
                 </Button>
@@ -528,5 +630,36 @@ initializeChildren();
 <style scoped>
 :deep(.pac-container) {
     z-index: 9999;
+}
+
+/* Animation pour les transitions */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Bordure plus épaisse pour les cercles */
+.border-3 {
+    border-width: 3px;
+}
+
+/*
+  Ce code masque l'icône par défaut des navigateurs pour les inputs de type date et time,
+  ce qui nous permet d'utiliser notre propre icône sans avoir de doublon.
+*/
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
 }
 </style>

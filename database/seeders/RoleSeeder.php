@@ -11,9 +11,14 @@ class RoleSeeder extends Seeder
     {
         $roles = [
             [
+                'name' => 'user',
+                'label' => 'User',
+            ],
+            [
                 'name' => 'parent',
                 'label' => 'Parent',
             ],
+
             [
                 'name' => 'babysitter',
                 'label' => 'Babysitter',

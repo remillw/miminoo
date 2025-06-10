@@ -25,7 +25,9 @@
         </div>
         <div class="flex items-start gap-2">
           <MapPin class="h-7 w-7 text-primary bg-orange-50 rounded-md p-1" />
-          <p class="font-semibold">{{ location }}</p>
+          <p class="font-semibold">
+            {{ city }}<span class="text-gray-500">, {{ postalCode }}</span>
+          </p>
         </div>
       </div>
   
@@ -46,27 +48,49 @@
           <span class="font-bold text-lg">{{ rate }}€</span>
           <span class="text-gray-400">/heure</span>
         </p>
-        <button class="bg-primary hover:bg-orange-500 text-white font-semibold rounded px-5 py-2 transition">
+        <button 
+          @click="isModalOpen = true" 
+          class="bg-primary hover:bg-orange-500 text-white font-semibold rounded px-5 py-2 transition"
+        >
           Postuler
         </button>
       </div>
+
+      <!-- Modal de candidature -->
+      <PostulerModal
+        :is-open="isModalOpen"
+        :on-close="() => isModalOpen = false"
+        :date="rawDate"
+        :hours="time"
+        :location="`${city}, ${postalCode}`"
+        :children-count="childrenCount"
+        :avatar-url="avatar"
+        :family-name="name"
+      />
     </div>
   </template>
   
   <script setup lang="ts">
+  import { ref } from 'vue';
   import { Star, CalendarClock, MapPin, Users } from 'lucide-vue-next';
+  import PostulerModal from './PostulerModal.vue';
   
-  defineProps({
+  const props = defineProps({
     avatar: String,
     name: String,
     rating: Number,
     reviews: Number,
     date: String,
+    rawDate: String, // Date au format ISO pour le modal
     time: String,
-    location: String,
+    postalCode: String,
+    city: String,
     childrenLabel: String,
+    childrenCount: Number,
     description: String,
     rate: Number,
   });
+
+  const isModalOpen = ref(false);
   </script>
   

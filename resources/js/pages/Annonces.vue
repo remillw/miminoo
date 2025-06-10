@@ -79,7 +79,14 @@ const annonces = computed(() => {
         };
 
         // Extraction de la ville depuis l'adresse
-        const location = announcement.address.address.split(',').pop()?.trim() || announcement.address.postal_code || 'Non spécifié';
+        const addressParts = announcement.address.address.split(',');
+        // On retire le pays
+        addressParts.pop();
+        // On prend la ville et on retire le code postal s'il est présent
+        let city = addressParts.pop()?.trim() || 'Non spécifié';
+        // Enlever le code postal de la ville s'il est présent
+        city = city.replace(/\d{5}/, '').trim();
+        const postalCode = announcement.address.postal_code;
 
         return {
             id: announcement.id,
@@ -88,9 +95,12 @@ const annonces = computed(() => {
             rating: 4.5, // Valeur par défaut, à implémenter plus tard
             reviews: 0, // Valeur par défaut, à implémenter plus tard
             date: formatDate(dateStart),
+            rawDate: announcement.date_start, // Date ISO pour le modal
             time: `${formatTime(dateStart)} - ${formatTime(dateEnd)}`,
-            location: location,
+            postalCode: postalCode,
+            city: city,
             childrenLabel: `${announcement.additional_data.children.length} enfant${announcement.additional_data.children.length > 1 ? 's' : ''} (${childrenAges.join(', ')})`,
+            childrenCount: announcement.additional_data.children.length,
             description: announcement.description,
             rate: announcement.additional_data.hourly_rate,
         };

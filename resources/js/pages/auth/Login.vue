@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ const submit = () => {
 </script>
 
 <template>
+    <GlobalLayout>
     <div class="flex flex-col justify-between bg-orange-50">
         <Head title="Connexion" />
 
@@ -200,4 +202,5 @@ const submit = () => {
             </form>
         </div>
     </div>
+</GlobalLayout>
 </template>

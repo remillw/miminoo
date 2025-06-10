@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TextLink from '@/components/TextLink.vue';
+import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/composables/useToast';
@@ -219,6 +220,7 @@ const onSubmit = () => {
 </script>
 
 <template>
+    <GlobalLayout>
     <div class="flex min-h-screen flex-col justify-between bg-orange-50">
         <Head title="Inscription" />
 
@@ -467,4 +469,5 @@ const onSubmit = () => {
             </form>
         </div>
     </div>
+</GlobalLayout>
 </template>
