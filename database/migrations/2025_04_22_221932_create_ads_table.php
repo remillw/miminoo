@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('parent_id')->constrained('users')->onDelete('cascade');
             $table->string('title');
             $table->text('description')->nullable();
+            $table->foreignId('address_id')->nullable()->constrained('addresses')->onDelete('cascade');
             $table->string('address');
             $table->string('postal_code')->nullable();
             $table->string('country')->nullable();
@@ -24,6 +25,7 @@ return new class extends Migration
             $table->enum('status', ['active', 'awaiting_payment', 'booked', 'completed', 'cancelled'])->default('active');
             $table->boolean('is_boosted')->default(false);
             $table->unsignedBigInteger('confirmed_application_id')->nullable(); // TEMP sans FK
+           
             $table->timestamps();
         });
     }

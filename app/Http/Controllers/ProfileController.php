@@ -11,22 +11,42 @@ use Illuminate\Support\Facades\Auth;
 
 class ProfileController extends Controller
 {
-    public function show()
+    public function show(Request $request)
     {
-        $user = Auth::user()->load(['role', 'address', 'parentProfile', 'babysitterProfile']);
+        $user = Auth::user()->load(['roles', 'address', 'parentProfile', 'babysitterProfile']);
         
-        // Vérification que l'utilisateur a un rôle
-        if (!$user->role) {
+        // Récupérer tous les rôles de l'utilisateur
+        $userRoles = $user->roles()->pluck('name')->toArray();
+        
+        // Vérification que l'utilisateur a au moins un rôle
+        if (empty($userRoles)) {
             return redirect()->route('dashboard')->with('error', 'Votre compte n\'a pas de rôle assigné. Contactez l\'administrateur.');
+        }
+        
+        // Déterminer le mode demandé (via paramètre URL)
+        $requestedMode = $request->get('mode');
+        $validModes = ['parent', 'babysitter'];
+        $currentMode = null;
+        
+        if ($requestedMode && in_array($requestedMode, $validModes)) {
+            // Vérifier que l'utilisateur a bien ce rôle
+            if (($requestedMode === 'parent' && in_array('parent', $userRoles)) || 
+                ($requestedMode === 'babysitter' && in_array('babysitter', $userRoles))) {
+                $currentMode = $requestedMode;
+            }
         }
         
         $profileData = [
             'user' => $user,
-            'role' => $user->role->name,
+            'userRoles' => $userRoles,
+            'hasParentRole' => in_array('parent', $userRoles),
+            'hasBabysitterRole' => in_array('babysitter', $userRoles),
+            'requestedMode' => $currentMode, // Mode demandé via URL
         ];
 
-        // Si c'est un parent, on charge ses enfants
-        if ($user->role->name === 'parent' && $user->parentProfile) {
+        // Si c'est en mode parent ET qu'il a le rôle parent, on charge ses enfants
+        $effectiveMode = $currentMode ?: (in_array('parent', $userRoles) ? 'parent' : 'babysitter');
+        if ($effectiveMode === 'parent' && in_array('parent', $userRoles) && $user->parentProfile) {
             $profileData['children'] = $user->parentProfile->children_ages ?? [];
         }
 
@@ -51,6 +71,7 @@ class ProfileController extends Controller
             'children.*.nom' => 'required|string',
             'children.*.age' => 'required|string',
             'children.*.unite' => 'required|in:ans,mois',
+            'mode' => 'nullable|string|in:parent,babysitter',
         ]);
 
         // Mise à jour ou création de l'adresse
@@ -83,8 +104,8 @@ class ProfileController extends Controller
             'email' => $request->email,
         ]);
 
-        // Si c'est un parent, mise à jour des enfants
-        if ($user->role->name === 'parent' && $request->has('children')) {
+        // Si on est en mode parent ET que l'utilisateur a le rôle parent, mise à jour des enfants
+        if (($request->mode === 'parent' || in_array('parent', $user->roles()->pluck('name')->toArray())) && $request->has('children')) {
             $user->parentProfile()->updateOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -94,6 +115,12 @@ class ProfileController extends Controller
             );
         }
 
-        return redirect()->back()->with('success', 'Profil mis à jour avec succès !');
+        // Rediriger avec le mode s'il est fourni
+        $redirectUrl = route('profil');
+        if ($request->mode) {
+            $redirectUrl .= '?mode=' . $request->mode;
+        }
+
+        return redirect($redirectUrl)->with('success', 'Profil mis à jour avec succès !');
     }
 }

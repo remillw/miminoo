@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('password')->nullable()->change();
+        Schema::table('ad_applications', function (Blueprint $table) {
+            $table->decimal('proposed_rate', 8, 2)->nullable()->after('motivation_note');
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('password')->nullable(false)->change();
+        Schema::table('ad_applications', function (Blueprint $table) {
+            $table->dropColumn('proposed_rate');
         });
     }
 };

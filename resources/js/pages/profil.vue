@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/composables/useToast';
+import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
-import { Camera, Mail, MapPin, Plus, Trash2 } from 'lucide-vue-next';
-import { computed, nextTick, ref } from 'vue';
+import { Camera, Mail, MapPin, Plus, Trash2, Users, Baby } from 'lucide-vue-next';
+import { computed, nextTick, ref, watch, onMounted } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Child {
     nom: string;
@@ -42,17 +44,49 @@ interface User {
 
 interface Props {
     user: User;
-    role: string;
+    userRoles: string[];
+    hasParentRole: boolean;
+    hasBabysitterRole: boolean;
+    requestedMode?: 'parent' | 'babysitter';
     children?: Child[];
 }
 
 const props = defineProps<Props>();
 const { showSuccess, showError } = useToast();
+const { currentMode, initializeMode, setMode } = useUserMode();
 
 const isEditing = ref(false);
 const isLoading = ref(false);
 const isGoogleLoaded = ref(false);
 let autocomplete: any;
+
+// Initialiser le mode au montage du composant
+onMounted(() => {
+    initializeMode(
+        props.hasParentRole, 
+        props.hasBabysitterRole, 
+        props.requestedMode
+    );
+});
+
+// Computed pour vérifier si l'utilisateur a plusieurs rôles
+const hasMultipleRoles = computed(() => {
+    return props.hasParentRole && props.hasBabysitterRole;
+});
+
+// Fonction pour changer de mode
+const switchMode = (mode: 'parent' | 'babysitter') => {
+    if (mode === currentMode.value) return;
+    
+    // Mettre à jour le localStorage
+    setMode(mode);
+    
+    // Rediriger vers la même page avec le paramètre mode
+    router.get(route('profil', { mode }), {}, {
+        preserveState: false,
+        preserveScroll: true
+    });
+};
 
 // Formulaire
 const form = ref({
@@ -63,6 +97,12 @@ const form = ref({
         ...child,
         age: String(child.age), // S'assurer que l'âge est une string
     })),
+    mode: currentMode.value,
+});
+
+// Watcher pour mettre à jour le mode dans le formulaire
+watch(currentMode, (newMode) => {
+    form.value.mode = newMode;
 });
 
 // Données d'adresse séparées
@@ -81,13 +121,17 @@ console.log("🏠 Données d'adresse initiales:", {
     addressData: addressData.value,
 });
 
-// Fonctions pour gérer les enfants
+// Fonctions pour gérer les enfants (seulement en mode parent)
 const addChild = () => {
-    form.value.children.push({ nom: '', age: '2', unite: 'ans' });
+    if (currentMode.value === 'parent') {
+        form.value.children.push({ nom: '', age: '2', unite: 'ans' });
+    }
 };
 
 const removeChild = (index: number) => {
-    form.value.children.splice(index, 1);
+    if (currentMode.value === 'parent') {
+        form.value.children.splice(index, 1);
+    }
 };
 
 const toggleEdit = () => {
@@ -265,11 +309,14 @@ const submitForm = async () => {
     };
 
     // Convertir l'âge des enfants en string (requis par le backend)
-    if (formData.children && formData.children.length > 0) {
+    if (formData.children && formData.children.length > 0 && currentMode.value === 'parent') {
         formData.children = formData.children.map((child) => ({
             ...child,
             age: String(child.age), // Convertir en string
         }));
+    } else if (currentMode.value === 'babysitter') {
+        // En mode babysitter, on n'envoie pas les enfants
+        delete formData.children;
     }
 
     // Validation côté frontend avant soumission
@@ -323,7 +370,7 @@ const submitForm = async () => {
 // Données calculées
 const fullName = computed(() => `${props.user.firstname} ${props.user.lastname}`);
 const userInfo = computed(() => {
-    if (props.role === 'parent') {
+    if (currentMode.value === 'parent') {
         const childCount = props.children?.length || 0;
         return `Parent de ${childCount} enfant${childCount > 1 ? 's' : ''}`;
     }
@@ -332,12 +379,43 @@ const userInfo = computed(() => {
 </script>
 
 <template>
-    <DashboardLayout :role="role">
+    <DashboardLayout :currentMode="currentMode">
         <div class="mx-auto max-w-4xl">
-            <!-- Titre -->
+            <!-- Titre avec switch de rôle -->
             <div class="mb-6">
-                <h1 class="text-2xl font-bold text-gray-800">Mon profil</h1>
-                <p class="text-gray-500">Gérez vos informations personnelles</p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Mon profil</h1>
+                        <p class="text-gray-500">Gérez vos informations personnelles</p>
+                    </div>
+                    
+                    <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
+                    <div v-if="hasMultipleRoles" class="flex items-center gap-4">
+                        <span class="text-sm font-medium text-gray-700">Mode :</span>
+                        <div class="flex rounded-lg border bg-gray-50 p-1">
+                            <Button
+                                @click="switchMode('parent')"
+                                :variant="currentMode === 'parent' ? 'default' : 'ghost'"
+                                size="sm"
+                                class="flex items-center gap-2"
+                                :class="currentMode === 'parent' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'"
+                            >
+                                <Users class="h-4 w-4" />
+                                Parent
+                            </Button>
+                            <Button
+                                @click="switchMode('babysitter')"
+                                :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
+                                size="sm"
+                                class="flex items-center gap-2"
+                                :class="currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'"
+                            >
+                                <Baby class="h-4 w-4" />
+                                Babysitter
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Header Card -->
@@ -360,6 +438,18 @@ const userInfo = computed(() => {
                             <div>
                                 <h2 class="text-2xl font-semibold text-gray-900">{{ fullName }}</h2>
                                 <p class="text-sm text-gray-500">{{ userInfo }}</p>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <div
+                                        :class="[
+                                            'rounded-full px-2 py-1 text-xs font-medium',
+                                            currentMode === 'parent' 
+                                                ? 'bg-blue-100 text-blue-800' 
+                                                : 'bg-orange-100 text-orange-800'
+                                        ]"
+                                    >
+                                        Mode {{ currentMode === 'parent' ? 'Parent' : 'Babysitter' }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -407,8 +497,8 @@ const userInfo = computed(() => {
                             </div>
                         </div>
 
-                        <!-- Enfants (seulement pour les parents) -->
-                        <div v-if="role === 'parent'" class="space-y-4">
+                        <!-- Enfants (seulement en mode parent) -->
+                        <div v-if="currentMode === 'parent' && hasParentRole" class="space-y-4">
                             <div class="flex items-center justify-between">
                                 <Label class="text-lg font-medium">Enfants</Label>
                                 <Button v-if="isEditing" type="button" @click="addChild" variant="outline" size="sm" class="flex items-center gap-2">
@@ -462,22 +552,25 @@ const userInfo = computed(() => {
                             </div>
                         </div>
 
-                        <!-- Vérification d'identité (seulement pour les babysitters) -->
-                        <Card v-if="role === 'babysitter'" class="border border-green-200 bg-green-50">
-                            <CardContent class="p-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
-                                        <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
+                        <!-- Informations babysitter (seulement en mode babysitter) -->
+                        <div v-if="currentMode === 'babysitter' && hasBabysitterRole" class="space-y-4">
+                            <!-- Vérification d'identité -->
+                            <Card class="border border-green-200 bg-green-50">
+                                <CardContent class="p-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
+                                            <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-green-800">Vérification d'identité</p>
+                                            <p class="text-sm text-green-700">Votre identité a été vérifiée le <strong>10 mars 2024</strong></p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="font-semibold text-green-800">Vérification d'identité</p>
-                                        <p class="text-sm text-green-700">Votre identité a été vérifiée le <strong>10 mars 2024</strong></p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        </div>
 
                         <!-- Boutons d'action -->
                         <div v-if="isEditing" class="flex justify-end gap-4 border-t pt-6">

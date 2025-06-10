@@ -12,11 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ads', function (Blueprint $table) {
-            // Ajouter la référence à l'adresse
-            $table->foreignId('address_id')->nullable()->after('description')->constrained('addresses')->onDelete('cascade');
-            
-            // Supprimer les anciens champs d'adresse (on les garde temporairement pour la migration des données)
-            // On les supprimera dans une migration séparée après avoir migré les données
+            // Supprimer les champs redondants puisque nous avons address_id
+            $table->dropColumn(['address', 'postal_code', 'country', 'latitude', 'longitude']);
         });
     }
 
@@ -26,8 +23,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('ads', function (Blueprint $table) {
-            $table->dropForeign(['address_id']);
-            $table->dropColumn('address_id');
+            // Restaurer les champs en cas de rollback
+            $table->string('address');
+            $table->string('postal_code')->nullable();
+            $table->string('country')->nullable();
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
         });
     }
 };

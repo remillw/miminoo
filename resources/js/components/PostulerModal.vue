@@ -28,6 +28,22 @@
   
         <!-- Corps avec espacement amélioré -->
         <div class="px-8 py-6 space-y-8">
+          <!-- Message d'erreur -->
+          <div v-if="error" class="p-4 rounded-xl bg-red-50 border border-red-200">
+            <p class="text-red-700 flex items-center gap-2">
+              <AlertCircle class="w-4 h-4" />
+              {{ error }}
+            </p>
+          </div>
+
+          <!-- Message de succès -->
+          <div v-if="success" class="p-4 rounded-xl bg-green-50 border border-green-200">
+            <p class="text-green-700 flex items-center gap-2">
+              <CheckCircle class="w-4 h-4" />
+              {{ success }}
+            </p>
+          </div>
+
           <!-- Récapitulatif en cards modernes -->
           <div class="grid grid-cols-2 gap-4">
             <div class="p-4 rounded-xl bg-orange-50/50 transition-all hover:bg-orange-50">
@@ -72,6 +88,7 @@
               placeholder="Présentez-vous et expliquez pourquoi vous êtes la babysitter idéale pour cette famille…"
               :maxlength="500"
               rows="4"
+              :disabled="isLoading || success"
               class="resize-none rounded-xl border-gray-200 focus:border-orange-300 focus:ring-orange-100 transition-all"
             />
             <p class="text-sm text-gray-400 text-right">{{ message.length }}/500 caractères</p>
@@ -81,7 +98,7 @@
           <div class="space-y-3">
             <Label for="rate" class="text-base font-medium text-gray-700 flex items-center justify-between">
               <span class="flex items-center gap-2">
-                <euro class="w-4 h-4" />
+                <Euro class="w-4 h-4" />
                 Votre tarif horaire
               </span>
               <span class="text-sm font-normal text-gray-500">Tarif demandé : {{ props.requestedRate }}€/h</span>
@@ -94,6 +111,7 @@
                 type="number"
                 min="0"
                 step="0.5"
+                :disabled="isLoading || success"
                 class="pl-9 pr-12 rounded-xl border-gray-200 focus:border-orange-300 focus:ring-orange-100 transition-all text-lg"
               />
               <span class="absolute inset-y-0 right-4 flex items-center text-gray-500">/h</span>
@@ -135,20 +153,23 @@
         <div class="flex gap-3 px-8 py-6 bg-gradient-to-br from-gray-50 to-white border-t">
           <Button 
             variant="outline" 
-            @click="onClose"
+            @click="closeModal"
+            :disabled="isLoading"
             class="flex-1 rounded-xl border-gray-200 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
           >
             <X class="w-4 h-4" />
-            Annuler
+            {{ success ? 'Fermer' : 'Annuler' }}
           </Button>
           
           <Button 
-            :disabled="!canSubmit" 
+            v-if="!success"
+            :disabled="!canSubmit || isLoading" 
             @click="submit"
             class="flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white border-0 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Send class="w-4 h-4" />
-            Envoyer ma candidature
+            <Loader v-if="isLoading" class="w-4 h-4 animate-spin" />
+            <Send v-else class="w-4 h-4" />
+            {{ isLoading ? 'Envoi...' : 'Envoyer ma candidature' }}
           </Button>
         </div>
       </DialogContent>
@@ -157,6 +178,8 @@
   
   <script setup lang="ts">
   import { ref, computed } from 'vue'
+  import { router } from '@inertiajs/vue3'
+  import { route } from 'ziggy-js'
   import {
     Dialog,
     DialogContent,
@@ -179,12 +202,16 @@
     Info,
     Calculator,
     X,
-    Send
+    Send,
+    AlertCircle,
+    CheckCircle,
+    Loader
   } from 'lucide-vue-next'
 
   interface Props {
     isOpen: boolean
     onClose: () => void
+    announcementId: number
     date: string
     hours: string
     location: string
@@ -198,6 +225,9 @@
   const message = ref('')
   const rate = ref(props.requestedRate)
   const duration = 4
+  const isLoading = ref(false)
+  const error = ref('')
+  const success = ref('')
 
   const isCounterProposal = computed(() => rate.value !== props.requestedRate)
   const effectiveRate = computed(() => rate.value)
@@ -210,12 +240,54 @@
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
   })
 
-  function submit() {
-    console.log('Candidature envoyée!', {
-      message: message.value,
-      rate: rate.value,
-      isCounterProposal: isCounterProposal.value
-    })
+  const closeModal = () => {
+    // Reset des données
+    message.value = ''
+    rate.value = props.requestedRate
+    error.value = ''
+    success.value = ''
+    isLoading.value = false
+    
     props.onClose()
+  }
+
+  async function submit() {
+    if (!canSubmit.value || isLoading.value) return
+
+    isLoading.value = true
+    error.value = ''
+
+    try {
+      const response = await fetch(route('announcements.apply', { announcement: props.announcementId }), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          message: message.value.trim(),
+          proposed_rate: rate.value
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        success.value = data.message || 'Candidature envoyée avec succès !'
+        
+        // Optionnel: rediriger après un délai
+        setTimeout(() => {
+          closeModal()
+        }, 2000)
+      } else {
+        error.value = data.error || 'Une erreur est survenue lors de l\'envoi de votre candidature'
+      }
+    } catch (err) {
+      console.error('Erreur lors de l\'envoi de la candidature:', err)
+      error.value = 'Une erreur réseau est survenue. Veuillez réessayer.'
+    } finally {
+      isLoading.value = false
+    }
   }
   </script>

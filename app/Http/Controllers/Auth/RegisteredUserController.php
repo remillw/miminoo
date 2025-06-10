@@ -38,45 +38,92 @@ class RegisteredUserController extends Controller
             'lastname' => 'required|string|min:2|max:50|regex:/^[a-zA-ZÀ-ÿ\s\'-]+$/',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|in:parent,babysitter',
             'accepted' => 'required|accepted',
         ]);
-
-        // Déterminer le role_id : 2 = parent, 3 = babysitter
-        $roleId = $request->role === 'parent' ? 2 : 3;
-
-        // Déterminer le statut selon le rôle
-        $status = $request->role === 'babysitter' ? 'pending' : 'approved';
 
         $user = User::create([
             'firstname' => $request->firstname,
             'lastname' => $request->lastname,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role_id' => $roleId,
-            'status' => $status,
+            'status' => 'pending', // En attente de configuration des rôles
         ]);
-
-        // Créer le profil correspondant selon le rôle
-        if ($request->role === 'parent') {
-            ParentProfile::create([
-                'user_id' => $user->id,
-            ]);
-        } elseif ($request->role === 'babysitter') {
-            BabysitterProfile::create([
-                'user_id' => $user->id,
-            ]);
-        }
 
         event(new Registered($user));
 
-        // Connexion automatique seulement pour les parents
-        if ($request->role === 'parent') {
+        // Stocker l'utilisateur en session pour la sélection de rôle
+        session(['newly_registered_user_id' => $user->id]);
+
+        // Rediriger vers la page de sélection de rôle
+        return redirect()->route('role.selection')->with('success', 'Compte créé avec succès ! Choisissez maintenant vos rôles.');
+    }
+
+    /**
+     * Afficher la page de sélection de rôle pour les nouveaux utilisateurs
+     */
+    public function roleSelection(): Response
+    {
+        if (!session('newly_registered_user_id')) {
+            return redirect()->route('login')->with('error', 'Session expirée. Veuillez vous connecter.');
+        }
+
+        return Inertia::render('auth/GoogleRoleSelection', [
+            'existingUser' => false,
+            'isGoogleUser' => false
+        ]);
+    }
+
+    /**
+     * Traiter la sélection de rôle pour les nouveaux utilisateurs
+     */
+    public function completeRegistration(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'roles' => 'required|array|min:1',
+            'roles.*' => 'in:parent,babysitter'
+        ]);
+
+        $userId = session('newly_registered_user_id');
+        
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'Session expirée. Veuillez vous connecter.');
+        }
+
+        $user = User::find($userId);
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Utilisateur introuvable.');
+        }
+
+        try {
+            // Assigner les rôles via la table pivot et créer les profils
+            foreach ($request->roles as $roleName) {
+                $user->assignRole($roleName);
+                
+                if ($roleName === 'parent') {
+                    ParentProfile::firstOrCreate(['user_id' => $user->id]);
+                } elseif ($roleName === 'babysitter') {
+                    BabysitterProfile::firstOrCreate(['user_id' => $user->id]);
+                }
+            }
+
+            // Définir le statut : pending si babysitter inclus, sinon approved
+            $status = in_array('babysitter', $request->roles) ? 'pending' : 'approved';
+            $user->update(['status' => $status]);
+
+            // Supprimer la session
+            session()->forget('newly_registered_user_id');
+
+            // Connexion automatique
             Auth::login($user);
-            return to_route('dashboard');
-        } else {
-            // Pour les babysitters, redirection vers une page d'attente
-            return to_route('login')->with('status', 'Votre compte babysitter a été créé et est en attente de validation par nos modérateurs. Vous recevrez un email de confirmation une fois votre compte approuvé.');
+
+            if ($user->status === 'pending') {
+                return redirect()->route('dashboard')->with('info', 'Votre profil babysitter est en attente d\'approbation par notre équipe.');
+            }
+
+            return redirect()->route('dashboard')->with('success', 'Inscription terminée avec succès !');
+
+        } catch (\Exception $e) {
+            return redirect()->route('role.selection')->with('error', 'Erreur lors de la configuration des rôles.');
         }
     }
 }

@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import CardAnnonce from '@/components/CardAnnonce.vue';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Filter, Search } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { useGeolocation } from '@/composables/useGeolocation';
+import { Button } from '@/components/ui/button';
+import { router } from '@inertiajs/vue3';
+import { Filter, Search, MapPin, Navigation } from 'lucide-vue-next';
+import { computed, ref, onMounted, watch } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Announcement {
     id: number;
@@ -12,6 +16,7 @@ interface Announcement {
     date_end: string;
     status: string;
     created_at: string;
+    distance?: number; // Distance calculée côté serveur
     parent: {
         id: number;
         firstname: string;
@@ -44,14 +49,80 @@ interface Props {
         last_page: number;
         total: number;
     };
+    filters?: {
+        search?: string;
+        min_rate?: number;
+        age_range?: string;
+        date?: string;
+        location?: string;
+        latitude?: number;
+        longitude?: number;
+    };
 }
 
 const props = defineProps<Props>();
 
-const tarif = ref(10);
-const age = ref('');
-const date = ref('');
-const lieu = ref('');
+// Géolocalisation
+const { 
+    userPosition, 
+    isGeolocationEnabled, 
+    isLoading: geoLoading, 
+    error: geoError, 
+    requestGeolocation,
+    getDistanceFromUser 
+} = useGeolocation();
+
+// Filtres
+const searchQuery = ref(props.filters?.search || '');
+const tarif = ref(props.filters?.min_rate || 10);
+const age = ref(props.filters?.age_range || '');
+const date = ref(props.filters?.date || '');
+const lieu = ref(props.filters?.location || '');
+const showFilters = ref(false);
+
+// Appliquer les filtres
+const applyFilters = () => {
+    const params: any = {};
+    
+    if (searchQuery.value) params.search = searchQuery.value;
+    if (tarif.value > 10) params.min_rate = tarif.value;
+    if (age.value) params.age_range = age.value;
+    if (date.value) params.date = date.value;
+    if (lieu.value) params.location = lieu.value;
+    
+    // Ajouter les coordonnées si géolocalisation activée
+    if (isGeolocationEnabled.value && userPosition.value) {
+        params.latitude = userPosition.value.latitude;
+        params.longitude = userPosition.value.longitude;
+    }
+    
+    router.get(route('announcements.index'), params, {
+        preserveState: false,
+        preserveScroll: false
+    });
+};
+
+// Recherche en temps réel
+const searchWithDelay = (() => {
+    let timeout: NodeJS.Timeout;
+    return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            applyFilters();
+        }, 500);
+    };
+})();
+
+watch(searchQuery, searchWithDelay);
+
+// Activer la géolocalisation
+const enableGeolocation = async () => {
+    const position = await requestGeolocation();
+    if (position) {
+        // Relancer la recherche avec la position
+        applyFilters();
+    }
+};
 
 // Transformer les annonces backend pour le composant CardAnnonce
 const annonces = computed(() => {
@@ -88,6 +159,14 @@ const annonces = computed(() => {
         city = city.replace(/\d{5}/, '').trim();
         const postalCode = announcement.address.postal_code;
 
+        // Distance calculée
+        let distance = null;
+        if (announcement.distance !== undefined) {
+            distance = announcement.distance;
+        } else if (isGeolocationEnabled.value) {
+            distance = getDistanceFromUser(announcement.address.latitude, announcement.address.longitude);
+        }
+
         return {
             id: announcement.id,
             avatar: announcement.parent.avatar || '/storage/default-avatar.png',
@@ -103,15 +182,22 @@ const annonces = computed(() => {
             childrenCount: announcement.additional_data.children.length,
             description: announcement.description,
             rate: announcement.additional_data.hourly_rate,
+            distance: distance,
+            latitude: announcement.address.latitude,
+            longitude: announcement.address.longitude,
         };
     });
 });
 
 const resetFilters = () => {
+    searchQuery.value = '';
     tarif.value = 10;
     age.value = '';
     date.value = '';
     lieu.value = '';
+    
+    // Relancer la recherche sans filtres
+    applyFilters();
 };
 
 const progressStyle = computed(() => {
@@ -121,7 +207,15 @@ const progressStyle = computed(() => {
     };
 });
 
-const showFilters = ref(false);
+// Charger la position au montage si elle existe
+onMounted(() => {
+    // Si on a une position et pas de filtres appliqués, relancer avec géolocalisation
+    if (isGeolocationEnabled.value && !props.filters?.latitude) {
+        setTimeout(() => {
+            applyFilters();
+        }, 100);
+    }
+});
 </script>
 
 <template>
@@ -134,10 +228,28 @@ const showFilters = ref(false);
                     Découvrez des opportunités de garde d'enfants qui correspondent à vos disponibilités et à vos compétences
                 </p>
 
+                <!-- Géolocalisation -->
+                <div v-if="!isGeolocationEnabled" class="mb-6 flex justify-center">
+                    <div class="flex items-center gap-4 rounded-xl bg-white p-4 shadow-md">
+                        <MapPin class="h-5 w-5 text-orange-500" />
+                        <span class="text-gray-700">Activez la géolocalisation pour voir les annonces les plus proches</span>
+                        <Button 
+                            @click="enableGeolocation" 
+                            :disabled="geoLoading"
+                            size="sm"
+                            class="bg-orange-500 hover:bg-orange-600"
+                        >
+                            <Navigation class="mr-2 h-4 w-4" />
+                            {{ geoLoading ? 'Localisation...' : 'Activer' }}
+                        </Button>
+                    </div>
+                </div>
+
                 <!-- Barre de recherche + bouton filtre -->
                 <div class="mb-10 flex items-center justify-center gap-2">
                     <div class="relative flex w-full max-w-3xl">
                         <input
+                            v-model="searchQuery"
                             type="text"
                             placeholder="Rechercher par lieu, nom des parents, mots-clé…"
                             class="focus:ring-primary w-full rounded-l-xl border border-gray-300 bg-white py-4 pr-4 pl-12 text-base placeholder-gray-400 shadow-sm focus:ring-2 focus:outline-none"
@@ -274,8 +386,20 @@ const showFilters = ref(false);
                             Réinitialiser
                         </button>
 
-                        <button class="bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white hover:bg-orange-500">Appliquer</button>
+                        <button 
+                            @click="applyFilters"
+                            class="bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white hover:bg-orange-500"
+                        >
+                            Appliquer
+                        </button>
                     </div>
+                </div>
+
+                <!-- Information géolocalisation -->
+                <div v-if="isGeolocationEnabled" class="mb-6 text-center">
+                    <p class="text-sm text-gray-600">
+                        📍 Annonces triées par distance ({{ props.announcements.total }} résultat{{ props.announcements.total > 1 ? 's' : '' }})
+                    </p>
                 </div>
 
                 <!-- Liste des annonces -->
@@ -287,14 +411,28 @@ const showFilters = ref(false);
                 <div v-if="annonces.length === 0" class="mt-10 text-center">
                     <div class="mx-auto max-w-md rounded-lg bg-white p-8 shadow-md">
                         <div class="mb-4 text-6xl">👶</div>
-                        <h3 class="mb-2 text-xl font-semibold text-gray-800">Aucune annonce disponible</h3>
-                        <p class="text-gray-600">Soyez le premier à publier une annonce de babysitting !</p>
-                        <a
-                            href="/annonces/create"
-                            class="mt-4 inline-block rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
-                        >
-                            Créer une annonce
-                        </a>
+                        <h3 class="mb-2 text-xl font-semibold text-gray-800">Aucune annonce trouvée</h3>
+                        <p class="text-gray-600">
+                            {{ Object.keys(props.filters || {}).length > 0 
+                                ? 'Essayez de modifier vos critères de recherche.' 
+                                : 'Soyez le premier à publier une annonce de babysitting !' 
+                            }}
+                        </p>
+                        <div class="mt-4 flex flex-col gap-2">
+                            <a
+                                href="/annonces/create"
+                                class="inline-block rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
+                            >
+                                Créer une annonce
+                            </a>
+                            <button
+                                v-if="Object.keys(props.filters || {}).length > 0"
+                                @click="resetFilters"
+                                class="text-sm text-gray-500 hover:text-gray-700"
+                            >
+                                Réinitialiser les filtres
+                            </button>
+                        </div>
                     </div>
                 </div>
 

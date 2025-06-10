@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -11,9 +12,7 @@ Route::get('/', function () {
 
 Route::get('/annonces', [AnnouncementController::class, 'index'])->name('announcements.index');
 
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('profil', [ProfileController::class, 'show'])->name('profil');
@@ -23,6 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('annonces/create', [AnnouncementController::class, 'create'])->name('announcements.create');
     Route::post('annonces', [AnnouncementController::class, 'store'])->name('announcements.store');
     Route::get('mes-annonces', [AnnouncementController::class, 'myAnnouncements'])->name('announcements.my');
+    Route::post('annonces/{announcement}/apply', [AnnouncementController::class, 'apply'])->name('announcements.apply');
     Route::resource('announcements', AnnouncementController::class)->except(['create', 'store']);
 });
 

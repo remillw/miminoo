@@ -26,7 +26,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'lastname',
         'email',
         'password',
-        'role_id',
         'is_verified',
         'status',
         'google_id',
@@ -76,9 +75,50 @@ class User extends Authenticatable implements MustVerifyEmail
         return !empty($this->google_id) && empty($this->password);
     }
 
-     public function role()
+    /**
+     * Relation many-to-many avec les rôles
+     */
+    public function roles()
     {
-        return $this->belongsTo(Role::class);
+        return $this->belongsToMany(Role::class, 'user_roles');
+    }
+
+    /**
+     * Vérifier si l'utilisateur a un rôle spécifique
+     */
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    /**
+     * Vérifier si l'utilisateur a un des rôles spécifiés
+     */
+    public function hasAnyRole(array $roleNames): bool
+    {
+        return $this->roles()->whereIn('name', $roleNames)->exists();
+    }
+
+    /**
+     * Assigner un rôle à l'utilisateur
+     */
+    public function assignRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+        if ($role && !$this->hasRole($roleName)) {
+            $this->roles()->attach($role->id);
+        }
+    }
+
+    /**
+     * Retirer un rôle à l'utilisateur
+     */
+    public function removeRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+        if ($role) {
+            $this->roles()->detach($role->id);
+        }
     }
 
     public function address()
@@ -87,12 +127,12 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function parentProfile()
-{
-    return $this->hasOne(ParentProfile::class);
-}
+    {
+        return $this->hasOne(ParentProfile::class);
+    }
 
-public function babysitterProfile()
-{
-    return $this->hasOne(BabysitterProfile::class);
-}
+    public function babysitterProfile()
+    {
+        return $this->hasOne(BabysitterProfile::class);
+    }
 }

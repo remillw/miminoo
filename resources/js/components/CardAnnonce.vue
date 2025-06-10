@@ -25,9 +25,15 @@
         </div>
         <div class="flex items-start gap-2">
           <MapPin class="h-7 w-7 text-primary bg-orange-50 rounded-md p-1" />
-          <p class="font-semibold">
-            {{ city }}<span class="text-gray-500">, {{ postalCode }}</span>
-          </p>
+          <div>
+            <p class="font-semibold">
+              {{ city }}<span class="text-gray-500">, {{ postalCode }}</span>
+            </p>
+            <!-- Affichage de la distance si disponible -->
+            <p v-if="distance !== null" class="text-xs text-gray-500 flex items-center gap-1">
+              <span>📍 {{ distance }} km</span>
+            </p>
+          </div>
         </div>
       </div>
   
@@ -60,6 +66,7 @@
       <PostulerModal
         :is-open="isModalOpen"
         :on-close="() => isModalOpen = false"
+        :announcement-id="id"
         :date="rawDate"
         :hours="time"
         :location="`${city}, ${postalCode}`"
@@ -77,6 +84,7 @@
   import PostulerModal from './PostulerModal.vue';
   
   const props = defineProps({
+    id: Number,
     avatar: String,
     name: String,
     rating: Number,
@@ -90,6 +98,12 @@
     childrenCount: Number,
     description: String,
     rate: Number,
+    distance: {
+      type: Number,
+      default: null
+    },
+    latitude: Number,
+    longitude: Number,
   });
 
   const isModalOpen = ref(false);

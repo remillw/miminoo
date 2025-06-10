@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            $table->foreignId('role_id')->nullable()->change();
+            $table->enum('status', ['approved', 'pending', 'rejected'])->default('pending')->change();
         });
     }
 
@@ -22,7 +23,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            $table->foreignId('role_id')->nullable(false)->change();
+            $table->enum('status', ['approved', 'pending', 'rejected'])->default('approved')->change();
         });
     }
 };

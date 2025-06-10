@@ -17,6 +17,13 @@ Route::middleware('guest')->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
+    // Routes pour la sélection de rôle après inscription
+    Route::get('role-selection', [RegisteredUserController::class, 'roleSelection'])
+        ->name('role.selection');
+    
+    Route::post('role-selection', [RegisteredUserController::class, 'completeRegistration'])
+        ->name('role.complete');
+
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 

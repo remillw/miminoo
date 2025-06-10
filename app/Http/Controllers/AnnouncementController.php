@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ad;
+use App\Models\AdApplication;
 use App\Models\Address;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,22 +13,168 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class AnnouncementController extends Controller
 {
     /**
-     * Display a listing of announcements.
+     * Display a listing of announcements with filters.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $announcements = Ad::with(['parent', 'address'])
+        $query = Ad::with(['parent', 'address'])
             ->where('status', 'active')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->where('date_start', '>=', now());
+
+        // Filtre par tarif minimum
+        if ($request->filled('min_rate')) {
+            $query->whereRaw("JSON_EXTRACT(additional_data, '$.hourly_rate') >= ?", [$request->min_rate]);
+        }
+
+        // Filtre par âge des enfants
+        if ($request->filled('age_range')) {
+            $ageRange = $request->age_range;
+            
+            $query->where(function($q) use ($ageRange) {
+                $q->whereRaw("JSON_SEARCH(additional_data, 'one', ?, null, '$.children[*].age') IS NOT NULL", [$ageRange])
+                  ->orWhereRaw("JSON_EXTRACT(additional_data, '$.children') LIKE ?", ["%{$ageRange}%"]);
+            });
+        }
+
+        // Filtre par date
+        if ($request->filled('date')) {
+            $filterDate = Carbon::parse($request->date)->format('Y-m-d');
+            $query->whereDate('date_start', $filterDate);
+        }
+
+        // Filtre par lieu (recherche dans l'adresse et le code postal)
+        if ($request->filled('location')) {
+            $location = $request->location;
+            $query->whereHas('address', function($q) use ($location) {
+                $q->where('address', 'LIKE', "%{$location}%")
+                  ->orWhere('postal_code', 'LIKE', "%{$location}%");
+            });
+        }
+
+        // Filtre par recherche générale
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%")
+                  ->orWhereHas('parent', function($q2) use ($search) {
+                      $q2->where('firstname', 'LIKE', "%{$search}%")
+                         ->orWhere('lastname', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('address', function($q2) use ($search) {
+                      $q2->where('address', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        // Géolocalisation - tri par distance si coordonnées fournies
+        if ($request->filled('latitude') && $request->filled('longitude')) {
+            $userLat = $request->latitude;
+            $userLng = $request->longitude;
+            
+            // Calcul de la distance avec la formule haversine
+            $query->selectRaw("
+                ads.*,
+                (6371 * acos(
+                    cos(radians(?)) * 
+                    cos(radians(addresses.latitude)) * 
+                    cos(radians(addresses.longitude) - radians(?)) + 
+                    sin(radians(?)) * 
+                    sin(radians(addresses.latitude))
+                )) AS distance
+            ", [$userLat, $userLng, $userLat])
+            ->join('addresses', 'ads.address_id', '=', 'addresses.id')
+            ->orderBy('distance', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $announcements = $query->paginate(12);
 
         return Inertia::render('Annonces', [
-            'announcements' => $announcements
+            'announcements' => $announcements,
+            'filters' => [
+                'search' => $request->search,
+                'min_rate' => $request->min_rate,
+                'age_range' => $request->age_range,
+                'date' => $request->date,
+                'location' => $request->location,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ]
         ]);
+    }
+
+    /**
+     * Store a new application for an announcement.
+     */
+    public function apply(Request $request, Ad $announcement)
+    {
+        // Vérifier que l'utilisateur est connecté
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Vous devez être connecté pour postuler'], 401);
+        }
+
+        $user = Auth::user();
+
+        // Vérifier que l'utilisateur a le rôle babysitter
+        if (!$user->hasRole('babysitter')) {
+            return response()->json(['error' => 'Seuls les babysitters peuvent postuler à cette annonce'], 403);
+        }
+
+        // Vérifier que l'utilisateur ne postule pas à sa propre annonce
+        if ($announcement->parent_id === $user->id) {
+            return response()->json(['error' => 'Vous ne pouvez pas postuler à votre propre annonce'], 403);
+        }
+
+        // Vérifier qu'il n'a pas déjà postulé
+        $existingApplication = AdApplication::where('ad_id', $announcement->id)
+            ->where('babysitter_id', $user->id)
+            ->first();
+
+        if ($existingApplication) {
+            return response()->json(['error' => 'Vous avez déjà postulé à cette annonce'], 409);
+        }
+
+        $validated = $request->validate([
+            'message' => 'required|string|max:500',
+            'proposed_rate' => 'required|numeric|min:0|max:999.99',
+        ]);
+
+        try {
+            $application = AdApplication::create([
+                'ad_id' => $announcement->id,
+                'babysitter_id' => $user->id,
+                'motivation_note' => $validated['message'],
+                'proposed_rate' => $validated['proposed_rate'],
+                'status' => 'pending'
+            ]);
+
+            Log::info('Candidature créée:', [
+                'application_id' => $application->id,
+                'ad_id' => $announcement->id,
+                'babysitter_id' => $user->id
+            ]);
+
+            return response()->json([
+                'message' => 'Candidature envoyée avec succès !',
+                'application' => $application
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création de la candidature:', [
+                'error' => $e->getMessage(),
+                'ad_id' => $announcement->id,
+                'user_id' => $user->id
+            ]);
+
+            return response()->json(['error' => 'Une erreur est survenue lors de l\'envoi de votre candidature'], 500);
+        }
     }
 
     /**

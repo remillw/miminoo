@@ -8,13 +8,20 @@ import { computed } from 'vue';
 
 interface Props {
     role?: string;
+    currentMode?: 'parent' | 'babysitter';
 }
 
 const props = defineProps<Props>();
 const page = usePage();
 
-// Sidebar dynamique selon le rôle
+// Sidebar dynamique selon le mode ou le rôle
 const SidebarComponent = computed(() => {
+    // Priorité au currentMode si fourni
+    if (props.currentMode) {
+        return props.currentMode === 'parent' ? ParentSidebar : BabysitterSidebar;
+    }
+    
+    // Fallback sur le rôle simple (pour la rétrocompatibilité)
     const userRole = props.role || page.props.auth?.user?.role?.name;
     return userRole === 'parent' ? ParentSidebar : BabysitterSidebar;
 });

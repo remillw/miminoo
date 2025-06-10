@@ -17,11 +17,6 @@ class GoogleAuthController extends Controller
      */
     public function redirect(Request $request)
     {
-        // Stocker le rôle choisi en session si fourni
-        if ($request->has('role')) {
-            session(['intended_role' => $request->role]);
-        }
-        
         return Socialite::driver('google')->redirect();
     }
 
@@ -67,9 +62,11 @@ class GoogleAuthController extends Controller
                     'email_verified_at' => $existingUser->fresh()->email_verified_at?->format('Y-m-d H:i:s') ?? 'NULL',
                 ]);
 
-                // Vérifier si l'utilisateur a un rôle
-                if (!$existingUser->role_id || !$existingUser->role) {
-                    // Utilisateur sans rôle - demander le rôle
+                // Vérifier si l'utilisateur a des rôles configurés
+                $hasRoles = $existingUser->roles()->exists();
+
+                if (!$hasRoles) {
+                    // Utilisateur sans rôles configurés - demander les rôles
                     session([
                         'existing_user_id' => $existingUser->id,
                         'google_user' => [
@@ -80,25 +77,17 @@ class GoogleAuthController extends Controller
                         ]
                     ]);
 
-                    return Inertia::render('Auth/GoogleRoleSelection', [
+                    return Inertia::render('auth/GoogleRoleSelection', [
                         'existingUser' => true
                     ]);
                 }
 
-                // Utilisateur avec rôle - connexion directe
+                // Utilisateur avec rôles configurés - connexion directe
                 Auth::login($existingUser);
                 return redirect()->intended('/dashboard')->with('success', 'Connexion réussie avec Google !');
             }
 
-            // Nouvel utilisateur - vérifier si un rôle a été choisi avant la redirection
-            $intendedRole = session('intended_role');
-            
-            if ($intendedRole) {
-                // Rôle déjà choisi, créer directement le compte
-                return $this->createUserWithRole($googleUser, $intendedRole);
-            }
-
-            // Pas de rôle choisi - stocker les données et demander le rôle
+            // Nouvel utilisateur - créer le compte et demander les rôles
             session([
                 'google_user' => [
                     'google_id' => $googleUser->getId(),
@@ -108,7 +97,7 @@ class GoogleAuthController extends Controller
                 ]
             ]);
 
-            return Inertia::render('Auth/GoogleRoleSelection', [
+            return Inertia::render('auth/GoogleRoleSelection', [
                 'existingUser' => false
             ]);
 
@@ -125,7 +114,8 @@ class GoogleAuthController extends Controller
     public function completeRegistration(Request $request)
     {
         $request->validate([
-            'role' => 'required|in:parent,babysitter'
+            'roles' => 'required|array|min:1',
+            'roles.*' => 'in:parent,babysitter'
         ]);
 
         $googleUserData = session('google_user');
@@ -137,39 +127,40 @@ class GoogleAuthController extends Controller
 
         try {
             if ($existingUserId) {
-                // Utilisateur existant - mise à jour du rôle
+                // Utilisateur existant - configuration des rôles
                 $user = User::find($existingUserId);
                 
                 if (!$user) {
                     return redirect('/login')->with('error', 'Utilisateur introuvable.');
                 }
 
-                $roleId = $request->role === 'parent' ? 2 : 3;
-                $status = $request->role === 'babysitter' ? 'pending' : 'approved';
-
-                $user->update([
-                    'role_id' => $roleId,
-                    'status' => $status,
-                ]);
-
-                // Créer le profil correspondant
-                if ($request->role === 'parent') {
-                    \App\Models\ParentProfile::create(['user_id' => $user->id]);
-                } else {
-                    \App\Models\BabysitterProfile::create(['user_id' => $user->id]);
+                // Assigner les rôles via la table pivot
+                foreach ($request->roles as $roleName) {
+                    $user->assignRole($roleName);
+                    
+                    // Créer les profils correspondants
+                    if ($roleName === 'parent') {
+                        \App\Models\ParentProfile::firstOrCreate(['user_id' => $user->id]);
+                    } elseif ($roleName === 'babysitter') {
+                        \App\Models\BabysitterProfile::firstOrCreate(['user_id' => $user->id]);
+                    }
                 }
 
-                session()->forget(['google_user', 'existing_user_id', 'intended_role']);
+                // Définir le statut : pending si babysitter inclus, sinon approved
+                $status = in_array('babysitter', $request->roles) ? 'pending' : 'approved';
+                $user->update(['status' => $status]);
+
+                session()->forget(['google_user', 'existing_user_id']);
                 Auth::login($user);
 
                 if ($user->status === 'pending') {
-                    return redirect('/dashboard')->with('info', 'Votre email est vérifié ! Votre demande de babysitter est en attente d\'approbation.');
+                    return redirect('/dashboard')->with('info', 'Votre email est vérifié ! Votre profil babysitter est en attente d\'approbation.');
                 }
 
-                return redirect('/dashboard')->with('success', 'Profil complété avec succès !');
+                return redirect('/dashboard')->with('success', 'Profils configurés avec succès !');
             } else {
                 // Nouvel utilisateur
-                return $this->createUserWithRole($googleUserData, $request->role);
+                return $this->createUserWithRoles($googleUserData, $request->roles);
             }
 
         } catch (\Exception $e) {
@@ -182,54 +173,57 @@ class GoogleAuthController extends Controller
         }
     }
 
-    private function createUserWithRole($googleUserData, $role)
+    private function createUserWithRoles($googleUserData, $roles)
     {
-        // Déterminer le role_id
-        $roleId = $role === 'parent' ? 2 : 3;
-
         // Séparer le nom complet en prénom et nom
         $name = is_array($googleUserData) ? $googleUserData['name'] : $googleUserData->getName();
         $nameParts = explode(' ', $name, 2);
         $firstname = $nameParts[0];
         $lastname = isset($nameParts[1]) ? $nameParts[1] : '';
 
-        // Créer l'utilisateur
+        // Définir le statut : pending si babysitter inclus, sinon approved
+        $status = in_array('babysitter', $roles) ? 'pending' : 'approved';
+
+        // Créer l'utilisateur sans rôle prédéfini
         $user = User::create([
             'firstname' => $firstname,
             'lastname' => $lastname,
             'email' => is_array($googleUserData) ? $googleUserData['email'] : $googleUserData->getEmail(),
             'google_id' => is_array($googleUserData) ? $googleUserData['google_id'] : $googleUserData->getId(),
             'avatar' => is_array($googleUserData) ? $googleUserData['avatar'] : $googleUserData->getAvatar(),
-            'role_id' => $roleId,
-            'status' => $role === 'parent' ? 'approved' : 'pending',
+            'status' => $status,
             'email_verified_at' => now(), // Email automatiquement vérifié avec Google
         ]);
 
-        // Créer le profil correspondant
-        if ($role === 'parent') {
-            \App\Models\ParentProfile::create(['user_id' => $user->id]);
-        } else {
-            \App\Models\BabysitterProfile::create(['user_id' => $user->id]);
+        // Assigner les rôles via la table pivot et créer les profils
+        foreach ($roles as $roleName) {
+            $user->assignRole($roleName);
+            
+            if ($roleName === 'parent') {
+                \App\Models\ParentProfile::create(['user_id' => $user->id]);
+            } elseif ($roleName === 'babysitter') {
+                \App\Models\BabysitterProfile::create(['user_id' => $user->id]);
+            }
         }
 
         Log::info('Google user created successfully:', [
             'user_id' => $user->id,
             'email' => $user->email,
-            'role' => $role,
+            'roles' => $roles,
             'status' => $user->status,
             'email_verified_at' => $user->email_verified_at?->format('Y-m-d H:i:s') ?? 'NULL',
             'google_id' => $user->google_id,
         ]);
 
         // Supprimer les données de session
-        session()->forget(['google_user', 'existing_user_id', 'intended_role']);
+        session()->forget(['google_user', 'existing_user_id']);
 
         // Connexion automatique
         Auth::login($user);
 
         // Redirection selon le statut
         if ($user->status === 'pending') {
-            return redirect('/dashboard')->with('info', 'Votre demande de babysitter est en attente d\'approbation. Votre email est déjà vérifié !');
+            return redirect('/dashboard')->with('info', 'Votre profil babysitter est en attente d\'approbation. Votre email est déjà vérifié !');
         }
 
         return redirect('/dashboard')->with('success', 'Compte créé avec succès !');
