@@ -66,6 +66,7 @@
         :children-count="childrenCount"
         :avatar-url="avatar"
         :family-name="name"
+        :requested-rate="rate"
       />
     </div>
   </template>
