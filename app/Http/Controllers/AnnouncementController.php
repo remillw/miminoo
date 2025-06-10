@@ -28,17 +28,72 @@ class AnnouncementController extends Controller
 
         // Filtre par tarif minimum
         if ($request->filled('min_rate')) {
-            $query->whereRaw("JSON_EXTRACT(additional_data, '$.hourly_rate') >= ?", [$request->min_rate]);
+            $query->whereRaw("CAST(JSON_EXTRACT(additional_data, '$.hourly_rate') AS DECIMAL(8,2)) >= ?", [$request->min_rate]);
         }
 
         // Filtre par âge des enfants
         if ($request->filled('age_range')) {
             $ageRange = $request->age_range;
             
-            $query->where(function($q) use ($ageRange) {
-                $q->whereRaw("JSON_SEARCH(additional_data, 'one', ?, null, '$.children[*].age') IS NOT NULL", [$ageRange])
-                  ->orWhereRaw("JSON_EXTRACT(additional_data, '$.children') LIKE ?", ["%{$ageRange}%"]);
-            });
+            if ($ageRange === '<3') {
+                // Enfants de moins de 3 ans 
+                $query->where(function($q) {
+                    // Enfants en mois (considérés < 3 ans)
+                    $q->whereRaw("JSON_SEARCH(additional_data, 'one', 'mois', NULL, '$.children[*].unite') IS NOT NULL")
+                      // OU enfants en ans de 0, 1 ou 2 ans
+                      ->orWhere(function($q2) {
+                          $q2->whereRaw("JSON_SEARCH(additional_data, 'one', 'ans', NULL, '$.children[*].unite') IS NOT NULL")
+                             ->whereRaw("(
+                                 JSON_SEARCH(additional_data, 'one', '0', NULL, '$.children[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(additional_data, 'one', '1', NULL, '$.children[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(additional_data, 'one', '2', NULL, '$.children[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(additional_data, 'one', 0, NULL, '$.children[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(additional_data, 'one', 1, NULL, '$.children[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(additional_data, 'one', 2, NULL, '$.children[*].age') IS NOT NULL
+                             )");
+                      });
+                });
+            } elseif ($ageRange === '3-6') {
+                // Enfants entre 3 et 6 ans (uniquement en ans)
+                $query->where(function($q) {
+                    $q->whereRaw("JSON_SEARCH(additional_data, 'one', 'ans', NULL, '$.children[*].unite') IS NOT NULL")
+                      ->whereRaw("(
+                          JSON_SEARCH(additional_data, 'one', '3', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '4', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '5', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '6', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 3, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 4, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 5, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 6, NULL, '$.children[*].age') IS NOT NULL
+                      )");
+                });
+            } elseif ($ageRange === '6+') {
+                // Enfants de plus de 6 ans (uniquement en ans)
+                $query->where(function($q) {
+                    $q->whereRaw("JSON_SEARCH(additional_data, 'one', 'ans', NULL, '$.children[*].unite') IS NOT NULL")
+                      ->whereRaw("(
+                          JSON_SEARCH(additional_data, 'one', '7', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '8', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '9', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '10', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '11', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '12', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '13', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '14', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', '15', NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 7, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 8, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 9, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 10, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 11, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 12, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 13, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 14, NULL, '$.children[*].age') IS NOT NULL OR
+                          JSON_SEARCH(additional_data, 'one', 15, NULL, '$.children[*].age') IS NOT NULL
+                      )");
+                });
+            }
         }
 
         // Filtre par date
@@ -73,10 +128,26 @@ class AnnouncementController extends Controller
         }
 
         // Géolocalisation - tri par distance si coordonnées fournies
-        if ($request->filled('latitude') && $request->filled('longitude')) {
+        $userLat = null;
+        $userLng = null;
+        
+        // Vérifier d'abord les coordonnées en session (priorité)
+        if (session()->has('user_latitude') && session()->has('user_longitude')) {
+            // Vérifier que les coordonnées ne sont pas trop anciennes (max 1 heure)
+            $locationSetAt = session('location_set_at');
+            if ($locationSetAt && now()->diffInMinutes($locationSetAt) <= 60) {
+                $userLat = session('user_latitude');
+                $userLng = session('user_longitude');
+            }
+        }
+        
+        // Sinon, utiliser les coordonnées de l'URL (pour compatibilité)
+        if (!$userLat && !$userLng && $request->filled('latitude') && $request->filled('longitude')) {
             $userLat = $request->latitude;
             $userLng = $request->longitude;
-            
+        }
+        
+        if ($userLat && $userLng) {
             // Calcul de la distance avec la formule haversine
             $query->selectRaw("
                 ads.*,
@@ -104,8 +175,6 @@ class AnnouncementController extends Controller
                 'age_range' => $request->age_range,
                 'date' => $request->date,
                 'location' => $request->location,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
             ]
         ]);
     }

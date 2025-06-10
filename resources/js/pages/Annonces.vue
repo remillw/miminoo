@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import CardAnnonce from '@/components/CardAnnonce.vue';
-import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { useGeolocation } from '@/composables/useGeolocation';
 import { Button } from '@/components/ui/button';
+import { useGeolocation } from '@/composables/useGeolocation';
+import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { router } from '@inertiajs/vue3';
-import { Filter, Search, MapPin, Navigation } from 'lucide-vue-next';
-import { computed, ref, onMounted, watch } from 'vue';
+import { Filter, MapPin, Navigation, Search } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
 interface Announcement {
@@ -63,14 +63,7 @@ interface Props {
 const props = defineProps<Props>();
 
 // Géolocalisation
-const { 
-    userPosition, 
-    isGeolocationEnabled, 
-    isLoading: geoLoading, 
-    error: geoError, 
-    requestGeolocation,
-    getDistanceFromUser 
-} = useGeolocation();
+const { userPosition, isGeolocationEnabled, isLoading: geoLoading, requestGeolocation, getDistanceFromUser } = useGeolocation();
 
 // Filtres
 const searchQuery = ref(props.filters?.search || '');
@@ -80,25 +73,46 @@ const date = ref(props.filters?.date || '');
 const lieu = ref(props.filters?.location || '');
 const showFilters = ref(false);
 
+// Variables pour éviter la boucle infinie
+const lastLocationSent = ref<number>(0);
+const LOCATION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes en millisecondes
+
 // Appliquer les filtres
-const applyFilters = () => {
+const applyFilters = async () => {
     const params: any = {};
-    
-    if (searchQuery.value) params.search = searchQuery.value;
+
+    if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
     if (tarif.value > 10) params.min_rate = tarif.value;
     if (age.value) params.age_range = age.value;
     if (date.value) params.date = date.value;
-    if (lieu.value) params.location = lieu.value;
-    
-    // Ajouter les coordonnées si géolocalisation activée
-    if (isGeolocationEnabled.value && userPosition.value) {
-        params.latitude = userPosition.value.latitude;
-        params.longitude = userPosition.value.longitude;
+    if (lieu.value.trim()) params.location = lieu.value.trim();
+
+    // Si géolocalisation activée ET coordonnées pas envoyées récemment
+    const now = Date.now();
+    if (isGeolocationEnabled.value && userPosition.value && now - lastLocationSent.value > LOCATION_CACHE_DURATION) {
+        try {
+            // Stocker les coordonnées côté serveur via une requête séparée
+            await fetch('/api/set-user-location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    latitude: userPosition.value.latitude,
+                    longitude: userPosition.value.longitude,
+                }),
+            });
+            lastLocationSent.value = now;
+        } catch (error) {
+            console.warn('Impossible de définir la position utilisateur:', error);
+        }
     }
-    
+
+    // Faire la requête normale sans coordonnées dans l'URL
     router.get(route('announcements.index'), params, {
         preserveState: false,
-        preserveScroll: false
+        preserveScroll: false,
     });
 };
 
@@ -119,6 +133,28 @@ watch(searchQuery, searchWithDelay);
 const enableGeolocation = async () => {
     const position = await requestGeolocation();
     if (position) {
+        const now = Date.now();
+        // Seulement envoyer si pas déjà envoyé récemment
+        if (now - lastLocationSent.value > LOCATION_CACHE_DURATION) {
+            try {
+                // Stocker les coordonnées côté serveur
+                await fetch('/api/set-user-location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    },
+                    body: JSON.stringify({
+                        latitude: position.latitude,
+                        longitude: position.longitude,
+                    }),
+                });
+                lastLocationSent.value = now;
+            } catch (error) {
+                console.warn('Impossible de définir la position utilisateur:', error);
+            }
+        }
+
         // Relancer la recherche avec la position
         applyFilters();
     }
@@ -162,9 +198,10 @@ const annonces = computed(() => {
         // Distance calculée
         let distance = null;
         if (announcement.distance !== undefined) {
-            distance = announcement.distance;
+            distance = parseFloat(announcement.distance).toFixed(1);
         } else if (isGeolocationEnabled.value) {
-            distance = getDistanceFromUser(announcement.address.latitude, announcement.address.longitude);
+            const calculatedDistance = getDistanceFromUser(announcement.address.latitude, announcement.address.longitude);
+            distance = calculatedDistance ? parseFloat(calculatedDistance).toFixed(1) : null;
         }
 
         return {
@@ -195,9 +232,16 @@ const resetFilters = () => {
     age.value = '';
     date.value = '';
     lieu.value = '';
-    
-    // Relancer la recherche sans filtres
-    applyFilters();
+
+    // Appliquer immédiatement sans filtres
+    router.get(
+        route('announcements.index'),
+        {},
+        {
+            preserveState: false,
+            preserveScroll: false,
+        },
+    );
 };
 
 const progressStyle = computed(() => {
@@ -209,12 +253,8 @@ const progressStyle = computed(() => {
 
 // Charger la position au montage si elle existe
 onMounted(() => {
-    // Si on a une position et pas de filtres appliqués, relancer avec géolocalisation
-    if (isGeolocationEnabled.value && !props.filters?.latitude) {
-        setTimeout(() => {
-            applyFilters();
-        }, 100);
-    }
+    // Ne plus relancer automatiquement avec géolocalisation pour éviter les boucles
+    // L'utilisateur devra cliquer sur "Activer" pour déclencher le tri par distance
 });
 </script>
 
@@ -233,12 +273,7 @@ onMounted(() => {
                     <div class="flex items-center gap-4 rounded-xl bg-white p-4 shadow-md">
                         <MapPin class="h-5 w-5 text-orange-500" />
                         <span class="text-gray-700">Activez la géolocalisation pour voir les annonces les plus proches</span>
-                        <Button 
-                            @click="enableGeolocation" 
-                            :disabled="geoLoading"
-                            size="sm"
-                            class="bg-orange-500 hover:bg-orange-600"
-                        >
+                        <Button @click="enableGeolocation" :disabled="geoLoading" size="sm" class="bg-orange-500 hover:bg-orange-600">
                             <Navigation class="mr-2 h-4 w-4" />
                             {{ geoLoading ? 'Localisation...' : 'Activer' }}
                         </Button>
@@ -380,17 +415,19 @@ onMounted(() => {
                     <!-- Boutons -->
                     <div class="flex justify-end gap-4 pt-4 md:col-span-4">
                         <button
-                            class="rounded-md border border-gray-300 bg-white px-6 py-2 text-sm font-semibold hover:bg-gray-100"
+                            type="button"
+                            class="rounded-md border border-gray-300 bg-white px-6 py-2 text-sm font-semibold transition-colors hover:bg-gray-100"
                             @click="resetFilters"
                         >
                             Réinitialiser
                         </button>
 
-                        <button 
+                        <button
+                            type="button"
                             @click="applyFilters"
-                            class="bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white hover:bg-orange-500"
+                            class="bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
                         >
-                            Appliquer
+                            Appliquer les filtres
                         </button>
                     </div>
                 </div>
@@ -412,25 +449,27 @@ onMounted(() => {
                     <div class="mx-auto max-w-md rounded-lg bg-white p-8 shadow-md">
                         <div class="mb-4 text-6xl">👶</div>
                         <h3 class="mb-2 text-xl font-semibold text-gray-800">Aucune annonce trouvée</h3>
-                        <p class="text-gray-600">
-                            {{ Object.keys(props.filters || {}).length > 0 
-                                ? 'Essayez de modifier vos critères de recherche.' 
-                                : 'Soyez le premier à publier une annonce de babysitting !' 
+                        <p class="mb-4 text-gray-600">
+                            {{
+                                Object.keys(props.filters || {}).length > 0
+                                    ? 'Essayez de modifier vos critères de recherche ou réinitialisez les filtres.'
+                                    : 'Aucune annonce de babysitting disponible pour le moment. Revenez bientôt !'
                             }}
                         </p>
                         <div class="mt-4 flex flex-col gap-2">
-                            <a
-                                href="/annonces/create"
-                                class="inline-block rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
-                            >
-                                Créer une annonce
-                            </a>
                             <button
                                 v-if="Object.keys(props.filters || {}).length > 0"
                                 @click="resetFilters"
-                                class="text-sm text-gray-500 hover:text-gray-700"
+                                class="inline-block rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
                             >
                                 Réinitialiser les filtres
+                            </button>
+                            <button
+                                v-else
+                                @click="applyFilters"
+                                class="inline-block rounded-lg bg-blue-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-blue-600"
+                            >
+                                Actualiser les annonces
                             </button>
                         </div>
                     </div>
