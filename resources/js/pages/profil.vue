@@ -10,6 +10,7 @@ import { router } from '@inertiajs/vue3';
 import { Camera, Mail, MapPin, Plus, Trash2, Users, Baby } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch, onMounted } from 'vue';
 import { route } from 'ziggy-js';
+import BabysitterProfile from '@/components/BabysitterProfile.vue';
 
 interface Child {
     nom: string;
@@ -59,6 +60,8 @@ const isEditing = ref(false);
 const isLoading = ref(false);
 const isGoogleLoaded = ref(false);
 let autocomplete: any;
+
+const babysitterProfileRef = ref();
 
 // Initialiser le mode au montage du composant
 onMounted(() => {
@@ -136,6 +139,11 @@ const removeChild = (index: number) => {
 
 const toggleEdit = () => {
     isEditing.value = !isEditing.value;
+
+    // Mettre à jour le mode d'édition dans BabysitterProfile
+    if (babysitterProfileRef.value) {
+        babysitterProfileRef.value.isEditing = isEditing.value;
+    }
 
     // Charger Google Places quand on passe en mode édition
     if (isEditing.value && !isGoogleLoaded.value) {
@@ -554,22 +562,7 @@ const userInfo = computed(() => {
 
                         <!-- Informations babysitter (seulement en mode babysitter) -->
                         <div v-if="currentMode === 'babysitter' && hasBabysitterRole" class="space-y-4">
-                            <!-- Vérification d'identité -->
-                            <Card class="border border-green-200 bg-green-50">
-                                <CardContent class="p-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
-                                            <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p class="font-semibold text-green-800">Vérification d'identité</p>
-                                            <p class="text-sm text-green-700">Votre identité a été vérifiée le <strong>10 mars 2024</strong></p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                          <BabysitterProfile ref="babysitterProfileRef" />
                         </div>
 
                         <!-- Boutons d'action -->
