@@ -11,7 +11,6 @@ import { route } from 'ziggy-js';
 interface Announcement {
     id: number;
     title: string;
-    description: string;
     date_start: string;
     date_end: string;
     status: string;
@@ -30,16 +29,16 @@ interface Announcement {
         latitude: number;
         longitude: number;
     };
-    additional_data: {
-        children: Array<{
-            nom: string;
-            age: string;
-            unite: string;
-        }>;
-        hourly_rate: number;
-        estimated_duration: number;
-        estimated_total: number;
-    };
+    // Nouvelles colonnes dédiées
+    children: Array<{
+        nom: string;
+        age: string;
+        unite: string;
+    }>;
+    hourly_rate: number;
+    estimated_duration: number;
+    estimated_total: number;
+    additional_info?: string | null; // Maintenant un simple champ texte optionnel
 }
 
 interface Props {
@@ -118,7 +117,7 @@ const applyFilters = async () => {
 
 // Recherche en temps réel
 const searchWithDelay = (() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: number;
     return () => {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
@@ -163,8 +162,8 @@ const enableGeolocation = async () => {
 // Transformer les annonces backend pour le composant CardAnnonce
 const annonces = computed(() => {
     return props.announcements.data.map((announcement) => {
-        // Calculer les âges des enfants
-        const childrenAges = announcement.additional_data.children.map((child) => `${child.age} ${child.unite}`);
+        // Calculer les âges des enfants - utiliser la nouvelle colonne children
+        const childrenAges = announcement.children.map((child) => `${child.age} ${child.unite}`);
 
         // Formatage de la date
         const dateStart = new Date(announcement.date_start);
@@ -196,12 +195,12 @@ const annonces = computed(() => {
         const postalCode = announcement.address.postal_code;
 
         // Distance calculée
-        let distance = null;
+        let distance: number | undefined = undefined;
         if (announcement.distance !== undefined) {
-            distance = parseFloat(announcement.distance).toFixed(1);
+            distance = parseFloat(announcement.distance.toFixed(1));
         } else if (isGeolocationEnabled.value) {
             const calculatedDistance = getDistanceFromUser(announcement.address.latitude, announcement.address.longitude);
-            distance = calculatedDistance ? parseFloat(calculatedDistance).toFixed(1) : null;
+            distance = calculatedDistance ? parseFloat(calculatedDistance.toFixed(1)) : undefined;
         }
 
         return {
@@ -215,10 +214,11 @@ const annonces = computed(() => {
             time: `${formatTime(dateStart)} - ${formatTime(dateEnd)}`,
             postalCode: postalCode,
             city: city,
-            childrenLabel: `${announcement.additional_data.children.length} enfant${announcement.additional_data.children.length > 1 ? 's' : ''} (${childrenAges.join(', ')})`,
-            childrenCount: announcement.additional_data.children.length,
-            description: announcement.description,
-            rate: announcement.additional_data.hourly_rate,
+            childrenLabel: `${announcement.children.length} enfant${announcement.children.length > 1 ? 's' : ''} (${childrenAges.join(', ')})`,
+            childrenCount: announcement.children.length,
+            description: announcement.additional_info || '', // Pour l'affichage dans la card
+            additionalInfo: announcement.additional_info || undefined, // Pour passer à la modal
+            rate: announcement.hourly_rate, // Nouvelle colonne dédiée
             distance: distance,
             latitude: announcement.address.latitude,
             longitude: announcement.address.longitude,

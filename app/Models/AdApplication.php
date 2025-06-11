@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Carbon\Carbon;
 
 class AdApplication extends Model
 {
@@ -12,13 +14,23 @@ class AdApplication extends Model
         'babysitter_id', 
         'motivation_note', 
         'proposed_rate',
-        'status'
+        'counter_rate',
+        'counter_message',
+        'status',
+        'expires_at',
+        'accepted_at',
+        'viewed_at'
     ];
 
     protected $casts = [
         'proposed_rate' => 'decimal:2',
+        'counter_rate' => 'decimal:2',
+        'expires_at' => 'datetime',
+        'accepted_at' => 'datetime',
+        'viewed_at' => 'datetime',
     ];
 
+    // Relations
     public function ad(): BelongsTo
     {
         return $this->belongsTo(Ad::class);
@@ -27,5 +39,152 @@ class AdApplication extends Model
     public function babysitter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'babysitter_id');
+    }
+
+    public function conversation(): HasOne
+    {
+        return $this->hasOne(Conversation::class, 'application_id');
+    }
+
+    // Scopes
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', ['pending', 'counter_offered']);
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('expires_at', '<', now())
+                    ->whereIn('status', ['pending', 'counter_offered']);
+    }
+
+    // Accessors & Mutators
+    public function getEffectiveRateAttribute()
+    {
+        return $this->counter_rate ?? $this->proposed_rate;
+    }
+
+    public function getIsExpiredAttribute()
+    {
+        return $this->expires_at && $this->expires_at->isPast();
+    }
+
+    public function getTimeRemainingAttribute()
+    {
+        if (!$this->expires_at || $this->expires_at->isPast()) {
+            return null;
+        }
+        
+        return $this->expires_at->diffForHumans();
+    }
+
+    // Methods
+    public function markAsViewed()
+    {
+        if (!$this->viewed_at) {
+            $this->update(['viewed_at' => now()]);
+        }
+    }
+
+    /**
+     * Réserver la candidature (nouveau système - remplace accept)
+     * Cela book l'annonce et lance le processus de paiement
+     */
+    public function reserve($finalRate = null)
+    {
+        $this->update([
+            'status' => 'accepted',
+            'accepted_at' => now(),
+            'counter_rate' => $finalRate
+        ]);
+
+        // Mettre à jour l'annonce pour la marquer comme réservée
+        $this->ad->update([
+            'status' => 'booked',
+            'confirmed_application_id' => $this->id
+        ]);
+
+        // Mettre à jour la conversation pour la marquer comme active avec paiement requis
+        $this->conversation->update([
+            'status' => 'payment_required'
+        ]);
+
+        return $this->conversation;
+    }
+
+    /**
+     * Refuser la candidature - archive la conversation
+     */
+    public function decline()
+    {
+        $this->update(['status' => 'declined']);
+        
+        // Archiver la conversation - ne plus l'afficher dans la liste
+        if ($this->conversation) {
+            $this->conversation->update(['status' => 'archived']);
+        }
+    }
+
+    /**
+     * Faire une contre-offre
+     */
+    public function counterOffer($rate, $message = null)
+    {
+        $this->update([
+            'status' => 'counter_offered',
+            'counter_rate' => $rate,
+            'counter_message' => $message,
+            'expires_at' => now()->addHours(24) // 24h pour répondre
+        ]);
+    }
+
+    /**
+     * Répondre à une contre-offre (babysitter)
+     */
+    public function respondToCounterOffer($response)
+    {
+        if ($response === 'accept') {
+            // Accepter la contre-offre = réserver avec le tarif proposé
+            return $this->reserve($this->counter_rate);
+        } else {
+            // Refuser la contre-offre = retour au statut pending pour nouvelle négociation
+            $this->update([
+                'status' => 'pending',
+                'expires_at' => now()->addHours(24)
+            ]);
+            return $this->conversation;
+        }
+    }
+
+    // Boot method pour auto-expiration et création automatique de conversation
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($application) {
+            // Expire dans 24h par défaut
+            if (!$application->expires_at) {
+                $application->expires_at = now()->addHours(24);
+            }
+        });
+
+        // Créer automatiquement une conversation après création de la candidature
+        static::created(function ($application) {
+            // Charger la relation ad pour accéder au parent_id
+            $application->load('ad');
+            
+            Conversation::create([
+                'ad_id' => $application->ad_id,
+                'application_id' => $application->id,
+                'parent_id' => $application->ad->parent_id,
+                'babysitter_id' => $application->babysitter_id,
+                'status' => 'pending' // En attente de décision du parent
+            ]);
+        });
     }
 }

@@ -28,7 +28,7 @@ class AnnouncementController extends Controller
 
         // Filtre par tarif minimum
         if ($request->filled('min_rate')) {
-            $query->whereRaw("CAST(JSON_EXTRACT(additional_data, '$.hourly_rate') AS DECIMAL(8,2)) >= ?", [$request->min_rate]);
+            $query->where('hourly_rate', '>=', $request->min_rate);
         }
 
         // Filtre par âge des enfants
@@ -39,58 +39,58 @@ class AnnouncementController extends Controller
                 // Enfants de moins de 3 ans 
                 $query->where(function($q) {
                     // Enfants en mois (considérés < 3 ans)
-                    $q->whereRaw("JSON_SEARCH(additional_data, 'one', 'mois', NULL, '$.children[*].unite') IS NOT NULL")
+                    $q->whereRaw("JSON_SEARCH(children, 'one', 'mois', NULL, '$[*].unite') IS NOT NULL")
                       // OU enfants en ans de 0, 1 ou 2 ans
                       ->orWhere(function($q2) {
-                          $q2->whereRaw("JSON_SEARCH(additional_data, 'one', 'ans', NULL, '$.children[*].unite') IS NOT NULL")
+                          $q2->whereRaw("JSON_SEARCH(children, 'one', 'ans', NULL, '$[*].unite') IS NOT NULL")
                              ->whereRaw("(
-                                 JSON_SEARCH(additional_data, 'one', '0', NULL, '$.children[*].age') IS NOT NULL OR
-                                 JSON_SEARCH(additional_data, 'one', '1', NULL, '$.children[*].age') IS NOT NULL OR
-                                 JSON_SEARCH(additional_data, 'one', '2', NULL, '$.children[*].age') IS NOT NULL OR
-                                 JSON_SEARCH(additional_data, 'one', 0, NULL, '$.children[*].age') IS NOT NULL OR
-                                 JSON_SEARCH(additional_data, 'one', 1, NULL, '$.children[*].age') IS NOT NULL OR
-                                 JSON_SEARCH(additional_data, 'one', 2, NULL, '$.children[*].age') IS NOT NULL
+                                 JSON_SEARCH(children, 'one', '0', NULL, '$[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(children, 'one', '1', NULL, '$[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(children, 'one', '2', NULL, '$[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(children, 'one', 0, NULL, '$[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(children, 'one', 1, NULL, '$[*].age') IS NOT NULL OR
+                                 JSON_SEARCH(children, 'one', 2, NULL, '$[*].age') IS NOT NULL
                              )");
                       });
                 });
             } elseif ($ageRange === '3-6') {
                 // Enfants entre 3 et 6 ans (uniquement en ans)
                 $query->where(function($q) {
-                    $q->whereRaw("JSON_SEARCH(additional_data, 'one', 'ans', NULL, '$.children[*].unite') IS NOT NULL")
+                    $q->whereRaw("JSON_SEARCH(children, 'one', 'ans', NULL, '$[*].unite') IS NOT NULL")
                       ->whereRaw("(
-                          JSON_SEARCH(additional_data, 'one', '3', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '4', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '5', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '6', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 3, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 4, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 5, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 6, NULL, '$.children[*].age') IS NOT NULL
+                          JSON_SEARCH(children, 'one', '3', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '4', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '5', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '6', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 3, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 4, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 5, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 6, NULL, '$[*].age') IS NOT NULL
                       )");
                 });
             } elseif ($ageRange === '6+') {
                 // Enfants de plus de 6 ans (uniquement en ans)
                 $query->where(function($q) {
-                    $q->whereRaw("JSON_SEARCH(additional_data, 'one', 'ans', NULL, '$.children[*].unite') IS NOT NULL")
+                    $q->whereRaw("JSON_SEARCH(children, 'one', 'ans', NULL, '$[*].unite') IS NOT NULL")
                       ->whereRaw("(
-                          JSON_SEARCH(additional_data, 'one', '7', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '8', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '9', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '10', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '11', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '12', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '13', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '14', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', '15', NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 7, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 8, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 9, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 10, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 11, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 12, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 13, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 14, NULL, '$.children[*].age') IS NOT NULL OR
-                          JSON_SEARCH(additional_data, 'one', 15, NULL, '$.children[*].age') IS NOT NULL
+                          JSON_SEARCH(children, 'one', '7', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '8', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '9', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '10', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '11', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '12', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '13', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '14', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', '15', NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 7, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 8, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 9, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 10, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 11, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 12, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 13, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 14, NULL, '$[*].age') IS NOT NULL OR
+                          JSON_SEARCH(children, 'one', 15, NULL, '$[*].age') IS NOT NULL
                       )");
                 });
             }
@@ -287,8 +287,8 @@ class AnnouncementController extends Controller
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
                 
-                // Étape 4: Détails
-                'description' => 'required|string|max:2000',
+                // Étape 4: Détails (optionnel)
+                'additional_info' => 'nullable|string|max:2000',
                 
                 // Étape 5: Tarif
                 'hourly_rate' => 'required|numeric|min:0|max:999.99',
@@ -323,17 +323,15 @@ class AnnouncementController extends Controller
             $announcement = Ad::create([
                 'parent_id' => Auth::id(),
                 'title' => $title,
-                'description' => $validated['description'],
                 'address_id' => $address->id,
                 'date_start' => $dateStart,
                 'date_end' => $dateEnd,
                 'status' => 'active',
-                'additional_data' => [
-                    'children' => $validated['children'],
-                    'hourly_rate' => $validated['hourly_rate'],
-                    'estimated_duration' => $validated['estimated_duration'] ?? 0,
-                    'estimated_total' => $validated['estimated_total'] ?? 0,
-                ]
+                'children' => $validated['children'],
+                'hourly_rate' => $validated['hourly_rate'],
+                'estimated_duration' => $validated['estimated_duration'] ?? 0,
+                'estimated_total' => $validated['estimated_total'] ?? 0,
+                'additional_info' => $validated['additional_info'] ?? null
             ]);
 
             Log::info('Annonce créée avec succès:', ['ad_id' => $announcement->id]);

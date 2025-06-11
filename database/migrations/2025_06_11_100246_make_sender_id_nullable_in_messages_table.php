@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('ad_applications', function (Blueprint $table) {
-            $table->decimal('proposed_rate', 8, 2)->nullable()->after('motivation_note');
+        Schema::table('messages', function (Blueprint $table) {
+            $table->foreignId('sender_id')->nullable()->change();
         });
     }
 
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('ad_applications', function (Blueprint $table) {
-            $table->dropColumn('proposed_rate');
+        Schema::table('messages', function (Blueprint $table) {
+            $table->foreignId('sender_id')->nullable(false)->change();
         });
     }
 };

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('babysitter_id')->constrained('users')->onDelete('cascade');
             $table->text('motivation_note')->nullable();
             $table->enum('status', ['pending', 'accepted', 'declined'])->default('pending');
+            $table->decimal('proposed_rate', 8, 2)->nullable();
             $table->timestamps();
         });
     }

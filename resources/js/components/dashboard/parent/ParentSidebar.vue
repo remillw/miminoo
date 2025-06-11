@@ -9,7 +9,7 @@ const links = [
     { icon: PlusCircle, label: 'Créer une annonce', href: '/annonces/create' },
     { icon: Calendar, label: 'Mes annonces', href: '/mes-annonces' },
     { icon: Calendar, label: 'Mes réservations', href: '/reservations' },
-    { icon: MessageCircle, label: 'Messagerie', href: '/messages' },
+    { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
     { icon: User, label: 'Mon profil', href: '/profil' },
     { icon: CreditCard, label: 'Paiement | Factures', href: '/paiement' },
     { icon: Settings, label: 'Paramètres', href: '/parametres' },

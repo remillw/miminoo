@@ -10,14 +10,18 @@ class Ad extends Model
 {
     protected $fillable = [
         'parent_id', 'title', 'description', 'address_id',
-        'date_start', 'date_end', 'additional_data',
+        'date_start', 'date_end', 'hourly_rate', 'estimated_duration', 
+        'estimated_total', 'children', 'additional_info',
         'status', 'is_boosted'
     ];
 
     protected $casts = [
-        'additional_data' => 'array',
+        'children' => 'array',
         'date_start' => 'datetime',
         'date_end' => 'datetime',
+        'hourly_rate' => 'decimal:2',
+        'estimated_duration' => 'decimal:2',
+        'estimated_total' => 'decimal:2',
         'is_boosted' => 'boolean',
     ];
 
@@ -36,24 +40,5 @@ class Ad extends Model
         return $this->hasMany(AdApplication::class);
     }
 
-    // Accesseurs pour les données JSON
-    public function getChildrenAttribute()
-    {
-        return $this->additional_data['children'] ?? [];
-    }
-
-    public function getHourlyRateAttribute()
-    {
-        return $this->additional_data['hourly_rate'] ?? 0;
-    }
-
-    public function getEstimatedDurationAttribute()
-    {
-        return $this->additional_data['estimated_duration'] ?? 0;
-    }
-
-    public function getEstimatedTotalAttribute()
-    {
-        return $this->additional_data['estimated_total'] ?? 0;
-    }
+    // Plus besoin des accesseurs, on utilise maintenant les colonnes dédiées
 }

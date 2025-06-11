@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MessagingController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -43,11 +44,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('annonces/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
     Route::put('annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('annonces/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    
+    // Routes pour la messagerie
+    Route::get('messagerie', [MessagingController::class, 'index'])->name('messaging.index');
+    Route::patch('candidatures/{application}/mark-viewed', [MessagingController::class, 'markApplicationAsViewed'])->name('applications.mark-viewed');
+    Route::post('candidatures/{application}/reserve', [MessagingController::class, 'reserveApplication'])->name('applications.reserve');
+    Route::post('candidatures/{application}/decline', [MessagingController::class, 'declineApplication'])->name('applications.decline');
+    Route::post('candidatures/{application}/counter-offer', [MessagingController::class, 'counterOffer'])->name('applications.counter-offer');
+    Route::post('candidatures/{application}/babysitter-counter', [MessagingController::class, 'babysitterCounterOffer'])->name('applications.babysitter-counter');
+    Route::post('candidatures/{application}/respond-counter', [MessagingController::class, 'respondToCounterOffer'])->name('applications.respond-counter');
+    
+    // Routes pour le chat temps réel
+    Route::post('conversations/{conversation}/messages', [MessagingController::class, 'sendMessage'])->name('conversations.send-message');
+    Route::post('conversations/{conversation}/typing', [MessagingController::class, 'userTyping'])->name('conversations.typing');
+    Route::get('conversations/{conversation}/messages', [MessagingController::class, 'getMessages'])->name('conversations.messages');
 });
 
 Route::get('comment-ca-marche', function () {
     return Inertia::render('comment-ca-marche');
 })->name('comment-ca-marche');
 
+// Route de test pour les pages d'erreur (temporaire)
+Route::get('/test-404', function () {
+    abort(404);
+})->name('test.404');
+
+Route::get('/test-500', function () {
+    abort(500);
+})->name('test.500');
+
+Route::get('/test-403', function () {
+    abort(403);
+})->name('test.403');
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+
+// Route fallback pour les 404 - DOIT être en dernier
+Route::fallback([App\Http\Controllers\ErrorController::class, 'notFound'])->name('errors.404');

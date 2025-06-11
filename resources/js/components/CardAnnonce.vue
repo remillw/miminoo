@@ -74,6 +74,7 @@
         :avatar-url="avatar"
         :family-name="name"
         :requested-rate="rate"
+        :additional-info="additionalInfo"
       />
     </div>
   </template>
@@ -104,6 +105,10 @@
     },
     latitude: Number,
     longitude: Number,
+    additionalInfo: {
+      type: String,
+      default: null
+    },
   });
 
   const isModalOpen = ref(false);

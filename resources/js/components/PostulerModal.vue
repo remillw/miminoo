@@ -76,6 +76,15 @@
                     </div>
                 </div>
 
+                <!-- Informations supplémentaires si disponibles -->
+                <div v-if="props.additionalInfo && props.additionalInfo.trim()" class="rounded-lg border border-blue-100/50 bg-blue-50/30 p-4">
+                    <div class="mb-2 flex items-center gap-2 text-sm font-medium text-blue-800">
+                        <Info class="h-4 w-4" />
+                        Informations particulières
+                    </div>
+                    <p class="text-sm text-blue-700 leading-relaxed">{{ props.additionalInfo }}</p>
+                </div>
+
                 <!-- Message de présentation compact -->
                 <div class="space-y-2">
                     <Label for="message" class="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -206,6 +215,7 @@ interface Props {
     avatarUrl?: string;
     familyName: string;
     requestedRate: number;
+    additionalInfo?: string | null;
 }
 
 const props = defineProps<Props>();

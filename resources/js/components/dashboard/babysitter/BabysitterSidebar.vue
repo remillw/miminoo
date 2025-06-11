@@ -7,7 +7,7 @@ const links = [
     { icon: Briefcase, label: 'Offres disponibles', href: '/offres' },
     { icon: Briefcase, label: 'Mes candidatures', href: '/candidatures' },
     { icon: Calendar, label: 'Réservations', href: '/reservations' },
-    { icon: MessageCircle, label: 'Messagerie', href: '/messages' },
+    { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
     { icon: User, label: 'Mon profil', href: '/profil' },
     { icon: BarChart2, label: 'Statistiques', href: '/stats' },
     { icon: Settings, label: 'Paramètres', href: '/parametres' },
@@ -28,7 +28,9 @@ const links = [
             </Link>
         </nav>
         <div class="border-t p-4">
-            <Link href="/logout" class="hover:text-primary flex items-center gap-2 text-gray-500"> <LogOut class="h-5 w-5" /> Déconnexion </Link>
+            <Link href="/logout" method="post" as="button" class="hover:text-primary flex items-center gap-2 text-gray-500">
+                <LogOut class="h-5 w-5" /> Déconnexion
+            </Link>
         </div>
     </aside>
 </template>

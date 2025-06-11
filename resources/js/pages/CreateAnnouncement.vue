@@ -66,9 +66,8 @@ const form = ref({
     latitude: props.user.address?.latitude || 0,
     longitude: props.user.address?.longitude || 0,
 
-    // Étape 4: Détails
-    description: '',
-    special_instructions: '',
+    // Étape 4: Détails (optionnel)
+    additional_info: '',
 
     // Étape 5: Tarif
     hourly_rate: '',
@@ -93,7 +92,7 @@ const isStepCompleted = (step: number) => {
         case 3:
             return form.value.address.trim() !== '';
         case 4:
-            return form.value.description.trim() !== '';
+            return true; // Étape optionnelle, toujours valide
         case 5:
             return form.value.hourly_rate !== '';
         default:
@@ -535,19 +534,22 @@ initializeChildren();
                         </div>
                     </div>
 
-                    <!-- Étape 4: Détails -->
+                    <!-- Étape 4: Détails (optionnel) -->
                     <div v-if="currentStep === 4">
-                        <h2 class="mb-6 text-xl font-semibold">Informations complémentaires</h2>
+                        <h2 class="mb-6 text-xl font-semibold">Informations complémentaires (optionnel)</h2>
 
                         <div class="space-y-6">
                             <div class="space-y-2">
-                                <Label for="description">Instructions particulières</Label>
+                                <Label for="additional_info">Informations supplémentaires</Label>
                                 <Textarea
-                                    id="description"
-                                    v-model="form.description"
-                                    placeholder="Allergies, routines, activités préférées, consignes particulières..."
+                                    id="additional_info"
+                                    v-model="form.additional_info"
+                                    placeholder="Allergies, routines, activités préférées, consignes particulières, autres informations utiles pour les babysitters..."
                                     rows="6"
                                 />
+                                <p class="text-xs text-gray-500">
+                                    ℹ️ Ce champ est optionnel. Vous pouvez passer cette étape si vous n'avez pas d'informations particulières à ajouter.
+                                </p>
                             </div>
                         </div>
                     </div>
