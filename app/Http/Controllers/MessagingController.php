@@ -609,6 +609,71 @@ class MessagingController extends Controller
     }
 
     /**
+     * Marquer un message spécifique comme lu
+     */
+    public function markMessageAsRead(Conversation $conversation, Message $message)
+    {
+        $user = Auth::user();
+        
+        \Log::info('=== MARQUAGE MESSAGE SPÉCIFIQUE COMME LU ===', [
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'message_id' => $message->id,
+            'message_sender_id' => $message->sender_id
+        ]);
+        
+        // Vérifier que l'utilisateur fait partie de cette conversation
+        if ($conversation->parent_id !== $user->id && $conversation->babysitter_id !== $user->id) {
+            \Log::error('ACCESS DENIED - Utilisateur non autorisé pour marquer ce message comme lu', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'message_id' => $message->id
+            ]);
+            abort(403);
+        }
+        
+        // Vérifier que le message appartient à cette conversation
+        if ($message->conversation_id !== $conversation->id) {
+            \Log::error('MESSAGE NOT IN CONVERSATION', [
+                'conversation_id' => $conversation->id,
+                'message_conversation_id' => $message->conversation_id,
+                'message_id' => $message->id
+            ]);
+            abort(404);
+        }
+        
+        // Ne marquer comme lu que si ce n'est pas notre propre message et qu'il n'est pas déjà lu
+        if ($message->sender_id !== $user->id && !$message->read_at) {
+            $message->update(['read_at' => now()]);
+            
+            \Log::info('Message marqué comme lu', [
+                'message_id' => $message->id,
+                'read_by' => $user->id
+            ]);
+            
+            // Émettre l'événement de lecture
+            event(new \App\Events\MessageRead($conversation, $user));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Message marqué comme lu'
+            ]);
+        }
+        
+        \Log::info('Message non marqué comme lu', [
+            'reason' => $message->sender_id === $user->id ? 'own_message' : 'already_read',
+            'message_id' => $message->id,
+            'sender_id' => $message->sender_id,
+            'read_at' => $message->read_at
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Aucune action nécessaire'
+        ]);
+    }
+
+    /**
      * Archiver une conversation (refuser une candidature)
      */
     public function archiveConversation(Conversation $conversation)

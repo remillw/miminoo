@@ -206,6 +206,40 @@ function scrollToBottom() {
   })
 }
 
+async function markNewMessageAsRead(message) {
+  console.log('👁️ Marquage automatique comme lu pour message:', message.id)
+  
+  try {
+    const response = await fetch(route('conversations.mark-message-read', { 
+      conversation: props.conversation.id,
+      message: message.id 
+    }), {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      }
+    })
+
+    if (response.ok) {
+      console.log('👁️ ✅ Message marqué comme lu automatiquement')
+      
+      // Marquer le message comme lu côté client aussi (évite d'attendre l'événement WebSocket)
+      const messageInList = messages.value.find(m => m.id === message.id)
+      if (messageInList) {
+        messageInList.read_at = new Date().toISOString()
+        console.log('👁️ ✅ Message mis à jour côté client')
+      }
+    } else {
+      console.log('👁️ ❌ Erreur lors du marquage automatique')
+    }
+  } catch (error) {
+    console.error('👁️ ❌ Erreur réseau lors du marquage automatique:', error)
+  }
+}
+
 function joinConversationChannel() {
   if (!props.conversation?.id || !window.Echo) {
     console.warn('⚠️ Pas de conversation ID ou Echo non disponible')
@@ -238,6 +272,9 @@ function joinConversationChannel() {
       console.log('📨 ✅ Message à ajouter:', e.message)
       
       messages.value.push(e.message)
+      
+      // Marquer automatiquement comme lu puisque l'utilisateur est sur la conversation
+      markNewMessageAsRead(e.message)
       
       // Scroll vers le bas
       nextTick(() => {
