@@ -1,7 +1,6 @@
 <template>
     <DashboardLayout :currentMode="currentMode">
-    <div class="max-w-6xl mx-auto px-4 py-6">
-      <div class="flex h-[calc(100vh-200px)] min-h-[600px] bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+    <div class="flex h-[calc(100vh-200px)] bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
         <!-- Sidebar conversations/candidatures -->
         <div class="w-80 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
         <!-- Header avec recherche -->
@@ -21,7 +20,7 @@
         </div>
 
         <!-- Liste des conversations/candidatures -->
-        <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 overflow-y-auto w-full">
           <div v-for="conversation in conversations" :key="conversation.id" class="border-b border-gray-100 last:border-b-0">
             <div
               @click="selectConversation(conversation)"
@@ -31,7 +30,7 @@
               <!-- Avatar avec badge statut -->
               <div class="relative flex-shrink-0">
                 <img 
-                  :src="conversation.other_user.avatar || '/images/default-avatar.png'" 
+                  :src="conversation.other_user.avatar || '/default-avatar.svg'" 
                   :alt="conversation.other_user.name"
                   class="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100"
                 />
@@ -104,13 +103,13 @@
 
       <!-- Zone de chat -->
       <div class="flex-1 flex flex-col">
-        <div v-if="selectedConversation" class="flex-1 flex flex-col">
+        <div v-if="selectedConversation" class="h-full flex flex-col">
           <!-- En-tête de chat -->
           <div class="px-6 py-4 border-b border-gray-200 bg-white flex-shrink-0">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <img 
-                  :src="selectedConversation.other_user.avatar || '/images/default-avatar.png'" 
+                  :src="selectedConversation.other_user.avatar || '/default-avatar.svg'" 
                   :alt="selectedConversation.other_user.name"
                   class="w-10 h-10 rounded-full object-cover"
                 />
@@ -124,40 +123,54 @@
             </div>
           </div>
 
-          <!-- Zone de messages avec scroll -->
-          <div class="flex-1 overflow-y-auto bg-gray-50">
-            <!-- Candidature -->
+          <!-- Zone de messages avec scroll - hauteur limitée -->
+          <div class="flex-1 overflow-hidden bg-gray-50 flex flex-col min-h-0">
+            <!-- Candidature avec chat intégré -->
             <div v-if="selectedConversation.type === 'application'" class="h-full flex flex-col">
-              <div class="flex-1 overflow-y-auto p-6">
+              <!-- En-tête candidature -->
+              <div class="bg-orange-50 border-b border-orange-200 p-4 flex-shrink-0">
                 <CandidatureChat 
                   :application="selectedConversation.application" 
                   :user-role="userRole"
                   @reserve="reserveApplication"
-                  @decline="declineApplication"
+                  @decline="archiveConversation"
                   @counter-offer="submitCounterOffer"
                   @respond-counter="respondToCounterOffer"
                   @babysitter-counter="submitBabysitterCounterOffer"
                 />
               </div>
-            </div>
-
-            <!-- Conversation -->
-            <div v-else class="h-full flex flex-col">
-              <div class="flex-1 overflow-y-auto p-6">
+              
+              <!-- Messages de chat - zone scrollable -->
+              <div class="flex-1 overflow-y-auto min-h-0">
                 <ChatMessages 
                   :conversation="selectedConversation"
                   :user-role="userRole"
+                  ref="chatMessagesRef"
+                />
+              </div>
+            </div>
+
+            <!-- Conversation normale -->
+            <div v-else class="h-full flex flex-col">
+              <div class="flex-1 overflow-y-auto min-h-0">
+                <ChatMessages 
+                  :conversation="selectedConversation"
+                  :user-role="userRole"
+                  ref="chatMessagesRef"
                 />
               </div>
             </div>
           </div>
 
-          <!-- Zone de saisie -->
+          <!-- Zone de saisie - TOUJOURS VISIBLE -->
           <div class="border-t border-gray-200 bg-white p-4 flex-shrink-0">
             <ChatInput 
               @send="sendMessage" 
-              :disabled="selectedConversation.type === 'application' || selectedConversation.status === 'payment_required'" 
+              @message-sent="onMessageSent"
+              @typing="onTyping"
+              :disabled="selectedConversation.status === 'payment_required' || selectedConversation.status === 'archived'" 
               :placeholder="getInputPlaceholder()"
+              :conversation-id="selectedConversation.id"
             />
           </div>
         </div>
@@ -169,7 +182,6 @@
             <p class="text-lg font-medium mb-2">Sélectionnez une conversation</p>
             <p class="text-sm">Choisissez une candidature ou conversation pour commencer</p>
           </div>
-        </div>
         </div>
       </div>
     </div>
@@ -207,17 +219,29 @@ onMounted(() => {
     props.hasBabysitterRole,
     props.requestedMode
   )
+  
+  // Debug Echo
+  console.log('🔧 Echo disponible:', !!window.Echo)
+  console.log('🔧 Echo connector:', window.Echo?.connector?.name)
+  console.log('🔧 Echo state:', window.Echo?.connector?.pusher?.connection?.state)
 })
 
-// État local
+// Refs
 const selectedConversation = ref(null)
+const isLoading = ref(true)
+const chatMessagesRef = ref(null)
+
+// Utiliser les conversations des props
+const conversations = computed(() => props.conversations || [])
 
 // Helpers
 function selectConversation(conversation) {
+  console.log('🔄 Changement de conversation:', conversation.id, conversation.type)
   selectedConversation.value = conversation
   
   // Marquer comme vue automatiquement pour les candidatures
   if (conversation.type === 'application' && props.userRole === 'parent' && !conversation.application?.viewed_at) {
+    console.log('👁️ Marquage candidature comme vue:', conversation.application.id)
     router.patch(route('applications.mark-viewed', conversation.application.id), {}, {
       preserveState: true,
       preserveScroll: true
@@ -279,91 +303,151 @@ function getApplicationBadgeIcon(status) {
 function getInputPlaceholder() {
   if (!selectedConversation.value) return 'Écrivez votre message...'
   
-  if (selectedConversation.value.type === 'application') {
-    return 'Utilisez les boutons ci-dessus pour répondre à la candidature'
-  }
-  
   if (selectedConversation.value.status === 'payment_required') {
     return 'Effectuez le paiement pour débloquer la conversation'
+  }
+  
+  if (selectedConversation.value.status === 'archived') {
+    return 'Cette conversation est archivée'
   }
   
   return 'Écrivez votre message...'
 }
 
 // Actions candidatures
-function reserveApplication(application) {
-  if (confirm('Réserver cette candidature ? Le processus de paiement sera lancé.')) {
-    const finalRate = application.counter_rate || application.proposed_rate
-    
-    router.post(route('applications.reserve', application.id), {
-      final_rate: finalRate
-    }, {
-      onSuccess: (page) => {
-        // Rediriger vers la page de paiement ou recharger
-        if (page.props.payment_required) {
-          // TODO: Rediriger vers page de paiement
-          alert('Redirection vers le paiement...')
-        }
-        router.reload()
-      }
-    })
-  }
+function reserveApplication(applicationId, finalRate = null) {
+  console.log('📝 Réservation candidature:', applicationId, finalRate)
+  router.post(route('applications.reserve', applicationId), {
+    final_rate: finalRate
+  }, {
+    preserveState: true,
+    onSuccess: (page) => {
+      console.log('✅ Candidature réservée avec succès')
+      // Recharger les conversations
+      router.get(route('messaging.index'))
+    },
+    onError: (errors) => {
+      console.error('❌ Erreur réservation candidature:', errors)
+    }
+  })
 }
 
-function declineApplication(applicationId) {
-  if (confirm('Êtes-vous sûr de vouloir refuser cette candidature ? Elle sera archivée définitivement.')) {
-    router.post(route('applications.decline', applicationId), {}, {
+function archiveConversation(applicationId) {
+  console.log('❌ Archivage conversation:', selectedConversation.value?.id)
+  
+  if (!selectedConversation.value) {
+    console.error('❌ Aucune conversation sélectionnée pour archivage')
+    return
+  }
+
+  if (confirm('Êtes-vous sûr de vouloir archiver cette conversation ? Elle ne sera plus visible dans votre messagerie.')) {
+    router.patch(route('conversations.archive', selectedConversation.value.id), {}, {
+      preserveState: true,
       onSuccess: () => {
+        console.log('✅ Conversation archivée avec succès')
+        // Réinitialiser la conversation sélectionnée
         selectedConversation.value = null
-        router.reload()
+        // Recharger les conversations
+        router.get(route('messaging.index'))
+      },
+      onError: (errors) => {
+        console.error('❌ Erreur archivage conversation:', errors)
       }
     })
   }
 }
 
-function respondToCounterOffer(applicationId, response) {
-  const message = response === 'accept' 
-    ? 'Accepter cette contre-offre ? La candidature sera réservée.' 
-    : 'Refuser cette contre-offre ? Vous pourrez continuer à négocier.'
-    
-  if (confirm(message)) {
-    router.post(route('applications.respond-counter', applicationId), {
-      response: response
-    }, {
-      onSuccess: (page) => {
-        if (response === 'accept' && page.props.payment_required) {
-          // TODO: Rediriger vers page de paiement
-          alert('Redirection vers le paiement...')
-        }
-        router.reload()
-      }
-    })
-  }
-}
-
-// Contre-offre
-function submitCounterOffer(applicationId, data) {
-  router.post(route('applications.counter-offer', applicationId), data, {
+function submitCounterOffer(applicationId, counterRate, counterMessage = null) {
+  console.log('🔄 Contre-offre parent:', applicationId, counterRate, counterMessage)
+  router.post(route('applications.counter', applicationId), {
+    counter_rate: counterRate,
+    counter_message: counterMessage
+  }, {
     preserveState: true,
-    preserveScroll: true,
     onSuccess: () => {
-      router.reload()
+      console.log('✅ Contre-offre envoyée avec succès')
+      // Recharger les conversations
+      router.get(route('messaging.index'))
+    },
+    onError: (errors) => {
+      console.error('❌ Erreur contre-offre:', errors)
     }
   })
 }
 
-function submitBabysitterCounterOffer(applicationId, data) {
-  router.post(route('applications.babysitter-counter', applicationId), data, {
+function respondToCounterOffer(applicationId, accept, finalRate = null) {
+  console.log('🔄 Réponse contre-offre:', applicationId, accept, finalRate)
+  router.post(route('applications.respond-counter', applicationId), {
+    accept: accept,
+    final_rate: finalRate
+  }, {
     preserveState: true,
-    preserveScroll: true,
     onSuccess: () => {
-      router.reload()
+      console.log('✅ Réponse contre-offre envoyée avec succès')
+      // Recharger les conversations
+      router.get(route('messaging.index'))
+    },
+    onError: (errors) => {
+      console.error('❌ Erreur réponse contre-offre:', errors)
     }
   })
 }
 
+function submitBabysitterCounterOffer(applicationId, counterRate, counterMessage = null) {
+  console.log('🔄 Contre-offre babysitter:', applicationId, counterRate, counterMessage)
+  router.post(route('applications.babysitter-counter', applicationId), {
+    counter_rate: counterRate,
+    counter_message: counterMessage
+  }, {
+    preserveState: true,
+    onSuccess: () => {
+      console.log('✅ Contre-offre babysitter envoyée avec succès')
+      // Recharger les conversations
+      router.get(route('messaging.index'))
+    },
+    onError: (errors) => {
+      console.error('❌ Erreur contre-offre babysitter:', errors)
+    }
+  })
+}
+
+// Actions messages
 function sendMessage(message) {
-  // TODO: Implémenter l'envoi de message
-  console.log('Envoi message:', message)
+  console.log('📤 Envoi message (deprecated):', message)
+  // Cette fonction est dépréciée, on utilise maintenant onMessageSent
+}
+
+function onMessageSent(message) {
+  // Ajouter le message localement via une référence au composant ChatMessages
+  if (chatMessagesRef.value) {
+    chatMessagesRef.value.addMessageLocally(message)
+  }
+  
+  // Mettre à jour le dernier message dans la sidebar
+  if (selectedConversation.value) {
+    selectedConversation.value.last_message = message.message
+    selectedConversation.value.last_message_at = message.created_at
+    selectedConversation.value.last_message_by = message.sender_id
+    
+    // Remonter cette conversation en haut de la liste
+    const conversations = props.conversations
+    const currentIndex = conversations.findIndex(c => c.id === selectedConversation.value.id)
+    if (currentIndex > 0) {
+      // Déplacer la conversation vers le haut
+      const currentConv = conversations.splice(currentIndex, 1)[0]
+      conversations.unshift(currentConv)
+    }
+  }
+}
+
+function onTyping(isTyping) {
+  // Envoyer les événements de frappe via WebSocket
+  if (chatMessagesRef.value) {
+    if (isTyping) {
+      chatMessagesRef.value.sendTypingEvent()
+    } else {
+      chatMessagesRef.value.sendStopTypingEvent()
+    }
+  }
 }
 </script> 

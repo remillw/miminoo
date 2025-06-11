@@ -63,8 +63,8 @@ class MessageSent implements ShouldBroadcast
                 'created_at' => $this->message->created_at->toISOString(),
                 'sender' => [
                     'id' => $this->user->id,
-                    'name' => $this->user->name,
-                    'avatar' => $this->user->google_avatar_url ?? '/default-avatar.png',
+                    'name' => $this->user->firstname . ' ' . $this->user->lastname,
+                    'avatar' => $this->user->avatar ?? '/default-avatar.png',
                 ],
             ],
         ];

@@ -22,90 +22,169 @@ class MessagingController extends Controller
     {
         $user = Auth::user();
         
-        // Récupérer toutes les conversations actives (pas archivées)
-        // Les candidatures sont maintenant des conversations avec status='pending'
-        $conversations = Conversation::with([
-            'ad:id,title,date_start', 
-            'parent:id,firstname,lastname,avatar',
-            'babysitter:id,firstname,lastname,avatar',
-            'application' => function($query) {
-                $query->with(['babysitter:id,firstname,lastname,avatar', 'ad.parent:id,firstname,lastname,avatar']);
-            },
-            'messages' => function($query) {
-                $query->latest()->take(1);
-            }
-        ])
-        ->forUser($user->id)
-        ->orderByDesc('created_at') // Les plus récentes en premier
-        ->get()
-        ->map(function ($conversation) use ($user) {
-            try {
-                $otherUser = $conversation->getOtherUser($user->id);
-                $application = $conversation->application;
-                
-                $conversationData = [
-                    'id' => $conversation->id,
-                    'type' => $conversation->status === 'pending' ? 'application' : 'conversation',
-                    'ad_title' => $conversation->ad->title ?? 'Annonce supprimée',
-                    'ad_date' => $conversation->ad ? $conversation->ad->date_start->format('d/m/Y') : 'Date inconnue',
-                    'other_user' => [
-                        'id' => $otherUser->id,
-                        'name' => $otherUser->firstname . ' ' . substr($otherUser->lastname, 0, 1) . '.',
-                        'avatar' => $otherUser->avatar
-                    ],
-                    'last_message' => $conversation->messages->first()?->message ?? ($conversation->status === 'pending' ? 'Nouvelle candidature' : 'Conversation démarrée'),
-                    'last_message_at' => $conversation->last_message_at ?? $conversation->created_at,
-                    'unread_count' => 0, // TODO: implémenter le compteur
-                    'status' => $conversation->status
-                ];
+        \Log::info('=== CHARGEMENT CONVERSATIONS ===', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_roles' => $user->roles->pluck('name')->toArray()
+        ]);
+        
+        try {
+            // Récupérer toutes les conversations actives (pas archivées)
+            $conversations = Conversation::with([
+                'ad:id,title,date_start', 
+                'parent:id,firstname,lastname,avatar',
+                'babysitter:id,firstname,lastname,avatar',
+                'application' => function($query) {
+                    $query->with(['babysitter:id,firstname,lastname,avatar', 'ad.parent:id,firstname,lastname,avatar']);
+                },
+                'messages' => function($query) {
+                    $query->latest()->take(1);
+                }
+            ])
+            ->forUser($user->id)
+            ->where('status', '!=', 'archived') // Exclure les conversations archivées
+            ->orderByDesc('created_at')
+            ->get();
 
-                // Ajouter les données de candidature si elle existe
-                if ($application) {
-                    $conversationData['application'] = [
-                        'id' => $application->id,
-                        'motivation_note' => $application->motivation_note,
-                        'proposed_rate' => $application->proposed_rate,
-                        'counter_rate' => $application->counter_rate,
-                        'status' => $application->status,
-                        'viewed_at' => $application->viewed_at,
-                        'created_at' => $application->created_at,
+            \Log::info('Conversations brutes récupérées', [
+                'conversations_count' => $conversations->count(),
+                'conversations_ids' => $conversations->pluck('id')->toArray(),
+                'conversations_status' => $conversations->pluck('status')->toArray()
+            ]);
+
+            $conversationsFormatted = $conversations->map(function ($conversation) use ($user) {
+                try {
+                    \Log::info('Formatage conversation', [
+                        'conversation_id' => $conversation->id,
+                        'status' => $conversation->status,
+                        'parent_id' => $conversation->parent_id,
+                        'babysitter_id' => $conversation->babysitter_id
+                    ]);
+
+                    $otherUser = $conversation->getOtherUser($user->id);
+                    $application = $conversation->application;
+                    
+                    \Log::info('Données utilisateur et application', [
+                        'other_user_id' => $otherUser->id,
+                        'other_user_name' => $otherUser->firstname . ' ' . substr($otherUser->lastname, 0, 1) . '.',
+                        'has_application' => $application ? true : false,
+                        'application_id' => $application?->id
+                    ]);
+                    
+                    $conversationData = [
+                        'id' => $conversation->id,
+                        'type' => $conversation->status === 'pending' ? 'application' : 'conversation',
+                        'ad_title' => $conversation->ad->title ?? 'Annonce supprimée',
+                        'ad_date' => $conversation->ad ? $conversation->ad->date_start->format('d/m/Y') : 'Date inconnue',
+                        'other_user' => [
+                            'id' => $otherUser->id,
+                            'name' => $otherUser->firstname . ' ' . substr($otherUser->lastname, 0, 1) . '.',
+                            'avatar' => $otherUser->avatar ?? '/default-avatar.svg'
+                        ],
+                        'last_message' => $conversation->messages->first()?->message ?? ($conversation->status === 'pending' ? 'Nouvelle candidature' : 'Conversation démarrée'),
+                        'last_message_at' => $conversation->last_message_at ?? $conversation->created_at,
+                        'unread_count' => 0, // TODO: implémenter le compteur
+                        'status' => $conversation->status,
+                        'can_chat' => true // Maintenant on peut toujours chatter
                     ];
 
-                    // Ajouter les infos user selon le rôle
-                    if ($user->hasRole('parent') && $application->babysitter) {
-                        $conversationData['application']['babysitter'] = [
-                            'id' => $application->babysitter->id,
-                            'name' => $application->babysitter->firstname . ' ' . substr($application->babysitter->lastname, 0, 1) . '.',
-                            'avatar' => $application->babysitter->avatar
-                        ];
-                    } elseif ($user->hasRole('babysitter') && $application->ad && $application->ad->parent) {
-                        $conversationData['application']['parent'] = [
-                            'id' => $application->ad->parent->id,
-                            'name' => $application->ad->parent->firstname . ' ' . substr($application->ad->parent->lastname, 0, 1) . '.',
-                            'avatar' => $application->ad->parent->avatar
-                        ];
-                    }
-                } else {
-                    $conversationData['application'] = null;
-                }
-                
-                return $conversationData;
-            } catch (\Exception $e) {
-                // En cas d'erreur, ignorer cette conversation ou retourner des données minimales
-                \Log::error('Erreur lors du chargement de la conversation ' . $conversation->id . ': ' . $e->getMessage());
-                return null;
-            }
-        })
-        ->filter() // Enlever les éléments null
-        ->values(); // Réindexer le tableau
+                    // Ajouter les données de candidature si elle existe
+                    if ($application) {
+                        \Log::info('Ajout des données de candidature', [
+                            'application_status' => $application->status,
+                            'proposed_rate' => $application->proposed_rate,
+                            'counter_rate' => $application->counter_rate
+                        ]);
 
-        return Inertia::render('Messaging/Index', [
-            'conversations' => $conversations,
-            'userRole' => $user->roles->first()->name ?? 'user',
-            'hasParentRole' => $user->hasRole('parent'),
-            'hasBabysitterRole' => $user->hasRole('babysitter'),
-            'requestedMode' => request('mode')
-        ]);
+                        $conversationData['application'] = [
+                            'id' => $application->id,
+                            'motivation_note' => $application->motivation_note,
+                            'proposed_rate' => $application->proposed_rate,
+                            'counter_rate' => $application->counter_rate,
+                            'status' => $application->status,
+                            'viewed_at' => $application->viewed_at,
+                            'created_at' => $application->created_at,
+                        ];
+
+                        // Ajouter les infos user selon le rôle
+                        if ($user->hasRole('parent') && $application->babysitter) {
+                            $conversationData['application']['babysitter'] = [
+                                'id' => $application->babysitter->id,
+                                'name' => $application->babysitter->firstname . ' ' . substr($application->babysitter->lastname, 0, 1) . '.',
+                                'avatar' => $application->babysitter->avatar ?? '/default-avatar.svg'
+                            ];
+                        } elseif ($user->hasRole('babysitter') && $application->ad && $application->ad->parent) {
+                            $conversationData['application']['parent'] = [
+                                'id' => $application->ad->parent->id,
+                                'name' => $application->ad->parent->firstname . ' ' . substr($application->ad->parent->lastname, 0, 1) . '.',
+                                'avatar' => $application->ad->parent->avatar ?? '/default-avatar.svg'
+                            ];
+                        }
+                    } else {
+                        $conversationData['application'] = null;
+                    }
+                    
+                    \Log::info('Conversation formatée avec succès', [
+                        'conversation_id' => $conversation->id,
+                        'type' => $conversationData['type'],
+                        'has_application_data' => $conversationData['application'] ? true : false
+                    ]);
+                    
+                    return $conversationData;
+                } catch (\Exception $e) {
+                    // En cas d'erreur, ignorer cette conversation ou retourner des données minimales
+                    \Log::error('Erreur lors du formatage de la conversation', [
+                        'conversation_id' => $conversation->id,
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine()
+                    ]);
+                    return null;
+                }
+            })
+            ->filter() // Enlever les éléments null
+            ->values(); // Réindexer le tableau
+
+            \Log::info('Conversations formatées', [
+                'formatted_count' => $conversationsFormatted->count(),
+                'formatted_types' => $conversationsFormatted->pluck('type')->toArray()
+            ]);
+
+            $responseData = [
+                'conversations' => $conversationsFormatted,
+                'userRole' => $user->roles->first()->name ?? 'user',
+                'hasParentRole' => $user->hasRole('parent'),
+                'hasBabysitterRole' => $user->hasRole('babysitter'),
+                'requestedMode' => request('mode')
+            ];
+
+            \Log::info('Réponse index préparée', [
+                'conversations_count' => count($responseData['conversations']),
+                'user_role' => $responseData['userRole'],
+                'has_parent_role' => $responseData['hasParentRole'],
+                'has_babysitter_role' => $responseData['hasBabysitterRole']
+            ]);
+
+            return Inertia::render('Messaging/Index', $responseData);
+
+        } catch (\Exception $e) {
+            \Log::error('ERREUR CRITIQUE lors du chargement des conversations', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Retourner une réponse d'erreur gracieuse
+            return Inertia::render('Messaging/Index', [
+                'conversations' => [],
+                'userRole' => $user->roles->first()->name ?? 'user',
+                'hasParentRole' => $user->hasRole('parent'),
+                'hasBabysitterRole' => $user->hasRole('babysitter'),
+                'requestedMode' => request('mode'),
+                'error' => 'Erreur lors du chargement des conversations'
+            ]);
+        }
     }
 
     /**
@@ -262,8 +341,22 @@ class MessagingController extends Controller
     {
         $user = Auth::user();
         
+        \Log::info('=== ENVOI MESSAGE ===', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'conversation_id' => $conversation->id,
+            'conversation_status' => $conversation->status,
+            'request_data' => $request->all()
+        ]);
+        
         // Vérifier que l'utilisateur fait partie de cette conversation
         if ($conversation->parent_id !== $user->id && $conversation->babysitter_id !== $user->id) {
+            \Log::error('ACCESS DENIED - Utilisateur non autorisé pour cette conversation', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'parent_id' => $conversation->parent_id,
+                'babysitter_id' => $conversation->babysitter_id
+            ]);
             abort(403);
         }
 
@@ -271,41 +364,105 @@ class MessagingController extends Controller
             'message' => 'required|string|max:1000'
         ]);
 
-        // Créer le message
-        $message = $conversation->messages()->create([
-            'sender_id' => $user->id,
-            'message' => $validated['message'],
-            'type' => 'user'
+        \Log::info('Validation réussie', [
+            'message_length' => strlen($validated['message']),
+            'message_preview' => substr($validated['message'], 0, 50) . '...'
         ]);
 
-        // Mettre à jour la conversation
-        $conversation->update([
-            'last_message_at' => now(),
-            'last_message_by' => $user->id
-        ]);
+        try {
+            // Créer le message
+            $message = $conversation->messages()->create([
+                'sender_id' => $user->id,
+                'message' => $validated['message'],
+                'type' => 'user'
+            ]);
 
-        // Charger les relations nécessaires
-        $message->load('sender');
-
-        // Diffuser l'événement en temps réel
-        broadcast(new MessageSent($message, $user))->toOthers();
-
-        return response()->json([
-            'success' => true,
-            'message' => [
-                'id' => $message->id,
-                'message' => $message->message,
-                'type' => $message->type,
+            \Log::info('Message créé en base', [
+                'message_id' => $message->id,
                 'sender_id' => $message->sender_id,
                 'conversation_id' => $message->conversation_id,
-                'created_at' => $message->created_at->toISOString(),
-                'sender' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'avatar' => $user->google_avatar_url ?? '/default-avatar.png',
-                ],
-            ]
-        ]);
+                'message_type' => $message->type
+            ]);
+
+            // Mettre à jour la conversation
+            $conversation->update([
+                'last_message_at' => now(),
+                'last_message_by' => $user->id
+            ]);
+
+            \Log::info('Conversation mise à jour', [
+                'conversation_id' => $conversation->id,
+                'last_message_at' => $conversation->last_message_at,
+                'last_message_by' => $conversation->last_message_by
+            ]);
+
+            // Charger les relations nécessaires
+            $message->load('sender');
+
+            \Log::info('Relations chargées', [
+                'sender_loaded' => $message->sender ? true : false,
+                'sender_name' => $message->sender ? $message->sender->name : 'N/A'
+            ]);
+
+            // Diffuser l'événement en temps réel
+            try {
+                $event = new MessageSent($message, $user);
+                \Log::info('Création événement MessageSent', [
+                    'event_class' => get_class($event),
+                    'message_id' => $message->id,
+                    'sender_id' => $user->id,
+                    'conversation_id' => $message->conversation_id,
+                    'broadcast_on' => $event->broadcastOn(),
+                    'broadcast_as' => $event->broadcastAs(),
+                    'broadcast_data' => $event->broadcastWith()
+                ]);
+                
+                broadcast($event)->toOthers();
+                \Log::info('Événement broadcast envoyé avec succès via Reverb');
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors du broadcast', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+
+            $responseData = [
+                'success' => true,
+                'message' => [
+                    'id' => $message->id,
+                    'message' => $message->message,
+                    'type' => $message->type,
+                    'sender_id' => $message->sender_id,
+                    'conversation_id' => $message->conversation_id,
+                    'created_at' => $message->created_at->toISOString(),
+                    'sender' => [
+                        'id' => $user->id,
+                        'name' => $user->firstname . ' ' . $user->lastname,
+                        'avatar' => '/default-avatar.svg', // Avatar par défaut
+                    ],
+                ]
+            ];
+
+            \Log::info('Réponse préparée', [
+                'response_structure' => array_keys($responseData),
+                'message_data_keys' => array_keys($responseData['message'])
+            ]);
+
+            return response()->json($responseData);
+
+        } catch (\Exception $e) {
+            \Log::error('ERREUR lors de la création du message', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de l\'envoi du message: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -315,16 +472,37 @@ class MessagingController extends Controller
     {
         $user = Auth::user();
         
+        \Log::info('=== RÉCUPÉRATION MESSAGES ===', [
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'conversation_id' => $conversation->id,
+            'conversation_status' => $conversation->status
+        ]);
+        
         // Vérifier que l'utilisateur fait partie de cette conversation
         if ($conversation->parent_id !== $user->id && $conversation->babysitter_id !== $user->id) {
+            \Log::error('ACCESS DENIED - Utilisateur non autorisé pour récupérer les messages', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'parent_id' => $conversation->parent_id,
+                'babysitter_id' => $conversation->babysitter_id
+            ]);
             abort(403);
         }
 
-        $messages = $conversation->messages()
-            ->with('sender:id,name,google_avatar_url')
-            ->orderBy('created_at', 'asc')
-            ->get()
-            ->map(function ($message) {
+        try {
+            $messages = $conversation->messages()
+                ->with('sender:id,firstname,lastname,avatar')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            \Log::info('Messages récupérés de la base', [
+                'messages_count' => $messages->count(),
+                'first_message_id' => $messages->first()?->id,
+                'last_message_id' => $messages->last()?->id
+            ]);
+
+            $messagesFormatted = $messages->map(function ($message) {
                 return [
                     'id' => $message->id,
                     'message' => $message->message,
@@ -335,28 +513,77 @@ class MessagingController extends Controller
                     'read_at' => $message->read_at,
                     'sender' => $message->sender ? [
                         'id' => $message->sender->id,
-                        'name' => $message->sender->name,
-                        'avatar' => $message->sender->google_avatar_url ?? '/default-avatar.png',
+                        'name' => $message->sender->firstname . ' ' . $message->sender->lastname,
+                        'avatar' => $message->sender->avatar ?? '/default-avatar.svg',
                     ] : null,
                 ];
             });
 
-        // Marquer les messages comme lus
-        $conversation->markMessagesAsRead($user->id);
+            \Log::info('Messages formatés', [
+                'formatted_count' => $messagesFormatted->count()
+            ]);
+            
+            // Marquer les messages comme lus
+            $unreadCount = $conversation->messages()
+                ->where('sender_id', '!=', $user->id)
+                ->whereNull('read_at')
+                ->count();
 
-        return response()->json([
-            'messages' => $messages,
-            'conversation' => [
-                'id' => $conversation->id,
-                'status' => $conversation->status,
-                'ad_title' => $conversation->ad->title ?? 'Annonce supprimée',
-                'other_user' => [
-                    'id' => $conversation->getOtherUser($user->id)->id,
-                    'name' => $conversation->getOtherUser($user->id)->name,
-                    'avatar' => $conversation->getOtherUser($user->id)->google_avatar_url ?? '/default-avatar.png',
+            \Log::info('Messages non lus avant marquage', [
+                'unread_count' => $unreadCount
+            ]);
+
+            $conversation->markMessagesAsRead($user->id);
+
+            \Log::info('Messages marqués comme lus');
+
+            // Récupérer l'autre utilisateur de la conversation
+            try {
+                $otherUser = $conversation->getOtherUser($user->id);
+                \Log::info('Autre utilisateur récupéré', [
+                    'other_user_id' => $otherUser->id,
+                    'other_user_name' => $otherUser->name
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Erreur lors de la récupération de l\'autre utilisateur', [
+                    'error' => $e->getMessage()
+                ]);
+                $otherUser = null;
+            }
+
+            $responseData = [
+                'messages' => $messagesFormatted,
+                'conversation' => [
+                    'id' => $conversation->id,
+                    'status' => $conversation->status,
+                    'ad_title' => $conversation->ad->title ?? 'Annonce supprimée',
+                    'other_user' => $otherUser ? [
+                        'id' => $otherUser->id,
+                        'name' => $otherUser->name,
+                        'avatar' => $otherUser->avatar ?? '/default-avatar.svg',
+                    ] : null
                 ]
-            ]
-        ]);
+            ];
+
+            \Log::info('Réponse messages préparée', [
+                'messages_count' => count($responseData['messages']),
+                'conversation_data_keys' => array_keys($responseData['conversation'])
+            ]);
+
+            return response()->json($responseData);
+
+        } catch (\Exception $e) {
+            \Log::error('ERREUR lors de la récupération des messages', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Erreur lors de la récupération des messages: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -379,5 +606,67 @@ class MessagingController extends Controller
         broadcast(new UserTyping($user, $conversation->id, $validated['is_typing']))->toOthers();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Archiver une conversation (refuser une candidature)
+     */
+    public function archiveConversation(Conversation $conversation)
+    {
+        $user = Auth::user();
+        
+        \Log::info('=== ARCHIVAGE CONVERSATION ===', [
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+            'conversation_status' => $conversation->status
+        ]);
+
+        // Vérifier que l'utilisateur peut archiver cette conversation
+        if ($conversation->parent_id !== $user->id && $conversation->babysitter_id !== $user->id) {
+            \Log::error('ACCESS DENIED - Utilisateur non autorisé pour archiver cette conversation', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+                'parent_id' => $conversation->parent_id,
+                'babysitter_id' => $conversation->babysitter_id
+            ]);
+            abort(403);
+        }
+
+        try {
+            // Archiver la conversation
+            $conversation->update([
+                'status' => 'archived'
+            ]);
+
+            // Ajouter un message système
+            $conversation->addSystemMessage('conversation_archived', [
+                'archived_by' => $user->id,
+                'archived_by_name' => $user->name
+            ]);
+
+            \Log::info('Conversation archivée avec succès', [
+                'conversation_id' => $conversation->id,
+                'archived_by' => $user->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Conversation archivée avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('ERREUR lors de l\'archivage de la conversation', [
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de l\'archivage de la conversation'
+            ], 500);
+        }
     }
 } 

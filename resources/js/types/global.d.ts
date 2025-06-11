@@ -18,7 +18,7 @@ export interface User {
     name: string;
     email: string;
     email_verified_at?: string;
-    google_avatar_url?: string;
+    avatar?: string;
     role?: string;
     created_at: string;
     updated_at: string;

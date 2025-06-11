@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -11,20 +12,20 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserOnline implements ShouldBroadcast
+class MessageRead implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $user;
-    public $isOnline;
+    public $conversation;
+    public $readBy;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(User $user, bool $isOnline = true)
+    public function __construct(Conversation $conversation, User $readBy)
     {
-        $this->user = $user;
-        $this->isOnline = $isOnline;
+        $this->conversation = $conversation;
+        $this->readBy = $readBy;
     }
 
     /**
@@ -35,7 +36,7 @@ class UserOnline implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PresenceChannel('online-users'),
+            new PrivateChannel('conversation.' . $this->conversation->id),
         ];
     }
 
@@ -44,7 +45,7 @@ class UserOnline implements ShouldBroadcast
      */
     public function broadcastAs(): string
     {
-        return 'user.online';
+        return 'messages.read';
     }
 
     /**
@@ -53,10 +54,9 @@ class UserOnline implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'user_id' => $this->user->id,
-            'user_name' => $this->user->name,
-            'is_online' => $this->isOnline,
-            'avatar' => $this->user->avatar ?? '/default-avatar.svg',
+            'conversation_id' => $this->conversation->id,
+            'read_by' => $this->readBy->id,
+            'read_at' => now()->toISOString(),
         ];
     }
-}
+} 

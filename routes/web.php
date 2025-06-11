@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessagingController;
+use Illuminate\Support\Facades\Broadcast;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -58,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('conversations/{conversation}/messages', [MessagingController::class, 'sendMessage'])->name('conversations.send-message');
     Route::post('conversations/{conversation}/typing', [MessagingController::class, 'userTyping'])->name('conversations.typing');
     Route::get('conversations/{conversation}/messages', [MessagingController::class, 'getMessages'])->name('conversations.messages');
+    Route::patch('conversations/{conversation}/archive', [MessagingController::class, 'archiveConversation'])->name('conversations.archive');
 });
 
 Route::get('comment-ca-marche', function () {
@@ -79,6 +81,10 @@ Route::get('/test-403', function () {
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/channels.php';
+
+// Support pour le broadcasting (authentification WebSocket)
+Broadcast::routes(['middleware' => ['auth']]);
 
 // Route fallback pour les 404 - DOIT être en dernier
 Route::fallback([App\Http\Controllers\ErrorController::class, 'notFound'])->name('errors.404');

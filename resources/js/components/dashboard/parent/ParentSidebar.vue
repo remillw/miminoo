@@ -20,7 +20,7 @@ const currentUrl = computed(() => usePage().url);
 </script>
 
 <template>
-    <aside class="flex min-h-screen w-64 flex-col border-r bg-white pt-10">
+    <aside class="flex min-h-screen  w-64 flex-col border-r bg-white pt-10">
         <nav class="flex flex-1 flex-col gap-1 px-4">
             <Link
                 v-for="link in links"

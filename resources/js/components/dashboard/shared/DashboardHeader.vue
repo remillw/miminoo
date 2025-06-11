@@ -1,6 +1,6 @@
 <template>
-    <header class="sticky top-0 z-30 w-full bg-white shadow-sm">
-        <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+    <header class="sticky top-0 z-30 w-full  bg-white shadow-sm">
+        <nav class="mx-auto flex h-16 max-w-9xl items-center justify-between px-4">
             <!-- Logo -->
             <div class="flex items-center gap-2">
                 <img src="/storage/logo_miminoo.png" alt="Miminoo" class="h-8 w-auto" />

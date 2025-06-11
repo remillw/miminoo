@@ -56,7 +56,7 @@ class Conversation extends Model
 
     public function messages(): HasMany
     {
-        return $this->hasMany(Message::class)->orderBy('created_at', 'desc');
+        return $this->hasMany(Message::class)->orderBy('created_at', 'asc');
     }
 
     public function transactions(): HasMany
@@ -132,10 +132,31 @@ class Conversation extends Model
 
     public function markMessagesAsRead($userId)
     {
-        $this->messages()
+        \Log::info('=== MARQUAGE MESSAGES COMME LUS ===', [
+            'conversation_id' => $this->id,
+            'user_id' => $userId,
+        ]);
+        
+        $updatedCount = $this->messages()
             ->where('sender_id', '!=', $userId)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+            
+        \Log::info('Messages marqués comme lus', [
+            'updated_count' => $updatedCount
+        ]);
+            
+        // Émettre l'événement seulement si des messages ont été marqués comme lus
+        if ($updatedCount > 0) {
+            $user = User::find($userId);
+            if ($user) {
+                \Log::info('Émission événement MessageRead', [
+                    'conversation_id' => $this->id,
+                    'read_by' => $user->id
+                ]);
+                event(new \App\Events\MessageRead($this, $user));
+            }
+        }
     }
 
     public function addSystemMessage($type, $data = [])
@@ -175,6 +196,8 @@ class Conversation extends Model
                 return "Le service de babysitting a commencé.";
             case 'service_completed':
                 return "Le service de babysitting est terminé. N'hésitez pas à laisser un avis !";
+            case 'conversation_archived':
+                return "Cette conversation a été archivée par {$data['archived_by_name']}.";
             default:
                 return "Mise à jour du statut de la conversation.";
         }

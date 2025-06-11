@@ -33,7 +33,7 @@ Broadcast::channel('conversation.{conversationId}', function ($user, $conversati
 Broadcast::channel('online-users', function ($user) {
     return [
         'id' => $user->id,
-        'name' => $user->name,
-        'avatar' => $user->google_avatar_url ?? '/default-avatar.png',
+        'name' => $user->firstname . ' ' . $user->lastname,
+        'avatar' => '/default-avatar.svg', // Avatar par défaut
     ];
 }); 

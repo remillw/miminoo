@@ -1,1 +1,1 @@
- 
+    ./start-chat.sh

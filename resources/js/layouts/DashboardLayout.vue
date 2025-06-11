@@ -34,8 +34,10 @@ const SidebarComponent = computed(() => {
         <div class="flex flex-1">
             <component :is="SidebarComponent" />
 
-            <main class="flex-1 p-6">
-                <slot />
+            <main class="flex-1 py-6 flex justify-center max-w-7xl w-full mx-auto">
+                <div class="w-full max-w-9xl">
+                    <slot />
+                </div>
             </main>
         </div>
 

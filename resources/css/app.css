@@ -406,3 +406,17 @@ input[type='checkbox']:focus {
     max-width: 380px !important;
     min-width: 320px !important;
 }
+
+
+.max-w-8xl {
+    max-width: 90rem;
+}
+.max-w-9xl {
+    max-width: 100rem;
+}
+.max-w-10xl {
+    max-width: 110rem;
+}
+.max-w-11xl {
+    max-width: 120rem;
+}
