@@ -7,7 +7,7 @@ import ReassuranceSection from '../components/ReassuranceSection.vue';
 
 <template>
     <GlobalLayout>
-        <div class="flex items-center justify-center bg-orange-50 px-4 py-10">
+        <div class="flex items-center justify-center bg-secondary px-4 py-10">
             <div class="w-full max-w-4xl text-center">
                 <h1 class="mb-6 text-4xl font-bold text-gray-900 md:text-5xl">Comment fonctionne Miminoo ?</h1>
 

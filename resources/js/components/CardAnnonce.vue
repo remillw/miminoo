@@ -17,14 +17,14 @@
       <!-- Date, time, location -->
       <div class="grid grid-cols-2 gap-4 text-sm">
         <div class="flex items-start gap-2">
-          <CalendarClock class="h-7 w-7 text-primary bg-orange-50 rounded-md p-1" />
+          <CalendarClock class="h-7 w-7 text-primary bg-secondary rounded-md p-1" />
           <div>
             <p class="font-semibold">{{ date }}</p>
             <p class="text-gray-400">{{ time }}</p>
           </div>
         </div>
         <div class="flex items-start gap-2">
-          <MapPin class="h-7 w-7 text-primary bg-orange-50 rounded-md p-1" />
+          <MapPin class="h-7 w-7 text-primary bg-secondary rounded-md p-1" />
           <div>
             <p class="font-semibold">
               {{ city }}<span class="text-gray-500">, {{ postalCode }}</span>
@@ -39,7 +39,7 @@
   
       <!-- Kids -->
       <div class="flex items-center gap-2 text-sm">
-        <Users class="h-7 w-7 text-primary bg-orange-50 rounded-md p-1" />
+        <Users class="h-7 w-7 text-primary bg-secondary rounded-md p-1" />
         <p class="font-semibold">{{ childrenLabel }}</p>
       </div>
   
@@ -56,7 +56,7 @@
         </p>
         <button 
           @click="isModalOpen = true" 
-          class="bg-primary hover:bg-orange-500 text-white font-semibold rounded px-5 py-2 transition"
+          class="bg-primary hover:bg-primary text-white font-semibold rounded px-5 py-2 transition"
         >
           Postuler
         </button>

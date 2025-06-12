@@ -27,7 +27,7 @@ const currentUrl = computed(() => usePage().url);
                 :key="link.label"
                 :href="link.href"
                 class="flex items-center gap-3 rounded-lg px-3 py-2 font-medium transition"
-                :class="[currentUrl === link.href ? 'text-primary bg-orange-100' : 'text-gray-700 hover:bg-orange-50']"
+                :class="[currentUrl === link.href ? 'text-primary bg-orange-100' : 'text-gray-700 hover:bg-secondary']"
             >
                 <component :is="link.icon" class="h-5 w-5" />
                 {{ link.label }}

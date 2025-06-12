@@ -49,7 +49,7 @@
   
         <!-- Bouton -->
         <a :href="link"
-           class="mt-3 inline-block rounded-lg bg-primary px-6 py-3 text-center text-sm font-semibold text-white hover:bg-orange-500 transition">
+           class="mt-3 inline-block rounded-lg bg-primary px-6 py-3 text-center text-sm font-semibold text-white hover:bg-primary transition">
           Voir le profil
         </a>
       </div>

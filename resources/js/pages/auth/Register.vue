@@ -199,7 +199,7 @@ const onSubmit = () => {
 
 <template>
     <GlobalLayout>
-    <div class="flex flex-col justify-between bg-orange-50">
+    <div class="flex flex-col justify-between bg-secondary">
         <Head title="Inscription" />
 
         <div class="py-10 pt-10 text-center">
@@ -378,7 +378,7 @@ const onSubmit = () => {
                 <Button
                     type="submit"
                     class="w-full font-semibold text-white transition"
-                    :class="isFormValid ? 'bg-primary hover:bg-orange-500' : 'cursor-not-allowed bg-[#FFA789] opacity-80'"
+                    :class="isFormValid ? 'bg-primary hover:bg-primary' : 'cursor-not-allowed bg-[#FFA789] opacity-80'"
                     :disabled="!isFormValid || inertiaForm.processing"
                 >
                     <LoaderCircle v-if="inertiaForm.processing" class="mr-2 h-4 w-4 animate-spin" />

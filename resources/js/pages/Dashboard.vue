@@ -89,7 +89,7 @@ const currentContent = computed(() => {
                             :variant="currentMode === 'parent' ? 'default' : 'ghost'"
                             size="sm"
                             class="flex items-center gap-2"
-                            :class="currentMode === 'parent' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'"
+                            :class="currentMode === 'parent' ? 'bg-primary text-white hover:bg-primary' : 'text-gray-600 hover:bg-gray-100'"
                         >
                             <Users class="h-4 w-4" />
                             Parent
@@ -99,7 +99,7 @@ const currentContent = computed(() => {
                             :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
                             size="sm"
                             class="flex items-center gap-2"
-                            :class="currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'"
+                            :class="currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-primary' : 'text-gray-600 hover:bg-gray-100'"
                         >
                             <Baby class="h-4 w-4" />
                             Babysitter

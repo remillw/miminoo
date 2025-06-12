@@ -37,7 +37,7 @@ const submit = () => {
 
 <template>
     <GlobalLayout>
-    <div class="flex flex-col justify-between bg-orange-50">
+    <div class="flex flex-col justify-between bg-secondary">
         <Head title="Connexion" />
 
         <!-- Logo -->
@@ -131,7 +131,7 @@ const submit = () => {
                     <TextLink v-if="canResetPassword" :href="route('password.request')">Mot de passe oublié ?</TextLink>
                 </div>
 
-                <Button type="submit" class="bg-primary w-full py-5 text-base font-bold text-white hover:bg-orange-500" :disabled="form.processing">
+                <Button type="submit" class="bg-primary w-full py-5 text-base font-bold text-white hover:bg-primary" :disabled="form.processing">
                     <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
                     <span v-else>Se connecter</span>
                 </Button>

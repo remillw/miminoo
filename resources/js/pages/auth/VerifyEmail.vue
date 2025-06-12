@@ -16,7 +16,7 @@ const submit = () => {
 </script>
 
 <template>
-  <div class="bg-orange-50 flex flex-col justify-between">
+  <div class="bg-secondary flex flex-col justify-between">
     <Head title="Vérification de l’e-mail" />
 
     <!-- Logo -->
@@ -45,7 +45,7 @@ const submit = () => {
       <form @submit.prevent="submit" class="space-y-4">
         <Button
           type="submit"
-          class="w-full bg-primary text-white text-base font-bold py-5 hover:bg-orange-500"
+          class="w-full bg-primary text-white text-base font-bold py-5 hover:bg-primary"
           :disabled="form.processing"
         >
           <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />

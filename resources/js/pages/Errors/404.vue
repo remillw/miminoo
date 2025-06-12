@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 flex items-center justify-center px-4">
+    <div class="min-h-screen bg-gradient-to-br from-secondary via-white to-secondary flex items-center justify-center px-4">
         <div class="max-w-2xl w-full text-center">
             <!-- Animation container -->
             <div class="relative mb-8">
@@ -9,7 +9,7 @@
                 
                 <!-- Icône principale -->
                 <div class="relative bg-white rounded-full p-8 shadow-lg border border-orange-100 mx-auto w-40 h-40 flex items-center justify-center">
-                    <div class="text-8xl font-bold text-orange-500 animate-pulse">404</div>
+                    <div class="text-8xl font-bold text-primary animate-pulse">404</div>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link 
                     :href="route('dashboard')"
-                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-orange-600 hover:to-orange-500 transition-all duration-200 transform hover:scale-105"
+                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-orange-600 hover:to-primary transition-all duration-200 transform hover:scale-105"
                 >
                     <Home class="w-5 h-5" />
                     Retour à l'accueil

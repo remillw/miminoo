@@ -260,7 +260,7 @@ onMounted(() => {
 
 <template>
     <GlobalLayout>
-        <div class="min-h-screen bg-orange-50 px-4 py-16">
+        <div class="min-h-screen bg-secondary px-4 py-16">
             <div class="mx-auto max-w-7xl">
                 <!-- Titre + Sous-titre -->
                 <h1 class="mb-2 text-center text-2xl font-bold md:text-3xl">Trouver votre prochain babysitting</h1>
@@ -271,9 +271,9 @@ onMounted(() => {
                 <!-- Géolocalisation -->
                 <div v-if="!isGeolocationEnabled" class="mb-6 flex justify-center">
                     <div class="flex items-center gap-4 rounded-xl bg-white p-4 shadow-md">
-                        <MapPin class="h-5 w-5 text-orange-500" />
+                        <MapPin class="h-5 w-5 text-primary" />
                         <span class="text-gray-700">Activez la géolocalisation pour voir les annonces les plus proches</span>
-                        <Button @click="enableGeolocation" :disabled="geoLoading" size="sm" class="bg-orange-500 hover:bg-orange-600">
+                        <Button @click="enableGeolocation" :disabled="geoLoading" size="sm" class="bg-primary hover:bg-orange-600">
                             <Navigation class="mr-2 h-4 w-4" />
                             {{ geoLoading ? 'Localisation...' : 'Activer' }}
                         </Button>
@@ -425,7 +425,7 @@ onMounted(() => {
                         <button
                             type="button"
                             @click="applyFilters"
-                            class="bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-500"
+                            class="bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary"
                         >
                             Appliquer les filtres
                         </button>
@@ -460,7 +460,7 @@ onMounted(() => {
                             <button
                                 v-if="Object.keys(props.filters || {}).length > 0"
                                 @click="resetFilters"
-                                class="inline-block rounded-lg bg-orange-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
+                                class="inline-block rounded-lg bg-primary px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
                             >
                                 Réinitialiser les filtres
                             </button>

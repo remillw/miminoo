@@ -42,7 +42,7 @@
       <!-- Contre-offre si applicable -->
       <div v-if="application.counter_rate" class="mb-4">
         <h4 class="font-medium text-gray-900 mb-2">Contre-offre du parent</h4>
-        <div class="bg-orange-50 rounded-lg p-4 border border-orange-200">
+        <div class="bg-secondary rounded-lg p-4 border border-orange-200">
           <div class="flex items-center justify-between mb-2">
             <span class="text-lg font-semibold text-orange-900">{{ application.counter_rate }}€/h</span>
             <span class="text-sm text-orange-600">Nouveau tarif proposé</span>

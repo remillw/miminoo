@@ -322,11 +322,11 @@ initializeChildren();
                             class="group flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-3 transition-all duration-300 transform hover:scale-105"
                             :class="{
                                 // Étape actuelle
-                                'border-orange-500 bg-primary text-white shadow-lg shadow-orange-200 scale-110': currentStep === step,
+                                'border-primary bg-primary text-white shadow-lg shadow-orange-200 scale-110': currentStep === step,
                                 // Étape complétée
                                 'border-green-500 bg-green-500 text-white shadow-lg shadow-green-200': completedSteps.has(step) && currentStep !== step,
                                 // Étape non visitée mais accessible
-                                'border-orange-200 bg-orange-50 text-primary hover:border-orange-300 hover:bg-orange-100': currentStep !== step && !completedSteps.has(step) && (step === currentStep + 1 && canProceedToNext),
+                                'border-orange-200 bg-secondary text-primary hover:border-orange-300 hover:bg-orange-100': currentStep !== step && !completedSteps.has(step) && (step === currentStep + 1 && canProceedToNext),
                                 // Étape non accessible
                                 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed': currentStep !== step && !completedSteps.has(step) && !(step === currentStep + 1 && canProceedToNext),
                             }"

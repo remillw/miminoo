@@ -4,11 +4,11 @@ import { CheckCircle, Clock, Search, Star } from 'lucide-vue-next';
 </script>
 
 <template>
-    <section class="w-full bg-orange-50 py-8 md:py-16">
+    <section class="w-full bg-secondary py-8 md:py-16">
         <div class="mx-auto flex max-w-7xl flex-col-reverse items-center gap-8 px-4 md:flex-row md:gap-12">
             <!-- Left: Text content -->
             <div class="flex max-w-xl flex-1 flex-col items-start justify-center">
-                <span class="mb-4 rounded-full primaryopacity px-3 py-2 text-xs font-semibold text-primary">Une solution de garde en urgence</span>
+                <span class="mb-4 rounded-full bg-primary-opacity px-3 py-2 text-xs font-semibold text-primary">Une solution de garde en urgence</span>
                 <h1 class="mb-4 text-3xl font-extrabold text-gray-900 md:text-5xl">
                     Trouvez une <span class="text-primary">babysitter</span> de confiance en quelques minutes
                 </h1>
@@ -17,7 +17,7 @@ import { CheckCircle, Clock, Search, Star } from 'lucide-vue-next';
                     dernière minute ou planifiée.
                 </p>
                 <div class="mb-6 flex flex-col gap-3 sm:flex-row">
-  <a href="/trouver-une-babysitter" class="bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-orange-500 text-center">
+  <a href="/trouver-une-babysitter" class="bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary text-center">
     Trouver une babysitter
   </a>
   

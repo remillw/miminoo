@@ -2,7 +2,7 @@
     <Dialog :open="isOpen" @update:open="onClose">
         <DialogContent class="max-h-[80vh] max-w-sm overflow-hidden rounded-2xl p-0">
             <!-- En-tête avec photo de profil -->
-            <div class="bg-gradient-to-br from-orange-50 to-white px-6 py-4">
+            <div class="bg-gradient-to-br from-secondary to-white px-6 py-4">
                 <div class="mb-3 flex items-center gap-3">
                     <div class="relative">
                         <img
@@ -29,7 +29,7 @@
             <!-- Corps avec scroll -->
             <div class="max-h-[50vh] space-y-6 overflow-y-auto px-6 py-4">
                 <!-- Message d'erreur -->
-                <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 p-3">
+                <div v-if="error" class="rounded-lg border border-red-200 bg-primary-opacity p-3">
                     <p class="flex items-center gap-2 text-sm text-red-700">
                         <AlertCircle class="h-4 w-4" />
                         {{ error }}
@@ -46,28 +46,28 @@
 
                 <!-- Récapitulatif en cards compactes -->
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="rounded-lg bg-orange-50/50 p-3 transition-all hover:bg-orange-50">
+                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <Calendar class="h-3 w-3" />
                             <span>Date</span>
                         </div>
                         <div class="text-sm font-medium text-gray-900">{{ formattedDate }}</div>
                     </div>
-                    <div class="rounded-lg bg-orange-50/50 p-3 transition-all hover:bg-orange-50">
+                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <Clock class="h-3 w-3" />
                             <span>Horaires</span>
                         </div>
                         <div class="text-sm font-medium text-gray-900">{{ hours }}</div>
                     </div>
-                    <div class="rounded-lg bg-orange-50/50 p-3 transition-all hover:bg-orange-50">
+                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <MapPin class="h-3 w-3" />
                             <span>Lieu</span>
                         </div>
                         <div class="text-sm font-medium text-gray-900">{{ location }}</div>
                     </div>
-                    <div class="rounded-lg bg-orange-50/50 p-3 transition-all hover:bg-orange-50">
+                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <Baby class="h-3 w-3" />
                             <span>Enfants</span>
@@ -167,7 +167,7 @@
                     v-if="!success"
                     :disabled="!canSubmit || isLoading"
                     @click="submit"
-                    class="flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r from-orange-500 to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-orange-600 hover:to-orange-500 disabled:opacity-50"
+                    class="flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r from-primary to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-orange-600 hover:to-primary disabled:opacity-50"
                 >
                     <Loader v-if="isLoading" class="h-4 w-4 animate-spin" />
                     <Send v-else class="h-4 w-4" />

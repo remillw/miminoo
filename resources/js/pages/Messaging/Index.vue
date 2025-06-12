@@ -25,7 +25,7 @@
             <div
               @click="selectConversation(conversation)"
               class="flex items-start gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200"
-              :class="{ 'bg-orange-50 border-r-3 border-r-orange-500 shadow-sm': isSelected(conversation) }"
+              :class="{ 'bg-secondary border-r-3 border-r-primary shadow-sm': isSelected(conversation) }"
             >
               <!-- Avatar avec badge statut -->
               <div class="relative flex-shrink-0">
@@ -79,13 +79,13 @@
                 
                 <!-- Tarif pour candidatures -->
                 <div v-if="conversation.type === 'application' && conversation.application" class="flex items-center gap-2">
-                  <span class="text-sm font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                  <span class="text-sm font-semibold text-orange-600 bg-secondary px-2 py-1 rounded">
                     {{ conversation.application.proposed_rate }}€/h
                   </span>
                   <span v-if="conversation.application.counter_rate" class="text-xs text-gray-500">
                     →
                   </span>
-                  <span v-if="conversation.application.counter_rate" class="text-sm font-semibold text-red-600 bg-red-50 px-2 py-1 rounded">
+                  <span v-if="conversation.application.counter_rate" class="text-sm font-semibold text-red-600 bg-primary-opacity px-2 py-1 rounded">
                     {{ conversation.application.counter_rate }}€/h
                   </span>
                 </div>
@@ -128,7 +128,7 @@
             <!-- Candidature avec chat intégré -->
             <div v-if="selectedConversation.type === 'application'" class="h-full flex flex-col">
               <!-- En-tête candidature -->
-              <div class="bg-orange-50 border-b border-orange-200 p-4 flex-shrink-0">
+              <div class="bg-secondary border-b border-orange-200 p-4 flex-shrink-0">
                 <CandidatureChat 
                   :application="selectedConversation.application" 
                   :user-role="userRole"

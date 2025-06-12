@@ -60,7 +60,7 @@ const completeRegistration = () => {
 </script>
 
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 p-4">
+    <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary via-primary-opacity to-pink-50 p-4">
         <Card class="w-full max-w-2xl shadow-2xl">
             <CardHeader class="pb-8 text-center">
                 <div class="bg-primary mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
@@ -189,7 +189,7 @@ const completeRegistration = () => {
                 </div>
 
                 <!-- Informations supplémentaires -->
-                <div v-if="isRoleSelected('babysitter')" class="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                <div v-if="isRoleSelected('babysitter')" class="rounded-lg border border-orange-200 bg-secondary p-4">
                     <div class="flex items-start gap-3">
                         <div class="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
                             <svg class="h-3 w-3 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,7 +237,7 @@ const completeRegistration = () => {
                     <Button
                         @click="completeRegistration"
                         :disabled="!hasSelectedRoles || isLoading"
-                        class="bg-primary w-full py-3 text-lg font-semibold text-white hover:bg-orange-500"
+                        class="bg-primary w-full py-3 text-lg font-semibold text-white hover:bg-primary"
                         size="lg"
                     >
                         <span v-if="isLoading">{{ existingUser ? 'Mise à jour...' : 'Création en cours...' }}</span>
