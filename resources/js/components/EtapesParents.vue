@@ -10,7 +10,7 @@
   
           <!-- Titre -->
           <h2 ref="title" class="text-4xl md:text-5xl font-bold text-gray-900 mb-8 opacity-0 translate-y-8">
-            Trouvez une babysitter en <span class="text-orange-500">4 étapes simples</span>
+            Trouvez une babysitter en <span class="text-primary">4 étapes simples</span>
           </h2>
         </div>
   
@@ -38,7 +38,7 @@
                     <!-- Formulaire simulé -->
                     <div class="space-y-4">
                       <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4V9a2 2 0 012-2h4a2 2 0 012 2v2m-6 4h8a2 2 0 002-2v-4a2 2 0 00-2-2h-8a2 2 0 00-2 2v4a2 2 0 002 2z" />
                         </svg>
                         <span class="text-sm text-gray-700">Mercredi 15 mars, 14h-18h</span>
@@ -131,7 +131,7 @@
                   <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                     <!-- Messages simulés -->
                     <div class="space-y-4">
-                      <div class="bg-orange-50 p-3 rounded-2xl rounded-bl-sm border-l-4 border-orange-400">
+                      <div class="bg-secondary p-3 rounded-2xl rounded-bl-sm border-l-4 border-orange-400">
                         <p class="text-sm text-gray-800 font-medium mb-1">Bonjour ! Je suis intéressée par votre annonce. Je suis disponible mercredi.</p>
                       </div>
                       <div class="bg-gray-50 p-3 rounded-2xl rounded-br-sm ml-8">

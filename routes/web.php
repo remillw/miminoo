@@ -65,7 +65,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::get('comment-ca-marche', function () {
     return Inertia::render('comment-ca-marche');
-})->name('comment-ca-marche');
+})->name('comment-ca-marche');  
+
+Route::get('babysitter-profile', function () {
+    return Inertia::render('Babysitterprofile');
+})->name('babysitter-profile');
 
 
 

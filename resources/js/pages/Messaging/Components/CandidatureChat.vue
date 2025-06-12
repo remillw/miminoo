@@ -30,7 +30,7 @@
         <button
           v-if="!showCounterOffer"
           @click="showCounterOffer = true"
-          class="border border-orange-300 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-50 transition-colors flex items-center gap-2"
+          class="border border-orange-300 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors flex items-center gap-2"
         >
           <Euro class="w-4 h-4" />
           Contre-offre
@@ -38,7 +38,7 @@
         
         <button
           @click="handleDecline"
-          class="border border-red-300 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors flex items-center gap-2"
+          class="border border-red-300 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-opacity transition-colors flex items-center gap-2"
         >
           <X class="w-4 h-4" />
           Refuser
@@ -69,7 +69,7 @@
 
     <!-- Formulaire contre-offre parent -->
     <div v-if="showCounterOffer && userRole === 'parent'" 
-         class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+         class="bg-secondary border border-orange-200 rounded-lg p-4">
       <h4 class="font-medium text-gray-900 mb-3">Faire une contre-proposition :</h4>
       <div class="flex items-center gap-3">
         <div class="relative">
@@ -79,7 +79,7 @@
             step="0.5"
             min="1"
             max="50"
-            class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="20"
           />
           <span class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">€/h</span>

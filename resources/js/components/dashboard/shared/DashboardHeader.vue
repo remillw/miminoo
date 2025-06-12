@@ -35,7 +35,7 @@
                 </button>
 
                 <!-- Bouton "Créer une annonce" -->
-                <a href="/annonces/create" class="bg-primary hidden rounded px-4 py-2 font-semibold text-white hover:bg-orange-500 md:inline-block">
+                <a href="/annonces/create" class="bg-primary hidden rounded px-4 py-2 font-semibold text-white hover:bg-primary md:inline-block">
                     Créer une annonce
                 </a>
             </div>

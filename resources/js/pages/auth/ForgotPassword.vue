@@ -17,7 +17,7 @@ const submit = () => {
 </script>
 
 <template>
-  <div class="bg-orange-50 flex flex-col justify-between">
+  <div class="bg-secondary flex flex-col justify-between">
     <Head title="Mot de passe oublié" />
 
     <!-- Logo -->
@@ -50,7 +50,7 @@ const submit = () => {
           <InputError :message="form.errors.email" />
         </div>
 
-        <Button type="submit" class="w-full bg-primary py-5 text-white text-base font-bold hover:bg-orange-500" :disabled="form.processing">
+        <Button type="submit" class="w-full bg-primary py-5 text-white text-base font-bold hover:bg-primary" :disabled="form.processing">
           <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
           <span v-else>Envoyer le mail de réinitialisation</span>
         </Button>

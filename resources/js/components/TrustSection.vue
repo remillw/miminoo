@@ -26,7 +26,7 @@ const items = [
 
 </script>
 <template>
-    <section class="w-full bg-orange-50 py-12">
+    <section class="w-full bg-secondary py-12">
       <div class="mx-auto max-w-6xl px-4">
         <h2 class="mb-2 text-center text-2xl font-bold md:text-3xl">
           Votre tranquillité d'esprit est notre priorité
@@ -41,7 +41,7 @@ const items = [
             :key="item.title"
             class="flex flex-col rounded-2xl bg-white p-6 shadow-md text-left"
           >
-            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-primary">
+            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary">
               <component :is="item.icon" class="h-6 w-6" />
             </div>
             <h3 class="mb-2 text-base font-semibold text-gray-900">

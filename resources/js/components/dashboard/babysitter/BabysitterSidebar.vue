@@ -22,7 +22,7 @@ const links = [
                 v-for="link in links"
                 :key="link.label"
                 :href="link.href"
-                class="flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-orange-50"
+                class="flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-secondary"
             >
                 <component :is="link.icon" class="h-5 w-5" /> {{ link.label }}
             </Link>

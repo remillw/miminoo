@@ -28,7 +28,7 @@ const navLinks = [
                         {{ link.name }}
                     </Link>
                 </template>
-                <Button as-child class="ml-2 bg-primary font-semibold text-white hover:bg-orange-500">
+                <Button as-child class="ml-2 bg-primary font-semibold text-white hover:bg-primary">
                     <Link href="/creer-annonce">Créer une annonce</Link>
                 </Button>
             </div>
@@ -54,7 +54,7 @@ const navLinks = [
                                     {{ link.name }}
                                 </Link>
                             </template>
-                            <Button as-child class="mt-4 bg-primary font-semibold text-white hover:bg-orange-500">
+                            <Button as-child class="mt-4 bg-primary font-semibold text-white hover:bg-primary">
                                 <Link href="/creer-annonce">Créer une annonce</Link>
                             </Button>
                         </div>

@@ -460,7 +460,7 @@ const userInfo = computed(() => {
                                 :variant="currentMode === 'parent' ? 'default' : 'ghost'"
                                 size="sm"
                                 class="flex items-center gap-2"
-                                :class="currentMode === 'parent' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'"
+                                :class="currentMode === 'parent' ? 'bg-primary text-white hover:bg-primary' : 'text-gray-600 hover:bg-gray-100'"
                             >
                                 <Users class="h-4 w-4" />
                                 Parent
@@ -471,7 +471,7 @@ const userInfo = computed(() => {
                                 size="sm"
                                 class="flex items-center gap-2"
                                 :class="
-                                    currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'
+                                    currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-primary' : 'text-gray-600 hover:bg-gray-100'
                                 "
                             >
                                 <Baby class="h-4 w-4" />
@@ -484,7 +484,7 @@ const userInfo = computed(() => {
 
             <!-- Header Card -->
             <Card class="mb-6">
-                <CardHeader class="from-primary/10 rounded-t-xl bg-gradient-to-b to-orange-50">
+                <CardHeader class="from-primary/10 rounded-t-xl bg-gradient-to-b to-secondary">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-6">
                             <div class="relative">
@@ -515,7 +515,7 @@ const userInfo = computed(() => {
                             </div>
                         </div>
 
-                        <Button v-if="!isEditing" @click="toggleEdit" class="bg-primary hover:bg-orange-500"> Modifier </Button>
+                        <Button v-if="!isEditing" @click="toggleEdit" class="bg-primary hover:bg-primary"> Modifier </Button>
                     </div>
                 </CardHeader>
 
@@ -628,7 +628,7 @@ const userInfo = computed(() => {
                         <!-- Boutons d'action -->
                         <div v-if="isEditing" class="flex justify-end gap-4 border-t pt-6">
                             <Button type="button" @click="toggleEdit" variant="outline" :disabled="isLoading"> Annuler </Button>
-                            <Button type="submit" class="bg-primary hover:bg-orange-500" :disabled="isLoading">
+                            <Button type="submit" class="bg-primary hover:bg-primary" :disabled="isLoading">
                                 {{ isLoading ? 'Enregistrement...' : 'Enregistrer les modifications' }}
                             </Button>
                         </div>

@@ -29,7 +29,7 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link 
                     :href="route('dashboard')"
-                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-orange-600 hover:to-orange-500 transition-all duration-200 transform hover:scale-105"
+                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-orange-600 hover:to-primary transition-all duration-200 transform hover:scale-105"
                 >
                     <Home class="w-5 h-5" />
                     Retour à l'accueil

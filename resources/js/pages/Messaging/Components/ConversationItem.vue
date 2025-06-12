@@ -4,7 +4,7 @@
     class="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-l-4"
     :class="[
       active ? 'bg-blue-50 border-l-blue-500' : 'border-l-transparent',
-      hasUnreadBadge ? 'bg-orange-50' : ''
+      hasUnreadBadge ? 'bg-secondary' : ''
     ]"
   >
     <div class="flex items-start gap-3">
@@ -38,7 +38,7 @@
             </span>
             <!-- Badge nouveau (candidature) -->
             <span v-if="type === 'application' && isNew"
-                  class="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+                  class="bg-primary text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
               Nouveau
             </span>
           </div>
