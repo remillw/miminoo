@@ -17,7 +17,7 @@ class CreateBaseUsers extends Command
 
     public function handle()
     {
-        // Vérification et création des rôles si nécessaire
+        
         if (Role::count() === 0) {
             $this->info('Création des rôles...');
             (new RoleSeeder())->run();
@@ -45,10 +45,10 @@ class CreateBaseUsers extends Command
 
         ParentProfile::create([
             'user_id' => $parentUser->id,
-            // Ajoutez ici d'autres champs nécessaires pour le profil parent
         ]);
 
-        // Création de l'utilisateur babysitter
+
+        
         $babysitterUser = User::create([
             'name' => 'Babysitter Test',
             'email' => 'babysitter@test.com',
@@ -60,11 +60,11 @@ class CreateBaseUsers extends Command
 
         BabysitterProfile::create([
             'user_id' => $babysitterUser->id,
-            // Ajoutez ici d'autres champs nécessaires pour le profil babysitter
         ]);
 
         $this->info('Utilisateurs créés avec succès !');
         $this->table(
+        
             ['Type', 'Email', 'Mot de passe', 'Vérifié'],
             [
                 ['Parent', 'parent@test.com', 'password123', 'Oui'],

@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Address;
 use App\Models\ParentProfile;
+use App\Models\BabysitterProfile;
+use App\Models\Language;
+use App\Models\Skill;
+use App\Models\AgeRange;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,7 +17,15 @@ class ProfileController extends Controller
 {
     public function show(Request $request)
     {
-        $user = Auth::user()->load(['roles', 'address', 'parentProfile', 'babysitterProfile']);
+        $user = Auth::user()->load([
+            'roles', 
+            'address', 
+            'parentProfile', 
+            'babysitterProfile.languages',
+            'babysitterProfile.skills',
+            'babysitterProfile.excludedAgeRanges',
+            'babysitterProfile.experiences'
+        ]);
         
         // Récupérer tous les rôles de l'utilisateur
         $userRoles = $user->roles()->pluck('name')->toArray();
@@ -44,10 +56,19 @@ class ProfileController extends Controller
             'requestedMode' => $currentMode, // Mode demandé via URL
         ];
 
-        // Si c'est en mode parent ET qu'il a le rôle parent, on charge ses enfants
-        $effectiveMode = $currentMode ?: (in_array('parent', $userRoles) ? 'parent' : 'babysitter');
-        if ($effectiveMode === 'parent' && in_array('parent', $userRoles) && $user->parentProfile) {
+        // Charger les données selon les rôles de l'utilisateur
+        // Si l'utilisateur a le rôle parent, on charge ses enfants
+        if (in_array('parent', $userRoles) && $user->parentProfile) {
             $profileData['children'] = $user->parentProfile->children_ages ?? [];
+        }
+
+        // Si l'utilisateur a le rôle babysitter, on charge toujours son profil babysitter et les options
+        // (même s'il est actuellement en mode parent, les données doivent être disponibles pour le switch)
+        if (in_array('babysitter', $userRoles)) {
+            $profileData['babysitterProfile'] = $user->babysitterProfile;
+            $profileData['availableLanguages'] = Language::where('is_active', true)->get();
+            $profileData['availableSkills'] = Skill::where('is_active', true)->get();
+            $profileData['availableAgeRanges'] = AgeRange::where('is_active', true)->orderBy('display_order')->get();
         }
 
         return Inertia::render('profil', $profileData);
@@ -72,6 +93,30 @@ class ProfileController extends Controller
             'children.*.age' => 'required|string',
             'children.*.unite' => 'required|in:ans,mois',
             'mode' => 'nullable|string|in:parent,babysitter',
+            
+            // Champs profil babysitter
+            'bio' => 'nullable|string|max:2000',
+            'experience_years' => 'nullable|integer|min:0|max:50',
+            'available_radius_km' => 'nullable|integer|min:1|max:100',
+            'hourly_rate' => 'nullable|numeric|min:0|max:100',
+            'is_available' => 'nullable|boolean',
+            'has_driving_license' => 'nullable|boolean',
+            'has_vehicle' => 'nullable|boolean',
+            'comfortable_with_all_ages' => 'nullable|boolean',
+            'language_ids' => 'nullable|array',
+            'language_ids.*' => 'exists:languages,id',
+            'skill_ids' => 'nullable|array',
+            'skill_ids.*' => 'exists:skills,id',
+            'excluded_age_range_ids' => 'nullable|array',
+            'excluded_age_range_ids.*' => 'exists:age_ranges,id',
+            'experiences' => 'nullable|array',
+            'experiences.*.type' => 'required|in:formation,experience',
+            'experiences.*.title' => 'required|string|max:255',
+            'experiences.*.description' => 'nullable|string|max:1000',
+            'experiences.*.institution' => 'nullable|string|max:255',
+            'experiences.*.start_date' => 'nullable|date',
+            'experiences.*.end_date' => 'nullable|date|after_or_equal:start_date',
+            'experiences.*.is_current' => 'nullable|boolean',
         ]);
 
         // Mise à jour ou création de l'adresse
@@ -113,6 +158,67 @@ class ProfileController extends Controller
                     'children_ages' => $request->children,
                 ]
             );
+        }
+
+        // Si on est en mode babysitter ET que l'utilisateur a le rôle babysitter, mise à jour du profil babysitter
+        if ($request->mode === 'babysitter' && in_array('babysitter', $user->roles()->pluck('name')->toArray())) {
+            $babysitterData = [];
+            
+            if ($request->has('bio')) {
+                $babysitterData['bio'] = $request->bio;
+            }
+            if ($request->has('experience_years')) {
+                $babysitterData['experience_years'] = $request->experience_years;
+            }
+            if ($request->has('available_radius_km')) {
+                $babysitterData['available_radius_km'] = $request->available_radius_km;
+            }
+            if ($request->has('hourly_rate')) {
+                $babysitterData['hourly_rate'] = $request->hourly_rate;
+            }
+            if ($request->has('is_available')) {
+                $babysitterData['is_available'] = $request->is_available;
+            }
+            if ($request->has('has_driving_license')) {
+                $babysitterData['has_driving_license'] = $request->has_driving_license;
+            }
+            if ($request->has('has_vehicle')) {
+                $babysitterData['has_vehicle'] = $request->has_vehicle;
+            }
+            if ($request->has('comfortable_with_all_ages')) {
+                $babysitterData['comfortable_with_all_ages'] = $request->comfortable_with_all_ages;
+            }
+
+            $babysitterProfile = $user->babysitterProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                $babysitterData
+            );
+
+            // Synchroniser les langues
+            if ($request->has('language_ids')) {
+                $babysitterProfile->languages()->sync($request->language_ids);
+            }
+
+            // Synchroniser les compétences
+            if ($request->has('skill_ids')) {
+                $babysitterProfile->skills()->sync($request->skill_ids);
+            }
+
+            // Synchroniser les tranches d'âge exclues
+            if ($request->has('excluded_age_range_ids')) {
+                $babysitterProfile->excludedAgeRanges()->sync($request->excluded_age_range_ids);
+            }
+
+            // Gérer les expériences/formations
+            if ($request->has('experiences')) {
+                // Supprimer les anciennes expériences
+                $babysitterProfile->experiences()->delete();
+                
+                // Créer les nouvelles expériences
+                foreach ($request->experiences as $experience) {
+                    $babysitterProfile->experiences()->create($experience);
+                }
+            }
         }
 
         // Rediriger avec le mode s'il est fourni

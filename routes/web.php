@@ -67,18 +67,7 @@ Route::get('comment-ca-marche', function () {
     return Inertia::render('comment-ca-marche');
 })->name('comment-ca-marche');
 
-// Route de test pour les pages d'erreur (temporaire)
-Route::get('/test-404', function () {
-    abort(404);
-})->name('test.404');
 
-Route::get('/test-500', function () {
-    abort(500);
-})->name('test.500');
-
-Route::get('/test-403', function () {
-    abort(403);
-})->name('test.403');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

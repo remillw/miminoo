@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BabysitterProfile from '@/components/BabysitterProfile.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,10 +8,9 @@ import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
-import { Camera, Mail, MapPin, Plus, Trash2, Users, Baby } from 'lucide-vue-next';
-import { computed, nextTick, ref, watch, onMounted } from 'vue';
+import { Baby, Camera, Mail, MapPin, Plus, Trash2, Users } from 'lucide-vue-next';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
-import BabysitterProfile from '@/components/BabysitterProfile.vue';
 
 interface Child {
     nom: string;
@@ -41,6 +41,39 @@ interface User {
     parentProfile?: {
         children_ages: Child[];
     };
+    babysitterProfile?: {
+        bio?: string;
+        experience_years?: number;
+        available_radius_km?: number;
+        availability?: any;
+        hourly_rate?: number;
+        documents_verified?: boolean;
+        languages?: Language[];
+        skills?: Skill[];
+        age_ranges?: AgeRange[];
+        experiences?: any[];
+    };
+}
+
+interface Language {
+    id: number;
+    name: string;
+    code: string;
+}
+
+interface Skill {
+    id: number;
+    name: string;
+    description?: string;
+    category?: string;
+}
+
+interface AgeRange {
+    id: number;
+    name: string;
+    min_age_months: number;
+    max_age_months?: number;
+    display_order: number;
 }
 
 interface Props {
@@ -50,6 +83,21 @@ interface Props {
     hasBabysitterRole: boolean;
     requestedMode?: 'parent' | 'babysitter';
     children?: Child[];
+    babysitterProfile?: {
+        bio?: string;
+        experience_years?: number;
+        available_radius_km?: number;
+        availability?: any;
+        hourly_rate?: number;
+        documents_verified?: boolean;
+        languages?: Language[];
+        skills?: Skill[];
+        age_ranges?: AgeRange[];
+        experiences?: any[];
+    };
+    availableLanguages?: Language[];
+    availableSkills?: Skill[];
+    availableAgeRanges?: AgeRange[];
 }
 
 const props = defineProps<Props>();
@@ -65,11 +113,7 @@ const babysitterProfileRef = ref();
 
 // Initialiser le mode au montage du composant
 onMounted(() => {
-    initializeMode(
-        props.hasParentRole, 
-        props.hasBabysitterRole, 
-        props.requestedMode
-    );
+    initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
 });
 
 // Computed pour vérifier si l'utilisateur a plusieurs rôles
@@ -80,15 +124,19 @@ const hasMultipleRoles = computed(() => {
 // Fonction pour changer de mode
 const switchMode = (mode: 'parent' | 'babysitter') => {
     if (mode === currentMode.value) return;
-    
+
     // Mettre à jour le localStorage
     setMode(mode);
-    
+
     // Rediriger vers la même page avec le paramètre mode
-    router.get(route('profil', { mode }), {}, {
-        preserveState: false,
-        preserveScroll: true
-    });
+    router.get(
+        route('profil', { mode }),
+        {},
+        {
+            preserveState: false,
+            preserveScroll: true,
+        },
+    );
 };
 
 // Formulaire
@@ -323,8 +371,14 @@ const submitForm = async () => {
             age: String(child.age), // Convertir en string
         }));
     } else if (currentMode.value === 'babysitter') {
-        // En mode babysitter, on n'envoie pas les enfants
+        // En mode babysitter, on n'envoie pas les enfants mais on récupère les données du profil babysitter
         delete formData.children;
+
+        // Récupérer les données du profil babysitter depuis le composant
+        if (babysitterProfileRef.value) {
+            const babysitterData = babysitterProfileRef.value.getFormData();
+            Object.assign(formData, babysitterData);
+        }
     }
 
     // Validation côté frontend avant soumission
@@ -396,7 +450,7 @@ const userInfo = computed(() => {
                         <h1 class="text-2xl font-bold text-gray-800">Mon profil</h1>
                         <p class="text-gray-500">Gérez vos informations personnelles</p>
                     </div>
-                    
+
                     <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
                     <div v-if="hasMultipleRoles" class="flex items-center gap-4">
                         <span class="text-sm font-medium text-gray-700">Mode :</span>
@@ -416,7 +470,9 @@ const userInfo = computed(() => {
                                 :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
                                 size="sm"
                                 class="flex items-center gap-2"
-                                :class="currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'"
+                                :class="
+                                    currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'
+                                "
                             >
                                 <Baby class="h-4 w-4" />
                                 Babysitter
@@ -450,9 +506,7 @@ const userInfo = computed(() => {
                                     <div
                                         :class="[
                                             'rounded-full px-2 py-1 text-xs font-medium',
-                                            currentMode === 'parent' 
-                                                ? 'bg-blue-100 text-blue-800' 
-                                                : 'bg-orange-100 text-orange-800'
+                                            currentMode === 'parent' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800',
                                         ]"
                                     >
                                         Mode {{ currentMode === 'parent' ? 'Parent' : 'Babysitter' }}
@@ -562,7 +616,13 @@ const userInfo = computed(() => {
 
                         <!-- Informations babysitter (seulement en mode babysitter) -->
                         <div v-if="currentMode === 'babysitter' && hasBabysitterRole" class="space-y-4">
-                          <BabysitterProfile ref="babysitterProfileRef" />
+                            <BabysitterProfile
+                                ref="babysitterProfileRef"
+                                :babysitter-profile="props.babysitterProfile || props.user.babysitterProfile"
+                                :available-languages="props.availableLanguages"
+                                :available-skills="props.availableSkills"
+                                :available-age-ranges="props.availableAgeRanges"
+                            />
                         </div>
 
                         <!-- Boutons d'action -->
