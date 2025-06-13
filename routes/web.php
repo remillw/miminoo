@@ -87,10 +87,12 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     Route::get('/api/stripe/account-status', [StripeController::class, 'getAccountStatus'])->name('babysitter.stripe.status');
     
     // Routes pour la vérification d'identité Stripe
-    Route::get('/babysitter/verification-stripe', [StripeVerificationController::class, 'show'])->name('babysitter.stripe.verification');
+    Route::get('/babysitter/verification-stripe', [StripeVerificationController::class, 'show'])->name('babysitter.verification-stripe');
     Route::post('/babysitter/verification-stripe/create-link', [StripeVerificationController::class, 'createVerificationLink'])->name('babysitter.stripe.verification.link');
     Route::post('/babysitter/verification-stripe/upload', [StripeVerificationController::class, 'uploadDocument'])->name('babysitter.stripe.verification.upload');
     Route::get('/api/stripe/verification-status', [StripeVerificationController::class, 'checkVerificationStatus'])->name('babysitter.stripe.verification.status');
+    Route::get('/stripe/verification/success', [StripeVerificationController::class, 'success'])->name('babysitter.stripe.verification.success');
+    Route::get('/stripe/verification/refresh', [StripeVerificationController::class, 'refresh'])->name('babysitter.stripe.verification.refresh');
 });
 
 Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('babysitter.show');

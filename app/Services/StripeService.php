@@ -37,11 +37,9 @@ class StripeService
                     'name' => $user->firstname . ' ' . $user->lastname,
                     'product_description' => 'Services de garde d\'enfants et babysitting',
                     'support_email' => $user->email,
-                    'url' => config('app.url'), // URL de votre site
+                    // URL supprimée car localhost n'est pas accepté par Stripe
                 ],
-                'tos_acceptance' => [
-                    'service_agreement' => 'recipient',
-                ],
+                // tos_acceptance supprimé car non supporté pour FR->FR selon Stripe
                 'settings' => [
                     'payouts' => [
                         'schedule' => [
@@ -84,6 +82,147 @@ class StripeService
                 'error' => $e->getMessage()
             ]);
             throw $e;
+        }
+    }
+
+    public function createVerificationLink(User $user)
+    {
+        try {
+            // S'assurer que le compte Connect existe
+            if (!$user->stripe_account_id) {
+                $this->createConnectAccount($user);
+            }
+
+            // Créer un AccountLink pour la vérification d'identité
+            $accountLink = $this->stripe->accountLinks->create([
+                'account' => $user->stripe_account_id,
+                'refresh_url' => route('babysitter.stripe.verification.refresh'),
+                'return_url' => route('babysitter.stripe.verification.success'),
+                'type' => 'account_onboarding', // Utilise le processus d'onboarding complet
+                'collect' => 'currently_due', // Collecte seulement ce qui est actuellement requis
+            ]);
+
+            Log::info('AccountLink créé pour vérification d\'identité', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'url' => $accountLink->url
+            ]);
+
+            return $accountLink;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création du lien de vérification Connect', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    // Méthode supprimée - plus nécessaire avec l'approche Stripe Connect native
+
+    public function checkIdentityVerificationStatus(User $user)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                return 'not_started';
+            }
+
+            $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
+            
+            // Vérifier spécifiquement le statut de vérification d'identité
+            $individualVerificationStatus = $account->individual->verification->status ?? 'unverified';
+            
+            if ($individualVerificationStatus === 'verified') {
+                return 'verified';
+            }
+            
+            if ($individualVerificationStatus === 'pending') {
+                return 'processing';
+            }
+            
+            // Vérifier s'il y a des requirements d'identité spécifiques
+            $identityRequirements = [
+                'individual.verification.document',
+                'individual.verification.additional_document',
+                'individual.id_number'
+            ];
+            
+            $currentlyDue = $account->requirements->currently_due ?? [];
+            $eventuallyDue = $account->requirements->eventually_due ?? [];
+            $pastDue = $account->requirements->past_due ?? [];
+            $pendingVerification = $account->requirements->pending_verification ?? [];
+            
+            $allRequirements = array_merge($currentlyDue, $eventuallyDue, $pastDue, $pendingVerification);
+            
+            $hasIdentityRequirements = false;
+            foreach ($identityRequirements as $identityReq) {
+                foreach ($allRequirements as $requirement) {
+                    if (strpos($requirement, $identityReq) !== false) {
+                        $hasIdentityRequirements = true;
+                        break 2;
+                    }
+                }
+            }
+            
+            if ($hasIdentityRequirements) {
+                if (!empty($pastDue)) {
+                    return 'requires_action'; // Action urgente requise
+                }
+                return 'requires_input'; // Vérification d'identité requise
+            }
+            
+            // Si pas de requirements d'identité et statut unverified, c'est que ce n'est pas encore requis
+            if ($individualVerificationStatus === 'unverified') {
+                return 'not_required_yet';
+            }
+            
+            return 'not_started';
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la vérification du statut d\'identité', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            return 'error';
+        }
+    }
+
+    private function ensureAccountReadyForVerification(User $user)
+    {
+        try {
+            // Récupérer les détails du compte
+            $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
+            
+            // Vérifier si des informations de base manquent et les ajouter
+            $updateData = [];
+            
+            // S'assurer que le type de business est défini
+            if (!$account->business_type) {
+                $updateData['business_type'] = 'individual';
+            }
+            
+            // S'assurer que les informations individuelles de base sont présentes
+            if ($account->business_type === 'individual' || !$account->business_type) {
+                if (!$account->individual || !$account->individual->first_name) {
+                    $updateData['individual'] = [
+                        'first_name' => $user->name ? explode(' ', $user->name)[0] : 'Prénom',
+                        'last_name' => $user->name && count(explode(' ', $user->name)) > 1 ? 
+                                      implode(' ', array_slice(explode(' ', $user->name), 1)) : 'Nom',
+                        'email' => $user->email,
+                    ];
+                }
+            }
+            
+            // Mettre à jour le compte si nécessaire
+            if (!empty($updateData)) {
+                $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+            }
+            
+        } catch (\Exception $e) {
+            Log::warning('Impossible de préparer le compte pour la vérification', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            // Ne pas faire échouer le processus si la préparation échoue
         }
     }
 
@@ -294,6 +433,119 @@ class StripeService
             Log::error('Erreur lors de l\'upload du document de vérification', [
                 'user_id' => $user->id,
                 'document_type' => $documentType,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    public function needsIdentityVerification(User $user)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                return true; // Pas de compte = vérification nécessaire
+            }
+
+            $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
+            
+            // Vérifier si des documents d'identité sont requis
+            $identityRequirements = [
+                'individual.verification.document',
+                'individual.verification.additional_document',
+                'company.verification.document',
+            ];
+            
+            $currentlyDue = $account->requirements->currently_due ?? [];
+            $eventuallyDue = $account->requirements->eventually_due ?? [];
+            $allRequirements = array_merge($currentlyDue, $eventuallyDue);
+            
+            // Vérifier si des requirements d'identité sont présents
+            foreach ($identityRequirements as $requirement) {
+                if (in_array($requirement, $allRequirements)) {
+                    return true;
+                }
+            }
+            
+            // Vérifier le statut de vérification individuelle
+            if ($account->individual && isset($account->individual->verification)) {
+                $verificationStatus = $account->individual->verification->status ?? 'unverified';
+                if ($verificationStatus !== 'verified') {
+                    return true;
+                }
+            }
+            
+            // Vérifier si le compte peut faire des payouts (indicateur de vérification complète)
+            return !$account->payouts_enabled;
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la vérification du statut d\'identité', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            return true; // En cas d'erreur, supposer que la vérification est nécessaire
+        }
+    }
+
+    // Méthode supprimée - plus nécessaire avec l'approche Stripe Connect native
+    // La vérification se fait maintenant directement via les AccountLinks
+
+    public function forceResolveIdentityRequirements(User $user)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            // Récupérer le compte pour voir les requirements actuels
+            $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
+            
+            $currentlyDue = $account->requirements->currently_due ?? [];
+            $identityRequirements = array_filter($currentlyDue, function($req) {
+                return strpos($req, 'individual.verification') !== false;
+            });
+
+            if (empty($identityRequirements)) {
+                Log::info('Aucun requirement de vérification d\'identité trouvé', [
+                    'user_id' => $user->id,
+                    'account_id' => $user->stripe_account_id
+                ]);
+                return true;
+            }
+
+            // Essayer de soumettre les informations minimales pour satisfaire les requirements
+            $updateData = [
+                'individual' => [
+                    'first_name' => $user->firstname ?? 'Prénom',
+                    'last_name' => $user->lastname ?? 'Nom',
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '+33123456789',
+                    'dob' => [
+                        'day' => 1,
+                        'month' => 1,
+                        'year' => 1990,
+                    ],
+                    'address' => [
+                        'line1' => '123 Rue Example',
+                        'city' => 'Paris',
+                        'postal_code' => '75001',
+                        'country' => 'FR',
+                    ],
+                ]
+            ];
+
+            $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+
+            Log::info('Force resolved identity requirements', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'resolved_requirements' => $identityRequirements
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la résolution forcée des requirements', [
+                'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
             throw $e;

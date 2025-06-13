@@ -17,60 +17,59 @@ class StripeVerificationController extends Controller
     }
 
     /**
-     * Affiche la page de vérification d'identité
+     * Affiche la page de vérification d'identité Stripe Connect
      */
     public function show(Request $request)
     {
         $user = $request->user();
-        
-        if (!$user->hasRole('babysitter') || !$user->stripe_account_id) {
-            return redirect()->route('babysitter.payments')->with('error', 'Compte Stripe requis.');
-        }
 
-        try {
-            $accountDetails = $this->stripeService->getAccountDetails($user);
-            $requirements = $accountDetails['requirements'] ?? [];
-            
-            return Inertia::render('Babysitter/StripeVerification', [
-                'accountDetails' => $accountDetails,
-                'requirements' => $requirements,
-                'stripeAccountId' => $user->stripe_account_id
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Erreur récupération détails compte Stripe', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage()
-            ]);
-            
-            return redirect()->route('babysitter.payments')->with('error', 'Erreur lors de la récupération des informations.');
+        // Vérifier le statut de vérification Connect
+        $verificationStatus = $this->stripeService->checkIdentityVerificationStatus($user);
+        
+        // Récupérer les détails du compte pour plus d'informations
+        $accountDetails = null;
+        if ($user->stripe_account_id) {
+            try {
+                $accountDetails = $this->stripeService->getAccountDetails($user);
+            } catch (\Exception $e) {
+                Log::warning('Could not retrieve account details', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
+        
+        return Inertia::render('Babysitter/StripeVerification', [
+            'verificationStatus' => $verificationStatus,
+            'needsVerification' => !in_array($verificationStatus, ['verified']),
+            'accountDetails' => $accountDetails,
+        ]);
     }
 
     /**
-     * Crée un lien de vérification d'identité Stripe
+     * Crée un lien de vérification d'identité Stripe Connect
      */
     public function createVerificationLink(Request $request)
     {
         $user = $request->user();
 
-        if (!$user->stripe_account_id) {
-            return response()->json(['error' => 'Aucun compte Stripe Connect trouvé'], 400);
-        }
-
         try {
-            // Créer un lien d'account link spécifiquement pour la vérification
-            $accountLink = $this->stripeService->createAccountLink($user, 'custom_account_verification');
+            // Créer un AccountLink pour la vérification Connect
+            $accountLink = $this->stripeService->createVerificationLink($user);
             
             return response()->json([
-                'verification_url' => $accountLink->url
+                'url' => $accountLink->url,
+                'expires_at' => $accountLink->expires_at,
             ]);
         } catch (\Exception $e) {
-            Log::error('Erreur création lien vérification', [
+            Log::error('Erreur création lien vérification Connect', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
             
-            return response()->json(['error' => 'Erreur lors de la création du lien de vérification'], 500);
+            return response()->json([
+                'error' => 'Erreur lors de la création du lien de vérification'
+            ], 500);
         }
     }
 
@@ -120,7 +119,7 @@ class StripeVerificationController extends Controller
     }
 
     /**
-     * Vérifie le statut de vérification
+     * Vérifie le statut de vérification Connect
      */
     public function checkVerificationStatus(Request $request)
     {
@@ -131,17 +130,50 @@ class StripeVerificationController extends Controller
         }
 
         try {
+            $verificationStatus = $this->stripeService->checkIdentityVerificationStatus($user);
             $accountDetails = $this->stripeService->getAccountDetails($user);
-            $verificationStatus = $accountDetails['individual']['verification']['status'] ?? 'unverified';
-            $documentStatus = $accountDetails['individual']['verification']['document'] ?? 'unverified';
             
             return response()->json([
                 'verification_status' => $verificationStatus,
-                'document_status' => $documentStatus,
+                'account_details' => $accountDetails,
+                'charges_enabled' => $accountDetails['charges_enabled'] ?? false,
+                'payouts_enabled' => $accountDetails['payouts_enabled'] ?? false,
                 'requirements' => $accountDetails['requirements'] ?? []
             ]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Page de succès après vérification
+     */
+    public function success(Request $request)
+    {
+        $user = $request->user();
+        
+        // Vérifier le nouveau statut après la vérification
+        $verificationStatus = $this->stripeService->checkIdentityVerificationStatus($user);
+        
+        if ($verificationStatus === 'verified') {
+            // Marquer la vérification comme complète dans notre base de données
+            $user->update([
+                'identity_verified_at' => now(),
+            ]);
+        }
+        
+        return redirect()->route('babysitter.verification-stripe')->with('success', 
+            'Vérification d\'identité terminée. Statut: ' . $verificationStatus
+        );
+    }
+
+    /**
+     * Page de rafraîchissement en cas d'expiration du lien
+     */
+    public function refresh(Request $request)
+    {
+        return redirect()->route('babysitter.verification-stripe')->with('info', 
+            'Le lien de vérification a expiré. Veuillez en créer un nouveau.'
+        );
     }
 } 

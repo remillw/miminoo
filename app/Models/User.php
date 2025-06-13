@@ -32,6 +32,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'avatar',
         'address_id',
         'email_verified_at',
+        'stripe_account_id',
+        'stripe_identity_session_id',
+        'stripe_account_status',
+        'identity_verified_at',
     ];
 
     /**
@@ -55,6 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'identity_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

@@ -6,6 +6,7 @@ use App\Services\StripeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use App\Models\User;
 
 class StripeController extends Controller
 {
@@ -146,43 +147,108 @@ class StripeController extends Controller
     public function webhook(Request $request)
     {
         $payload = $request->getContent();
-        $sigHeader = $request->header('Stripe-Signature');
-        $endpointSecret = config('services.stripe.webhook_secret');
+        $sig_header = $request->header('Stripe-Signature');
+        $endpoint_secret = config('services.stripe.webhook_secret');
 
         try {
             $event = \Stripe\Webhook::constructEvent(
-                $payload,
-                $sigHeader,
-                $endpointSecret
+                $payload, $sig_header, $endpoint_secret
             );
-        } catch (\UnexpectedValueException $e) {
-            return response()->json(['error' => 'Invalid payload'], 400);
-        } catch (\Stripe\Exception\SignatureVerificationException $e) {
-            return response()->json(['error' => 'Invalid signature'], 400);
+        } catch(\UnexpectedValueException $e) {
+            Log::error('Invalid payload in Stripe webhook', ['error' => $e->getMessage()]);
+            return response('Invalid payload', 400);
+        } catch(\Stripe\Exception\SignatureVerificationException $e) {
+            Log::error('Invalid signature in Stripe webhook', ['error' => $e->getMessage()]);
+            return response('Invalid signature', 400);
         }
 
-        switch ($event->type) {
+        // Gérer les événements
+        switch ($event['type']) {
             case 'account.updated':
-                $account = $event->data->object;
-                $user = \App\Models\User::where('stripe_account_id', $account->id)->first();
+                $this->handleAccountUpdated($event['data']['object']);
+                break;
+            
+            case 'identity.verification_session.verified':
+                $this->handleIdentityVerified($event['data']['object']);
+                break;
                 
-                if ($user) {
-                    $this->stripeService->getAccountStatus($user);
-                }
+            case 'identity.verification_session.requires_input':
+                $this->handleIdentityRequiresInput($event['data']['object']);
                 break;
-
-            case 'payment_intent.succeeded':
-                $paymentIntent = $event->data->object;
-                // Traiter le paiement réussi
-                break;
-
-            case 'transfer.paid':
-                $transfer = $event->data->object;
-                // Traiter le transfert réussi
-                break;
+                
+            default:
+                Log::info('Unhandled Stripe webhook event', ['type' => $event['type']]);
         }
 
-        return response()->json(['status' => 'success']);
+        return response('Webhook handled', 200);
+    }
+
+    private function handleAccountUpdated($account)
+    {
+        $user = User::where('stripe_account_id', $account['id'])->first();
+        
+        if ($user) {
+            $this->stripeService->getAccountStatus($user);
+        }
+    }
+
+    private function handleIdentityVerified($verificationSession)
+    {
+        try {
+            // Trouver l'utilisateur via les métadonnées
+            $userId = $verificationSession['metadata']['user_id'] ?? null;
+            
+            if (!$userId) {
+                Log::warning('No user_id in verification session metadata', [
+                    'session_id' => $verificationSession['id']
+                ]);
+                return;
+            }
+            
+            $user = User::find($userId);
+            if (!$user) {
+                Log::warning('User not found for verification session', [
+                    'user_id' => $userId,
+                    'session_id' => $verificationSession['id']
+                ]);
+                return;
+            }
+            
+            // Lier la vérification Identity au compte Connect
+            $this->stripeService->linkIdentityToConnect($user, $verificationSession['id']);
+            
+            Log::info('Identity verification completed and linked to Connect account', [
+                'user_id' => $user->id,
+                'session_id' => $verificationSession['id']
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error handling identity verification webhook', [
+                'session_id' => $verificationSession['id'],
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    private function handleIdentityRequiresInput($verificationSession)
+    {
+        try {
+            $userId = $verificationSession['metadata']['user_id'] ?? null;
+            
+            if ($userId) {
+                Log::info('Identity verification requires input', [
+                    'user_id' => $userId,
+                    'session_id' => $verificationSession['id'],
+                    'last_error' => $verificationSession['last_error'] ?? null
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error handling identity requires input webhook', [
+                'session_id' => $verificationSession['id'],
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
