@@ -29,6 +29,7 @@
     "dependencies": {
         "@inertiajs/vue3": "^2.0.0-beta.3",
         "@tailwindcss/vite": "^4.1.1",
+        "@tanstack/vue-table": "^8.21.3",
         "@types/socket.io-client": "^3.0.0",
         "@vee-validate/zod": "^4.15.0",
         "@vitejs/plugin-vue": "^5.2.1",

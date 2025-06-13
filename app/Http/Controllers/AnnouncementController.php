@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use App\Notifications\NewApplication;
 
 class AnnouncementController extends Controller
 {
@@ -184,66 +185,69 @@ class AnnouncementController extends Controller
      */
     public function apply(Request $request, Ad $announcement)
     {
-        // Vérifier que l'utilisateur est connecté
-        if (!Auth::check()) {
-            return response()->json(['error' => 'Vous devez être connecté pour postuler'], 401);
-        }
+        $user = $request->user();
 
-        $user = Auth::user();
-
-        // Vérifier que l'utilisateur a le rôle babysitter
+        // Vérifier si l'utilisateur est un babysitter
         if (!$user->hasRole('babysitter')) {
-            return response()->json(['error' => 'Seuls les babysitters peuvent postuler à cette annonce'], 403);
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Seuls les babysitters peuvent postuler aux annonces.'], 403);
+            }
+            return back()->with('error', 'Seuls les babysitters peuvent postuler aux annonces.');
         }
 
-        // Vérifier que l'utilisateur ne postule pas à sa propre annonce
-        if ($announcement->parent_id === $user->id) {
-            return response()->json(['error' => 'Vous ne pouvez pas postuler à votre propre annonce'], 403);
+        // Vérifier si le profil est vérifié
+        if (!$user->babysitterProfile || $user->babysitterProfile->verification_status !== 'verified') {
+            $errorMessage = 'Votre compte n\'est pas vérifié. Vous devez compléter votre profil et demander la vérification avant de pouvoir postuler aux annonces.';
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $errorMessage], 403);
+            }
+            return back()->with('error', $errorMessage);
         }
 
-        // Vérifier qu'il n'a pas déjà postulé
-        $existingApplication = AdApplication::where('ad_id', $announcement->id)
-            ->where('babysitter_id', $user->id)
-            ->first();
-
-        if ($existingApplication) {
-            return response()->json(['error' => 'Vous avez déjà postulé à cette annonce'], 409);
+        // Vérifier si l'utilisateur n'a pas déjà postulé
+        if ($announcement->applications()->where('babysitter_id', $user->id)->exists()) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Vous avez déjà postulé à cette annonce.'], 400);
+            }
+            return back()->with('error', 'Vous avez déjà postulé à cette annonce.');
         }
 
+        // Valider les données
         $validated = $request->validate([
-            'message' => 'required|string|max:500',
-            'proposed_rate' => 'required|numeric|min:0|max:999.99',
+            'motivation_note' => 'nullable|string|max:1000',
+            'proposed_rate' => 'nullable|numeric|min:0|max:999.99',
         ]);
 
+        // Créer la candidature
+        $application = $announcement->applications()->create([
+            'babysitter_id' => $user->id,
+            'status' => 'pending',
+            'motivation_note' => $validated['motivation_note'] ?? null,
+            'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate,
+        ]);
+
+        // Envoyer les notifications
         try {
-            $application = AdApplication::create([
-                'ad_id' => $announcement->id,
-                'babysitter_id' => $user->id,
-                'motivation_note' => $validated['message'],
-                'proposed_rate' => $validated['proposed_rate'],
-                'status' => 'pending'
-            ]);
+            // Notifier le parent
+            $parent = $announcement->parent;
+            if ($parent) {
+                $parent->notify(new NewApplication($application));
+            }
 
-            Log::info('Candidature créée:', [
-                'application_id' => $application->id,
-                'ad_id' => $announcement->id,
-                'babysitter_id' => $user->id
-            ]);
-
-            return response()->json([
-                'message' => 'Candidature envoyée avec succès !',
-                'application' => $application
-            ], 201);
-
+            // Notifier le babysitter (confirmation)
+            $user->notify(new NewApplication($application));
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la création de la candidature:', [
-                'error' => $e->getMessage(),
-                'ad_id' => $announcement->id,
-                'user_id' => $user->id
+            Log::error('Erreur envoi notification candidature:', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage()
             ]);
-
-            return response()->json(['error' => 'Une erreur est survenue lors de l\'envoi de votre candidature'], 500);
         }
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Votre candidature a été envoyée avec succès.'], 200);
+        }
+        return back()->with('success', 'Votre candidature a été envoyée avec succès.');
     }
 
     /**

@@ -6,7 +6,10 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessagingController;
+use App\Http\Controllers\BabysitterController;
 use Illuminate\Support\Facades\Broadcast;
+use App\Http\Controllers\StripeController;
+use App\Http\Controllers\StripeVerificationController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -67,11 +70,39 @@ Route::get('comment-ca-marche', function () {
     return Inertia::render('comment-ca-marche');
 })->name('comment-ca-marche');  
 
-Route::get('babysitter-profile', function () {
-    return Inertia::render('Babysitterprofile');
-})->name('babysitter-profile');
+// Routes pour les babysitters - DOIT être AVANT babysitter/{slug}
+Route::middleware(['auth', 'role:babysitter'])->group(function () {
+    Route::post('/babysitter/request-verification', [BabysitterController::class, 'requestVerification'])
+        ->middleware('check.babysitter.verification')
+        ->name('babysitter.request-verification');
+    
+    // Page de gestion des paiements dans la sidebar
+    Route::get('/babysitter/paiements', [StripeController::class, 'paymentsPage'])->name('babysitter.payments');
+    
+    // Routes Stripe Connect
+    Route::get('/stripe/connect', [StripeController::class, 'connect'])->name('babysitter.stripe.connect');
+    Route::post('/stripe/create-onboarding-link', [StripeController::class, 'createOnboardingLink'])->name('babysitter.stripe.create-link');
+    Route::get('/stripe/success', [StripeController::class, 'success'])->name('babysitter.stripe.success');
+    Route::get('/stripe/refresh', [StripeController::class, 'refresh'])->name('babysitter.stripe.refresh');
+    Route::get('/api/stripe/account-status', [StripeController::class, 'getAccountStatus'])->name('babysitter.stripe.status');
+    
+    // Routes pour la vérification d'identité Stripe
+    Route::get('/babysitter/verification-stripe', [StripeVerificationController::class, 'show'])->name('babysitter.stripe.verification');
+    Route::post('/babysitter/verification-stripe/create-link', [StripeVerificationController::class, 'createVerificationLink'])->name('babysitter.stripe.verification.link');
+    Route::post('/babysitter/verification-stripe/upload', [StripeVerificationController::class, 'uploadDocument'])->name('babysitter.stripe.verification.upload');
+    Route::get('/api/stripe/verification-status', [StripeVerificationController::class, 'checkVerificationStatus'])->name('babysitter.stripe.verification.status');
+});
 
+Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('babysitter.show');
 
+// Routes pour l'administration
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/babysitter-moderation', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'index'])->name('babysitter-moderation.index');
+    Route::post('/babysitter-moderation/{babysitter}/verify', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'verify'])->name('babysitter-moderation.verify');
+});
+
+Route::post('/stripe/webhook', [StripeController::class, 'webhook'])->name('stripe.webhook');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

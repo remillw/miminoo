@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BarChart2, Briefcase, Calendar, Home, LogOut, MessageCircle, Settings, User } from 'lucide-vue-next';
+import { BarChart2, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, Settings, User } from 'lucide-vue-next';
 
 const links = [
     { icon: Home, label: 'Tableau de bord', href: '/dashboard' },
@@ -8,6 +8,7 @@ const links = [
     { icon: Briefcase, label: 'Mes candidatures', href: '/candidatures' },
     { icon: Calendar, label: 'Réservations', href: '/reservations' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
+    { icon: CreditCard, label: 'Paiements', href: '/babysitter/paiements' },
     { icon: User, label: 'Mon profil', href: '/profil' },
     { icon: BarChart2, label: 'Statistiques', href: '/stats' },
     { icon: Settings, label: 'Paramètres', href: '/parametres' },
@@ -22,7 +23,7 @@ const links = [
                 v-for="link in links"
                 :key="link.label"
                 :href="link.href"
-                class="flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-secondary"
+                class="hover:bg-secondary flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700"
             >
                 <component :is="link.icon" class="h-5 w-5" /> {{ link.label }}
             </Link>

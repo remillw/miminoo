@@ -17,8 +17,6 @@ return new class extends Migration
             $table->text('bio')->nullable();
             $table->unsignedInteger('experience_years')->nullable();
             $table->unsignedInteger('available_radius_km')->default(10);
-            $table->json('availability')->nullable();
-            $table->json('languages')->nullable();
             $table->boolean('documents_verified')->default(false);
             $table->timestamps();
         });

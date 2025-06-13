@@ -8,7 +8,24 @@ import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
-import { Baby, Camera, Mail, MapPin, Plus, Trash2, Users } from 'lucide-vue-next';
+import axios from 'axios';
+import {
+    AlertCircle,
+    Baby,
+    Camera,
+    CheckCircle,
+    Clock,
+    CreditCard,
+    ExternalLink,
+    Info,
+    Mail,
+    MapPin,
+    Plus,
+    Shield,
+    Trash2,
+    TrendingUp,
+    Users,
+} from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
@@ -52,7 +69,10 @@ interface User {
         skills?: Skill[];
         age_ranges?: AgeRange[];
         experiences?: any[];
+        verification_status: 'pending' | 'verified' | 'rejected';
+        rejection_reason?: string;
     };
+    role: string;
 }
 
 interface Language {
@@ -94,6 +114,8 @@ interface Props {
         skills?: Skill[];
         age_ranges?: AgeRange[];
         experiences?: any[];
+        verification_status: 'pending' | 'verified' | 'rejected';
+        rejection_reason?: string;
     };
     availableLanguages?: Language[];
     availableSkills?: Skill[];
@@ -107,6 +129,7 @@ const { currentMode, initializeMode, setMode } = useUserMode();
 const isEditing = ref(false);
 const isLoading = ref(false);
 const isGoogleLoaded = ref(false);
+const isRequestingVerification = ref(false);
 let autocomplete: any;
 
 const babysitterProfileRef = ref();
@@ -114,6 +137,17 @@ const babysitterProfileRef = ref();
 // Initialiser le mode au montage du composant
 onMounted(() => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
+
+    // Debug: Vérifier toutes les props reçues
+    console.log('🔍 Props reçues dans profil.vue:', {
+        hasParentRole: props.hasParentRole,
+        hasBabysitterRole: props.hasBabysitterRole,
+        userHasBabysitterProfile: !!props.user.babysitterProfile,
+        propsBabysitterProfile: !!props.babysitterProfile,
+        userRoles: props.userRoles,
+        user: props.user,
+        babysitterProfile: props.babysitterProfile,
+    });
 });
 
 // Computed pour vérifier si l'utilisateur a plusieurs rôles
@@ -264,7 +298,6 @@ const initAutocomplete = async () => {
     try {
         autocomplete = new window.google.maps.places.Autocomplete(input, {
             types: ['address'],
-            fields: ['formatted_address', 'address_components', 'geometry'],
         });
 
         autocomplete.addListener('place_changed', () => {
@@ -372,8 +405,7 @@ const submitForm = async () => {
         }));
     } else if (currentMode.value === 'babysitter') {
         // En mode babysitter, on n'envoie pas les enfants mais on récupère les données du profil babysitter
-        delete formData.children;
-
+        delete (formData as any).children;
         // Récupérer les données du profil babysitter depuis le composant
         if (babysitterProfileRef.value) {
             const babysitterData = babysitterProfileRef.value.getFormData();
@@ -430,6 +462,11 @@ const submitForm = async () => {
 };
 
 // Données calculées
+// Computed pour récupérer le profil babysitter depuis les bonnes props
+const babysitterProfile = computed(() => {
+    return props.user.babysitterProfile || props.babysitterProfile;
+});
+
 const fullName = computed(() => `${props.user.firstname} ${props.user.lastname}`);
 const userInfo = computed(() => {
     if (currentMode.value === 'parent') {
@@ -438,6 +475,124 @@ const userInfo = computed(() => {
     }
     return 'Babysitter';
 });
+
+const verificationStatus = computed(() => {
+    // Essayer d'abord props.user.babysitterProfile, puis props.babysitterProfile
+    const babysitterProfile = props.user.babysitterProfile || props.babysitterProfile;
+
+    if (!babysitterProfile) {
+        console.log('🔍 Vérification statut: pas de profil babysitter trouvé', {
+            userProfile: props.user.babysitterProfile,
+            propsProfile: props.babysitterProfile,
+            userRoles: props.userRoles,
+            hasBabysitterRole: props.hasBabysitterRole,
+        });
+        return null;
+    }
+
+    const status = babysitterProfile.verification_status;
+    console.log('🔍 Statut de vérification:', {
+        status: status || 'null',
+        statusType: typeof status,
+        profile: babysitterProfile,
+        source: props.user.babysitterProfile ? 'user.babysitterProfile' : 'props.babysitterProfile',
+    });
+
+    return status;
+});
+
+const verificationStatusText = computed(() => {
+    switch (verificationStatus.value) {
+        case 'pending':
+            return 'En attente de vérification';
+        case 'verified':
+            return 'Profil vérifié';
+        case 'rejected':
+            return 'Profil rejeté';
+        case null:
+        case undefined:
+            return 'Vérification non demandée';
+        default:
+            return 'Statut inconnu';
+    }
+});
+
+const verificationStatusColor = computed(() => {
+    switch (verificationStatus.value) {
+        case 'pending':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'verified':
+            return 'bg-green-100 text-green-800';
+        case 'rejected':
+            return 'bg-red-100 text-red-800';
+        default:
+            return '';
+    }
+});
+
+const requestVerification = async () => {
+    // Protection contre les clics multiples
+    if (isRequestingVerification.value) {
+        console.log('⚠️ Demande déjà en cours, ignorer...');
+        return;
+    }
+
+    // Protection supplémentaire contre les statuts déjà en cours ou terminés
+    if (verificationStatus.value === 'pending') {
+        console.log('⚠️ Statut déjà pending, ignorer...');
+        showError('Une demande de vérification est déjà en cours');
+        return;
+    }
+
+    if (verificationStatus.value === 'verified') {
+        console.log('⚠️ Profil déjà vérifié, ignorer...');
+        showError('Votre profil est déjà vérifié');
+        return;
+    }
+
+    isRequestingVerification.value = true;
+
+    console.log('🚀 Demande de vérification - Début');
+    console.log('📋 Statut actuel avant demande:', verificationStatus.value);
+
+    try {
+        const response = await axios.post('/babysitter/request-verification');
+        console.log('✅ Réponse serveur:', response.data);
+        showSuccess(response.data.message);
+
+        // Force la mise à jour du statut localement IMMÉDIATEMENT
+        if (babysitterProfile.value) {
+            babysitterProfile.value.verification_status = 'pending';
+        }
+
+        console.log('📋 Statut forcé à pending localement');
+
+        // Rafraîchir la page après un court délai pour synchroniser avec le serveur
+        setTimeout(() => {
+            router.reload();
+        }, 1500);
+    } catch (error: any) {
+        console.error('❌ Erreur demande vérification:', error);
+
+        if (error.response?.status === 400 && error.response?.data?.message) {
+            // Erreur métier (déjà en cours, déjà vérifié, etc.)
+            console.log('📋 Erreur 400 - demande déjà en cours ou déjà vérifié');
+            showError(error.response.data.message);
+        } else if (error.response?.data?.message) {
+            showError(error.response.data.message);
+        } else if (error.response?.status === 500) {
+            showError('Erreur serveur. Veuillez réessayer plus tard.');
+        } else if (error.code === 'ERR_NETWORK') {
+            showError('Problème de connexion réseau. Vérifiez votre connexion internet.');
+        } else {
+            showError("Une erreur est survenue lors de l'envoi de la demande");
+        }
+    } finally {
+        isRequestingVerification.value = false;
+        console.log('🏁 Demande de vérification - Fin');
+        console.log('📋 Statut actuel après demande:', verificationStatus.value);
+    }
+};
 </script>
 
 <template>
@@ -450,7 +605,6 @@ const userInfo = computed(() => {
                         <h1 class="text-2xl font-bold text-gray-800">Mon profil</h1>
                         <p class="text-gray-500">Gérez vos informations personnelles</p>
                     </div>
-
                     <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
                     <div v-if="hasMultipleRoles" class="flex items-center gap-4">
                         <span class="text-sm font-medium text-gray-700">Mode :</span>
@@ -478,6 +632,64 @@ const userInfo = computed(() => {
                                 Babysitter
                             </Button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ENCADRÉ VÉRIFICATION EN HAUT -->
+            <div v-if="currentMode === 'babysitter'" class="mb-6">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div class="flex-1">
+                        <div class="rounded border-l-4 border-blue-400 bg-blue-50 p-4">
+                            <p class="text-blue-800">
+                                <template v-if="verificationStatus === 'pending'">
+                                    Votre demande de vérification est en cours d'examen par nos modérateurs. Vous recevrez un email dès que votre
+                                    compte sera validé ou si des modifications sont nécessaires.
+                                </template>
+                                <template v-else-if="verificationStatus === 'verified'">
+                                    Félicitations ! Votre profil est vérifié. Vous pouvez maintenant postuler aux annonces et recevoir des demandes de
+                                    garde.
+                                </template>
+                                <template v-else-if="verificationStatus === 'rejected'">
+                                    Votre demande de vérification a été rejetée.
+                                    <span v-if="babysitterProfile?.rejection_reason"> Raison : {{ babysitterProfile.rejection_reason }} </span>
+                                    Vous pouvez corriger votre profil et soumettre une nouvelle demande.
+                                </template>
+                                <template v-else>
+                                    Pour être visible et accepter des annonces, votre profil doit être vérifié par un modérateur.<br />
+                                    Cliquez sur "Demander la vérification". Un modérateur vérifiera manuellement votre profil et vous recevrez un
+                                    email dès que votre compte sera validé ou si des modifications sont nécessaires.
+                                </template>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center gap-2 md:mt-0">
+                        <div
+                            v-if="verificationStatus === 'pending'"
+                            class="flex items-center gap-2 rounded-md bg-yellow-100 px-4 py-2 text-yellow-800"
+                        >
+                            <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
+                            Vérification en cours
+                        </div>
+                        <Button v-else-if="verificationStatus === 'verified'" disabled class="cursor-not-allowed bg-green-100 text-green-800">
+                            Profil vérifié
+                        </Button>
+                        <Button
+                            v-else-if="verificationStatus === 'rejected'"
+                            @click="requestVerification"
+                            :disabled="isRequestingVerification"
+                            class="bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {{ isRequestingVerification ? 'Envoi en cours...' : 'Soumettre une nouvelle demande' }}
+                        </Button>
+                        <Button
+                            v-else
+                            @click="requestVerification"
+                            :disabled="isRequestingVerification || verificationStatus === 'pending'"
+                            class="bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -510,6 +722,12 @@ const userInfo = computed(() => {
                                         ]"
                                     >
                                         Mode {{ currentMode === 'parent' ? 'Parent' : 'Babysitter' }}
+                                    </div>
+                                    <div
+                                        v-if="currentMode === 'babysitter' && verificationStatus"
+                                        :class="['rounded-full px-2 py-1 text-xs font-medium', verificationStatusColor]"
+                                    >
+                                        {{ verificationStatusText }}
                                     </div>
                                 </div>
                             </div>
@@ -618,11 +836,147 @@ const userInfo = computed(() => {
                         <div v-if="currentMode === 'babysitter' && hasBabysitterRole" class="space-y-4">
                             <BabysitterProfile
                                 ref="babysitterProfileRef"
-                                :babysitter-profile="props.babysitterProfile || props.user.babysitterProfile"
+                                :babysitter-profile="babysitterProfile"
                                 :available-languages="props.availableLanguages"
                                 :available-skills="props.availableSkills"
                                 :available-age-ranges="props.availableAgeRanges"
                             />
+
+                            <!-- Section compte de paiement pour babysitters vérifiés -->
+                            <div
+                                v-if="user.role === 'babysitter' && babysitterProfile?.verification_status === 'verified'"
+                                class="border-b border-gray-200 pb-6"
+                            >
+                                <h3 class="mb-4 text-lg font-semibold text-gray-900">Compte de paiement</h3>
+
+                                <!-- Compte configuré -->
+                                <div v-if="(user as any).stripe_account_status === 'active'" class="space-y-4">
+                                    <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+                                        <div class="flex items-center">
+                                            <CheckCircle class="mr-2 h-5 w-5 text-green-600" />
+                                            <span class="text-sm font-medium text-green-800">Compte configuré et vérifié</span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-green-700">
+                                            Vous pouvez recevoir des paiements. Les virements sont effectués chaque vendredi.
+                                        </p>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                        <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                            <div class="flex items-center">
+                                                <CreditCard class="mr-2 h-5 w-5 text-blue-600" />
+                                                <span class="text-sm font-medium text-gray-900">Paiements</span>
+                                            </div>
+                                            <p class="mt-1 text-xs text-gray-600">Activés</p>
+                                        </div>
+
+                                        <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                            <div class="flex items-center">
+                                                <Building class="mr-2 h-5 w-5 text-green-600" />
+                                                <span class="text-sm font-medium text-gray-900">Virements</span>
+                                            </div>
+                                            <p class="mt-1 text-xs text-gray-600">Activés</p>
+                                        </div>
+
+                                        <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                            <div class="flex items-center">
+                                                <Shield class="mr-2 h-5 w-5 text-blue-600" />
+                                                <span class="text-sm font-medium text-gray-900">Vérification</span>
+                                            </div>
+                                            <p class="mt-1 text-xs text-gray-600">Complète</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-3">
+                                        <Button variant="outline" @click="router.visit('/stripe/connect')" class="flex-1">
+                                            <TrendingUp class="mr-2 h-4 w-4" />
+                                            Consulter les revenus
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <!-- Configuration en cours -->
+                                <div v-else-if="(user as any).stripe_account_status === 'pending'" class="space-y-4">
+                                    <div class="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                                        <div class="flex items-center">
+                                            <Clock class="mr-2 h-5 w-5 text-orange-600" />
+                                            <span class="text-sm font-medium text-orange-800">Configuration en cours</span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-orange-700">
+                                            Votre compte est créé mais nécessite quelques informations supplémentaires.
+                                        </p>
+                                    </div>
+
+                                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                        <div class="mb-2 flex items-center">
+                                            <Info class="mr-2 h-4 w-4 text-blue-600" />
+                                            <span class="text-sm font-medium text-blue-900">Étapes restantes</span>
+                                        </div>
+                                        <ul class="space-y-1 text-sm text-blue-800">
+                                            <li>• Fournir une pièce d'identité</li>
+                                            <li>• Confirmer votre adresse</li>
+                                            <li>• Ajouter vos coordonnées bancaires</li>
+                                            <li>• Accepter les conditions de service</li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="flex gap-3">
+                                        <Button type="button" @click.prevent="router.visit('/stripe/connect')" class="flex-1">
+                                            <ExternalLink class="mr-2 h-4 w-4" />
+                                            Continuer la configuration
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <!-- Problème avec le compte -->
+                                <div v-else-if="(user as any).stripe_account_status === 'rejected'" class="space-y-4">
+                                    <div class="rounded-lg border border-red-200 bg-red-50 p-4">
+                                        <div class="flex items-center">
+                                            <AlertCircle class="mr-2 h-5 w-5 text-red-600" />
+                                            <span class="text-sm font-medium text-red-800">Action requise</span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-red-700">Il y a un problème avec votre compte qui nécessite votre attention.</p>
+                                    </div>
+
+                                    <div class="flex gap-3">
+                                        <Button type="button" @click.prevent="router.visit('/stripe/connect')" class="flex-1" variant="destructive">
+                                            <AlertCircle class="mr-2 h-4 w-4" />
+                                            Résoudre le problème
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <!-- Pas encore de compte -->
+                                <div v-else class="space-y-4">
+                                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                        <div class="flex items-center">
+                                            <CreditCard class="mr-2 h-5 w-5 text-gray-600" />
+                                            <span class="text-sm font-medium text-gray-800">Compte de paiement non configuré</span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-gray-700">Configurez votre compte pour commencer à recevoir des paiements.</p>
+                                    </div>
+
+                                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                        <div class="mb-2 flex items-center">
+                                            <Shield class="mr-2 h-4 w-4 text-blue-600" />
+                                            <span class="text-sm font-medium text-blue-900">Processus sécurisé avec Stripe</span>
+                                        </div>
+                                        <ul class="space-y-1 text-sm text-blue-800">
+                                            <li>• Configuration en 5-10 minutes</li>
+                                            <li>• Vérification d'identité sécurisée</li>
+                                            <li>• Paiements automatiques chaque vendredi</li>
+                                            <li>• Chiffrement bancaire de niveau militaire</li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="flex gap-3">
+                                        <Button type="button" @click.prevent="router.visit('/stripe/connect')" class="flex-1">
+                                            <CreditCard class="mr-2 h-4 w-4" />
+                                            Configurer mon compte de paiement
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Boutons d'action -->

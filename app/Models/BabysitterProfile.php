@@ -12,7 +12,7 @@ class BabysitterProfile extends Model
     protected $fillable = [
         'user_id', 'bio', 'experience_years', 'available_radius_km',
         'hourly_rate', 'documents_verified', 'is_available', 
-        'has_driving_license', 'has_vehicle', 'comfortable_with_all_ages'
+        'has_driving_license', 'has_vehicle', 'comfortable_with_all_ages', 'verification_status', 'rejection_reason', 'verified_at', 'verified_by'
     ];
 
     protected $casts = [

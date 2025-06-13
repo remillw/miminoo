@@ -2,7 +2,7 @@
     <Dialog :open="isOpen" @update:open="onClose">
         <DialogContent class="max-h-[80vh] max-w-sm overflow-hidden rounded-2xl p-0">
             <!-- En-tête avec photo de profil -->
-            <div class="bg-gradient-to-br from-secondary to-white px-6 py-4">
+            <div class="from-secondary bg-gradient-to-br to-white px-6 py-4">
                 <div class="mb-3 flex items-center gap-3">
                     <div class="relative">
                         <img
@@ -29,7 +29,7 @@
             <!-- Corps avec scroll -->
             <div class="max-h-[50vh] space-y-6 overflow-y-auto px-6 py-4">
                 <!-- Message d'erreur -->
-                <div v-if="error" class="rounded-lg border border-red-200 bg-primary-opacity p-3">
+                <div v-if="error" class="bg-primary-opacity rounded-lg border border-red-200 p-3">
                     <p class="flex items-center gap-2 text-sm text-red-700">
                         <AlertCircle class="h-4 w-4" />
                         {{ error }}
@@ -46,28 +46,28 @@
 
                 <!-- Récapitulatif en cards compactes -->
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
+                    <div class="bg-secondary/50 hover:bg-secondary rounded-lg p-3 transition-all">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <Calendar class="h-3 w-3" />
                             <span>Date</span>
                         </div>
                         <div class="text-sm font-medium text-gray-900">{{ formattedDate }}</div>
                     </div>
-                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
+                    <div class="bg-secondary/50 hover:bg-secondary rounded-lg p-3 transition-all">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <Clock class="h-3 w-3" />
                             <span>Horaires</span>
                         </div>
                         <div class="text-sm font-medium text-gray-900">{{ hours }}</div>
                     </div>
-                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
+                    <div class="bg-secondary/50 hover:bg-secondary rounded-lg p-3 transition-all">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <MapPin class="h-3 w-3" />
                             <span>Lieu</span>
                         </div>
                         <div class="text-sm font-medium text-gray-900">{{ location }}</div>
                     </div>
-                    <div class="rounded-lg bg-secondary/50 p-3 transition-all hover:bg-secondary">
+                    <div class="bg-secondary/50 hover:bg-secondary rounded-lg p-3 transition-all">
                         <div class="mb-1 flex items-center gap-1 text-xs text-gray-600">
                             <Baby class="h-3 w-3" />
                             <span>Enfants</span>
@@ -82,7 +82,7 @@
                         <Info class="h-4 w-4" />
                         Informations particulières
                     </div>
-                    <p class="text-sm text-blue-700 leading-relaxed">{{ props.additionalInfo }}</p>
+                    <p class="text-sm leading-relaxed text-blue-700">{{ props.additionalInfo }}</p>
                 </div>
 
                 <!-- Message de présentation compact -->
@@ -167,7 +167,7 @@
                     v-if="!success"
                     :disabled="!canSubmit || isLoading"
                     @click="submit"
-                    class="flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r from-primary to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-orange-600 hover:to-primary disabled:opacity-50"
+                    class="from-primary hover:to-primary flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-orange-600 disabled:opacity-50"
                 >
                     <Loader v-if="isLoading" class="h-4 w-4 animate-spin" />
                     <Send v-else class="h-4 w-4" />
@@ -270,6 +270,8 @@ async function submit() {
     error.value = '';
 
     try {
+        console.log('🚀 Envoi candidature pour annonce:', props.announcementId);
+
         const response = await fetch(route('announcements.apply', { announcement: props.announcementId }), {
             method: 'POST',
             headers: {
@@ -283,9 +285,27 @@ async function submit() {
             }),
         });
 
-        const data = await response.json();
+        console.log('📡 Réponse serveur - Status:', response.status, 'OK:', response.ok);
+
+        // Essayer de parser la réponse JSON
+        let data;
+        try {
+            data = await response.json();
+            console.log('📋 Données reçues:', data);
+        } catch (parseError) {
+            console.error('❌ Erreur parsing JSON:', parseError);
+            // Si on ne peut pas parser le JSON, vérifier le status
+            if (response.status === 403) {
+                error.value =
+                    "Votre compte n'est pas vérifié. Vous devez compléter votre profil et demander la vérification avant de pouvoir postuler aux annonces.";
+            } else {
+                error.value = 'Une erreur serveur est survenue. Veuillez réessayer.';
+            }
+            return;
+        }
 
         if (response.ok) {
+            console.log('✅ Candidature envoyée avec succès');
             success.value = data.message || 'Candidature envoyée avec succès !';
 
             // Optionnel: rediriger après un délai
@@ -293,11 +313,24 @@ async function submit() {
                 closeModal();
             }, 2000);
         } else {
-            error.value = data.error || "Une erreur est survenue lors de l'envoi de votre candidature";
+            console.error('❌ Erreur serveur:', data);
+
+            // Gestion spécifique des erreurs de vérification
+            if (response.status === 403 && data.error) {
+                error.value = data.error;
+            } else {
+                error.value = data.error || "Une erreur est survenue lors de l'envoi de votre candidature";
+            }
         }
     } catch (err) {
-        console.error("Erreur lors de l'envoi de la candidature:", err);
-        error.value = 'Une erreur réseau est survenue. Veuillez réessayer.';
+        console.error("❌ Erreur réseau lors de l'envoi de la candidature:", err);
+
+        // Gestion plus précise des erreurs réseau
+        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+            error.value = 'Problème de connexion réseau. Vérifiez votre connexion internet et réessayez.';
+        } else {
+            error.value = 'Une erreur réseau est survenue. Veuillez réessayer.';
+        }
     } finally {
         isLoading.value = false;
     }

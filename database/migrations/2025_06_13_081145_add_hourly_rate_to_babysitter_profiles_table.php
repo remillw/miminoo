@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('babysitter_profiles', function (Blueprint $table) {
-            $table->dropColumn('availability');
+            $table->decimal('hourly_rate', 8, 2)->nullable()->after('available_radius_km');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('babysitter_profiles', function (Blueprint $table) {
-            $table->json('availability')->nullable();
+            $table->dropColumn('hourly_rate');
         });
     }
 };
