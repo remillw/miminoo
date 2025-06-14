@@ -23,6 +23,12 @@ class AdminController extends Controller
             'verified_babysitters' => BabysitterProfile::where('verification_status', 'verified')->count(),
             'total_ads' => Ad::count(),
             'recent_registrations' => User::where('created_at', '>=', now()->subDays(7))->count(),
+            
+            // Statistiques Stripe Connect
+            'stripe_total_accounts' => User::whereNotNull('stripe_account_id')->count(),
+            'stripe_active_accounts' => User::where('stripe_account_status', 'active')->count(),
+            'stripe_pending_accounts' => User::where('stripe_account_status', 'pending')->count(),
+            'stripe_rejected_accounts' => User::where('stripe_account_status', 'rejected')->count(),
         ];
 
         return Inertia::render('Admin/Dashboard', [

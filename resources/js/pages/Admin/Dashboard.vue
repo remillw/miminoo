@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Clock, MessageSquare, ShieldAlert, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
+import { Clock, CreditCard, MessageSquare, ShieldAlert, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
 import { computed, onMounted } from 'vue';
 
 interface Stats {
@@ -12,6 +12,10 @@ interface Stats {
     verified_babysitters: number;
     total_ads: number;
     recent_registrations: number;
+    stripe_total_accounts: number;
+    stripe_active_accounts: number;
+    stripe_pending_accounts: number;
+    stripe_rejected_accounts: number;
 }
 
 interface User {
@@ -86,6 +90,11 @@ onMounted(() => {
                             </span>
                         </Link>
 
+                        <Link href="/admin/stripe-connect" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
+                            <CreditCard class="h-4 w-4" />
+                            <span>Comptes Stripe</span>
+                        </Link>
+
                         <Link href="/dashboard" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <Users class="h-4 w-4" />
                             <span>Retour utilisateur</span>
@@ -141,6 +150,19 @@ onMounted(() => {
                             <p class="text-muted-foreground text-xs">Total des annonces</p>
                         </CardContent>
                     </Card>
+
+                    <Card>
+                        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle class="text-sm font-medium">Comptes Stripe</CardTitle>
+                            <CreditCard class="text-muted-foreground h-4 w-4" />
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-2xl font-bold">{{ stats.stripe_total_accounts }}</div>
+                            <p class="text-muted-foreground text-xs">
+                                {{ stats.stripe_active_accounts }} actifs, {{ stats.stripe_pending_accounts }} en attente
+                            </p>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <!-- Actions rapides -->
@@ -152,6 +174,16 @@ onMounted(() => {
                                 Gérer les vérifications
                                 <span v-if="stats.pending_verifications > 0" class="ml-2 rounded-full bg-red-500 px-2 py-1 text-xs text-white">
                                     {{ stats.pending_verifications }}
+                                </span>
+                            </Link>
+                        </Button>
+
+                        <Button as-child variant="outline">
+                            <Link href="/admin/stripe-connect">
+                                <CreditCard class="mr-2 h-4 w-4" />
+                                Comptes Stripe Connect
+                                <span v-if="stats.stripe_pending_accounts > 0" class="ml-2 rounded-full bg-orange-500 px-2 py-1 text-xs text-white">
+                                    {{ stats.stripe_pending_accounts }}
                                 </span>
                             </Link>
                         </Button>
@@ -180,6 +212,22 @@ onMounted(() => {
                                     <span class="text-sm">{{ stats.pending_verifications }} demandes en attente</span>
                                 </div>
                                 <span class="text-muted-foreground text-xs">À traiter</span>
+                            </div>
+
+                            <div v-if="stats.stripe_pending_accounts > 0" class="flex items-center justify-between rounded-lg border p-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="h-2 w-2 rounded-full bg-blue-500"></div>
+                                    <span class="text-sm">{{ stats.stripe_pending_accounts }} comptes Stripe en attente</span>
+                                </div>
+                                <span class="text-muted-foreground text-xs">Configuration requise</span>
+                            </div>
+
+                            <div v-if="stats.stripe_rejected_accounts > 0" class="flex items-center justify-between rounded-lg border p-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="h-2 w-2 rounded-full bg-red-500"></div>
+                                    <span class="text-sm">{{ stats.stripe_rejected_accounts }} comptes Stripe rejetés</span>
+                                </div>
+                                <span class="text-muted-foreground text-xs">Action requise</span>
                             </div>
                         </div>
                     </CardContent>

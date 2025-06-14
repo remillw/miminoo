@@ -53,6 +53,7 @@ interface User {
     firstname: string;
     lastname: string;
     email: string;
+    date_of_birth?: string;
     avatar?: string;
     address?: Address;
     parentProfile?: {
@@ -178,6 +179,7 @@ const form = ref({
     firstname: props.user.firstname || '',
     lastname: props.user.lastname || '',
     email: props.user.email || '',
+    date_of_birth: props.user.date_of_birth || '',
     children: (props.children || []).map((child) => ({
         ...child,
         age: String(child.age), // S'assurer que l'âge est une string
@@ -758,6 +760,20 @@ const requestVerification = async () => {
                                 <Mail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                                 <Input id="email" type="email" v-model="form.email" :disabled="!isEditing" class="pl-10" required />
                             </div>
+                        </div>
+
+                        <!-- Date de naissance (obligatoire pour babysitters) -->
+                        <div v-if="currentMode === 'babysitter'" class="space-y-2">
+                            <Label for="date_of_birth">Date de naissance *</Label>
+                            <Input
+                                id="date_of_birth"
+                                type="date"
+                                v-model="form.date_of_birth"
+                                :disabled="!isEditing"
+                                required
+                                :max="new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]"
+                            />
+                            <p class="text-xs text-gray-500">Vous devez avoir au moins 16 ans pour être babysitter</p>
                         </div>
 
                         <!-- Adresse -->

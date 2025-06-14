@@ -139,9 +139,107 @@ const connectAccountStatus = computed(() => {
     }
 });
 
+// Interface pour le statut d'onboarding intelligent
+interface OnboardingStatus {
+    status:
+        | 'completed'
+        | 'identity_sufficient'
+        | 'identity_completed_needs_connect'
+        | 'requires_onboarding'
+        | 'requires_action'
+        | 'not_started'
+        | 'error';
+    method: 'identity' | 'connect' | 'connect_after_identity' | 'none' | 'unknown';
+    message: string;
+    requires_onboarding: boolean;
+    can_receive_payments: boolean;
+    identity_verified?: boolean;
+    currently_due?: string[];
+    eventually_due?: string[];
+    remaining_requirements?: string[];
+    error?: string;
+}
+
+// Statut d'onboarding intelligent qui utilise la nouvelle logique
+const onboardingStatus = ref<OnboardingStatus | null>(null);
+
 // Vérification d'identité (étape 2) - séparée de la configuration du compte
 const identityVerificationStatus = computed(() => {
-    // Si pas de compte Stripe Connect, on ne peut pas vérifier l'identité
+    // Si on a le statut d'onboarding intelligent, l'utiliser
+    if (onboardingStatus.value) {
+        const status = onboardingStatus.value;
+
+        switch (status.status) {
+            case 'completed':
+                return {
+                    icon: CheckCircle,
+                    label: 'Vérification complétée',
+                    color: 'bg-green-100 text-green-800',
+                    description: status.message,
+                    step: 'completed',
+                    canVerify: false,
+                    method: status.method,
+                };
+            case 'identity_sufficient':
+                return {
+                    icon: CheckCircle,
+                    label: 'Identité vérifiée',
+                    color: 'bg-green-100 text-green-800',
+                    description: status.message,
+                    step: 'identity_sufficient',
+                    canVerify: false,
+                    method: status.method,
+                    showResolveButton: true, // Afficher le bouton pour résoudre eventually_due
+                };
+            case 'identity_completed_needs_connect':
+                return {
+                    icon: AlertCircle,
+                    label: 'Finaliser le compte',
+                    color: 'bg-blue-100 text-blue-800',
+                    description: status.message,
+                    step: 'identity_completed_needs_connect',
+                    canVerify: false,
+                    method: status.method,
+                    showConnectButton: true, // Afficher le bouton pour finaliser Connect
+                    identityVerified: status.identity_verified,
+                    currentlyDue: status.currently_due,
+                    eventuallyDue: status.eventually_due,
+                };
+            case 'requires_onboarding':
+                return {
+                    icon: AlertCircle,
+                    label: 'Onboarding requis',
+                    color: 'bg-red-100 text-red-800',
+                    description: status.message,
+                    step: 'requires_onboarding',
+                    canVerify: true,
+                    method: status.method,
+                    remainingRequirements: status.remaining_requirements,
+                };
+            case 'requires_action':
+                return {
+                    icon: AlertCircle,
+                    label: 'Action requise',
+                    color: 'bg-red-100 text-red-800',
+                    description: status.message,
+                    step: 'requires_action',
+                    canVerify: true,
+                    method: status.method,
+                };
+            case 'not_started':
+                return {
+                    icon: Clock,
+                    label: 'Non commencé',
+                    color: 'bg-gray-100 text-gray-800',
+                    description: status.message,
+                    step: 'not_started',
+                    canVerify: true,
+                    method: status.method,
+                };
+        }
+    }
+
+    // Fallback vers l'ancienne logique si pas de statut intelligent
     if (!props.stripeAccountId) {
         return {
             icon: Clock,
@@ -356,15 +454,188 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 };
 
+// Récupérer le statut d'onboarding intelligent
+const fetchOnboardingStatus = async () => {
+    try {
+        const response = await fetch('/api/stripe/onboarding-status', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                onboardingStatus.value = data.status;
+            }
+        }
+    } catch (err) {
+        console.error("Erreur lors de la récupération du statut d'onboarding:", err);
+    }
+};
+
+// Démarrer la vérification Connect complète (recommandé)
+const startConnectVerification = async () => {
+    if (isLoading.value) return;
+
+    isLoading.value = true;
+    error.value = '';
+
+    try {
+        const response = await fetch('/stripe/create-verification-link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.verification_url) {
+            // Ouvrir dans un nouvel onglet pour une meilleure UX
+            const newWindow = window.open(data.verification_url, '_blank');
+
+            // Vérifier si la popup a été bloquée
+            if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+                // Fallback : redirection directe si popup bloquée
+                window.location.href = data.verification_url;
+            } else {
+                // Démarrer le polling pour vérifier le statut
+                startStatusPolling();
+            }
+        } else {
+            throw new Error(data.error || 'Erreur lors de la création du lien de vérification');
+        }
+    } catch (err) {
+        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+// Démarrer la vérification Identity rapide
+const startIdentityVerification = async () => {
+    if (isLoading.value) return;
+
+    isLoading.value = true;
+    error.value = '';
+
+    try {
+        const response = await fetch('/stripe/identity/create-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success && data.session) {
+            // Rediriger vers la page de vérification Identity intégrée
+            router.visit('/babysitter/identity-verification');
+        } else {
+            throw new Error(data.error || 'Erreur lors de la création de la session Identity');
+        }
+    } catch (err) {
+        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+// Polling du statut après vérification
+const startStatusPolling = () => {
+    const pollInterval = setInterval(async () => {
+        try {
+            await fetchOnboardingStatus();
+            await refreshAccountStatus();
+
+            // Arrêter le polling si la vérification est complète
+            if (onboardingStatus.value?.status === 'completed') {
+                clearInterval(pollInterval);
+            }
+        } catch (err) {
+            console.error('Erreur lors du polling du statut:', err);
+        }
+    }, 5000); // Vérifier toutes les 5 secondes
+
+    // Arrêter le polling après 5 minutes maximum
+    setTimeout(() => {
+        clearInterval(pollInterval);
+    }, 300000);
+};
+
+// Résoudre les exigences eventually_due (méthode de fallback)
+const resolveEventuallyDue = async () => {
+    if (isLoading.value) return;
+
+    isLoading.value = true;
+    error.value = '';
+
+    try {
+        const response = await fetch('/stripe/identity/resolve-eventually-due', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Si un AccountLink est fourni, rediriger vers Stripe
+            if (data.account_link_url) {
+                window.location.href = data.account_link_url;
+            } else {
+                // Sinon, rafraîchir le statut
+                await fetchOnboardingStatus();
+                await refreshAccountStatus();
+            }
+        } else {
+            throw new Error(data.error || 'Erreur lors de la résolution des exigences');
+        }
+    } catch (err) {
+        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
+    } finally {
+        isLoading.value = false;
+    }
+};
+
 onMounted(() => {
+    // Récupérer le statut d'onboarding intelligent au chargement
+    fetchOnboardingStatus();
+
     // Vérifier le statut toutes les 30 secondes si on est en pending
     const interval = setInterval(() => {
         if (currentStatus.value === 'pending') {
             refreshAccountStatus();
+            fetchOnboardingStatus();
         } else {
             clearInterval(interval);
         }
     }, 30000);
+
+    // Détecter si l'utilisateur revient d'une vérification
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('verification') === 'completed') {
+        // Afficher un message de succès
+        console.log('🎉 Vérification terminée ! Mise à jour du statut...');
+
+        // Démarrer le polling pour détecter les changements
+        startStatusPolling();
+
+        // Nettoyer l'URL après 2 secondes
+        setTimeout(() => {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('verification');
+            window.history.replaceState({}, '', url.toString());
+        }, 2000);
+    }
 });
 </script>
 
@@ -610,9 +881,9 @@ onMounted(() => {
                             </ul>
                         </div>
 
-                        <Button @click="router.visit('/babysitter/verification-stripe')" class="w-full">
+                        <Button @click="router.visit('/babysitter/identity-verification')" class="w-full">
                             <Shield class="mr-2 h-4 w-4" />
-                            Vérifier mon identité avec Stripe
+                            Vérifier mon identité avec Stripe Identity
                         </Button>
                     </div>
 
@@ -640,6 +911,110 @@ onMounted(() => {
                         </div>
                     </div>
 
+                    <!-- Identity sufficient mais eventually_due à résoudre -->
+                    <div v-else-if="identityVerificationStatus.step === 'identity_sufficient'" class="space-y-4">
+                        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+                            <div class="flex items-center">
+                                <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
+                                <span class="text-sm font-medium text-green-800">Identité vérifiée via Stripe Identity !</span>
+                            </div>
+                            <p class="mt-1 text-sm text-green-700">{{ identityVerificationStatus.description }}</p>
+                        </div>
+
+                        <!-- Bouton pour résoudre eventually_due si nécessaire -->
+                        <div v-if="identityVerificationStatus.showResolveButton" class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                            <div class="mb-2 flex items-center">
+                                <Info class="mr-2 h-4 w-4 text-blue-600" />
+                                <span class="text-sm font-medium text-blue-900">Finaliser la configuration</span>
+                            </div>
+                            <p class="mb-3 text-sm text-blue-800">
+                                Stripe demande encore une vérification de document. Cliquez ci-dessous pour utiliser votre vérification Identity
+                                existante.
+                            </p>
+                            <Button @click="resolveEventuallyDue" :disabled="isLoading" class="w-full">
+                                <Shield class="mr-2 h-4 w-4" />
+                                {{ isLoading ? 'Résolution en cours...' : 'Finaliser avec Stripe Identity' }}
+                            </Button>
+                        </div>
+                    </div>
+
+                    <!-- Identité complétée, mais Connect a besoin de finalisation -->
+                    <div v-else-if="identityVerificationStatus.step === 'identity_completed_needs_connect'" class="space-y-4">
+                        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+                            <div class="flex items-center">
+                                <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
+                                <span class="text-sm font-medium text-green-800">✅ Identité vérifiée avec Stripe Identity !</span>
+                            </div>
+                            <p class="mt-1 text-sm text-green-700">Votre identité a été vérifiée avec succès.</p>
+                        </div>
+
+                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                            <div class="mb-2 flex items-center">
+                                <Info class="mr-2 h-4 w-4 text-blue-600" />
+                                <span class="text-sm font-medium text-blue-900">Finalisation requise</span>
+                            </div>
+                            <p class="mb-3 text-sm text-blue-800">
+                                {{ identityVerificationStatus.description }}
+                            </p>
+
+                            <!-- Afficher les exigences restantes -->
+                            <div
+                                v-if="identityVerificationStatus.currentlyDue?.length || identityVerificationStatus.eventuallyDue?.length"
+                                class="mb-4"
+                            >
+                                <p class="mb-1 text-xs font-medium text-blue-900">Informations requises :</p>
+                                <ul class="space-y-1 text-xs text-blue-800">
+                                    <li
+                                        v-for="req in [
+                                            ...(identityVerificationStatus.currentlyDue || []),
+                                            ...(identityVerificationStatus.eventuallyDue || []),
+                                        ]"
+                                        :key="req"
+                                    >
+                                        • {{ formatRequirement(req) }}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Option 1: Stripe Connect complet (recommandé) -->
+                            <div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3">
+                                <div class="mb-2 flex items-center">
+                                    <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
+                                    <span class="text-sm font-medium text-green-800">Option 1 : Finalisation complète (Recommandé)</span>
+                                </div>
+                                <p class="mb-2 text-xs text-green-700">Finalisez tout en une fois : documents d'identité + informations bancaires</p>
+                                <Button @click="startConnectVerification" :disabled="isLoading" class="w-full">
+                                    <ExternalLink class="mr-2 h-4 w-4" />
+                                    {{ isLoading ? 'Préparation...' : 'Finaliser avec Stripe Connect' }}
+                                </Button>
+                            </div>
+
+                            <!-- Option 2: Identity rapide -->
+                            <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                <div class="mb-2 flex items-center">
+                                    <Shield class="mr-2 h-4 w-4 text-blue-600" />
+                                    <span class="text-sm font-medium text-blue-800">Option 2 : Vérification rapide</span>
+                                </div>
+                                <p class="mb-2 text-xs text-blue-700">Vérifiez seulement votre identité maintenant (plus rapide)</p>
+                                <Button @click="startIdentityVerification" :disabled="isLoading" variant="outline" class="w-full">
+                                    <Shield class="mr-2 h-4 w-4" />
+                                    {{ isLoading ? 'Préparation...' : 'Vérification Identity' }}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vérification complétée -->
+                    <div v-else-if="identityVerificationStatus.step === 'completed'" class="space-y-4">
+                        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+                            <div class="flex items-center">
+                                <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
+                                <span class="text-sm font-medium text-green-800">Configuration complète !</span>
+                            </div>
+                            <p class="mt-1 text-sm text-green-700">{{ identityVerificationStatus.description }}</p>
+                        </div>
+                    </div>
+
                     <!-- Pas encore requis -->
                     <div v-else-if="identityVerificationStatus.step === 'not_required_yet'" class="space-y-4">
                         <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -653,7 +1028,7 @@ onMounted(() => {
                             </p>
                         </div>
 
-                        <Button variant="outline" @click="router.visit('/babysitter/verification-stripe')" class="w-full">
+                        <Button variant="outline" @click="router.visit('/babysitter/identity-verification')" class="w-full">
                             <Shield class="mr-2 h-4 w-4" />
                             Vérifier mon identité maintenant (optionnel)
                         </Button>

@@ -72,21 +72,33 @@ class StripeController extends Controller
     }
 
     /**
-     * Crée un lien d'onboarding Stripe Connect
+     * Créer un lien d'onboarding Stripe Connect pré-rempli
      */
     public function createOnboardingLink(Request $request)
     {
         $user = $request->user();
 
-        if (!$user->stripe_account_id) {
-            return response()->json(['error' => 'Aucun compte Stripe Connect trouvé'], 400);
-        }
-
         try {
-            $accountLink = $this->stripeService->createAccountLink($user);
+            // Vérifier que l'utilisateur est babysitter
+            if (!$user->hasRole('babysitter')) {
+                return response()->json(['error' => 'Seuls les babysitters peuvent créer un compte de paiement'], 403);
+            }
+
+            // Vérifier l'âge minimum
+            if ($user->date_of_birth) {
+                $age = \Carbon\Carbon::parse($user->date_of_birth)->age;
+                if ($age < 16) {
+                    return response()->json(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement'], 400);
+                }
+            } else {
+                return response()->json(['error' => 'Veuillez renseigner votre date de naissance dans votre profil'], 400);
+            }
+
+            $accountLink = $this->stripeService->createOnboardingLink($user);
             
             return response()->json([
-                'onboarding_url' => $accountLink->url
+                'onboarding_url' => $accountLink->url,
+                'expires_at' => $accountLink->expires_at,
             ]);
         } catch (\Exception $e) {
             Log::error('Erreur création lien onboarding', [
@@ -94,27 +106,234 @@ class StripeController extends Controller
                 'error' => $e->getMessage()
             ]);
             
-            return response()->json(['error' => 'Erreur lors de la création du lien d\'onboarding'], 500);
+            return response()->json([
+                'error' => 'Erreur lors de la création du lien d\'onboarding : ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
      * Page de succès après onboarding
      */
-    public function success(Request $request)
+    public function onboardingSuccess(Request $request)
     {
         $user = $request->user();
         
         // Mettre à jour le statut du compte
         try {
-            $status = $this->stripeService->getAccountStatus($user);
+            $this->stripeService->getAccountStatus($user);
         } catch (\Exception $e) {
-            $status = 'pending';
+            Log::warning('Impossible de mettre à jour le statut après onboarding', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
         }
+        
+        return redirect()->route('babysitter.payments', ['verification' => 'completed'])->with('success', 
+            'Configuration terminée ! Votre compte est en cours de vérification.'
+        );
+    }
 
-        return Inertia::render('Babysitter/StripeSuccess', [
-            'accountStatus' => $status
-        ]);
+    /**
+     * Page de rafraîchissement en cas d'expiration du lien
+     */
+    public function onboardingRefresh(Request $request)
+    {
+        return redirect()->route('babysitter.payments')->with('info', 
+            'Le lien de configuration a expiré. Veuillez en créer un nouveau.'
+        );
+    }
+
+    /**
+     * Créer une session de vérification d'identité Stripe Identity
+     */
+    public function createIdentityVerificationSession(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $verificationSession = $this->stripeService->createIdentityVerificationSession($user);
+            
+            return response()->json([
+                'success' => true,
+                'session' => [
+                    'id' => $verificationSession->id,
+                    'client_secret' => $verificationSession->client_secret,
+                    'status' => $verificationSession->status,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur création session Identity', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la création de la session de vérification'
+            ], 500);
+        }
+    }
+
+    /**
+     * Vérifier et lier la session Identity au compte Connect
+     */
+    public function verifyAndLinkIdentity(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            if (!$user->stripe_identity_session_id) {
+                throw new \Exception('Aucune session de vérification trouvée');
+            }
+
+            // Vérifier le statut de la session
+            $session = $this->stripeService->getIdentityVerificationSession($user->stripe_identity_session_id);
+
+            if ($session->status === 'verified') {
+                // Lier les données vérifiées au compte Connect
+                $this->stripeService->linkIdentityToConnect($user);
+                
+                return response()->json([
+                    'success' => true,
+                    'status' => 'verified',
+                    'message' => 'Vérification complétée et liée au compte Connect'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'status' => $session->status,
+                    'last_error' => $session->last_error,
+                    'message' => 'Vérification non complétée'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la vérification et liaison', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la vérification'
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupérer le statut de vérification Identity
+     */
+    public function getIdentityStatus(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $status = $this->stripeService->getIdentityVerificationStatus($user);
+            
+            return response()->json([
+                'success' => true,
+                'status' => $status['status'],
+                'method' => $status['method'],
+                'requires_identity' => $status['requires_identity'] ?? false,
+                'can_use_identity' => $status['can_use_identity'] ?? false,
+                'verified_at' => $status['verified_at'] ?? null,
+                'session_id' => $user->stripe_identity_session_id,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la récupération du statut Identity', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la récupération du statut'
+            ], 500);
+        }
+    }
+
+    /**
+     * Résoudre les exigences eventually_due avec Identity
+     */
+    public function resolveEventuallyDue(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $result = $this->stripeService->resolveEventuallyDueIdentityDocument($user);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Résolution des exigences tentée avec succès',
+                'result' => $result,
+                'account_link_url' => $result['account_link']->url ?? null
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la résolution eventually_due', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la résolution des exigences'
+            ], 500);
+        }
+    }
+
+    /**
+     * Créer un lien de vérification Connect (pour finaliser avec documents)
+     */
+    public function createVerificationLink(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $accountLink = $this->stripeService->createVerificationLink($user);
+            
+            return response()->json([
+                'success' => true,
+                'verification_url' => $accountLink->url,
+                'message' => 'Lien de vérification créé avec succès'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création du lien de vérification', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la création du lien de vérification'
+            ], 500);
+        }
+    }
+
+    /**
+     * Récupérer le statut d'onboarding intelligent
+     */
+    public function getOnboardingStatus(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $status = $this->stripeService->getOnboardingStatus($user);
+            
+            return response()->json([
+                'success' => true,
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la récupération du statut d\'onboarding', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la récupération du statut'
+            ], 500);
+        }
     }
 
     /**

@@ -83,6 +83,7 @@ class ProfileController extends Controller
             'firstname' => 'required|string|max:255',
             'lastname' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
+            'date_of_birth' => 'nullable|date|before:' . now()->subYears(16)->format('Y-m-d'),
             'address' => 'required|string',
             'postal_code' => 'required|string',
             'country' => 'required|string',
@@ -143,12 +144,26 @@ class ProfileController extends Controller
             $user->update(['address_id' => $address->id]);
         }
 
+        // Validation spéciale pour les babysitters
+        if ($request->mode === 'babysitter' && $request->date_of_birth) {
+            $age = \Carbon\Carbon::parse($request->date_of_birth)->age;
+            if ($age < 16) {
+                return back()->withErrors(['date_of_birth' => 'Vous devez avoir au moins 16 ans pour être babysitter.']);
+            }
+        }
+
         // Mise à jour des informations utilisateur
-        $user->update([
+        $userData = [
             'firstname' => $request->firstname,
             'lastname' => $request->lastname,
             'email' => $request->email,
-        ]);
+        ];
+        
+        if ($request->has('date_of_birth')) {
+            $userData['date_of_birth'] = $request->date_of_birth;
+        }
+        
+        $user->update($userData);
 
         // Si on est en mode parent ET que l'utilisateur a le rôle parent, mise à jour des enfants
         if (($request->mode === 'parent' || in_array('parent', $user->roles()->pluck('name')->toArray())) && $request->has('children')) {

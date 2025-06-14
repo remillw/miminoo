@@ -64,6 +64,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('conversations/{conversation}/messages', [MessagingController::class, 'getMessages'])->name('conversations.messages');
     Route::patch('conversations/{conversation}/messages/{message}/read', [MessagingController::class, 'markMessageAsRead'])->name('conversations.mark-message-read');
     Route::patch('conversations/{conversation}/archive', [MessagingController::class, 'archiveConversation'])->name('conversations.archive');
+
+    // Routes Stripe Identity pour vérification d'identité
+    Route::prefix('babysitter')->name('babysitter.')->group(function () {
+        Route::get('/identity-verification', [App\Http\Controllers\StripeIdentityController::class, 'index'])->name('identity-verification');
+        Route::post('/identity-verification/create-session', [App\Http\Controllers\StripeIdentityController::class, 'createSession'])->name('identity.create-session');
+        Route::post('/identity-verification/verify-and-link', [App\Http\Controllers\StripeIdentityController::class, 'verifyAndLink'])->name('identity.verify-and-link');
+        Route::get('/identity-verification/status', [App\Http\Controllers\StripeIdentityController::class, 'getStatus'])->name('identity.status');
+        Route::get('/identity-verification/success', [App\Http\Controllers\StripeIdentityController::class, 'success'])->name('identity.success');
+        Route::get('/identity-verification/failure', [App\Http\Controllers\StripeIdentityController::class, 'failure'])->name('identity.failure');
+    });
 });
 
 Route::get('comment-ca-marche', function () {
@@ -82,9 +92,19 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     // Routes Stripe Connect
     Route::get('/stripe/connect', [StripeController::class, 'connect'])->name('babysitter.stripe.connect');
     Route::post('/stripe/create-onboarding-link', [StripeController::class, 'createOnboardingLink'])->name('babysitter.stripe.create-link');
-    Route::get('/stripe/success', [StripeController::class, 'success'])->name('babysitter.stripe.success');
-    Route::get('/stripe/refresh', [StripeController::class, 'refresh'])->name('babysitter.stripe.refresh');
+    Route::post('/stripe/create-verification-link', [StripeController::class, 'createVerificationLink'])->name('stripe.create-verification-link');
+    Route::get('/stripe/onboarding/success', [StripeController::class, 'onboardingSuccess'])->name('babysitter.stripe.onboarding.success');
+    Route::get('/stripe/onboarding/refresh', [StripeController::class, 'onboardingRefresh'])->name('babysitter.stripe.onboarding.refresh');
+    Route::get('/stripe/verification/success', [StripeController::class, 'onboardingSuccess'])->name('babysitter.stripe.verification.success');
+    Route::get('/stripe/verification/refresh', [StripeController::class, 'onboardingRefresh'])->name('babysitter.stripe.verification.refresh');
     Route::get('/api/stripe/account-status', [StripeController::class, 'getAccountStatus'])->name('babysitter.stripe.status');
+    
+    // Routes Stripe Identity (nouvelles)
+    Route::post('/stripe/identity/create-session', [StripeController::class, 'createIdentityVerificationSession'])->name('stripe.identity.create-session');
+    Route::post('/stripe/identity/verify-and-link', [StripeController::class, 'verifyAndLinkIdentity'])->name('stripe.identity.verify-and-link');
+    Route::post('/stripe/identity/resolve-eventually-due', [StripeController::class, 'resolveEventuallyDue'])->name('stripe.identity.resolve-eventually-due');
+    Route::get('/api/stripe/identity/status', [StripeController::class, 'getIdentityStatus'])->name('stripe.identity.status');
+    Route::get('/api/stripe/onboarding-status', [StripeController::class, 'getOnboardingStatus'])->name('stripe.onboarding-status');
     
     // Routes pour la vérification d'identité Stripe
     Route::get('/babysitter/verification-stripe', [StripeVerificationController::class, 'show'])->name('babysitter.verification-stripe');
@@ -102,6 +122,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/babysitter-moderation', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'index'])->name('babysitter-moderation.index');
     Route::post('/babysitter-moderation/{babysitter}/verify', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'verify'])->name('babysitter-moderation.verify');
+    
+    // Routes pour la gestion des comptes Stripe Connect
+    Route::get('/stripe-connect', [App\Http\Controllers\Admin\StripeConnectController::class, 'index'])->name('stripe-connect.index');
+    Route::get('/stripe-connect/{user}', [App\Http\Controllers\Admin\StripeConnectController::class, 'show'])->name('stripe-connect.show');
+    Route::delete('/stripe-connect/{user}', [App\Http\Controllers\Admin\StripeConnectController::class, 'delete'])->name('stripe-connect.delete');
+    Route::post('/stripe-connect/{user}/reject', [App\Http\Controllers\Admin\StripeConnectController::class, 'reject'])->name('stripe-connect.reject');
+    Route::get('/stripe-connect/refresh', [App\Http\Controllers\Admin\StripeConnectController::class, 'refresh'])->name('stripe-connect.refresh');
+
+    // Nouvelles routes pour les comptes non liés
+    Route::delete('/stripe-connect/account/{stripeAccountId}', [App\Http\Controllers\Admin\StripeConnectController::class, 'deleteByAccountId'])->name('stripe-connect.delete-account');
+    Route::post('/stripe-connect/account/{stripeAccountId}/reject', [App\Http\Controllers\Admin\StripeConnectController::class, 'rejectByAccountId'])->name('stripe-connect.reject-account');
 });
 
 Route::post('/stripe/webhook', [StripeController::class, 'webhook'])->name('stripe.webhook');

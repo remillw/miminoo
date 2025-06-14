@@ -26,6 +26,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'lastname',
         'email',
         'password',
+        'phone',
+        'date_of_birth',
         'is_verified',
         'status',
         'google_id',
@@ -60,6 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'identity_verified_at' => 'datetime',
+            'date_of_birth' => 'date',
             'password' => 'hashed',
         ];
     }
