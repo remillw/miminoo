@@ -10,6 +10,9 @@ use App\Models\Role;
 use App\Models\ParentProfile;
 use App\Models\BabysitterProfile;
 use App\Models\Address;
+use App\Models\Ad;
+use App\Models\AdApplication;
+use App\Models\Review;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -142,5 +145,41 @@ class User extends Authenticatable implements MustVerifyEmail
     public function babysitterProfile()
     {
         return $this->hasOne(BabysitterProfile::class);
+    }
+
+    /**
+     * Relation avec les annonces (pour les parents)
+     */
+    public function ads()
+    {
+        return $this->hasMany(Ad::class, 'parent_id');
+    }
+
+    /**
+     * Relation avec les candidatures (pour les babysitters)
+     */
+    public function applications()
+    {
+        return $this->hasMany(AdApplication::class, 'babysitter_id');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'reviewed_id');
+    }
+
+    public function givenReviews()
+    {
+        return $this->hasMany(Review::class, 'reviewer_id');
+    }
+
+    public function averageRating(): float
+    {
+        return $this->reviews()->avg('rating') ?? 0;
+    }
+
+    public function totalReviews(): int
+    {
+        return $this->reviews()->count();
     }
 }

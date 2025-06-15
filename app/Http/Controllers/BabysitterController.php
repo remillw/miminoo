@@ -14,14 +14,14 @@ class BabysitterController extends Controller
 {
     public function show($slug)
     {
-        // Séparer le slug en nom et prénom
+        // Extraire l'ID du slug (dernière partie après le dernier tiret)
         $parts = explode('-', $slug);
-        if (count($parts) !== 2) {
-            abort(404, 'Profil babysitter non trouvé');
-        }
+        $userId = end($parts);
 
-        $firstName = ucfirst($parts[0]);
-        $lastName = ucfirst($parts[1]);
+        // Vérifier que l'ID est numérique
+        if (!is_numeric($userId)) {
+            abort(404);
+        }
 
         // Récupérer la babysitter avec toutes ses relations
         $babysitter = User::with([
@@ -34,12 +34,17 @@ class BabysitterController extends Controller
         ->whereHas('roles', function($query) {
             $query->where('name', 'babysitter');
         })
-        ->where('firstname', $firstName)
-        ->where('lastname', $lastName)
-        ->first();
+        ->findOrFail($userId);
 
-        if (!$babysitter || !$babysitter->babysitterProfile) {
+        if (!$babysitter->babysitterProfile) {
             abort(404, 'Profil babysitter non trouvé');
+        }
+
+        // Vérifier que le slug correspond bien à l'utilisateur
+        $expectedSlug = $this->createBabysitterSlug($babysitter);
+        if ($slug !== $expectedSlug) {
+            // Rediriger vers le bon slug
+            return redirect()->route('babysitter.show', ['slug' => $expectedSlug]);
         }
 
         // Récupérer toutes les tranches d'âge disponibles
@@ -131,5 +136,49 @@ class BabysitterController extends Controller
             $profile->skills->count() > 0 &&
             $profile->age_ranges->count() > 0
         );
+    }
+
+    /**
+     * Créer un slug pour une babysitter
+     */
+    private function createBabysitterSlug(User $user): string
+    {
+        $firstName = $user->firstname ? 
+            strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->firstname)) : 'babysitter';
+        $lastName = $user->lastname ? 
+            strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->lastname)) : '';
+        
+        $slug = trim($firstName . '-' . $lastName . '-' . $user->id, '-');
+        return preg_replace('/-+/', '-', $slug);
+    }
+
+    /**
+     * Toggle la disponibilité du babysitter
+     */
+    public function toggleAvailability(Request $request)
+    {
+        $user = $request->user();
+        
+        // Vérifier que l'utilisateur a un profil babysitter
+        $profile = $user->babysitterProfile;
+        if (!$profile) {
+            return response()->json(['message' => 'Profil babysitter non trouvé'], 404);
+        }
+        
+        // Inverser la disponibilité
+        $newAvailability = !$profile->is_available;
+        $profile->update(['is_available' => $newAvailability]);
+        
+        Log::info('Disponibilité babysitter mise à jour', [
+            'user_id' => $user->id,
+            'user_name' => $user->firstname . ' ' . $user->lastname,
+            'new_availability' => $newAvailability
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'is_available' => $newAvailability,
+            'message' => $newAvailability ? 'Vous êtes maintenant disponible' : 'Vous êtes maintenant indisponible'
+        ]);
     }
 }

@@ -31,7 +31,7 @@ class MessagingController extends Controller
         try {
             // Récupérer toutes les conversations actives (pas archivées)
             $conversations = Conversation::with([
-                'ad:id,title,date_start', 
+                'ad', // Charger toutes les données de l'annonce pour le slug
                 'parent:id,firstname,lastname,avatar',
                 'babysitter:id,firstname,lastname,avatar',
                 'application' => function($query) {
@@ -79,6 +79,8 @@ class MessagingController extends Controller
                         'other_user' => [
                             'id' => $otherUser->id,
                             'name' => $otherUser->firstname . ' ' . substr($otherUser->lastname, 0, 1) . '.',
+                            'firstname' => $otherUser->firstname,
+                            'lastname' => $otherUser->lastname,
                             'avatar' => $otherUser->avatar ?? '/default-avatar.svg'
                         ],
                         'last_message' => $conversation->messages->first()?->message ?? ($conversation->status === 'pending' ? 'Nouvelle candidature' : 'Conversation démarrée'),
@@ -491,6 +493,11 @@ class MessagingController extends Controller
         }
 
         try {
+            // Charger la relation ad si elle n'est pas déjà chargée
+            if (!$conversation->relationLoaded('ad')) {
+                $conversation->load('ad');
+            }
+            
             $messages = $conversation->messages()
                 ->with('sender:id,firstname,lastname,avatar')
                 ->orderBy('created_at', 'asc')
@@ -557,9 +564,17 @@ class MessagingController extends Controller
                     'id' => $conversation->id,
                     'status' => $conversation->status,
                     'ad_title' => $conversation->ad->title ?? 'Annonce supprimée',
+                    'ad' => $conversation->ad ? [
+                        'id' => $conversation->ad->id,
+                        'title' => $conversation->ad->title,
+                        'date_start' => $conversation->ad->date_start,
+                        'date_end' => $conversation->ad->date_end,
+                    ] : null,
                     'other_user' => $otherUser ? [
                         'id' => $otherUser->id,
                         'name' => $otherUser->name,
+                        'firstname' => $otherUser->firstname,
+                        'lastname' => $otherUser->lastname,
                         'avatar' => $otherUser->avatar ?? '/default-avatar.svg',
                     ] : null
                 ]

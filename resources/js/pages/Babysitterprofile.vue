@@ -130,6 +130,7 @@ const getSkillColor = (index: number) => {
 
     <GlobalLayout>
         <div class="bg-secondary min-h-screen p-4">
+            
             <div class="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3">
                 <!-- Section principale -->
                 <div class="space-y-6 lg:col-span-2">

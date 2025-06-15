@@ -359,12 +359,58 @@ class AnnouncementController extends Controller
     /**
      * Display the specified announcement.
      */
-    public function show(Ad $announcement): Response
+    public function show($slug)
     {
-        $announcement->load(['parent', 'address']);
-        
-        return Inertia::render('Announcements/Show', [
-            'announcement' => $announcement
+        // Extraire l'ID du slug (dernière partie après le dernier tiret)
+        $parts = explode('-', $slug);
+        $adId = end($parts);
+
+        // Vérifier que l'ID est numérique
+        if (!is_numeric($adId)) {
+            abort(404);
+        }
+
+        // Récupérer l'annonce avec ses relations
+        $announcement = Ad::with(['parent', 'address'])
+            ->where('status', 'active')
+            ->findOrFail($adId);
+
+        // Vérifier que le slug correspond bien à l'annonce
+        $expectedSlug = $this->createAdSlug($announcement);
+        if ($slug !== $expectedSlug) {
+            // Rediriger vers le bon slug
+            return redirect()->route('announcements.show', ['slug' => $expectedSlug]);
+        }
+
+        return Inertia::render('AnnouncementDetail', [
+            'announcement' => [
+                'id' => $announcement->id,
+                'title' => $announcement->title,
+                'description' => $announcement->additional_info,
+                'date_start' => $announcement->date_start,
+                'date_end' => $announcement->date_end,
+                'hourly_rate' => $announcement->hourly_rate,
+                'estimated_duration' => $announcement->estimated_duration,
+                'estimated_total' => $announcement->estimated_total,
+                'status' => $announcement->status,
+                'children' => $announcement->children,
+                'created_at' => $announcement->created_at,
+                'slug' => $expectedSlug,
+                'parent' => [
+                    'id' => $announcement->parent->id,
+                    'firstname' => $announcement->parent->firstname,
+                    'lastname' => $announcement->parent->lastname,
+                    'avatar' => $announcement->parent->avatar,
+                    'slug' => $this->createParentSlug($announcement->parent),
+                ],
+                'address' => [
+                    'address' => $announcement->address->address,
+                    'postal_code' => $announcement->address->postal_code,
+                    'country' => $announcement->address->country,
+                    'latitude' => $announcement->address->latitude,
+                    'longitude' => $announcement->address->longitude,
+                ],
+            ]
         ]);
     }
 
@@ -440,5 +486,34 @@ class AnnouncementController extends Controller
         return Inertia::render('Announcements/MyAnnouncements', [
             'announcements' => $announcements
         ]);
+    }
+
+    /**
+     * Créer un slug pour une annonce
+     */
+    private function createAdSlug($ad): string
+    {
+        if (!$ad) return '';
+        
+        $date = $ad->date_start->format('Y-m-d');
+        $title = $ad->title ? 
+            strtolower(preg_replace('/[^a-z0-9]/i', '-', $ad->title)) : 'annonce';
+        
+        $slug = trim($date . '-' . $title . '-' . $ad->id, '-');
+        return preg_replace('/-+/', '-', $slug);
+    }
+
+    /**
+     * Créer un slug pour un parent
+     */
+    private function createParentSlug(User $user): string
+    {
+        $firstName = $user->firstname ? 
+            strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->firstname)) : 'parent';
+        $lastName = $user->lastname ? 
+            strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->lastname)) : '';
+        
+        $slug = trim($firstName . '-' . $lastName . '-' . $user->id, '-');
+        return preg_replace('/-+/', '-', $slug);
     }
 } 

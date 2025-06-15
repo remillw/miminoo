@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import ParentDashboardContent from '@/components/dashboard/parent/ParentDashboardContent.vue';
-import ParentSidebar from '@/components/dashboard/parent/ParentSidebar.vue';
 import BabysitterDashboardContent from '@/components/dashboard/babysitter/BabysitterDashboardContent.vue';
 import BabysitterSidebar from '@/components/dashboard/babysitter/BabysitterSidebar.vue';
+import ParentDashboardContent from '@/components/dashboard/parent/ParentDashboardContent.vue';
+import ParentSidebar from '@/components/dashboard/parent/ParentSidebar.vue';
 import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
 import DashboardHeader from '@/components/dashboard/shared/DashboardHeader.vue';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,16 @@ interface Props {
     requestedMode?: 'parent' | 'babysitter';
     parentProfile?: any;
     babysitterProfile?: any;
+    unreadNotifications?: any[];
+    unreadNotificationsCount?: number;
+    // Données du dashboard
+    stats?: any;
+    availability?: any;
+    recentAds?: any[];
+    notifications?: any[];
+    nextReservation?: any;
+    recentReviews?: any[];
+    completedReservations?: any[];
 }
 
 const props = defineProps<Props>();
@@ -36,11 +46,7 @@ const { currentMode, initializeMode, setMode } = useUserMode();
 
 // Initialiser le mode au montage du composant
 onMounted(() => {
-    initializeMode(
-        props.hasParentRole, 
-        props.hasBabysitterRole, 
-        props.requestedMode
-    );
+    initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
 });
 
 // Computed pour vérifier si l'utilisateur a plusieurs rôles
@@ -51,15 +57,19 @@ const hasMultipleRoles = computed(() => {
 // Fonction pour changer de mode
 const switchMode = (mode: 'parent' | 'babysitter') => {
     if (mode === currentMode.value) return;
-    
+
     // Mettre à jour le localStorage
     setMode(mode);
-    
+
     // Rediriger avec le nouveau mode
-    router.get(route('dashboard', { mode }), {}, {
-        preserveState: false,
-        preserveScroll: true
-    });
+    router.get(
+        route('dashboard', { mode }),
+        {},
+        {
+            preserveState: false,
+            preserveScroll: true,
+        },
+    );
 };
 
 // Composants dynamiques selon le mode
@@ -75,9 +85,13 @@ const currentContent = computed(() => {
 <template>
     <div class="flex min-h-screen flex-col bg-[#fcf8f6]">
         <Head title="Dashboard" />
-        
-        <DashboardHeader />
-        
+
+        <DashboardHeader
+            :user="props.user"
+            :unreadNotifications="props.unreadNotifications || []"
+            :unreadNotificationsCount="props.unreadNotificationsCount || 0"
+        />
+
         <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
         <div v-if="hasMultipleRoles" class="border-b bg-white px-6 py-3">
             <div class="flex items-center justify-between">
@@ -89,7 +103,7 @@ const currentContent = computed(() => {
                             :variant="currentMode === 'parent' ? 'default' : 'ghost'"
                             size="sm"
                             class="flex items-center gap-2"
-                            :class="currentMode === 'parent' ? 'bg-primary text-white hover:bg-primary' : 'text-gray-600 hover:bg-gray-100'"
+                            :class="currentMode === 'parent' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
                         >
                             <Users class="h-4 w-4" />
                             Parent
@@ -99,37 +113,31 @@ const currentContent = computed(() => {
                             :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
                             size="sm"
                             class="flex items-center gap-2"
-                            :class="currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-primary' : 'text-gray-600 hover:bg-gray-100'"
+                            :class="currentMode === 'babysitter' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
                         >
                             <Baby class="h-4 w-4" />
                             Babysitter
                         </Button>
                     </div>
                 </div>
-                
+
                 <div class="text-sm text-gray-500">
-                    <span class="capitalize">{{ currentMode }}</span> - 
-                    <span class="font-medium">{{ user.firstname }} {{ user.lastname }}</span>
+                    <span class="capitalize">{{ currentMode }}</span> -
+                    <span class="font-medium">{{ props.user.firstname }} {{ props.user.lastname }}</span>
                 </div>
             </div>
         </div>
-        
+
         <div class="flex flex-1">
             <!-- Sidebar dynamique -->
             <component :is="currentSidebar" />
-            
+
             <!-- Contenu principal dynamique -->
             <main class="flex-1 p-6">
-                <component 
-                    :is="currentContent" 
-                    :user="user"
-                    :currentMode="currentMode"
-                    :parentProfile="parentProfile"
-                    :babysitterProfile="babysitterProfile"
-                />
+                <component :is="currentContent" :currentMode="currentMode" v-bind="$props" />
             </main>
         </div>
-        
+
         <DashboardFooter />
     </div>
 </template>

@@ -523,4 +523,47 @@ class StripeController extends Controller
             'babysitterProfile' => $user->babysitterProfile
         ]);
     }
+
+    /**
+     * Récupérer la configuration Stripe (clé publique)
+     */
+    public function getConfig()
+    {
+        return response()->json([
+            'publishable_key' => config('services.stripe.key')
+        ]);
+    }
+
+    /**
+     * Récupérer les moyens de paiement sauvegardés de l'utilisateur
+     */
+    public function getPaymentMethods(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            // Vérifier que l'utilisateur a un customer ID Stripe
+            if (!$user->stripe_customer_id) {
+                return response()->json(['payment_methods' => []]);
+            }
+
+            $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+            
+            $paymentMethods = $stripe->paymentMethods->all([
+                'customer' => $user->stripe_customer_id,
+                'type' => 'card',
+            ]);
+
+            return response()->json([
+                'payment_methods' => $paymentMethods->data
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur récupération moyens de paiement', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json(['payment_methods' => []], 500);
+        }
+    }
 } 

@@ -366,20 +366,90 @@ class StripeService
         }
     }
 
-    public function createPaymentIntent($amount, $currency = 'eur', $applicationFee = 0)
+    public function createPaymentIntent($amount, $currency = 'eur', $applicationFee = 0, $babysitter = null, $user = null)
     {
         try {
-            return $this->stripe->paymentIntents->create([
-                'amount' => $amount * 100, // Stripe utilise les centimes
+            // L'utilisateur doit être fourni
+            if (!$user) {
+                throw new \Exception('Utilisateur requis pour créer un PaymentIntent');
+            }
+            
+            // Créer un customer Stripe si l'utilisateur n'en a pas
+            if (!$user->stripe_customer_id) {
+                $customer = $this->stripe->customers->create([
+                    'email' => $user->email,
+                    'name' => $user->firstname . ' ' . $user->lastname,
+                    'metadata' => [
+                        'user_id' => $user->id,
+                        'platform' => 'miminoo'
+                    ]
+                ]);
+                
+                $user->update(['stripe_customer_id' => $customer->id]);
+                
+                Log::info('Customer Stripe créé', [
+                    'user_id' => $user->id,
+                    'customer_id' => $customer->id
+                ]);
+            }
+
+            $paymentIntentData = [
+                'amount' => $amount, // Montant déjà en centimes depuis le contrôleur
                 'currency' => $currency,
-                'application_fee_amount' => $applicationFee * 100,
+                'customer' => $user->stripe_customer_id, // Ajouter le customer
                 'automatic_payment_methods' => [
                     'enabled' => true,
                 ],
+                'metadata' => [
+                    'platform' => 'miminoo',
+                    'type' => 'reservation_deposit',
+                    'user_id' => $user->id
+                ]
+            ];
+
+            // Si une babysitter est fournie et a un compte Stripe, configurer le transfer
+            if ($babysitter && $babysitter->stripe_account_id) {
+                $paymentIntentData['application_fee_amount'] = $applicationFee;
+                $paymentIntentData['transfer_data'] = [
+                    'destination' => $babysitter->stripe_account_id,
+                ];
+            }
+
+            $paymentIntent = $this->stripe->paymentIntents->create($paymentIntentData);
+
+            Log::info('PaymentIntent créé avec succès', [
+                'payment_intent_id' => $paymentIntent->id,
+                'amount' => $amount,
+                'application_fee' => $applicationFee,
+                'customer_id' => $user->stripe_customer_id,
+                'destination' => $babysitter?->stripe_account_id
             ]);
+
+            return $paymentIntent;
         } catch (\Exception $e) {
             Log::error('Erreur lors de la création du PaymentIntent', [
                 'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    public function retrievePaymentIntent($paymentIntentId)
+    {
+        try {
+            $paymentIntent = $this->stripe->paymentIntents->retrieve($paymentIntentId);
+
+            Log::info('PaymentIntent récupéré', [
+                'payment_intent_id' => $paymentIntentId,
+                'status' => $paymentIntent->status,
+                'amount' => $paymentIntent->amount
+            ]);
+
+            return $paymentIntent;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la récupération du PaymentIntent', [
+                'payment_intent_id' => $paymentIntentId,
                 'error' => $e->getMessage()
             ]);
             throw $e;
@@ -1438,9 +1508,10 @@ class StripeService
                     'platform' => 'miminoo',
                     'identity_session_id' => $user->stripe_identity_session_id,
                     'identity_status' => $session->status,
-                    'identity_document_type' => $document->type ?? 'unknown',
-                    'identity_document_status' => $document->status ?? 'unknown',
-                    'identity_resolved_at' => now()->toISOString()
+                    'identity_document_verified' => 'true',
+                    'identity_satisfies_connect' => 'true',
+                    'eventually_due_resolved_at' => now()->toISOString(),
+                    'resolution_method' => 'stripe_identity'
                 ]
             ];
 
@@ -1717,6 +1788,117 @@ class StripeService
                 'trace' => $e->getTraceAsString()
             ]);
             throw $e;
+        }
+    }
+
+    /**
+     * Créer un PaymentIntent avec un moyen de paiement sauvegardé
+     */
+    public function createPaymentIntentWithSavedMethod($amount, $currency, $paymentMethodId, User $user, $applicationFee = 0, $babysitter = null)
+    {
+        try {
+            // S'assurer que l'utilisateur a un customer ID
+            if (!$user->stripe_customer_id) {
+                $customer = $this->stripe->customers->create([
+                    'email' => $user->email,
+                    'name' => $user->firstname . ' ' . $user->lastname,
+                    'metadata' => [
+                        'user_id' => $user->id,
+                        'platform' => 'miminoo'
+                    ]
+                ]);
+                
+                $user->update(['stripe_customer_id' => $customer->id]);
+            }
+
+            $paymentIntentData = [
+                'amount' => $amount,
+                'currency' => $currency,
+                'customer' => $user->stripe_customer_id,
+                'payment_method' => $paymentMethodId,
+                'confirmation_method' => 'automatic',
+                'confirm' => true,
+                'return_url' => route('messaging.index'),
+                'metadata' => [
+                    'user_id' => $user->id,
+                    'platform' => 'miminoo',
+                    'payment_type' => 'reservation_deposit'
+                ]
+            ];
+
+            // Ajouter les frais d'application et le transfer si babysitter fournie
+            if ($babysitter && $babysitter->stripe_account_id && $applicationFee > 0) {
+                $paymentIntentData['application_fee_amount'] = $applicationFee;
+                $paymentIntentData['transfer_data'] = [
+                    'destination' => $babysitter->stripe_account_id,
+                ];
+            }
+
+            $paymentIntent = $this->stripe->paymentIntents->create($paymentIntentData);
+
+            Log::info('PaymentIntent créé avec moyen sauvegardé', [
+                'payment_intent_id' => $paymentIntent->id,
+                'amount' => $amount,
+                'payment_method_id' => $paymentMethodId,
+                'user_id' => $user->id,
+                'status' => $paymentIntent->status
+            ]);
+
+            return $paymentIntent;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur création PaymentIntent avec moyen sauvegardé', [
+                'user_id' => $user->id,
+                'payment_method_id' => $paymentMethodId,
+                'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Sauvegarder un moyen de paiement pour un utilisateur
+     */
+    public function savePaymentMethod($paymentMethodId, User $user)
+    {
+        try {
+            // S'assurer que l'utilisateur a un customer ID
+            if (!$user->stripe_customer_id) {
+                $customer = $this->stripe->customers->create([
+                    'email' => $user->email,
+                    'name' => $user->firstname . ' ' . $user->lastname,
+                    'metadata' => [
+                        'user_id' => $user->id,
+                        'platform' => 'miminoo'
+                    ]
+                ]);
+                
+                $user->update(['stripe_customer_id' => $customer->id]);
+            }
+
+            // Attacher le moyen de paiement au customer
+            $this->stripe->paymentMethods->attach($paymentMethodId, [
+                'customer' => $user->stripe_customer_id,
+            ]);
+
+            Log::info('Moyen de paiement sauvegardé', [
+                'user_id' => $user->id,
+                'payment_method_id' => $paymentMethodId,
+                'customer_id' => $user->stripe_customer_id
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur sauvegarde moyen de paiement', [
+                'user_id' => $user->id,
+                'payment_method_id' => $paymentMethodId,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Ne pas faire échouer le processus si la sauvegarde échoue
+            return false;
         }
     }
 } 

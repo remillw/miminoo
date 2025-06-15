@@ -1,0 +1,361 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
+
+class Reservation extends Model
+{
+    protected $fillable = [
+        'ad_id',
+        'application_id',
+        'conversation_id',
+        'parent_id',
+        'babysitter_id',
+        'hourly_rate',
+        'deposit_amount',
+        'service_fee',
+        'total_deposit',
+        'status',
+        'reserved_at',
+        'payment_due_at',
+        'paid_at',
+        'service_start_at',
+        'service_end_at',
+        'cancelled_at',
+        'funds_released_at',
+        'cancellation_reason',
+        'cancellation_note',
+        'cancellation_penalty',
+        'stripe_payment_intent_id',
+        'stripe_transfer_id',
+        'stripe_metadata',
+        'parent_reviewed',
+        'babysitter_reviewed'
+    ];
+
+    protected $casts = [
+        'hourly_rate' => 'decimal:2',
+        'deposit_amount' => 'decimal:2',
+        'service_fee' => 'decimal:2',
+        'total_deposit' => 'decimal:2',
+        'reserved_at' => 'datetime',
+        'payment_due_at' => 'datetime',
+        'paid_at' => 'datetime',
+        'service_start_at' => 'datetime',
+        'service_end_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'funds_released_at' => 'datetime',
+        'cancellation_penalty' => 'boolean',
+        'parent_reviewed' => 'boolean',
+        'babysitter_reviewed' => 'boolean',
+        'stripe_metadata' => 'array'
+    ];
+
+    // Relations
+    public function ad(): BelongsTo
+    {
+        return $this->belongsTo(Ad::class);
+    }
+
+    public function application(): BelongsTo
+    {
+        return $this->belongsTo(AdApplication::class, 'application_id');
+    }
+
+    public function conversation(): BelongsTo
+    {
+        return $this->belongsTo(Conversation::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'parent_id');
+    }
+
+    public function babysitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'babysitter_id');
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(Dispute::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function review(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', ['paid', 'active']);
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending_payment');
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
+
+    public function scopeCancelled($query)
+    {
+        return $query->whereIn('status', ['cancelled_by_parent', 'cancelled_by_babysitter']);
+    }
+
+    public function scopeForParent($query, $parentId)
+    {
+        return $query->where('parent_id', $parentId);
+    }
+
+    public function scopeForBabysitter($query, $babysitterId)
+    {
+        return $query->where('babysitter_id', $babysitterId);
+    }
+
+    public function scopePaymentOverdue($query)
+    {
+        return $query->where('status', 'pending_payment')
+                    ->where('payment_due_at', '<', now());
+    }
+
+    public function scopeCanBeCancelled($query)
+    {
+        return $query->whereIn('status', ['pending_payment', 'paid'])
+                    ->where('service_start_at', '>', now()->addHours(24));
+    }
+
+    // Accessors
+    public function getCanBeCancelledFreeAttribute(): bool
+    {
+        if (!in_array($this->status, ['pending_payment', 'paid'])) {
+            return false;
+        }
+
+        // Annulation gratuite si plus de 24h avant le début
+        return $this->service_start_at && $this->service_start_at->gt(now()->addHours(24));
+    }
+
+    public function getCanBeCancelledAttribute(): bool
+    {
+        return in_array($this->status, ['pending_payment', 'paid']) && 
+               $this->service_start_at && 
+               $this->service_start_at->gt(now());
+    }
+
+    public function getIsActiveAttribute(): bool
+    {
+        return in_array($this->status, ['paid', 'active']);
+    }
+
+    public function getIsCompletedAttribute(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    public function getIsCancelledAttribute(): bool
+    {
+        return in_array($this->status, ['cancelled_by_parent', 'cancelled_by_babysitter']);
+    }
+
+    public function getTimeUntilServiceAttribute(): ?string
+    {
+        if (!$this->service_start_at) return null;
+
+        $diff = now()->diffInHours($this->service_start_at, false);
+        
+        if ($diff < 0) return 'Commencé';
+        if ($diff < 24) return $diff . 'h';
+        
+        $days = floor($diff / 24);
+        return $days . 'j';
+    }
+
+    public function getCanBeReviewedAttribute(): bool
+    {
+        return $this->status === 'completed' && 
+               $this->service_end_at && 
+               $this->service_end_at->lt(now());
+    }
+
+    // Methods
+    public static function createFromApplication(AdApplication $application, float $finalRate = null): self
+    {
+        $rate = $finalRate ?? $application->effective_rate;
+        $depositAmount = $rate; // 1 heure d'acompte
+        $serviceFee = 2.00; // Frais fixes
+        $totalDeposit = $depositAmount + $serviceFee;
+
+        return self::create([
+            'ad_id' => $application->ad_id,
+            'application_id' => $application->id,
+            'conversation_id' => $application->conversation?->id,
+            'parent_id' => $application->ad->parent_id,
+            'babysitter_id' => $application->babysitter_id,
+            'hourly_rate' => $rate,
+            'deposit_amount' => $depositAmount,
+            'service_fee' => $serviceFee,
+            'total_deposit' => $totalDeposit,
+            'status' => 'pending_payment',
+            'reserved_at' => now(),
+            'payment_due_at' => now()->addHours(24), // 24h pour payer
+            'service_start_at' => $application->ad->date_start,
+            'service_end_at' => $application->ad->date_end,
+        ]);
+    }
+
+    public function markAsPaid(string $paymentIntentId): bool
+    {
+        return $this->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'stripe_payment_intent_id' => $paymentIntentId
+        ]);
+    }
+
+    public function startService(): bool
+    {
+        if ($this->status !== 'paid') return false;
+
+        return $this->update([
+            'status' => 'active',
+            'service_start_at' => now()
+        ]);
+    }
+
+    public function completeService(): bool
+    {
+        if ($this->status !== 'active') return false;
+
+        return $this->update([
+            'status' => 'completed',
+            'service_end_at' => now(),
+            'funds_released_at' => now()->addHours(24) // Fonds libérés 24h après
+        ]);
+    }
+
+    public function cancelByParent(string $reason = null, string $note = null): bool
+    {
+        $penalty = !$this->can_be_cancelled_free;
+
+        return $this->update([
+            'status' => 'cancelled_by_parent',
+            'cancelled_at' => now(),
+            'cancellation_reason' => $reason,
+            'cancellation_note' => $note,
+            'cancellation_penalty' => $penalty
+        ]);
+    }
+
+    public function cancelByBabysitter(string $reason = null, string $note = null): bool
+    {
+        return $this->update([
+            'status' => 'cancelled_by_babysitter',
+            'cancelled_at' => now(),
+            'cancellation_reason' => $reason,
+            'cancellation_note' => $note,
+            'cancellation_penalty' => false // Pas de pénalité financière pour la babysitter
+        ]);
+    }
+
+    public function getRefundAmount(): float
+    {
+        if ($this->status === 'cancelled_by_parent' && $this->cancellation_penalty) {
+            return 0; // Pas de remboursement si annulation tardive par le parent
+        }
+
+        if ($this->status === 'cancelled_by_babysitter') {
+            return $this->total_deposit; // Remboursement complet si babysitter annule
+        }
+
+        return $this->total_deposit; // Remboursement complet pour annulation gratuite
+    }
+
+    public function shouldReceiveBadReview(): bool
+    {
+        return $this->status === 'cancelled_by_babysitter' && 
+               !$this->can_be_cancelled_free;
+    }
+
+    /**
+     * Calculer les frais Stripe (2.9% + 0.25€)
+     */
+    public function getStripeFeeAttribute(): float
+    {
+        return round(($this->total_deposit * 0.029) + 0.25, 2);
+    }
+
+    /**
+     * Application fee pour la plateforme (seulement les frais de service)
+     */
+    public function getPlatformFeeAttribute(): float
+    {
+        return $this->service_fee;
+    }
+
+    /**
+     * Montant que recevra la babysitter (acompte - frais Stripe)
+     */
+    public function getBabysitterAmountAttribute(): float
+    {
+        return $this->deposit_amount - $this->stripe_fee;
+    }
+
+    // Boot method
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($reservation) {
+            // Mettre à jour le statut de la conversation
+            if ($reservation->conversation) {
+                $reservation->conversation->update([
+                    'status' => 'payment_required'
+                ]);
+            }
+
+            // Mettre à jour le statut de l'application
+            if ($reservation->application) {
+                $reservation->application->update([
+                    'status' => 'accepted'
+                ]);
+            }
+        });
+
+        static::updated(function ($reservation) {
+            // Mettre à jour le statut de la conversation selon le statut de la réservation
+            if ($reservation->conversation) {
+                $conversationStatus = match($reservation->status) {
+                    'pending_payment' => 'payment_required',
+                    'paid', 'active' => 'active',
+                    'completed' => 'completed',
+                    'cancelled_by_parent', 'cancelled_by_babysitter' => 'cancelled',
+                    default => 'active'
+                };
+
+                $reservation->conversation->update([
+                    'status' => $conversationStatus
+                ]);
+            }
+        });
+    }
+}

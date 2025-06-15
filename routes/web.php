@@ -7,6 +7,7 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessagingController;
 use App\Http\Controllers\BabysitterController;
+use App\Http\Controllers\ReservationController;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\StripeVerificationController;
@@ -16,6 +17,9 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('/annonces', [AnnouncementController::class, 'index'])->name('announcements.index');
+
+// Route publique pour la configuration Stripe
+Route::get('api/stripe/config', [StripeController::class, 'getConfig']);
 
 // Route API pour stocker la position utilisateur
 Route::post('/api/set-user-location', function(\Illuminate\Http\Request $request) {
@@ -44,7 +48,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('annonces', [AnnouncementController::class, 'store'])->name('announcements.store');
     Route::get('mes-annonces', [AnnouncementController::class, 'myAnnouncements'])->name('announcements.my');
     Route::post('annonces/{announcement}/apply', [AnnouncementController::class, 'apply'])->name('announcements.apply');
-    Route::get('annonces/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
     Route::get('annonces/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
     Route::put('annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('annonces/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
@@ -64,6 +67,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('conversations/{conversation}/messages', [MessagingController::class, 'getMessages'])->name('conversations.messages');
     Route::patch('conversations/{conversation}/messages/{message}/read', [MessagingController::class, 'markMessageAsRead'])->name('conversations.mark-message-read');
     Route::patch('conversations/{conversation}/archive', [MessagingController::class, 'archiveConversation'])->name('conversations.archive');
+
+    // Routes pour les réservations
+    Route::post('applications/{application}/create-reservation', [ReservationController::class, 'createFromApplication'])->name('applications.create-reservation');
+    Route::get('applications/{application}/payment', [ReservationController::class, 'showApplicationPaymentPage'])->name('applications.payment');
+    Route::get('reservations/{reservation}/payment', [ReservationController::class, 'showPaymentPage'])->name('reservations.payment');
+    Route::post('reservations/{reservation}/confirm-payment', [ReservationController::class, 'confirmPayment'])->name('reservations.confirm-payment');
+    Route::post('reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+    Route::post('reservations/{reservation}/start-service', [ReservationController::class, 'startService'])->name('reservations.start-service');
+    Route::post('reservations/{reservation}/complete-service', [ReservationController::class, 'completeService'])->name('reservations.complete-service');
+    Route::get('reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
+    
+    // Routes pour les avis
+    Route::get('reviews', [App\Http\Controllers\ReviewController::class, 'index'])->name('reviews.index');
+    Route::get('reviews/create/{reservation}', [App\Http\Controllers\ReviewController::class, 'create'])->name('reviews.create');
+    Route::post('reviews/{reservation}', [App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
+    
+    // Routes pour les réclamations
+    Route::get('disputes', [App\Http\Controllers\DisputeController::class, 'index'])->name('disputes.index');
+    Route::get('disputes/create/{reservation}', [App\Http\Controllers\DisputeController::class, 'create'])->name('disputes.create');
+    Route::post('disputes/{reservation}', [App\Http\Controllers\DisputeController::class, 'store'])->name('disputes.store');
+    Route::get('disputes/{dispute}', [App\Http\Controllers\DisputeController::class, 'show'])->name('disputes.show');
+    
+    // Routes API pour Stripe
+    Route::get('api/stripe/payment-methods', [StripeController::class, 'getPaymentMethods']);
+    Route::get('api/reservations/{reservation}/payment-intent', [ReservationController::class, 'getPaymentIntent']);
 
     // Routes Stripe Identity pour vérification d'identité
     Route::prefix('babysitter')->name('babysitter.')->group(function () {
@@ -117,6 +145,10 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
 
 Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('babysitter.show');
 
+// Routes publiques avec slugs
+Route::get('parent/{slug}', [App\Http\Controllers\ParentController::class, 'show'])->name('parent.show');
+Route::get('annonce/{slug}', [AnnouncementController::class, 'show'])->name('announcements.show');
+
 // Routes pour l'administration
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
@@ -136,6 +168,22 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 });
 
 Route::post('/stripe/webhook', [StripeController::class, 'webhook'])->name('stripe.webhook');
+
+// Webhook Stripe pour la libération automatique des fonds (sans middleware auth)
+Route::post('/stripe/webhook/funds-release', [App\Http\Controllers\StripeWebhookController::class, 'handle'])
+    ->name('stripe.webhook.funds-release');
+
+// Routes pour les notifications
+Route::middleware('auth')->group(function () {
+    Route::post('/notifications/{notification}/mark-as-read', [App\Http\Controllers\DashboardController::class, 'markNotificationAsRead'])
+        ->name('notifications.mark-as-read');
+    Route::post('/notifications/mark-all-as-read', [App\Http\Controllers\DashboardController::class, 'markAllNotificationsAsRead'])
+        ->name('notifications.mark-all-as-read');
+    
+    // Route pour mettre à jour la disponibilité du babysitter
+    Route::post('/babysitter/toggle-availability', [App\Http\Controllers\BabysitterController::class, 'toggleAvailability'])
+        ->name('babysitter.toggle-availability');
+});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
