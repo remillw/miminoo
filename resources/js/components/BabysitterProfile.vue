@@ -123,6 +123,122 @@
             </div>
         </div>
 
+        <!-- Photos supplémentaires Section -->
+        <div class="rounded-lg border bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center gap-2">
+                <div class="flex h-5 w-5 items-center justify-center rounded-full bg-pink-100">
+                    <svg class="h-3 w-3 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h2 class="text-lg font-semibold text-gray-900">Photos supplémentaires</h2>
+                <span class="text-sm text-gray-500">(optionnel)</span>
+            </div>
+            
+            <div class="space-y-4">
+                <p class="text-sm text-gray-600">
+                    Ajoutez des photos supplémentaires en plus de votre photo de profil principale (avatar). 
+                    Cela permet aux parents de mieux vous connaître et augmente vos chances d'être contacté !
+                </p>
+                
+                <!-- Debug temporaire -->
+                <div v-if="profilePhotos.length === 0" class="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm">
+                    <p><strong>Debug:</strong></p>
+                    <p>Photos dans profilePhotos: {{ profilePhotos.length }}</p>
+                    <p>additional_photos_urls: {{ props.babysitterProfile?.additional_photos_urls?.length || 0 }}</p>
+                    <p>profile_photos: {{ props.babysitterProfile?.profile_photos?.length || 0 }}</p>
+                </div>
+                
+                <!-- Grille des photos existantes -->
+                <div v-if="profilePhotos.length > 0" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                    <div 
+                        v-for="(photo, index) in profilePhotos" 
+                        :key="index"
+                        class="relative group aspect-square overflow-hidden rounded-lg border-2 border-gray-200 hover:border-primary transition-colors"
+                    >
+                        <img 
+                            :src="photo" 
+                            :alt="`Photo de profil ${index + 1}`"
+                            class="h-full w-full object-cover"
+                            @error="handleImageError(index, photo)"
+                            @load="handleImageLoad(index)"
+                        />
+                        <!-- Indicateur de chargement -->
+                        <div 
+                            v-if="imageLoadingStates[index]"
+                            class="absolute inset-0 bg-gray-100 flex items-center justify-center"
+                        >
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                        <!-- Indicateur d'erreur -->
+                        <div 
+                            v-if="imageErrorStates[index]"
+                            class="absolute inset-0 bg-gray-100 flex items-center justify-center text-gray-500"
+                        >
+                            <div class="text-center">
+                                <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <p class="text-xs mt-1">Erreur</p>
+                            </div>
+                        </div>
+                        <div 
+                            v-if="isEditing"
+                            class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center"
+                        >
+                            <button
+                                @click="removePhoto(index)"
+                                class="opacity-0 group-hover:opacity-100 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all"
+                                type="button"
+                            >
+                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Zone d'upload -->
+                <div v-if="isEditing && profilePhotos.length < 6" class="space-y-3">
+                    <div 
+                        @click="triggerFileInput"
+                        @dragover.prevent
+                        @drop.prevent="handleDrop"
+                        class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="mt-4">
+                            <p class="text-sm font-medium text-gray-900">Cliquez pour ajouter des photos</p>
+                            <p class="text-xs text-gray-500">ou glissez-déposez vos images ici</p>
+                            <p class="text-xs text-gray-400 mt-1">PNG, JPG jusqu'à 5MB (max 6 photos)</p>
+                        </div>
+                    </div>
+                    
+                    <input
+                        ref="fileInput"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        @change="handleFileSelect"
+                        class="hidden"
+                    />
+                </div>
+                
+                <!-- Message si pas de photos -->
+                <div v-if="profilePhotos.length === 0" class="text-center py-8 text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="mt-2 text-sm">Aucune photo supplémentaire ajoutée</p>
+                    <p class="text-xs text-gray-400">Votre avatar est votre photo de profil principale</p>
+                    <p class="text-xs text-gray-400">Les profils avec photos supplémentaires reçoivent plus de demandes !</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Expérience -->
         <div class="rounded-lg border bg-white p-6 shadow-sm">
             <div class="mb-4 flex items-center gap-2">
@@ -550,6 +666,8 @@ interface BabysitterProfileData {
     has_driving_license?: boolean;
     has_vehicle?: boolean;
     comfortable_with_all_ages?: boolean;
+    profile_photos?: string[];
+    additional_photos_urls?: string[];
     languages?: Language[];
     skills?: Skill[];
     age_ranges?: AgeRange[];
@@ -567,6 +685,48 @@ interface Props {
 const props = defineProps<Props>();
 
 const isEditing = ref(false);
+
+// Variables pour les photos de profil
+const profilePhotos = ref<string[]>([]);
+const fileInput = ref<HTMLInputElement>();
+const imageLoadingStates = ref<boolean[]>([]);
+const imageErrorStates = ref<boolean[]>([]);
+
+// Initialiser les photos depuis les props
+const initializePhotos = () => {
+    console.log('🔄 Initialisation des photos...');
+    console.log('Props babysitterProfile:', props.babysitterProfile);
+    
+    let photosToLoad: string[] = [];
+    
+    // Récupérer les photos depuis le profil utilisateur si disponibles
+    if (props.babysitterProfile && props.babysitterProfile.additional_photos_urls) {
+        photosToLoad = Array.isArray(props.babysitterProfile.additional_photos_urls) 
+            ? props.babysitterProfile.additional_photos_urls 
+            : [];
+        console.log('📸 Photos depuis additional_photos_urls:', photosToLoad);
+    } else if (props.babysitterProfile && props.babysitterProfile.profile_photos) {
+        // Fallback si additional_photos_urls n'est pas disponible
+        photosToLoad = Array.isArray(props.babysitterProfile.profile_photos) 
+            ? props.babysitterProfile.profile_photos 
+            : [];
+        console.log('📸 Photos depuis profile_photos:', photosToLoad);
+    }
+    
+    // Mettre à jour les photos
+    profilePhotos.value = [...photosToLoad];
+    
+    // Initialiser les états de chargement et d'erreur
+    imageLoadingStates.value = new Array(profilePhotos.value.length).fill(false); // Commencer par false
+    imageErrorStates.value = new Array(profilePhotos.value.length).fill(false);
+    
+    console.log('✅ Photos initialisées:', {
+        count: profilePhotos.value.length,
+        photos: profilePhotos.value,
+        loadingStates: imageLoadingStates.value,
+        errorStates: imageErrorStates.value
+    });
+};
 
 // Initialiser les IDs des relations existantes
 const getExistingLanguageIds = () => {
@@ -643,6 +803,9 @@ watch(
             form.value.is_available = newProfile.is_available !== undefined ? newProfile.is_available : true;
             form.value.has_driving_license = newProfile.has_driving_license || false;
             form.value.has_vehicle = newProfile.has_vehicle || false;
+            
+            // Réinitialiser les photos quand les props changent
+            initializePhotos();
         }
     },
     { deep: true },
@@ -709,6 +872,86 @@ const addExperience = (type: 'formation' | 'experience') => {
 const removeExperience = (index: number) => {
     if (!isEditing.value) return;
     form.value.experiences.splice(index, 1);
+};
+
+// Fonctions pour gérer les photos de profil
+const triggerFileInput = () => {
+    if (!isEditing.value) return;
+    fileInput.value?.click();
+};
+
+const handleFileSelect = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files) {
+        handleFiles(Array.from(target.files));
+    }
+};
+
+const handleDrop = (event: DragEvent) => {
+    if (!isEditing.value) return;
+    const files = event.dataTransfer?.files;
+    if (files) {
+        handleFiles(Array.from(files));
+    }
+};
+
+const handleFiles = async (files: File[]) => {
+    const maxFiles = 6;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    
+    // Vérifier le nombre total de photos
+    const remainingSlots = maxFiles - profilePhotos.value.length;
+    if (remainingSlots <= 0) {
+        alert('Vous avez déjà atteint le maximum de 6 photos');
+        return;
+    }
+    
+    // Limiter le nombre de fichiers à traiter
+    const filesToProcess = files.slice(0, remainingSlots);
+    
+    for (const file of filesToProcess) {
+        // Vérifier le type de fichier
+        if (!allowedTypes.includes(file.type)) {
+            alert(`Le fichier ${file.name} n'est pas un format d'image supporté`);
+            continue;
+        }
+        
+        // Vérifier la taille
+        if (file.size > maxSize) {
+            alert(`Le fichier ${file.name} est trop volumineux (max 5MB)`);
+            continue;
+        }
+        
+        // Créer une URL temporaire pour l'aperçu
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if (e.target?.result) {
+                const newIndex = profilePhotos.value.length;
+                profilePhotos.value.push(e.target.result as string);
+                
+                // Mettre à jour les états
+                imageLoadingStates.value.push(false); // Pas de chargement pour base64
+                imageErrorStates.value.push(false);
+                
+                console.log(`📷 Nouvelle photo ajoutée à l'index ${newIndex}`);
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    // Réinitialiser l'input file
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
+};
+
+const removePhoto = (index: number) => {
+    if (!isEditing.value) return;
+    profilePhotos.value.splice(index, 1);
+    imageLoadingStates.value.splice(index, 1);
+    imageErrorStates.value.splice(index, 1);
+    console.log(`🗑️ Photo supprimée à l'index ${index}`);
 };
 
 // Fonction pour calculer le pourcentage de completion du profil
@@ -780,9 +1023,25 @@ const getFormData = () => {
         is_available: form.value.is_available,
         has_driving_license: form.value.has_driving_license,
         has_vehicle: form.value.has_vehicle,
+        profile_photos: profilePhotos.value, // Ajouter les photos
         completion_percentage: calculateProfileCompletion(),
     };
 };
+
+// Fonctions pour gérer les événements d'image
+const handleImageLoad = (index: number) => {
+    imageLoadingStates.value[index] = false;
+    console.log(`✅ Image ${index} chargée avec succès`);
+};
+
+const handleImageError = (index: number, photo: string) => {
+    imageLoadingStates.value[index] = false;
+    imageErrorStates.value[index] = true;
+    console.error(`❌ Erreur de chargement image ${index}:`, photo);
+};
+
+// Initialiser les photos au montage du composant
+initializePhotos();
 
 // Exposer isEditing, getFormData et profileCompletion pour le parent
 defineExpose({

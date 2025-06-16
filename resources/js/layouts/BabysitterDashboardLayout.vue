@@ -6,14 +6,22 @@ import DashboardHeader from '@/components/dashboard/shared/DashboardHeader.vue';
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-[#fcf8f6]">
+    <div class="flex min-h-screen flex-col bg-gray-50">
         <DashboardHeader />
+
         <div class="flex flex-1">
             <BabysitterSidebar />
-            <main class="flex-1 p-6">
-                <BabysitterDashboardContent />
+
+            <!-- Main content avec padding pour mobile -->
+            <main class="flex-1 pb-20 lg:pb-0">
+                <div class="py-6 px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-7xl mx-auto">
+                        <BabysitterDashboardContent />
+                    </div>
+                </div>
             </main>
         </div>
+
         <DashboardFooter />
     </div>
 </template>

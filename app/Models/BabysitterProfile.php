@@ -12,7 +12,8 @@ class BabysitterProfile extends Model
     protected $fillable = [
         'user_id', 'bio', 'experience_years', 'available_radius_km',
         'hourly_rate', 'documents_verified', 'is_available', 
-        'has_driving_license', 'has_vehicle', 'comfortable_with_all_ages', 'verification_status', 'rejection_reason', 'verified_at', 'verified_by'
+        'has_driving_license', 'has_vehicle', 'comfortable_with_all_ages', 
+        'profile_photos', 'verification_status', 'rejection_reason', 'verified_at', 'verified_by'
     ];
 
     protected $casts = [
@@ -22,6 +23,7 @@ class BabysitterProfile extends Model
         'has_vehicle' => 'boolean',
         'comfortable_with_all_ages' => 'boolean',
         'hourly_rate' => 'decimal:2',
+        'profile_photos' => 'array',
     ];
 
     public function user(): BelongsTo

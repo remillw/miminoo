@@ -47,6 +47,20 @@ class BabysitterController extends Controller
             return redirect()->route('babysitter.show', ['slug' => $expectedSlug]);
         }
 
+        // Ajouter les URLs des photos supplémentaires
+        if ($babysitter->babysitterProfile && $babysitter->babysitterProfile->profile_photos) {
+            $photos = is_array($babysitter->babysitterProfile->profile_photos) 
+                ? $babysitter->babysitterProfile->profile_photos 
+                : json_decode($babysitter->babysitterProfile->profile_photos, true) ?? [];
+            
+            $babysitter->babysitterProfile->additional_photos_urls = array_map(function($photo) {
+                if (str_starts_with($photo, 'data:image')) {
+                    return $photo; // Image base64
+                }
+                return asset('storage/' . $photo);
+            }, $photos);
+        }
+
         // Récupérer toutes les tranches d'âge disponibles
         $availableAgeRanges = AgeRange::where('is_active', true)
             ->orderBy('display_order')

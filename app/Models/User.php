@@ -13,6 +13,7 @@ use App\Models\Address;
 use App\Models\Ad;
 use App\Models\AdApplication;
 use App\Models\Review;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -34,13 +35,22 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_verified',
         'status',
         'google_id',
+        'apple_id',
+        'provider',
+        'is_social_account',
+        'social_data_locked',
         'avatar',
+        'profile_photos',
         'address_id',
         'email_verified_at',
         'stripe_account_id',
         'stripe_identity_session_id',
         'stripe_account_status',
         'identity_verified_at',
+        'email_notifications',
+        'push_notifications',
+        'sms_notifications',
+        'language',
     ];
 
     /**
@@ -67,6 +77,12 @@ class User extends Authenticatable implements MustVerifyEmail
             'identity_verified_at' => 'datetime',
             'date_of_birth' => 'date',
             'password' => 'hashed',
+            'is_social_account' => 'boolean',
+            'social_data_locked' => 'boolean',
+            'email_notifications' => 'boolean',
+            'push_notifications' => 'boolean',
+            'sms_notifications' => 'boolean',
+            'profile_photos' => 'array',
         ];
     }
 
@@ -84,6 +100,87 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isGoogleOnlyUser(): bool
     {
         return !empty($this->google_id) && empty($this->password);
+    }
+
+    /**
+     * Vérifier si l'utilisateur utilise uniquement Apple
+     */
+    public function isAppleOnlyUser(): bool
+    {
+        return !empty($this->apple_id) && empty($this->password);
+    }
+
+    /**
+     * Vérifier si l'utilisateur utilise uniquement un compte social
+     */
+    public function isSocialOnlyUser(): bool
+    {
+        return $this->is_social_account && !$this->hasPassword();
+    }
+
+    /**
+     * Vérifier si les données de l'utilisateur sont verrouillées (viennent d'un provider social)
+     */
+    public function hasSocialDataLocked(): bool
+    {
+        return $this->social_data_locked;
+    }
+
+    /**
+     * Obtenir le provider social principal
+     */
+    public function getPrimaryProvider(): ?string
+    {
+        return $this->provider;
+    }
+
+    /**
+     * Vérifier si l'utilisateur a un provider social spécifique
+     */
+    public function hasProvider(string $provider): bool
+    {
+        return match($provider) {
+            'google' => !empty($this->google_id),
+            'apple' => !empty($this->apple_id),
+            default => false,
+        };
+    }
+
+    /**
+     * Obtenir l'URL de l'avatar (photo de profil principale)
+     */
+    public function getAvatarUrl()
+    {
+        if ($this->avatar) {
+            // Si c'est une URL complète (provider social), la retourner directement
+            if (filter_var($this->avatar, FILTER_VALIDATE_URL)) {
+                return $this->avatar;
+            }
+            // Sinon, construire l'URL depuis le storage
+            return asset('storage/' . $this->avatar);
+        }
+        
+        return asset('storage/babysitter-test.png'); // Image par défaut
+    }
+
+    /**
+     * Obtenir les URLs des photos supplémentaires (pour babysitters)
+     */
+    public function getAdditionalPhotosUrls()
+    {
+        // Accéder aux photos depuis le profil babysitter
+        if (!$this->babysitterProfile || !$this->babysitterProfile->profile_photos || !is_array($this->babysitterProfile->profile_photos)) {
+            return [];
+        }
+        
+        return array_map(function($photo) {
+            if (str_starts_with($photo, 'data:image')) {
+                // Si c'est une image base64, la retourner telle quelle
+                return $photo;
+            }
+            // Sinon, construire l'URL depuis le storage
+            return asset('storage/' . $photo);
+        }, $this->babysitterProfile->profile_photos);
     }
 
     /**

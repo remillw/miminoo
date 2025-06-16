@@ -566,4 +566,151 @@ class StripeController extends Controller
             return response()->json(['payment_methods' => []], 500);
         }
     }
+
+    /**
+     * Configurer la fréquence des virements
+     */
+    public function configurePayoutSchedule(Request $request)
+    {
+        $request->validate([
+            'interval' => 'required|in:daily,weekly,monthly,manual',
+            'weekly_anchor' => 'nullable|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'monthly_anchor' => 'nullable|integer|min:1|max:31',
+            'minimum_amount' => 'nullable|integer|min:2500', // 25€ minimum
+        ]);
+
+        $user = $request->user();
+
+        try {
+            if ($request->interval === 'manual') {
+                $this->stripeService->disableAutomaticPayouts($user);
+            } else {
+                $this->stripeService->updatePayoutSchedule(
+                    $user,
+                    $request->interval,
+                    $request->weekly_anchor ?? 'friday'
+                );
+            }
+
+            if ($request->minimum_amount) {
+                $this->stripeService->updateMinimumPayoutAmount($user, $request->minimum_amount);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Configuration des virements mise à jour avec succès'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Créer un virement manuel
+     */
+    public function createManualPayout(Request $request)
+    {
+        $request->validate([
+            'amount' => 'nullable|integer|min:2500', // 25€ minimum
+        ]);
+
+        $user = $request->user();
+
+        try {
+            $payout = $this->stripeService->createManualPayout(
+                $user,
+                $request->amount
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Virement créé avec succès',
+                'payout' => [
+                    'id' => $payout->id,
+                    'amount' => $payout->amount / 100,
+                    'arrival_date' => $payout->arrival_date,
+                    'status' => $payout->status
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Récupérer l'historique des virements
+     */
+    public function getPayoutHistory(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            $payouts = $this->stripeService->getPayoutHistory($user, 20);
+
+            return response()->json([
+                'success' => true,
+                'payouts' => $payouts
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Générer une facture pour la babysitter
+     */
+    public function generateInvoice(Request $request)
+    {
+        $request->validate([
+            'period' => 'required|string',
+            'reservation_ids' => 'required|array',
+            'reservation_ids.*' => 'exists:reservations,id',
+        ]);
+
+        $user = $request->user();
+
+        try {
+            // Récupérer les réservations
+            $reservations = \App\Models\Reservation::whereIn('id', $request->reservation_ids)
+                ->where('babysitter_id', $user->id)
+                ->where('status', 'completed')
+                ->with(['parent'])
+                ->get();
+
+            if ($reservations->isEmpty()) {
+                throw new \Exception('Aucune réservation valide trouvée');
+            }
+
+            $invoice = $this->stripeService->generateInvoiceForBabysitter(
+                $user,
+                $reservations,
+                $request->period
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Facture générée avec succès',
+                'invoice' => [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'pdf' => $invoice->invoice_pdf,
+                    'hosted_invoice_url' => $invoice->hosted_invoice_url
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 400);
+        }
+    }
 } 

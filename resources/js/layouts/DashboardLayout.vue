@@ -22,21 +22,24 @@ const SidebarComponent = computed(() => {
     }
     
     // Fallback sur le rôle simple (pour la rétrocompatibilité)
-    const userRole = props.role || page.props.auth?.user?.role?.name;
+    const userRole = props.role || (page.props.auth as any)?.user?.role?.name;
     return userRole === 'parent' ? ParentSidebar : BabysitterSidebar;
 });
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-[#fcf8f6]">
+    <div class="flex min-h-screen flex-col bg-gray-50">
         <DashboardHeader />
 
         <div class="flex flex-1">
             <component :is="SidebarComponent" />
 
-            <main class="flex-1 py-6 flex justify-center max-w-7xl w-full mx-auto">
-                <div class="w-full max-w-9xl">
-                    <slot />
+            <!-- Main content avec padding pour mobile -->
+            <main class="flex-1 pb-20 lg:pb-0">
+                <div class="py-6 px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-7xl mx-auto">
+                        <slot />
+                    </div>
                 </div>
             </main>
         </div>

@@ -1,12 +1,12 @@
 <template>
-    <div class="space-y-4">
+    <div :class="mobile ? 'space-y-3' : 'space-y-4'">
         <!-- En-tête candidature -->
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
+        <div :class="mobile ? 'space-y-2' : 'flex items-center justify-between'">
+            <div :class="mobile ? 'space-y-2' : 'flex items-center gap-3'">
                 <div class="rounded-full bg-orange-200 px-3 py-1 text-sm font-medium text-orange-800">
                     Candidature - {{ application.status === 'pending' ? 'En attente' : 'En négociation' }}
                 </div>
-                <div class="text-sm text-gray-600">
+                <div :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-600">
                     Tarif proposé : <span class="font-semibold text-orange-600">{{ application.proposed_rate }}€/h</span>
                     <span v-if="application.counter_rate" class="ml-2">
                         → <span class="font-semibold text-blue-600">{{ application.counter_rate }}€/h</span>
@@ -16,95 +16,114 @@
         </div>
 
         <!-- Actions principales -->
-        <div class="flex items-center gap-3">
+        <div :class="mobile ? 'space-y-2' : 'flex items-center gap-3'">
             <!-- Actions pour parents -->
             <template v-if="userRole === 'parent'">
                 <button
                     @click="handleReserveDirectly"
+                    :class="mobile ? 'w-full justify-center' : ''"
                     class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
                 >
                     <Check class="h-4 w-4" />
                     Réserver {{ application.counter_rate || application.proposed_rate }}€/h
                 </button>
 
-                <button
-                    v-if="!showCounterOffer"
-                    @click="showCounterOffer = true"
-                    class="hover:bg-secondary flex items-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors"
-                >
-                    <Euro class="h-4 w-4" />
-                    Contre-offre
-                </button>
+                <div :class="mobile ? 'flex gap-2' : 'contents'">
+                    <button
+                        v-if="!showCounterOffer"
+                        @click="showCounterOffer = true"
+                        :class="mobile ? 'flex-1' : ''"
+                        class="hover:bg-secondary flex items-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors justify-center"
+                    >
+                        <Euro class="h-4 w-4" />
+                        <span v-if="!mobile">Contre-offre</span>
+                        <span v-else>Négocier</span>
+                    </button>
 
-                <button
-                    @click="handleDecline"
-                    class="hover:bg-primary-opacity flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors"
-                >
-                    <X class="h-4 w-4" />
-                    Refuser
-                </button>
+                    <button
+                        @click="handleDecline"
+                        :class="mobile ? 'flex-1' : ''"
+                        class="hover:bg-primary-opacity flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors justify-center"
+                    >
+                        <X class="h-4 w-4" />
+                        Refuser
+                    </button>
+                </div>
             </template>
 
             <!-- Actions pour babysitter -->
             <template v-if="userRole === 'babysitter' && application.status === 'counter_offered' && application.counter_rate">
-                <div class="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
                     Contre-offre reçue : <span class="font-semibold">{{ application.counter_rate }}€/h</span>
                 </div>
 
-                <button
-                    @click="$emit('respond-counter', application.id, true, application.counter_rate)"
-                    class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
-                >
-                    Accepter
-                </button>
+                <div :class="mobile ? 'flex gap-2' : 'contents'">
+                    <button
+                        @click="$emit('respond-counter', application.id, true, application.counter_rate)"
+                        :class="mobile ? 'flex-1' : ''"
+                        class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                    >
+                        Accepter
+                    </button>
 
-                <button
-                    @click="$emit('respond-counter', application.id, false)"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                    Refuser
-                </button>
+                    <button
+                        @click="$emit('respond-counter', application.id, false)"
+                        :class="mobile ? 'flex-1' : ''"
+                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    >
+                        Refuser
+                    </button>
+                </div>
             </template>
         </div>
 
         <!-- Formulaire contre-offre parent -->
         <div v-if="showCounterOffer && userRole === 'parent'" class="bg-secondary rounded-lg border border-orange-200 p-4">
-            <h4 class="mb-3 font-medium text-gray-900">Faire une contre-proposition :</h4>
-            <div class="flex items-center gap-3">
-                <div class="relative">
+            <h4 :class="mobile ? 'text-sm' : ''" class="mb-3 font-medium text-gray-900">Faire une contre-proposition :</h4>
+            <div :class="mobile ? 'space-y-3' : 'flex items-center gap-3'">
+                <div class="relative" :class="mobile ? 'w-full' : ''">
                     <input
                         v-model="counterOfferRate"
                         type="number"
                         step="0.5"
                         min="1"
                         max="50"
-                        class="focus:ring-primary w-24 rounded-lg border border-gray-300 px-3 py-2 text-center focus:ring-2 focus:outline-none"
+                        :class="mobile ? 'w-full' : 'w-24'"
+                        class="focus:ring-primary rounded-lg border border-gray-300 px-3 py-2 text-center focus:ring-2 focus:outline-none"
                         placeholder="20"
                     />
                     <span class="absolute top-1/2 right-2 -translate-y-1/2 transform text-sm text-gray-500">€/h</span>
                 </div>
-                <button
-                    @click="submitCounterOffer"
-                    :disabled="!counterOfferRate"
-                    class="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
-                >
-                    Proposer
-                </button>
-                <button @click="showCounterOffer = false" class="px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800">
-                    Annuler
-                </button>
+                <div :class="mobile ? 'flex gap-2' : 'contents'">
+                    <button
+                        @click="submitCounterOffer"
+                        :disabled="!counterOfferRate"
+                        :class="mobile ? 'flex-1' : ''"
+                        class="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
+                    >
+                        Proposer
+                    </button>
+                    <button 
+                        @click="showCounterOffer = false" 
+                        :class="mobile ? 'flex-1' : ''"
+                        class="px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800 rounded-lg border border-gray-300"
+                    >
+                        Annuler
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Message de motivation -->
         <div v-if="application.motivation_note" class="rounded-lg bg-gray-50 p-3">
-            <p class="text-sm text-gray-700 italic">"{{ application.motivation_note }}"</p>
+            <p :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-700 italic">"{{ application.motivation_note }}"</p>
         </div>
 
         <!-- Actions supplémentaires pour babysitter -->
         <div v-if="userRole === 'babysitter' && application.status === 'pending'" class="border-t border-gray-200 pt-4">
             <button
                 @click="handleCancelApplication"
+                :class="mobile ? 'w-full justify-center' : ''"
                 class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
             >
                 <X class="h-4 w-4" />
@@ -132,6 +151,10 @@ import ReservationModal from './ReservationModal.vue';
 const props = defineProps({
     application: Object,
     userRole: String,
+    mobile: {
+        type: Boolean,
+        default: false
+    }
 });
 
 const emit = defineEmits(['reserve', 'decline', 'counter-offer', 'respond-counter', 'babysitter-counter', 'cancel-application']);

@@ -11,10 +11,28 @@ use App\Http\Controllers\ReservationController;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\StripeVerificationController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\Auth\SocialAuthController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
+
+// Routes pour l'authentification sociale
+Route::prefix('auth')->group(function () {
+    Route::get('/{provider}', [SocialAuthController::class, 'redirectToProvider'])
+        ->where('provider', 'google|apple')
+        ->name('social.redirect');
+    
+    Route::get('/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
+        ->where('provider', 'google|apple')
+        ->name('social.callback');
+    
+    Route::middleware('auth')->delete('/{provider}/unlink', [SocialAuthController::class, 'unlinkProvider'])
+        ->where('provider', 'google|apple')
+        ->name('social.unlink');
+});
 
 Route::get('/annonces', [AnnouncementController::class, 'index'])->name('announcements.index');
 
@@ -117,6 +135,12 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     // Page de gestion des paiements dans la sidebar
     Route::get('/babysitter/paiements', [StripeController::class, 'paymentsPage'])->name('babysitter.payments');
     
+    // Nouvelles routes pour la gestion des paiements
+    Route::post('/babysitter/paiements/configure-schedule', [StripeController::class, 'configurePayoutSchedule'])->name('babysitter.payments.configure-schedule');
+    Route::post('/babysitter/paiements/manual-payout', [StripeController::class, 'createManualPayout'])->name('babysitter.payments.manual-payout');
+    Route::get('/babysitter/paiements/history', [StripeController::class, 'getPayoutHistory'])->name('babysitter.payments.history');
+    Route::post('/babysitter/paiements/generate-invoice', [StripeController::class, 'generateInvoice'])->name('babysitter.payments.generate-invoice');
+    
     // Routes Stripe Connect
     Route::get('/stripe/connect', [StripeController::class, 'connect'])->name('babysitter.stripe.connect');
     Route::post('/stripe/create-onboarding-link', [StripeController::class, 'createOnboardingLink'])->name('babysitter.stripe.create-link');
@@ -185,7 +209,27 @@ Route::middleware('auth')->group(function () {
         ->name('babysitter.toggle-availability');
 });
 
-require __DIR__.'/settings.php';
+
+
+// Routes pour les paiements (unifiées babysitter/parent)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/paiements', [PaymentController::class, 'index'])->name('payments.index');
+    Route::get('/paiements/facture/{reservation}', [PaymentController::class, 'downloadInvoice'])->name('payments.download-invoice');
+});
+
+// Routes spécifiques pour les parents (compatibilité)
+Route::middleware(['auth'])->prefix('parent')->group(function () {
+    Route::get('/paiements', [PaymentController::class, 'index'])->name('parent.payments');
+});
+
+Route::middleware(['auth'])->prefix('parametres')->group(function () {
+    Route::get('/', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
+    Route::post('/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::post('/language', [SettingsController::class, 'updateLanguage'])->name('settings.language');
+    Route::delete('/account', [SettingsController::class, 'deleteAccount'])->name('settings.delete-account');
+});
+
 require __DIR__.'/auth.php';
 require __DIR__.'/channels.php';
 
