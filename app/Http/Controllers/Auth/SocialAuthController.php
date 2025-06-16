@@ -110,7 +110,7 @@ class SocialAuthController extends Controller
         }
 
         // Protection spéciale pour les utilisateurs Google uniquement
-        if ($provider === 'google' && $user->is_social_account && $user->provider === 'google' && !$user->password) {
+        if ($provider === 'google' && $user->google_id && !$user->password) {
             return back()->with('error', 'Pour votre sécurité, vous ne pouvez pas vous déconnecter de Google. Votre compte est entièrement géré par Google. Si vous souhaitez supprimer votre compte, utilisez l\'option de suppression dans les paramètres.');
         }
 

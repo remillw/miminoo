@@ -77,6 +77,9 @@ interface User {
     social_data_locked: boolean;
     provider: string;
     avatar_url?: string;
+    google_id?: string;
+    password?: boolean;
+    is_social_account?: boolean;
 }
 
 interface Language {
@@ -612,6 +615,20 @@ const handleAvatarChange = (event: Event) => {
         reader.readAsDataURL(file);
     }
 };
+
+// Computed pour détecter si c'est un utilisateur Google uniquement
+const isGoogleOnlyUser = computed(() => {
+    // Si l'utilisateur a un google_id, c'est un utilisateur Google
+    return props.user.google_id && !props.user.password;
+});
+
+// Debug pour vérifier les données utilisateur
+console.log('🔍 Données utilisateur Profil:', {
+    provider: props.user.provider,
+    is_social_account: props.user.is_social_account,
+    social_data_locked: props.user.social_data_locked,
+    isGoogleOnlyUser: isGoogleOnlyUser.value
+});
 </script>
 
 <template>
@@ -774,11 +791,11 @@ const handleAvatarChange = (event: Event) => {
                                 <Input 
                                     id="firstname" 
                                     v-model="form.firstname" 
-                                    :disabled="!isEditing || user.social_data_locked" 
+                                    :disabled="!isEditing || isGoogleOnlyUser" 
                                     required 
                                 />
-                                <p v-if="user.social_data_locked" class="text-xs text-gray-500">
-                                    🔒 Géré par {{ user.provider === 'google' ? 'Google' : user.provider }}
+                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
+                                    ✓ Géré par Google
                                 </p>
                             </div>
                             <div class="space-y-2">
@@ -786,11 +803,11 @@ const handleAvatarChange = (event: Event) => {
                                 <Input 
                                     id="lastname" 
                                     v-model="form.lastname" 
-                                    :disabled="!isEditing || user.social_data_locked" 
+                                    :disabled="!isEditing || isGoogleOnlyUser" 
                                     required 
                                 />
-                                <p v-if="user.social_data_locked" class="text-xs text-gray-500">
-                                    🔒 Géré par {{ user.provider === 'google' ? 'Google' : user.provider }}
+                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
+                                    ✓ Géré par Google
                                 </p>
                             </div>
                         </div>
@@ -804,28 +821,29 @@ const handleAvatarChange = (event: Event) => {
                                     id="email" 
                                     type="email" 
                                     v-model="form.email" 
-                                    :disabled="!isEditing || user.social_data_locked" 
+                                    :disabled="!isEditing || isGoogleOnlyUser" 
                                     class="pl-10" 
                                     required 
                                 />
                             </div>
-                            <p v-if="user.social_data_locked" class="text-xs text-gray-500">
-                                🔒 Géré par {{ user.provider === 'google' ? 'Google' : user.provider }}
+                            <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
+                                ✓ Géré par Google
                             </p>
                         </div>
 
                         <!-- Message informatif pour les utilisateurs Google -->
-                        <div v-if="user.social_data_locked && user.provider === 'google'" class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <div class="flex items-start space-x-3">
-                                <svg class="h-5 w-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                </svg>
+                        <div v-if="isGoogleOnlyUser" class="rounded-lg border border-green-200 bg-green-50 p-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
                                 <div class="flex-1">
-                                    <h4 class="text-sm font-medium text-blue-900">Compte connecté via Google</h4>
-                                    <div class="mt-1 text-sm text-blue-700">
-                                        <p>Vos informations personnelles (prénom, nom, email) sont gérées par Google et ne peuvent pas être modifiées ici.</p>
-                                        <p class="mt-1">Pour votre sécurité, vous ne pouvez pas vous déconnecter de Google. Si vous souhaitez supprimer votre compte, utilisez l'option dans les paramètres.</p>
-                                    </div>
+                                    <h4 class="text-sm font-medium text-green-900">Compte connecté via Google</h4>
+                                    <p class="mt-1 text-sm text-green-700">
+                                        Vos informations de connexion sont sécurisées et gérées directement par Google.
+                                    </p>
                                 </div>
                             </div>
                         </div>

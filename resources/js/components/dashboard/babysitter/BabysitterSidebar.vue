@@ -7,13 +7,13 @@ const showFullMenu = ref(false);
 
 const links = [
     { icon: Home, label: 'Tableau de bord', href: '/dashboard' },
-    { icon: Briefcase, label: 'Offres disponibles', href: '/offres' },
+    { icon: Briefcase, label: 'Offres disponibles', href: '/annonces' },
     { icon: Briefcase, label: 'Mes candidatures', href: '/candidatures' },
     { icon: Calendar, label: 'Réservations', href: '/reservations' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
     { icon: CreditCard, label: 'Paiements', href: '/paiements' },
     { icon: User, label: 'Mon profil', href: '/profil' },
-    { icon: BarChart2, label: 'Statistiques', href: '/stats' },
+    
     { icon: Settings, label: 'Paramètres', href: '/parametres' },
 ];
 

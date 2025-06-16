@@ -169,8 +169,8 @@ class ProfileController extends Controller
         // Mise à jour des informations utilisateur
         $userData = [];
         
-        // Empêcher la modification des données verrouillées par les providers sociaux
-        if (!$user->social_data_locked) {
+        // Empêcher la modification des données pour les utilisateurs Google
+        if (!($user->google_id && !$user->password)) {
             $userData['firstname'] = $request->firstname;
             $userData['lastname'] = $request->lastname;
             $userData['email'] = $request->email;

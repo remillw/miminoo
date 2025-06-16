@@ -140,15 +140,6 @@
                     Ajoutez des photos supplémentaires en plus de votre photo de profil principale (avatar). 
                     Cela permet aux parents de mieux vous connaître et augmente vos chances d'être contacté !
                 </p>
-                
-                <!-- Debug temporaire -->
-                <div v-if="profilePhotos.length === 0" class="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm">
-                    <p><strong>Debug:</strong></p>
-                    <p>Photos dans profilePhotos: {{ profilePhotos.length }}</p>
-                    <p>additional_photos_urls: {{ props.babysitterProfile?.additional_photos_urls?.length || 0 }}</p>
-                    <p>profile_photos: {{ props.babysitterProfile?.profile_photos?.length || 0 }}</p>
-                </div>
-                
                 <!-- Grille des photos existantes -->
                 <div v-if="profilePhotos.length > 0" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                     <div 

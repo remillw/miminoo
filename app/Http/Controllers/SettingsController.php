@@ -64,6 +64,14 @@ class SettingsController extends Controller
                 ['code' => 'fr', 'name' => 'Français'],
                 // Ajouter d'autres langues plus tard
             ],
+            // Debug temporaire
+            'debug_user_data' => [
+                'provider' => $user->provider,
+                'is_social_account' => $user->is_social_account,
+                'social_data_locked' => $user->social_data_locked,
+                'google_id' => $user->google_id,
+                'has_password' => $user->password ? true : false,
+            ],
         ]);
     }
 

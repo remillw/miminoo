@@ -1,6 +1,9 @@
 <template>
     <DashboardLayout :currentMode="currentMode">
-        <div class="max-w-4xl mx-auto space-y-8">
+        <div class="max-w-4xl mx-auto space-y-6">
+            <!-- Debug temporaire -->
+        
+
             <!-- En-tête -->
             <div class="bg-white rounded-lg shadow p-6">
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">Paramètres</h1>
@@ -92,9 +95,9 @@
                                     </div>
                                 </div>
                                 <div v-if="user.google_id">
-                                    <span v-if="user.is_social_account && user.provider === 'google' && !user.password" 
-                                          class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                        Compte principal
+                                    <span v-if="isGoogleOnlyUser" 
+                                          class="text-xs text-green-600 bg-green-100 px-3 py-1 rounded-full font-medium">
+                                        Compte connecté
                                     </span>
                                     <button
                                         v-else
@@ -157,7 +160,7 @@
                     </div>
 
                     <!-- Changement de mot de passe -->
-                    <div v-if="!user.social_data_locked || user.password">
+                    <div v-if="!isGoogleOnlyUser">
                         <h3 class="text-sm font-medium text-gray-900 mb-4">Mot de passe</h3>
                         <form @submit.prevent="updatePassword" class="space-y-4">
                             <div v-if="user.password">
@@ -207,12 +210,18 @@
                         </form>
                     </div>
                     
-                    <div v-else class="text-center py-4">
-                        <p class="text-sm text-gray-500">
-                            🔒 Votre compte est connecté via {{ user.provider === 'google' ? 'Google' : user.provider }}
+                    <!-- Message pour les utilisateurs Google -->
+                    <div v-if="isGoogleOnlyUser" class="text-center py-6">
+                        <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
+                            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <p class="text-sm font-medium text-gray-900 mb-1">
+                            Authentification sécurisée par Google
                         </p>
-                        <p class="text-xs text-gray-400 mt-1">
-                            Les informations de connexion sont gérées par votre fournisseur
+                        <p class="text-xs text-gray-500">
+                            Votre connexion est entièrement gérée par Google de manière sécurisée
                         </p>
                     </div>
                 </div>
@@ -315,7 +324,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
@@ -352,12 +361,30 @@ interface Props {
     notification_settings: NotificationSettings;
     has_active_reservations: boolean;
     available_languages: Language[];
+    debug_user_data?: any; // Debug temporaire
 }
 
 const props = defineProps<Props>();
 
 // Mode basé sur les rôles de l'utilisateur (détecté côté serveur)
 const currentMode = ref<'babysitter' | 'parent'>(props.current_mode);
+
+// Computed pour détecter si c'est un utilisateur Google uniquement
+const isGoogleOnlyUser = computed(() => {
+    // Si l'utilisateur a un google_id, c'est un utilisateur Google
+    return props.user.google_id && !props.user.password;
+});
+
+// Debug pour vérifier les données utilisateur
+console.log('🔍 Données utilisateur Settings:', {
+    provider: props.user.provider,
+    is_social_account: props.user.is_social_account,
+    social_data_locked: props.user.social_data_locked,
+    has_password: props.user.password,
+    google_id: props.user.google_id,
+    isGoogleOnlyUser: isGoogleOnlyUser.value,
+    debug_from_server: props.debug_user_data
+});
 
 // États des formulaires
 const notificationForm = reactive({ ...props.notification_settings });
