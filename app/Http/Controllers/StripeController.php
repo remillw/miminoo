@@ -502,26 +502,46 @@ class StripeController extends Controller
             $accountBalance = null;
             $recentTransactions = [];
 
+            Log::info('📊 Statut récupéré dans le contrôleur', [
+                'user_id' => $user->id,
+                'accountStatus' => $accountStatus,
+                'stripe_account_id' => $user->stripe_account_id
+            ]);
+
             // Si le compte est actif, récupérer le solde et les transactions
             if ($accountStatus === 'active') {
                 $accountBalance = $this->stripeService->getAccountBalance($user);
                 $recentTransactions = $this->stripeService->getRecentTransactions($user, 10);
             }
         } catch (\Exception $e) {
+            Log::error('❌ Exception dans paymentsPage', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             $accountStatus = 'pending';
             $accountDetails = null;
             $accountBalance = null;
             $recentTransactions = [];
         }
 
-        return Inertia::render('Babysitter/Payments', [
+        $viewData = [
+            'mode' => 'babysitter',
             'accountStatus' => $accountStatus,
             'accountDetails' => $accountDetails,
             'accountBalance' => $accountBalance,
             'recentTransactions' => $recentTransactions,
             'stripeAccountId' => $user->stripe_account_id,
             'babysitterProfile' => $user->babysitterProfile
+        ];
+
+        Log::info('📤 Données envoyées à la vue', [
+            'user_id' => $user->id,
+            'viewData' => $viewData
         ]);
+
+        return Inertia::render('Babysitter/Payments', $viewData);
     }
 
     /**

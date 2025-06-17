@@ -102,20 +102,14 @@ class SettingsController extends Controller
                 'sms' => $request->sms_notifications,
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Préférences de notifications mises à jour avec succès'
-            ]);
+            return back()->with('success', 'Préférences de notifications mises à jour avec succès');
         } catch (\Exception $e) {
             Log::error('Erreur mise à jour notifications', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'success' => false,
-                'error' => 'Erreur lors de la mise à jour des préférences'
-            ], 500);
+            return back()->with('error', 'Erreur lors de la mise à jour des préférences');
         }
     }
 
@@ -124,12 +118,19 @@ class SettingsController extends Controller
      */
     public function updatePassword(Request $request)
     {
-        $request->validate([
-            'current_password' => 'required|current_password',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
         $user = $request->user();
+
+        // Validation conditionnelle selon si l'utilisateur a déjà un mot de passe
+        if ($user->password) {
+            $request->validate([
+                'current_password' => ['required', 'current_password'],
+                'password' => ['required', Rules\Password::defaults(), 'confirmed'],
+            ]);
+        } else {
+            $request->validate([
+                'password' => ['required', Rules\Password::defaults(), 'confirmed'],
+            ]);
+        }
 
         try {
             $user->update([
@@ -138,22 +139,17 @@ class SettingsController extends Controller
 
             Log::info('Mot de passe mis à jour', [
                 'user_id' => $user->id,
+                'had_password' => $user->password ? true : false
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Mot de passe mis à jour avec succès'
-            ]);
+            return back()->with('success', 'Mot de passe mis à jour avec succès');
         } catch (\Exception $e) {
             Log::error('Erreur mise à jour mot de passe', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'success' => false,
-                'error' => 'Erreur lors de la mise à jour du mot de passe'
-            ], 500);
+            return back()->with('error', 'Erreur lors de la mise à jour du mot de passe');
         }
     }
 
@@ -163,7 +159,7 @@ class SettingsController extends Controller
     public function updateLanguage(Request $request)
     {
         $request->validate([
-            'language' => 'required|in:fr', // Pour l'instant, seulement français
+            'language' => 'required|string|in:fr,en',
         ]);
 
         $user = $request->user();
@@ -173,28 +169,19 @@ class SettingsController extends Controller
                 'language' => $request->language,
             ]);
 
-            // Mettre à jour la session
-            session(['locale' => $request->language]);
-
             Log::info('Langue mise à jour', [
                 'user_id' => $user->id,
-                'language' => $request->language,
+                'language' => $request->language
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Langue mise à jour avec succès'
-            ]);
+            return back()->with('success', 'Langue mise à jour avec succès');
         } catch (\Exception $e) {
             Log::error('Erreur mise à jour langue', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'success' => false,
-                'error' => 'Erreur lors de la mise à jour de la langue'
-            ], 500);
+            return back()->with('error', 'Erreur lors de la mise à jour de la langue');
         }
     }
 
@@ -204,72 +191,53 @@ class SettingsController extends Controller
     public function deleteAccount(Request $request)
     {
         $request->validate([
-            'password' => 'required|current_password',
-            'confirmation' => 'required|in:SUPPRIMER',
+            'confirmation' => 'required|string|in:SUPPRIMER',
         ]);
 
         $user = $request->user();
 
+        // Vérifier s'il y a des réservations actives
+        $hasActiveReservations = false;
+        if ($user->hasRole('babysitter')) {
+            $hasActiveReservations = Reservation::where('babysitter_id', $user->id)
+                ->whereIn('status', ['confirmed', 'in_progress', 'pending_payment'])
+                ->exists();
+        } elseif ($user->hasRole('parent')) {
+            $hasActiveReservations = Reservation::where('parent_id', $user->id)
+                ->whereIn('status', ['confirmed', 'in_progress', 'pending_payment'])
+                ->exists();
+        }
+
+        if ($hasActiveReservations) {
+            return back()->with('error', 'Impossible de supprimer le compte : vous avez des réservations en cours.');
+        }
+
         try {
-            // Vérifier qu'il n'y a pas de réservations en cours
-            $activeReservations = collect();
-
-            if ($user->hasRole('babysitter')) {
-                $activeReservations = Reservation::where('babysitter_id', $user->id)
-                    ->whereIn('status', ['confirmed', 'in_progress', 'pending_payment'])
-                    ->get();
-            } elseif ($user->hasRole('parent')) {
-                $activeReservations = Reservation::where('parent_id', $user->id)
-                    ->whereIn('status', ['confirmed', 'in_progress', 'pending_payment'])
-                    ->get();
-            }
-
-            if ($activeReservations->isNotEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Impossible de supprimer le compte : vous avez des réservations en cours. Veuillez les terminer ou les annuler avant de supprimer votre compte.'
-                ], 400);
-            }
-
-            // Anonymiser les données plutôt que de supprimer complètement
-            $user->update([
-                'firstname' => 'Utilisateur',
-                'lastname' => 'Supprimé',
-                'email' => 'deleted_' . $user->id . '@miminoo.fr',
-                'phone' => null,
-                'address' => null,
-                'date_of_birth' => null,
-                'bio' => null,
-                'is_active' => false,
-                'email_verified_at' => null,
-                'password' => Hash::make('deleted_account_' . time()),
+            // Log de la suppression
+            Log::warning('Suppression de compte utilisateur', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'roles' => $user->roles()->pluck('name')->toArray(),
             ]);
-
-            // Supprimer les tokens d'accès
-            $user->tokens()->delete();
 
             // Déconnecter l'utilisateur
             auth()->logout();
 
-            Log::info('Compte utilisateur supprimé', [
-                'user_id' => $user->id,
-                'email' => $request->user()->email,
-            ]);
+            // Supprimer l'utilisateur (les relations seront supprimées en cascade)
+            $user->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Votre compte a été supprimé avec succès'
-            ]);
+            // Invalider la session
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('home')->with('success', 'Votre compte a été supprimé avec succès.');
         } catch (\Exception $e) {
             Log::error('Erreur suppression compte', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'success' => false,
-                'error' => 'Erreur lors de la suppression du compte'
-            ], 500);
+            return back()->with('error', 'Erreur lors de la suppression du compte.');
         }
     }
 } 

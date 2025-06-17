@@ -1,5 +1,5 @@
 <template>
-    <AppLayout>
+    <DashboardLayout>
         <div class="min-h-screen bg-gray-50 py-8">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <!-- En-tête -->
@@ -24,18 +24,18 @@
                                 <div>
                                     <h2 class="text-lg font-semibold text-gray-900">Statut du compte Stripe</h2>
                                     <p class="text-sm text-gray-600 mt-1">
-                                        {{ getAccountStatusText(accountStatus) }}
+                                        {{ isBabysitterMode(props) ? getAccountStatusText(props.accountStatus) : '' }}
                                     </p>
                                 </div>
                                 <div class="flex items-center">
-                                    <div :class="getStatusBadgeClass(accountStatus)" class="px-3 py-1 rounded-full text-sm font-medium">
-                                        {{ getStatusText(accountStatus) }}
+                                    <div v-if="isBabysitterMode(props)" :class="getStatusBadgeClass(props.accountStatus)" class="px-3 py-1 rounded-full text-sm font-medium">
+                                        {{ getStatusText(props.accountStatus) }}
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Lien d'activation si nécessaire -->
-                            <div v-if="accountStatus === 'pending'" class="mt-4">
+                            <div v-if="isBabysitterMode(props) && (props.accountStatus === 'pending' || props.accountStatus === 'rejected')" class="mt-4">
                                 <button 
                                     @click="completeStripeOnboarding"
                                     class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -47,16 +47,16 @@
                     </div>
 
                     <!-- Solde et configuration des virements (si compte actif) -->
-                    <div v-if="accountStatus === 'active'" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <div v-if="isBabysitterMode(props) && props.accountStatus === 'active'" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                         <!-- Solde disponible -->
                         <div class="bg-white rounded-lg shadow p-6">
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">Solde disponible</h3>
-                            <div v-if="accountBalance">
+                            <div v-if="isBabysitterMode(props) && props.accountBalance">
                                 <div class="text-3xl font-bold text-green-600 mb-2">
-                                    {{ formatAmount(accountBalance.available[0]?.amount || 0) }}€
+                                    {{ formatAmount(props.accountBalance.available[0]?.amount || 0) }}€
                                 </div>
                                 <div class="text-sm text-gray-600">
-                                    En attente : {{ formatAmount(accountBalance.pending[0]?.amount || 0) }}€
+                                    En attente : {{ formatAmount(props.accountBalance.pending[0]?.amount || 0) }}€
                                 </div>
                             </div>
                             <div v-else class="text-gray-500">
@@ -134,7 +134,7 @@
                     </div>
 
                     <!-- Historique des transactions -->
-                    <div v-if="accountStatus === 'active'" class="bg-white rounded-lg shadow">
+                    <div v-if="isBabysitterMode(props) && props.accountStatus === 'active'" class="bg-white rounded-lg shadow">
                         <div class="p-6 border-b border-gray-200">
                             <h3 class="text-lg font-semibold text-gray-900">Historique des transactions</h3>
                         </div>
@@ -150,7 +150,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr v-for="transaction in recentTransactions" :key="transaction.id">
+                                    <tr v-for="transaction in (isBabysitterMode(props) ? props.recentTransactions : [])" :key="transaction.id">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ formatDate(transaction.created) }}
                                         </td>
@@ -175,7 +175,7 @@
                                             </button>
                                         </td>
                                     </tr>
-                                    <tr v-if="recentTransactions.length === 0">
+                                    <tr v-if="isBabysitterMode(props) && (!props.recentTransactions || props.recentTransactions.length === 0)">
                                         <td colspan="5" class="px-6 py-4 text-center text-gray-500">
                                             Aucune transaction pour le moment
                                         </td>
@@ -197,7 +197,7 @@
                                 </div>
                                 <div class="ml-4">
                                     <p class="text-sm font-medium text-gray-600">Total dépensé</p>
-                                    <p class="text-2xl font-bold text-gray-900">{{ formatAmount(stats.total_spent) }}€</p>
+                                    <p class="text-2xl font-bold text-gray-900">{{ isParentMode(props) ? formatAmount(props.stats.total_spent) : '0' }}€</p>
                                 </div>
                             </div>
                         </div>
@@ -209,7 +209,7 @@
                                 </div>
                                 <div class="ml-4">
                                     <p class="text-sm font-medium text-gray-600">Réservations totales</p>
-                                    <p class="text-2xl font-bold text-gray-900">{{ stats.total_reservations }}</p>
+                                    <p class="text-2xl font-bold text-gray-900">{{ isParentMode(props) ? props.stats.total_reservations : 0 }}</p>
                                 </div>
                             </div>
                         </div>
@@ -221,7 +221,7 @@
                                 </div>
                                 <div class="ml-4">
                                     <p class="text-sm font-medium text-gray-600">Paiements en attente</p>
-                                    <p class="text-2xl font-bold text-gray-900">{{ stats.pending_payments }}</p>
+                                    <p class="text-2xl font-bold text-gray-900">{{ isParentMode(props) ? props.stats.pending_payments : 0 }}</p>
                                 </div>
                             </div>
                         </div>
@@ -245,7 +245,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr v-for="transaction in transactions" :key="transaction.id">
+                                    <tr v-for="transaction in (isParentMode(props) ? props.transactions : [])" :key="transaction.id">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ formatDate(transaction.date) }}
                                         </td>
@@ -273,7 +273,7 @@
                                             </button>
                                         </td>
                                     </tr>
-                                    <tr v-if="transactions.length === 0">
+                                    <tr v-if="isParentMode(props) && (!props.transactions || props.transactions.length === 0)">
                                         <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                                             Aucune transaction pour le moment
                                         </td>
@@ -285,14 +285,14 @@
                 </div>
             </div>
         </div>
-    </AppLayout>
+    </DashboardLayout>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { CreditCard, Calendar, Clock } from 'lucide-vue-next';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
 
 // Types
 interface BabysitterProps {
@@ -328,11 +328,29 @@ const transferSettings = ref({
 
 const isProcessingPayout = ref(false);
 
+// Type guards
+const isBabysitterMode = (props: Props): props is BabysitterProps => {
+    return props.mode === 'babysitter';
+};
+
+const isParentMode = (props: Props): props is ParentProps => {
+    return props.mode === 'parent';
+};
+
 // Computed properties
 const canTriggerPayout = computed(() => {
-    if (props.mode !== 'babysitter') return false;
+    if (!isBabysitterMode(props)) return false;
     const balance = props.accountBalance?.available[0]?.amount || 0;
     return balance >= 2500; // 25€ en centimes
+});
+
+// Computed properties pour accéder aux données selon le mode
+const babysitterData = computed(() => {
+    return isBabysitterMode(props) ? props : null;
+});
+
+const parentData = computed(() => {
+    return isParentMode(props) ? props : null;
 });
 
 // Méthodes pour le formatage
@@ -346,37 +364,40 @@ const formatDate = (date: string | Date) => {
 
 // Méthodes pour les statuts (mode babysitter)
 const getAccountStatusText = (status: string) => {
-    const statusTexts = {
+    const statusTexts: { [key: string]: string } = {
         'pending': 'Votre compte Stripe est en cours de configuration',
         'active': 'Votre compte Stripe est actif et prêt à recevoir des paiements',
         'restricted': 'Votre compte Stripe nécessite des informations supplémentaires',
+        'rejected': 'Votre compte Stripe a été rejeté',
         'inactive': 'Votre compte Stripe est inactif'
     };
     return statusTexts[status] || 'Statut inconnu';
 };
 
 const getStatusText = (status: string) => {
-    const statusTexts = {
+    const statusTexts: { [key: string]: string } = {
         'pending': 'En attente',
         'active': 'Actif',
         'restricted': 'Restreint',
+        'rejected': 'Rejeté',
         'inactive': 'Inactif'
     };
     return statusTexts[status] || 'Inconnu';
 };
 
 const getStatusBadgeClass = (status: string) => {
-    const classes = {
+    const classes: { [key: string]: string } = {
         'pending': 'bg-yellow-100 text-yellow-800',
         'active': 'bg-green-100 text-green-800',
         'restricted': 'bg-red-100 text-red-800',
+        'rejected': 'bg-red-100 text-red-800',
         'inactive': 'bg-gray-100 text-gray-800'
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
 };
 
 const getTransactionType = (type: string) => {
-    const types = {
+    const types: { [key: string]: string } = {
         'payment': 'Paiement reçu',
         'payout': 'Virement',
         'refund': 'Remboursement'
@@ -389,7 +410,7 @@ const getAmountClass = (amount: number) => {
 };
 
 const getTransactionStatusClass = (status: string) => {
-    const classes = {
+    const classes: { [key: string]: string } = {
         'succeeded': 'bg-green-100 text-green-800',
         'pending': 'bg-yellow-100 text-yellow-800',
         'failed': 'bg-red-100 text-red-800'
@@ -398,7 +419,7 @@ const getTransactionStatusClass = (status: string) => {
 };
 
 const getTransactionStatusText = (status: string) => {
-    const statusTexts = {
+    const statusTexts: { [key: string]: string } = {
         'succeeded': 'Réussi',
         'pending': 'En attente',
         'failed': 'Échoué'
@@ -408,7 +429,7 @@ const getTransactionStatusText = (status: string) => {
 
 // Méthodes pour les statuts (mode parent)
 const getReservationStatusClass = (status: string) => {
-    const classes = {
+    const classes: { [key: string]: string } = {
         'completed': 'bg-green-100 text-green-800',
         'service_completed': 'bg-green-100 text-green-800',
         'pending_payment': 'bg-yellow-100 text-yellow-800',
@@ -419,7 +440,7 @@ const getReservationStatusClass = (status: string) => {
 };
 
 const getReservationStatusText = (status: string) => {
-    const statusTexts = {
+    const statusTexts: { [key: string]: string } = {
         'completed': 'Terminé',
         'service_completed': 'Service terminé',
         'pending_payment': 'Paiement en attente',

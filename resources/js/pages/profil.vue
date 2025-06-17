@@ -425,7 +425,7 @@ const submitForm = async () => {
 
         console.log('📤 Données envoyées:', formData);
 
-        await router.post(route('profil.update'), formData, {
+        await router.put(route('profil.update'), formData, {
             preserveState: false,
             onSuccess: () => {
                 showSuccess('Profil mis à jour avec succès !');

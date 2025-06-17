@@ -10,7 +10,7 @@ const links = [
     { icon: Briefcase, label: 'Offres disponibles', href: '/annonces' },
     { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
-    { icon: CreditCard, label: 'Paiements', href: '/paiements' },
+    { icon: CreditCard, label: 'Paiements', href: '/babysitter/paiements' },
     { icon: User, label: 'Mon profil', href: '/profil' },
 
     { icon: Settings, label: 'Paramètres', href: '/parametres' },

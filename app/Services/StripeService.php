@@ -352,6 +352,10 @@ class StripeService
                 $status = 'active';
             } elseif ($account->requirements->disabled_reason) {
                 $status = 'rejected';
+            } elseif (!$account->details_submitted) {
+                $status = 'pending';
+            } elseif (count($account->requirements->currently_due ?? []) > 0 || count($account->requirements->past_due ?? []) > 0) {
+                $status = 'restricted';
             }
 
             $user->update(['stripe_account_status' => $status]);
