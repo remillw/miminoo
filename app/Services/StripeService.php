@@ -1901,4 +1901,305 @@ class StripeService
             return false;
         }
     }
+
+    /**
+     * Configurer la fréquence des virements pour un compte Connect
+     */
+    public function updatePayoutSchedule(User $user, $interval = 'weekly', $weeklyAnchor = 'friday')
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            $scheduleData = [
+                'interval' => $interval, // 'daily', 'weekly', 'monthly'
+            ];
+
+            if ($interval === 'weekly') {
+                $scheduleData['weekly_anchor'] = $weeklyAnchor; // 'monday', 'tuesday', etc.
+            } elseif ($interval === 'monthly') {
+                $scheduleData['monthly_anchor'] = 1; // 1-31
+            }
+
+            $this->stripe->accounts->update($user->stripe_account_id, [
+                'settings' => [
+                    'payouts' => [
+                        'schedule' => $scheduleData
+                    ]
+                ]
+            ]);
+
+            Log::info('Fréquence des virements mise à jour', [
+                'user_id' => $user->id,
+                'interval' => $interval,
+                'weekly_anchor' => $weeklyAnchor
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la mise à jour de la fréquence des virements', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Configurer le montant minimum pour les virements
+     */
+    public function updateMinimumPayoutAmount(User $user, $minimumAmount = 2500) // 25€ en centimes
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            $this->stripe->accounts->update($user->stripe_account_id, [
+                'settings' => [
+                    'payouts' => [
+                        'schedule' => [
+                            'minimum_amount' => $minimumAmount
+                        ]
+                    ]
+                ]
+            ]);
+
+            Log::info('Montant minimum des virements mis à jour', [
+                'user_id' => $user->id,
+                'minimum_amount' => $minimumAmount / 100 . '€'
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la mise à jour du montant minimum', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Bloquer les virements automatiques
+     */
+    public function disableAutomaticPayouts(User $user)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            $this->stripe->accounts->update($user->stripe_account_id, [
+                'settings' => [
+                    'payouts' => [
+                        'schedule' => [
+                            'interval' => 'manual'
+                        ]
+                    ]
+                ]
+            ]);
+
+            Log::info('Virements automatiques désactivés', [
+                'user_id' => $user->id
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la désactivation des virements automatiques', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Déclencher un virement manuel
+     */
+    public function createManualPayout(User $user, $amount = null, $currency = 'eur')
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            // Si aucun montant spécifié, virer tout le solde disponible
+            if ($amount === null) {
+                $balance = $this->getAccountBalance($user);
+                if (!$balance || empty($balance['available'])) {
+                    throw new \Exception('Aucun solde disponible pour le virement');
+                }
+
+                $amount = 0;
+                foreach ($balance['available'] as $availableBalance) {
+                    if ($availableBalance['currency'] === $currency) {
+                        $amount = $availableBalance['amount'];
+                        break;
+                    }
+                }
+
+                if ($amount === 0) {
+                    throw new \Exception('Aucun solde disponible dans la devise demandée');
+                }
+            }
+
+            // Vérifier le montant minimum (25€)
+            if ($amount < 2500) {
+                throw new \Exception('Le montant minimum pour un virement est de 25€');
+            }
+
+            $payout = $this->stripe->payouts->create([
+                'amount' => $amount,
+                'currency' => $currency,
+                'method' => 'instant', // ou 'standard'
+            ], [
+                'stripe_account' => $user->stripe_account_id
+            ]);
+
+            Log::info('Virement manuel créé', [
+                'user_id' => $user->id,
+                'payout_id' => $payout->id,
+                'amount' => $amount / 100 . '€'
+            ]);
+
+            return $payout;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création du virement manuel', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Récupérer l'historique des virements
+     */
+    public function getPayoutHistory(User $user, $limit = 20)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                return [];
+            }
+
+            $payouts = $this->stripe->payouts->all([
+                'limit' => $limit,
+            ], [
+                'stripe_account' => $user->stripe_account_id
+            ]);
+
+            return array_map(function($payout) {
+                return [
+                    'id' => $payout->id,
+                    'amount' => $payout->amount / 100,
+                    'currency' => $payout->currency,
+                    'status' => $payout->status,
+                    'method' => $payout->method,
+                    'arrival_date' => $payout->arrival_date,
+                    'created' => $payout->created,
+                    'description' => $payout->description,
+                ];
+            }, $payouts->data);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la récupération de l\'historique des virements', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Générer une facture pour une babysitter
+     */
+    public function generateInvoiceForBabysitter(User $babysitter, $reservations, $period)
+    {
+        try {
+            if (!$babysitter->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            // Calculer le total des réservations
+            $totalAmount = 0;
+            $lineItems = [];
+
+            foreach ($reservations as $reservation) {
+                $amount = $reservation->total_amount - $reservation->platform_fee;
+                $totalAmount += $amount;
+
+                $lineItems[] = [
+                    'price_data' => [
+                        'currency' => 'eur',
+                        'product_data' => [
+                            'name' => 'Service de garde - ' . $reservation->start_date->format('d/m/Y'),
+                            'description' => 'Garde de ' . $reservation->duration . 'h pour ' . $reservation->parent->firstname,
+                        ],
+                        'unit_amount' => $amount * 100, // Convertir en centimes
+                    ],
+                    'quantity' => 1,
+                ];
+            }
+
+            // Créer une facture Stripe
+            $invoice = $this->stripe->invoices->create([
+                'customer' => $babysitter->stripe_customer_id ?: $this->createCustomerForUser($babysitter)->id,
+                'collection_method' => 'send_invoice',
+                'days_until_due' => 30,
+                'metadata' => [
+                    'babysitter_id' => $babysitter->id,
+                    'period' => $period,
+                    'platform' => 'miminoo'
+                ]
+            ]);
+
+            // Ajouter les éléments de ligne
+            foreach ($lineItems as $item) {
+                $this->stripe->invoiceItems->create([
+                    'customer' => $babysitter->stripe_customer_id,
+                    'invoice' => $invoice->id,
+                    'price_data' => $item['price_data'],
+                    'quantity' => $item['quantity'],
+                ]);
+            }
+
+            // Finaliser la facture
+            $this->stripe->invoices->finalizeInvoice($invoice->id);
+
+            Log::info('Facture générée pour babysitter', [
+                'babysitter_id' => $babysitter->id,
+                'invoice_id' => $invoice->id,
+                'total_amount' => $totalAmount,
+                'period' => $period
+            ]);
+
+            return $invoice;
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la génération de la facture', [
+                'babysitter_id' => $babysitter->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Créer un customer Stripe pour un utilisateur
+     */
+    private function createCustomerForUser(User $user)
+    {
+        $customer = $this->stripe->customers->create([
+            'email' => $user->email,
+            'name' => $user->firstname . ' ' . $user->lastname,
+            'metadata' => [
+                'user_id' => $user->id,
+                'platform' => 'miminoo'
+            ]
+        ]);
+
+        $user->update(['stripe_customer_id' => $customer->id]);
+
+        return $customer;
+    }
 } 

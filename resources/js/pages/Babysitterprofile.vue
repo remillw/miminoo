@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface Language {
     id: number;
@@ -54,6 +54,8 @@ interface BabysitterProfile {
     has_vehicle: boolean;
     comfortable_with_all_ages: boolean;
     documents_verified: boolean;
+    profile_photos?: string[];
+    additional_photos_urls?: string[];
     languages: Language[];
     skills: Skill[];
     excluded_age_ranges: AgeRange[];
@@ -122,6 +124,58 @@ const skillColors = [
 
 const getSkillColor = (index: number) => {
     return skillColors[index % skillColors.length];
+};
+
+// Computed pour les photos supplémentaires
+const additionalPhotos = computed(() => {
+    if (props.babysitter.babysitter_profile.additional_photos_urls) {
+        return props.babysitter.babysitter_profile.additional_photos_urls;
+    }
+    if (props.babysitter.babysitter_profile.profile_photos) {
+        return props.babysitter.babysitter_profile.profile_photos.map(photo => {
+            if (photo.startsWith('data:image')) {
+                return photo;
+            }
+            return `/storage/${photo}`;
+        });
+    }
+    return [];
+});
+
+// Variables pour la modal de photos
+const showPhotoModal = ref(false);
+const currentPhoto = ref('');
+const currentPhotoIndex = ref(0);
+
+// Fonctions pour gérer les photos
+const openPhotoModal = (photo: string, index: number) => {
+    currentPhoto.value = photo;
+    currentPhotoIndex.value = index;
+    showPhotoModal.value = true;
+};
+
+const closePhotoModal = () => {
+    showPhotoModal.value = false;
+};
+
+const nextPhoto = () => {
+    if (currentPhotoIndex.value < additionalPhotos.value.length - 1) {
+        currentPhotoIndex.value++;
+        currentPhoto.value = additionalPhotos.value[currentPhotoIndex.value];
+    }
+};
+
+const prevPhoto = () => {
+    if (currentPhotoIndex.value > 0) {
+        currentPhotoIndex.value--;
+        currentPhoto.value = additionalPhotos.value[currentPhotoIndex.value];
+    }
+};
+
+const handlePhotoError = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+    img.style.display = 'none';
+    console.error('Erreur de chargement de la photo:', img.src);
 };
 </script>
 
@@ -204,6 +258,26 @@ const getSkillColor = (index: number) => {
                         <p class="leading-relaxed text-gray-700">
                             {{ babysitter.babysitter_profile.bio }}
                         </p>
+                    </div>
+
+                    <!-- Photos supplémentaires -->
+                    <div v-if="additionalPhotos.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
+                        <h2 class="mb-4 text-xl font-bold text-gray-900">Photos</h2>
+                        <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+                            <div 
+                                v-for="(photo, index) in additionalPhotos" 
+                                :key="index"
+                                class="aspect-square overflow-hidden rounded-lg border border-gray-200 hover:border-primary transition-colors cursor-pointer"
+                                @click="openPhotoModal(photo, index)"
+                            >
+                                <img 
+                                    :src="photo" 
+                                    :alt="`Photo ${index + 1} de ${babysitter.firstname}`"
+                                    class="h-full w-full object-cover hover:scale-105 transition-transform duration-200"
+                                    @error="handlePhotoError"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Expériences professionnelles -->
@@ -418,6 +492,60 @@ const getSkillColor = (index: number) => {
                             Contacter {{ babysitter.firstname }}
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal pour afficher les photos en grand -->
+        <div 
+            v-if="showPhotoModal" 
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+            @click="closePhotoModal"
+        >
+            <div class="relative max-h-screen max-w-screen-lg p-4">
+                <!-- Bouton fermer -->
+                <button
+                    @click="closePhotoModal"
+                    class="absolute top-4 right-4 z-10 rounded-full bg-black bg-opacity-50 p-2 text-white hover:bg-opacity-75 transition-colors"
+                >
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                
+                <!-- Navigation précédent -->
+                <button
+                    v-if="currentPhotoIndex > 0"
+                    @click.stop="prevPhoto"
+                    class="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black bg-opacity-50 p-2 text-white hover:bg-opacity-75 transition-colors"
+                >
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                
+                <!-- Navigation suivant -->
+                <button
+                    v-if="currentPhotoIndex < additionalPhotos.length - 1"
+                    @click.stop="nextPhoto"
+                    class="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black bg-opacity-50 p-2 text-white hover:bg-opacity-75 transition-colors"
+                >
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+                
+                <!-- Image -->
+                <img 
+                    :src="currentPhoto" 
+                    :alt="`Photo ${currentPhotoIndex + 1} de ${babysitter.firstname}`"
+                    class="max-h-full max-w-full rounded-lg object-contain"
+                    @click.stop
+                />
+                
+                <!-- Indicateur de position -->
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black bg-opacity-50 px-3 py-1 text-sm text-white">
+                    {{ currentPhotoIndex + 1 }} / {{ additionalPhotos.length }}
                 </div>
             </div>
         </div>

@@ -74,6 +74,12 @@ interface User {
         rejection_reason?: string;
     };
     role: string;
+    social_data_locked: boolean;
+    provider: string;
+    avatar_url?: string;
+    google_id?: string;
+    password?: boolean;
+    is_social_account?: boolean;
 }
 
 interface Language {
@@ -127,13 +133,16 @@ const props = defineProps<Props>();
 const { showSuccess, showError } = useToast();
 const { currentMode, initializeMode, setMode } = useUserMode();
 
+// Variables réactives
 const isEditing = ref(false);
 const isLoading = ref(false);
 const isGoogleLoaded = ref(false);
 const isRequestingVerification = ref(false);
+const avatarPreview = ref(''); // Pour l'aperçu de l'avatar
 let autocomplete: any;
 
 const babysitterProfileRef = ref();
+const avatarInput = ref();
 
 // Initialiser le mode au montage du composant
 onMounted(() => {
@@ -180,6 +189,7 @@ const form = ref({
     lastname: props.user.lastname || '',
     email: props.user.email || '',
     date_of_birth: props.user.date_of_birth || '',
+    avatar: '', // Champ pour l'avatar en base64
     children: (props.children || []).map((child) => ({
         ...child,
         age: String(child.age), // S'assurer que l'âge est une string
@@ -393,71 +403,43 @@ const submitForm = async () => {
         addressData.value.longitude = 2.3522; // Paris par défaut
     }
 
-    // Combiner les données du formulaire avec les données d'adresse
-    const formData = {
-        ...form.value,
-        ...addressData.value,
-    };
+    try {
+        // Préparer les données à envoyer
+        const formData = { ...form.value };
+        
+        // Si les données sociales sont verrouillées, ne pas envoyer les champs protégés
+        if (props.user.social_data_locked) {
+            delete formData.firstname;
+            delete formData.lastname;
+            delete formData.email;
+        }
+        
+        // Ajouter les données d'adresse
+        Object.assign(formData, addressData.value);
 
-    // Convertir l'âge des enfants en string (requis par le backend)
-    if (formData.children && formData.children.length > 0 && currentMode.value === 'parent') {
-        formData.children = formData.children.map((child) => ({
-            ...child,
-            age: String(child.age), // Convertir en string
-        }));
-    } else if (currentMode.value === 'babysitter') {
-        // En mode babysitter, on n'envoie pas les enfants mais on récupère les données du profil babysitter
-        delete (formData as any).children;
-        // Récupérer les données du profil babysitter depuis le composant
-        if (babysitterProfileRef.value) {
+        // Ajouter les données du profil babysitter si on est en mode babysitter
+        if (currentMode.value === 'babysitter' && babysitterProfileRef.value) {
             const babysitterData = babysitterProfileRef.value.getFormData();
             Object.assign(formData, babysitterData);
         }
-    }
 
-    // Validation côté frontend avant soumission
-    const requiredFields = ['firstname', 'lastname', 'email', 'address', 'postal_code', 'country'];
-    const missingFields: string[] = [];
+        console.log('📤 Données envoyées:', formData);
 
-    requiredFields.forEach((field) => {
-        if (!formData[field as keyof typeof formData] || String(formData[field as keyof typeof formData]).trim() === '') {
-            missingFields.push(field);
-        }
-    });
-
-    if (missingFields.length > 0) {
-        console.error('❌ Champs manquants:', missingFields);
-        showError(`Champs requis manquants: ${missingFields.join(', ')}`);
-        isLoading.value = false;
-        return;
-    }
-
-    console.log('📤 Données du formulaire à envoyer:', formData);
-
-    try {
-        router.put(route('profil.update'), formData, {
-            onSuccess: (page) => {
-                isEditing.value = false;
+        await router.post(route('profil.update'), formData, {
+            preserveState: false,
+            onSuccess: () => {
                 showSuccess('Profil mis à jour avec succès !');
-                console.log('✅ Profil mis à jour:', page.props);
+                isEditing.value = false;
+                avatarPreview.value = ''; // Réinitialiser l'aperçu
             },
             onError: (errors) => {
-                console.error('❌ Erreurs de validation serveur:', errors);
-
-                // Affichage d'erreurs spécifiques
-                const errorMessages = Object.keys(errors)
-                    .map((key) => {
-                        const messages = Array.isArray(errors[key]) ? errors[key] : [errors[key]];
-                        return `${key}: ${messages.join(', ')}`;
-                    })
-                    .join('\n');
-
-                showError(`Erreurs de validation:\n${errorMessages}`);
+                console.error('❌ Erreurs de validation:', errors);
+                showError('Erreur lors de la mise à jour du profil');
             },
         });
     } catch (error) {
         console.error('❌ Erreur:', error);
-        showError('Une erreur est survenue lors de la mise à jour');
+        showError('Une erreur est survenue');
     } finally {
         isLoading.value = false;
     }
@@ -595,6 +577,58 @@ const requestVerification = async () => {
         console.log('📋 Statut actuel après demande:', verificationStatus.value);
     }
 };
+
+const triggerAvatarInput = () => {
+    avatarInput.value.click();
+};
+
+const handleAvatarChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        const file = target.files[0];
+        
+        // Vérifications
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        
+        if (!allowedTypes.includes(file.type)) {
+            showError('Format d\'image non supporté. Utilisez JPG, PNG ou WebP.');
+            return;
+        }
+        
+        if (file.size > maxSize) {
+            showError('L\'image est trop volumineuse (max 5MB).');
+            return;
+        }
+        
+        // Convertir en base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if (e.target?.result) {
+                // Mettre à jour l'aperçu
+                avatarPreview.value = e.target.result as string;
+                
+                // Stocker pour l'envoi
+                form.value.avatar = e.target.result as string;
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+// Computed pour détecter si c'est un utilisateur Google uniquement
+const isGoogleOnlyUser = computed(() => {
+    // Si l'utilisateur a un google_id, c'est un utilisateur Google
+    return props.user.google_id && !props.user.password;
+});
+
+// Debug pour vérifier les données utilisateur
+console.log('🔍 Données utilisateur Profil:', {
+    provider: props.user.provider,
+    is_social_account: props.user.is_social_account,
+    social_data_locked: props.user.social_data_locked,
+    isGoogleOnlyUser: isGoogleOnlyUser.value
+});
 </script>
 
 <template>
@@ -703,15 +737,24 @@ const requestVerification = async () => {
                         <div class="flex items-center gap-6">
                             <div class="relative">
                                 <img
-                                    :src="user.avatar || '/storage/babysitter-test.png'"
+                                    :src="avatarPreview || user.avatar_url || user.avatar || '/storage/babysitter-test.png'"
                                     :alt="`Avatar de ${fullName}`"
                                     class="h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg"
                                 />
                                 <div
+                                    v-if="isEditing"
+                                    @click="triggerAvatarInput"
                                     class="absolute right-0 bottom-0 cursor-pointer rounded-full bg-white p-2 shadow-md transition-colors hover:bg-gray-50"
                                 >
                                     <Camera class="h-4 w-4 text-gray-500" />
                                 </div>
+                                <input
+                                    ref="avatarInput"
+                                    type="file"
+                                    accept="image/*"
+                                    @change="handleAvatarChange"
+                                    class="hidden"
+                                />
                             </div>
                             <div>
                                 <h2 class="text-2xl font-semibold text-gray-900">{{ fullName }}</h2>
@@ -745,11 +788,27 @@ const requestVerification = async () => {
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div class="space-y-2">
                                 <Label for="firstname">Prénom</Label>
-                                <Input id="firstname" v-model="form.firstname" :disabled="!isEditing" required />
+                                <Input 
+                                    id="firstname" 
+                                    v-model="form.firstname" 
+                                    :disabled="!isEditing || isGoogleOnlyUser" 
+                                    required 
+                                />
+                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
+                                    ✓ Géré par Google
+                                </p>
                             </div>
                             <div class="space-y-2">
                                 <Label for="lastname">Nom</Label>
-                                <Input id="lastname" v-model="form.lastname" :disabled="!isEditing" required />
+                                <Input 
+                                    id="lastname" 
+                                    v-model="form.lastname" 
+                                    :disabled="!isEditing || isGoogleOnlyUser" 
+                                    required 
+                                />
+                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
+                                    ✓ Géré par Google
+                                </p>
                             </div>
                         </div>
 
@@ -758,7 +817,34 @@ const requestVerification = async () => {
                             <Label for="email">Email</Label>
                             <div class="relative">
                                 <Mail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <Input id="email" type="email" v-model="form.email" :disabled="!isEditing" class="pl-10" required />
+                                <Input 
+                                    id="email" 
+                                    type="email" 
+                                    v-model="form.email" 
+                                    :disabled="!isEditing || isGoogleOnlyUser" 
+                                    class="pl-10" 
+                                    required 
+                                />
+                            </div>
+                            <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
+                                ✓ Géré par Google
+                            </p>
+                        </div>
+
+                        <!-- Message informatif pour les utilisateurs Google -->
+                        <div v-if="isGoogleOnlyUser" class="rounded-lg border border-green-200 bg-green-50 p-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-medium text-green-900">Compte connecté via Google</h4>
+                                    <p class="mt-1 text-sm text-green-700">
+                                        Vos informations de connexion sont sécurisées et gérées directement par Google.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 

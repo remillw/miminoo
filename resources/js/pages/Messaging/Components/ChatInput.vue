@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-end gap-3">
+  <div class="flex items-end" :class="mobile ? 'gap-2' : 'gap-3'">
     <!-- Zone de saisie -->
     <div class="flex-1 relative">
       <textarea
@@ -9,7 +9,8 @@
         :placeholder="placeholder"
         :disabled="disabled"
         rows="1"
-        class="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        class="w-full border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        :class="mobile ? 'px-3 py-2 text-sm' : 'px-4 py-3'"
         :style="{ height: textareaHeight }"
         ref="textarea"
       ></textarea>
@@ -22,9 +23,10 @@
     </div>
 
     <!-- Boutons d'action -->
-    <div class="flex gap-2">
-      <!-- Bouton pièce jointe -->
+    <div class="flex" :class="mobile ? 'gap-1' : 'gap-2'">
+      <!-- Bouton pièce jointe (masqué sur mobile pour économiser l'espace) -->
       <button
+        v-if="!mobile"
         type="button"
         :disabled="disabled"
         class="p-3 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -37,11 +39,12 @@
       <button
         @click="sendMessage"
         :disabled="!canSend || isSending"
-        class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        class="bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        :class="mobile ? 'p-2' : 'p-3'"
         :title="isSending ? 'Envoi en cours...' : 'Envoyer le message'"
       >
-        <div v-if="isSending" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-        <Send v-else class="w-5 h-5" />
+        <div v-if="isSending" class="animate-spin rounded-full border-b-2 border-white" :class="mobile ? 'h-3 w-3' : 'h-4 w-4'"></div>
+        <Send v-else :class="mobile ? 'w-4 h-4' : 'w-5 h-5'" />
       </button>
     </div>
   </div>
@@ -63,6 +66,10 @@ const props = defineProps({
   conversationId: {
     type: Number,
     required: false
+  },
+  mobile: {
+    type: Boolean,
+    default: false
   }
 })
 

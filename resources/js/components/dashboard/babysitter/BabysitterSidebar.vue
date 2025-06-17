@@ -1,22 +1,45 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BarChart2, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, Settings, User } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { Briefcase, Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, Settings, User, X } from 'lucide-vue-next';
+import { ref } from 'vue';
+
+const showFullMenu = ref(false);
 
 const links = [
     { icon: Home, label: 'Tableau de bord', href: '/dashboard' },
-    { icon: Briefcase, label: 'Offres disponibles', href: '/offres' },
-    { icon: Briefcase, label: 'Mes candidatures', href: '/candidatures' },
-    { icon: Calendar, label: 'Réservations', href: '/reservations' },
+    { icon: Briefcase, label: 'Offres disponibles', href: '/annonces' },
+    { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
-    { icon: CreditCard, label: 'Paiements', href: '/babysitter/paiements' },
+    { icon: CreditCard, label: 'Paiements', href: '/paiements' },
     { icon: User, label: 'Mon profil', href: '/profil' },
-    { icon: BarChart2, label: 'Statistiques', href: '/stats' },
+
     { icon: Settings, label: 'Paramètres', href: '/parametres' },
 ];
+
+// Liens principaux pour la navigation mobile (4 plus importants)
+const mobileLinks = [
+    { icon: Home, label: 'Accueil', href: '/dashboard' },
+    { icon: Calendar, label: 'Résa', href: '/reservations' },
+    { icon: MessageCircle, label: 'Messages', href: '/messagerie' },
+    { icon: User, label: 'Profil', href: '/profil' },
+];
+
+// Fonction pour vérifier si la route est active
+const isCurrentRoute = (href: string) => {
+    const page = usePage();
+    const currentUrl = page.url;
+
+    if (href === '/dashboard') {
+        return currentUrl === '/dashboard' || currentUrl === '/';
+    }
+
+    return currentUrl.startsWith(href);
+};
 </script>
 
 <template>
-    <aside class="flex min-h-screen w-64 flex-col border-r bg-white">
+    <!-- Desktop Sidebar (inchangée) -->
+    <aside class="hidden min-h-screen w-64 flex-col border-r bg-white lg:flex">
         <div class="text-primary flex items-center gap-2 p-6 text-xl font-bold"><span class="text-2xl">❤️</span> Miminoo</div>
         <nav class="flex flex-1 flex-col gap-1 px-4">
             <Link
@@ -34,4 +57,56 @@ const links = [
             </Link>
         </div>
     </aside>
+
+    <!-- Mobile Bottom Navigation -->
+    <div class="fixed right-0 bottom-0 left-0 z-50 border-t border-gray-200 bg-white lg:hidden">
+        <div class="grid grid-cols-4 gap-1 px-2 py-2">
+            <Link
+                v-for="item in mobileLinks"
+                :key="item.label"
+                :href="item.href"
+                :class="[
+                    isCurrentRoute(item.href) ? 'bg-blue-50 text-blue-600' : 'text-gray-600',
+                    'flex flex-col items-center justify-center rounded-lg px-1 py-2 transition-colors',
+                ]"
+            >
+                <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-600' : 'text-gray-400', 'mb-1 h-5 w-5']" />
+                <span class="text-xs font-medium">{{ item.label }}</span>
+            </Link>
+        </div>
+
+        <!-- Menu complet accessible via un bouton -->
+        <div class="absolute top-0 right-4 -translate-y-full transform">
+            <button @click="showFullMenu = !showFullMenu" class="rounded-t-lg bg-blue-600 p-2 text-white shadow-lg">
+                <Menu class="h-5 w-5" />
+            </button>
+        </div>
+
+        <!-- Menu complet en overlay -->
+        <div v-if="showFullMenu" class="absolute right-0 bottom-full left-0 max-h-96 overflow-y-auto border-t border-gray-200 bg-white shadow-lg">
+            <div class="p-4">
+                <div class="mb-4 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Menu complet</h3>
+                    <button @click="showFullMenu = false" class="text-gray-400 hover:text-gray-600">
+                        <X class="h-5 w-5" />
+                    </button>
+                </div>
+                <nav class="space-y-2">
+                    <Link
+                        v-for="item in links"
+                        :key="item.label"
+                        :href="item.href"
+                        @click="showFullMenu = false"
+                        :class="[
+                            isCurrentRoute(item.href) ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50',
+                            'group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        ]"
+                    >
+                        <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-500' : 'text-gray-400', 'mr-3 h-5 w-5']" />
+                        {{ item.label }}
+                    </Link>
+                </nav>
+            </div>
+        </div>
+    </div>
 </template>

@@ -64,9 +64,22 @@ class GoogleAuthController extends Controller
 
                 // Vérifier si l'utilisateur a des rôles configurés
                 $hasRoles = $existingUser->roles()->exists();
+                
+                Log::info('Checking user roles for Google login:', [
+                    'user_id' => $existingUser->id,
+                    'email' => $existingUser->email,
+                    'has_roles' => $hasRoles,
+                    'roles_count' => $existingUser->roles()->count(),
+                    'roles_list' => $existingUser->roles()->pluck('name')->toArray(),
+                ]);
 
                 if (!$hasRoles) {
                     // Utilisateur sans rôles configurés - demander les rôles
+                    Log::info('User has no roles, redirecting to role selection:', [
+                        'user_id' => $existingUser->id,
+                        'email' => $existingUser->email,
+                    ]);
+                    
                     session([
                         'existing_user_id' => $existingUser->id,
                         'google_user' => [
@@ -83,11 +96,22 @@ class GoogleAuthController extends Controller
                 }
 
                 // Utilisateur avec rôles configurés - connexion directe
+                Log::info('User has roles, logging in directly:', [
+                    'user_id' => $existingUser->id,
+                    'email' => $existingUser->email,
+                    'roles' => $existingUser->roles()->pluck('name')->toArray(),
+                ]);
+                
                 Auth::login($existingUser);
                 return redirect()->intended('/dashboard')->with('success', 'Connexion réussie avec Google !');
             }
 
             // Nouvel utilisateur - créer le compte et demander les rôles
+            Log::info('New Google user, redirecting to role selection:', [
+                'email' => $googleUser->getEmail(),
+                'name' => $googleUser->getName(),
+            ]);
+            
             session([
                 'google_user' => [
                     'google_id' => $googleUser->getId(),

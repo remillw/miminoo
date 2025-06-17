@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 
 class ProfileController extends Controller
@@ -50,7 +51,12 @@ class ProfileController extends Controller
         }
         
         $profileData = [
-            'user' => $user,
+            'user' => array_merge($user->toArray(), [
+                'social_data_locked' => $user->social_data_locked,
+                'provider' => $user->provider,
+                'is_social_account' => $user->is_social_account,
+                'avatar_url' => $user->getAvatarUrl(),
+            ]),
             'userRoles' => $userRoles,
             'hasParentRole' => in_array('parent', $userRoles),
             'hasBabysitterRole' => in_array('babysitter', $userRoles),
@@ -66,7 +72,12 @@ class ProfileController extends Controller
         // Si l'utilisateur a le rôle babysitter, on charge toujours son profil babysitter et les options
         // (même s'il est actuellement en mode parent, les données doivent être disponibles pour le switch)
         if (in_array('babysitter', $userRoles)) {
-            $profileData['babysitterProfile'] = $user->babysitterProfile;
+            $babysitterProfile = $user->babysitterProfile;
+            if ($babysitterProfile) {
+                // Ajouter les URLs des photos supplémentaires
+                $babysitterProfile->additional_photos_urls = $user->getAdditionalPhotosUrls();
+            }
+            $profileData['babysitterProfile'] = $babysitterProfile;
             $profileData['availableLanguages'] = Language::where('is_active', true)->get();
             $profileData['availableSkills'] = Skill::where('is_active', true)->get();
             $profileData['availableAgeRanges'] = AgeRange::where('is_active', true)->orderBy('display_order')->get();
@@ -119,6 +130,9 @@ class ProfileController extends Controller
             'experiences.*.start_date' => 'nullable|date',
             'experiences.*.end_date' => 'nullable|date|after_or_equal:start_date',
             'experiences.*.is_current' => 'nullable|boolean',
+            'avatar' => 'nullable|string', // Base64 encoded image pour l'avatar
+            'profile_photos' => 'nullable|array|max:6',
+            'profile_photos.*' => 'string', // Base64 encoded images pour les photos supplémentaires
         ]);
 
         // Mise à jour ou création de l'adresse
@@ -153,17 +167,35 @@ class ProfileController extends Controller
         }
 
         // Mise à jour des informations utilisateur
-        $userData = [
-            'firstname' => $request->firstname,
-            'lastname' => $request->lastname,
-            'email' => $request->email,
-        ];
+        $userData = [];
+        
+        // Empêcher la modification des données pour les utilisateurs Google
+        if (!($user->google_id && !$user->password)) {
+            $userData['firstname'] = $request->firstname;
+            $userData['lastname'] = $request->lastname;
+            $userData['email'] = $request->email;
+        }
         
         if ($request->has('date_of_birth')) {
             $userData['date_of_birth'] = $request->date_of_birth;
         }
         
-        $user->update($userData);
+        // Gestion de l'avatar (photo de profil principale)
+        if ($request->has('avatar') && $request->avatar) {
+            // Supprimer l'ancien avatar s'il existe
+            if ($user->avatar && !filter_var($user->avatar, FILTER_VALIDATE_URL)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            
+            $avatarPath = $this->saveBase64Image($request->avatar, 'avatars/' . $user->id);
+            if ($avatarPath) {
+                $userData['avatar'] = $avatarPath;
+            }
+        }
+        
+        if (!empty($userData)) {
+            $user->update($userData);
+        }
 
         // Si on est en mode parent ET que l'utilisateur a le rôle parent, mise à jour des enfants
         if (($request->mode === 'parent' || in_array('parent', $user->roles()->pluck('name')->toArray())) && $request->has('children')) {
@@ -204,35 +236,55 @@ class ProfileController extends Controller
             if ($request->has('comfortable_with_all_ages')) {
                 $babysitterData['comfortable_with_all_ages'] = $request->comfortable_with_all_ages;
             }
+            
+            // Gestion des photos supplémentaires
+            if ($request->has('profile_photos')) {
+                // Supprimer les anciennes photos s'il y en a
+                $babysitterProfile = $user->babysitterProfile;
+                if ($babysitterProfile && $babysitterProfile->profile_photos) {
+                    foreach ($babysitterProfile->profile_photos as $oldPhoto) {
+                        if (!str_starts_with($oldPhoto, 'data:image')) {
+                            Storage::disk('public')->delete($oldPhoto);
+                        }
+                    }
+                }
+                
+                $photoPaths = [];
+                foreach ($request->profile_photos as $photo) {
+                    $photoPath = $this->saveBase64Image($photo, 'profile_photos/' . $user->id);
+                    if ($photoPath) {
+                        $photoPaths[] = $photoPath;
+                    }
+                }
+                $babysitterData['profile_photos'] = $photoPaths;
+            }
 
             $babysitterProfile = $user->babysitterProfile()->updateOrCreate(
                 ['user_id' => $user->id],
                 $babysitterData
             );
 
-            // Synchroniser les langues
+            // Gestion des relations many-to-many
             if ($request->has('language_ids')) {
                 $babysitterProfile->languages()->sync($request->language_ids);
             }
-
-            // Synchroniser les compétences
             if ($request->has('skill_ids')) {
                 $babysitterProfile->skills()->sync($request->skill_ids);
             }
-
-            // Synchroniser les tranches d'âge exclues
             if ($request->has('excluded_age_range_ids')) {
                 $babysitterProfile->excludedAgeRanges()->sync($request->excluded_age_range_ids);
             }
 
-            // Gérer les expériences/formations
+            // Gestion des expériences
             if ($request->has('experiences')) {
                 // Supprimer les anciennes expériences
                 $babysitterProfile->experiences()->delete();
                 
-                // Créer les nouvelles expériences
-                foreach ($request->experiences as $experience) {
-                    $babysitterProfile->experiences()->create($experience);
+                // Ajouter les nouvelles expériences
+                foreach ($request->experiences as $experienceData) {
+                    if (!empty($experienceData['title'])) {
+                        $babysitterProfile->experiences()->create($experienceData);
+                    }
                 }
             }
         }
@@ -244,5 +296,38 @@ class ProfileController extends Controller
         }
 
         return redirect($redirectUrl)->with('success', 'Profil mis à jour avec succès !');
+    }
+    
+    /**
+     * Sauvegarder une image base64 dans le storage
+     */
+    private function saveBase64Image($base64String, $folder)
+    {
+        try {
+            // Vérifier si c'est bien une image base64
+            if (!preg_match('/^data:image\/(\w+);base64,/', $base64String, $matches)) {
+                return null;
+            }
+            
+            $imageType = $matches[1];
+            $base64String = substr($base64String, strpos($base64String, ',') + 1);
+            $imageData = base64_decode($base64String);
+            
+            if ($imageData === false) {
+                return null;
+            }
+            
+            // Générer un nom de fichier unique
+            $fileName = uniqid() . '.' . $imageType;
+            $filePath = $folder . '/' . $fileName;
+            
+            // Sauvegarder le fichier
+            Storage::disk('public')->put($filePath, $imageData);
+            
+            return $filePath;
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la sauvegarde de l\'image: ' . $e->getMessage());
+            return null;
+        }
     }
 }

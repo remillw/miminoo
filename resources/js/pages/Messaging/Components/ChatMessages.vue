@@ -1,8 +1,12 @@
 <template>
   <div class="flex flex-col">
     <!-- Messages - conteneur avec scroll -->
-    <div class="overflow-y-auto p-6 messages-container scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" style="max-height: calc(100vh - 400px);">
-      <div class="space-y-6 pb-8">
+    <div 
+      class="overflow-y-auto messages-container scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" 
+      :class="mobile ? 'p-4' : 'p-6'"
+      :style="mobile ? 'max-height: calc(100vh - 300px);' : 'max-height: calc(100vh - 400px);'"
+    >
+      <div :class="mobile ? 'space-y-4 pb-4' : 'space-y-6 pb-8'">
         <!-- Indicateur de chargement -->
         <div v-if="isLoading" class="text-center py-4">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -32,27 +36,28 @@
                :class="isMyMessage(message) ? 'justify-end' : 'justify-start'">
             
             <!-- Message de l'autre utilisateur -->
-            <div v-if="!isMyMessage(message)" class="flex gap-3 max-w-[70%]">
+            <div v-if="!isMyMessage(message)" class="flex gap-3" :class="mobile ? 'max-w-[85%]' : 'max-w-[70%]'">
               <img 
                 :src="getMessageSenderAvatar(message)" 
                 :alt="getMessageSenderName(message)"
-                class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                :class="mobile ? 'w-8 h-8' : 'w-8 h-8'"
+                class="rounded-full object-cover flex-shrink-0"
               />
               <div class="flex flex-col min-w-0 flex-1">
-                <div class="bg-gray-100 text-gray-900 px-4 py-3 rounded-2xl shadow-sm message-bubble">
-                  <p>{{ message.message }}</p>
+                <div class="bg-gray-100 text-gray-900 rounded-2xl shadow-sm message-bubble" :class="mobile ? 'px-3 py-2' : 'px-4 py-3'">
+                  <p :class="mobile ? 'text-sm' : ''">{{ message.message }}</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">{{ formatTime(message.created_at) }}</p>
+                <p class="text-xs text-gray-500 mt-1">{{ formatTime(message.created_at) }}</p>
               </div>
             </div>
 
             <!-- Message de l'utilisateur actuel -->
-            <div v-else class="flex justify-end">
-              <div class=" flex flex-col items-end">
-                <div class="bg-blue-600 text-white px-4 py-3 rounded-2xl shadow-sm message-bubble">
-                  <p>{{ message.message }}</p>
+            <div v-else class="flex justify-end" :class="mobile ? 'max-w-[85%]' : 'max-w-[70%]'">
+              <div class="flex flex-col items-end">
+                <div class="bg-blue-600 text-white rounded-2xl shadow-sm message-bubble" :class="mobile ? 'px-3 py-2' : 'px-4 py-3'">
+                  <p :class="mobile ? 'text-sm' : ''">{{ message.message }}</p>
                 </div>
-                <div class="flex items-center gap-2 mt-2">
+                <div class="flex items-center gap-2 mt-1">
                   <p class="text-xs text-gray-500">{{ formatTime(message.created_at) }}</p>
                   <span v-if="message.read_at" class="text-xs text-blue-500 font-medium">lu</span>
                 </div>
@@ -61,13 +66,14 @@
           </div>
 
           <!-- Indicateur de frappe -->
-          <div v-if="isOtherUserTyping" class="flex gap-3 max-w-xs mb-2">
+          <div v-if="isOtherUserTyping" :class="mobile ? 'flex gap-2 max-w-xs mb-2' : 'flex gap-3 max-w-xs mb-2'">
             <img 
               :src="conversation.other_user?.avatar || '/images/default-avatar.png'" 
               :alt="conversation.other_user?.name || 'Utilisateur'"
-              class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              :class="mobile ? 'w-6 h-6' : 'w-8 h-8'"
+              class="rounded-full object-cover flex-shrink-0"
             />
-            <div class="bg-gray-100 px-4 py-3 rounded-2xl shadow-sm">
+            <div class="bg-gray-100 rounded-2xl shadow-sm" :class="mobile ? 'px-3 py-2' : 'px-4 py-3'">
               <div class="flex space-x-1 items-center">
                 <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                 <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
@@ -78,9 +84,9 @@
 
           <!-- Message si pas de messages -->
           <div v-if="messages.length === 0" class="text-center py-8">
-            <MessageSquare class="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p class="text-gray-500">Aucun message pour le moment</p>
-            <p class="text-sm text-gray-400">Commencez la conversation !</p>
+            <MessageSquare :class="mobile ? 'w-10 h-10' : 'w-12 h-12'" class="mx-auto mb-3 text-gray-300" />
+            <p class="text-gray-500" :class="mobile ? 'text-sm' : ''">Aucun message pour le moment</p>
+            <p class="text-gray-400" :class="mobile ? 'text-xs' : 'text-sm'">Commencez la conversation !</p>
           </div>
         </template>
       </div>
@@ -99,7 +105,11 @@ import {
 
 const props = defineProps({
   conversation: Object,
-  userRole: String
+  userRole: String,
+  mobile: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const emit = defineEmits(['pay-deposit'])
