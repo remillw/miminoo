@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
-import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { Calendar, Check, Clock, CreditCard, FileText, MapPin, Users } from 'lucide-vue-next';
 import { computed, nextTick, ref } from 'vue';
@@ -290,8 +290,8 @@ initializeChildren();
 </script>
 
 <template>
-    <DashboardLayout :role="role">
-        <div class="mx-auto max-w-4xl">
+    <GlobalLayout>
+        <div class="mx-auto pt-10 pb-10 max-w-4xl">
             <!-- Header -->
             <div class="mb-8">
                 <h1 class="text-2xl font-bold text-gray-800">Créer une annonce</h1>
@@ -626,7 +626,7 @@ initializeChildren();
                 </Button>
             </div>
         </div>
-    </DashboardLayout>
+    </GlobalLayout>
 </template>
 
 <style scoped>

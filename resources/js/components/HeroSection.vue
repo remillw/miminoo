@@ -17,7 +17,7 @@ import { CheckCircle, Clock, Search, Star } from 'lucide-vue-next';
                     dernière minute ou planifiée.
                 </p>
                 <div class="mb-6 flex flex-col gap-3 sm:flex-row">
-  <a href="/trouver-une-babysitter" class="bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary text-center">
+  <a href="/annonces" class="bg-primary px-6 py-3 text-base font-semibold text-white hover:bg-primary text-center">
     Trouver une babysitter
   </a>
   
