@@ -10,8 +10,7 @@ const showFullMenu = ref(false);
 const links = [
     { icon: Home, label: 'Tableau de bord', href: '/dashboard' },
     { icon: PlusCircle, label: 'Créer une annonce', href: '/annonces/create' },
-    { icon: Calendar, label: 'Mes annonces', href: '/mes-annonces' },
-    { icon: Calendar, label: 'Mes réservations', href: '/reservations' },
+    { icon: Calendar, label: 'Mes gardes', href: '/mes-annonces-et-reservations' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
     { icon: User, label: 'Mon profil', href: '/profil' },
     { icon: CreditCard, label: 'Paiements | Factures', href: '/paiements' },

@@ -157,6 +157,8 @@ onMounted(() => {
         userRoles: props.userRoles,
         user: props.user,
         babysitterProfile: props.babysitterProfile,
+        dateOfBirth: props.user.date_of_birth,
+        dateOfBirthType: typeof props.user.date_of_birth,
     });
 });
 
@@ -183,18 +185,40 @@ const switchMode = (mode: 'parent' | 'babysitter') => {
     );
 };
 
+// Formatage de la date de naissance pour l'input date (format YYYY-MM-DD)
+const formatDateForInput = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    
+    try {
+        // Si c'est déjà un objet date
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        
+        // Retourner au format YYYY-MM-DD pour l'input date
+        return date.toISOString().split('T')[0];
+    } catch (error) {
+        console.error('Erreur format date:', error);
+        return '';
+    }
+};
+
 // Formulaire
 const form = ref({
     firstname: props.user.firstname || '',
     lastname: props.user.lastname || '',
     email: props.user.email || '',
-    date_of_birth: props.user.date_of_birth || '',
+    date_of_birth: formatDateForInput(props.user.date_of_birth),
     avatar: '', // Champ pour l'avatar en base64
     children: (props.children || []).map((child) => ({
         ...child,
         age: String(child.age), // S'assurer que l'âge est une string
     })),
     mode: currentMode.value,
+});
+
+console.log('📅 Debug date de naissance:', {
+    original: props.user.date_of_birth,
+    formatted: form.value.date_of_birth,
 });
 
 // Watcher pour mettre à jour le mode dans le formulaire

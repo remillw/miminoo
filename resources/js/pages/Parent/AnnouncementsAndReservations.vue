@@ -1,5 +1,5 @@
 <template>
-    <AppLayout>
+    <DashboardLayout>
         <div class="min-h-screen bg-gray-50 py-8">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <!-- En-tête -->
@@ -312,13 +312,12 @@
                 </div>
             </div>
         </div>
-    </AppLayout>
+    </DashboardLayout>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { 
     FileText, 
     Star, 
@@ -331,6 +330,7 @@ import {
     X, 
     Search 
 } from 'lucide-vue-next';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
 
 interface Announcement {
     id: number;

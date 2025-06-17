@@ -88,6 +88,15 @@ const currentStatus = ref(props.accountStatus);
 const error = ref('');
 const isRefreshing = ref(false);
 
+// États réactifs pour la gestion des virements
+const transferSettings = ref({
+    frequency: 'manual',
+    weekly_anchor: 'monday',
+    monthly_anchor: 1
+});
+
+const isProcessingPayout = ref(false);
+
 // Mode babysitter pour le layout
 const currentMode = ref<'babysitter' | 'parent'>('babysitter');
 
@@ -322,6 +331,12 @@ const totalPending = computed(() => {
     }, 0);
 });
 
+// Computed pour vérifier si on peut déclencher un virement
+const canTriggerPayout = computed(() => {
+    const balance = props.accountBalance?.available?.[0]?.amount || 0;
+    return balance >= 2500; // 25€ en centimes
+});
+
 // Séparer les requirements entre configuration du compte et vérification d'identité
 const accountRequirements = computed(() => {
     if (!props.accountDetails?.requirements) return [];
@@ -452,6 +467,22 @@ const formatCurrency = (amount: number) => {
         style: 'currency',
         currency: 'EUR',
     }).format(amount);
+};
+
+// Méthodes pour la gestion des virements
+const updateTransferSettings = () => {
+    router.post('/babysitter/paiements/configure-schedule', transferSettings.value);
+};
+
+const triggerManualPayout = () => {
+    if (!canTriggerPayout.value || isProcessingPayout.value) return;
+    
+    isProcessingPayout.value = true;
+    router.post('/babysitter/paiements/manual-payout', {}, {
+        onFinish: () => {
+            isProcessingPayout.value = false;
+        }
+    });
 };
 
 // Récupérer le statut d'onboarding intelligent
@@ -815,6 +846,86 @@ onMounted(() => {
                                 <Eye class="mr-2 h-4 w-4" />
                                 Vue détaillée
                             </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Gestion des virements (si compte actif) -->
+            <Card v-if="currentStatus === 'active'">
+                <CardHeader>
+                    <CardTitle class="flex items-center">
+                        <Building class="mr-2 h-5 w-5" />
+                        Configuration des virements
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div class="space-y-6">
+                        <!-- Configuration de la fréquence -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Fréquence des virements
+                                </label>
+                                <select 
+                                    v-model="transferSettings.frequency"
+                                    @change="updateTransferSettings"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="manual">Manuel</option>
+                                    <option value="daily">Quotidien</option>
+                                    <option value="weekly">Hebdomadaire</option>
+                                    <option value="monthly">Mensuel</option>
+                                </select>
+                            </div>
+
+                            <div v-if="transferSettings.frequency === 'weekly'">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Jour de la semaine
+                                </label>
+                                <select 
+                                    v-model="transferSettings.weekly_anchor"
+                                    @change="updateTransferSettings"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="monday">Lundi</option>
+                                    <option value="tuesday">Mardi</option>
+                                    <option value="wednesday">Mercredi</option>
+                                    <option value="thursday">Jeudi</option>
+                                    <option value="friday">Vendredi</option>
+                                </select>
+                            </div>
+
+                            <div v-if="transferSettings.frequency === 'monthly'">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Jour du mois
+                                </label>
+                                <select 
+                                    v-model="transferSettings.monthly_anchor"
+                                    @change="updateTransferSettings"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option v-for="day in 28" :key="day" :value="day">{{ day }}</option>
+                                </select>
+                            </div>
+
+                            <!-- Virement manuel -->
+                            <div v-if="transferSettings.frequency === 'manual'" class="pt-4 border-t">
+                                <Button
+                                    @click="triggerManualPayout"
+                                    :disabled="!canTriggerPayout || isProcessingPayout"
+                                    size="lg"
+                                    class="w-full"
+                                    :class="!canTriggerPayout || isProcessingPayout ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'"
+                                >
+                                    <Wallet v-if="!isProcessingPayout" class="mr-2 h-4 w-4" />
+                                    <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                    {{ isProcessingPayout ? 'Traitement en cours...' : 'Déclencher un virement (min. 25€)' }}
+                                </Button>
+                                <p v-if="!canTriggerPayout" class="text-sm text-red-600 mt-2 text-center">
+                                    Solde insuffisant (minimum 25€ requis)
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
