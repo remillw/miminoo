@@ -95,7 +95,7 @@
 
                                 <!-- Tarif pour candidatures -->
                                 <div v-if="conversation.type === 'application' && conversation.application" class="flex items-center gap-2">
-                                    <span class="bg-secondary rounded px-2 py-1 text-sm font-semibold text-orange-600">
+                                    <span class="bg-secondary rounded px-2 py-1 text-sm font-semibold text-primary">
                                         {{ conversation.application.proposed_rate }}€/h
                                     </span>
                                     <span v-if="conversation.application.counter_rate" class="text-xs text-gray-500"> → </span>
@@ -274,7 +274,7 @@
 
                                 <!-- Tarif pour candidatures -->
                                 <div v-if="conversation.type === 'application' && conversation.application" class="flex items-center gap-2">
-                                    <span class="bg-secondary rounded px-2 py-1 text-sm font-semibold text-orange-600">
+                                    <span class="bg-secondary rounded px-2 py-1 text-sm font-semibold text-primary">
                                         {{ conversation.application.proposed_rate }}€/h
                                     </span>
                                     <span v-if="conversation.application.counter_rate" class="text-xs text-gray-500"> → </span>

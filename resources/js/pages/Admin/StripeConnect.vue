@@ -389,7 +389,7 @@ onMounted(() => {
                             <Clock class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-2xl font-bold text-orange-600">{{ stats.pending_accounts }}</div>
+                            <div class="text-2xl font-bold text-primary">{{ stats.pending_accounts }}</div>
                             <p class="text-muted-foreground text-xs">Configuration requise</p>
                         </CardContent>
                     </Card>
@@ -495,7 +495,7 @@ onMounted(() => {
                                             <div v-for="balance in account.balance.available" :key="balance.currency" class="text-sm">
                                                 {{ formatCurrency(balance.amount, balance.currency) }}
                                             </div>
-                                            <div v-if="account.balance.pending.length > 0" class="text-xs text-orange-600">
+                                            <div v-if="account.balance.pending.length > 0" class="text-xs text-primary">
                                                 + {{ account.balance.pending.map((p) => formatCurrency(p.amount, p.currency)).join(', ') }} en attente
                                             </div>
                                         </div>
@@ -565,7 +565,7 @@ onMounted(() => {
                     <div v-for="balance in selectedAccount.balance.available" :key="balance.currency" class="text-sm">
                         Disponible : {{ formatCurrency(balance.amount, balance.currency) }}
                     </div>
-                    <div v-for="balance in selectedAccount.balance.pending" :key="balance.currency" class="text-sm text-orange-600">
+                    <div v-for="balance in selectedAccount.balance.pending" :key="balance.currency" class="text-sm text-primary">
                         En attente : {{ formatCurrency(balance.amount, balance.currency) }}
                     </div>
                 </div>
@@ -691,7 +691,7 @@ onMounted(() => {
                                 </ul>
                             </div>
                             <div v-if="selectedAccount.stripe_account.requirements.eventually_due.length > 0">
-                                <span class="font-medium text-orange-600">Éventuellement requis :</span>
+                                <span class="font-medium text-primary">Éventuellement requis :</span>
                                 <ul class="ml-4 list-inside list-disc">
                                     <li v-for="req in selectedAccount.stripe_account.requirements.eventually_due" :key="req">
                                         {{ req }}

@@ -217,7 +217,7 @@
                         <div class="bg-white rounded-lg shadow p-6">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0">
-                                    <Clock class="h-8 w-8 text-orange-600" />
+                                    <Clock class="h-8 w-8 text-primary" />
                                 </div>
                                 <div class="ml-4">
                                     <p class="text-sm font-medium text-gray-600">Paiements en attente</p>

@@ -45,7 +45,7 @@
         <div class="bg-secondary rounded-lg p-4 border border-orange-200">
           <div class="flex items-center justify-between mb-2">
             <span class="text-lg font-semibold text-orange-900">{{ application.counter_rate }}€/h</span>
-            <span class="text-sm text-orange-600">Nouveau tarif proposé</span>
+            <span class="text-sm text-primary">Nouveau tarif proposé</span>
           </div>
           <p v-if="application.counter_message" class="text-sm text-orange-800">
             <strong>Message :</strong> {{ application.counter_message }}

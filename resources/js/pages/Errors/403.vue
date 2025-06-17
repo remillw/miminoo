@@ -29,7 +29,7 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link 
                     :href="route('dashboard')"
-                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-orange-600 hover:to-primary transition-all duration-200 transform hover:scale-105"
+                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-primary hover:to-primary transition-all duration-200 transform hover:scale-105"
                 >
                     <Home class="w-5 h-5" />
                     Retour à l'accueil
@@ -51,7 +51,7 @@
                 </p>
                 <a 
                     href="mailto:support@miminoo.com" 
-                    class="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors duration-200"
+                    class="inline-flex items-center gap-2 text-primary hover:text-orange-700 transition-colors duration-200"
                 >
                     <Mail class="w-4 h-4" />
                     support@miminoo.com

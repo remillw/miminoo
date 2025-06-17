@@ -135,7 +135,7 @@ onMounted(() => {
                             <Clock class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-2xl font-bold text-orange-600">{{ stats.pending_verifications }}</div>
+                            <div class="text-2xl font-bold text-primary">{{ stats.pending_verifications }}</div>
                             <p class="text-muted-foreground text-xs">Demandes de vérification</p>
                         </CardContent>
                     </Card>

@@ -6,21 +6,34 @@
                 <h1 class="text-2xl font-bold text-gray-900">Bonjour, {{ user.firstname }}</h1>
                 <p class="text-gray-600">Bienvenue sur votre tableau de bord</p>
             </div>
-            <div class="flex items-center gap-3">
-                <span class="text-sm font-medium text-gray-700">
+            <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+
+    
+    <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1">
+                <div class="w-3 h-3 mr-2 rounded-full transition-colors duration-200"
+                     :class="isAvailable ? 'bg-emerald-500' : 'bg-red-500'">
+                </div>
+                <span class="text-sm font-medium transition-colors duration-200"
+                      :class="isAvailable ? 'text-emerald-700' : 'text-gray-600'">
                     {{ isAvailable ? 'Disponible' : 'Indisponible' }}
                 </span>
-                <button
-                    @click="toggleAvailability"
-                    :class="isAvailable ? 'bg-green-600' : 'bg-gray-200'"
-                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none"
-                >
-                    <span
-                        :class="isAvailable ? 'translate-x-6' : 'translate-x-1'"
-                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                    ></span>
-                </button>
             </div>
+        </div>
+        
+        <button
+            @click="toggleAvailability"
+            :class="isAvailable ? 'bg-gradient-to-r from-emerald-500 to-green-500' : 'bg-gray-200'"
+            class="relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 ease-in-out shadow-lg hover:scale-105 active:scale-95"
+        >
+            <span
+                :class="isAvailable ? 'translate-x-6 bg-white' : 'translate-x-1 bg-white'"
+                class="inline-block h-5 w-5 transform rounded-full transition-all duration-300 ease-in-out shadow-md"
+            ></span>
+        </button>
+    </div>
+</div>
         </div>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -95,7 +108,7 @@
                             <div class="space-y-1">
                                 <h3 class="font-medium text-gray-900">{{ ad.title }}</h3>
                                 <p class="text-sm text-gray-600">{{ formatDate(ad.date) }}, {{ ad.time }}</p>
-                                <button @click="viewAdDetails(ad.id)" class="text-sm text-orange-600 hover:text-orange-700">Voir les détails</button>
+                                <button @click="viewAdDetails(ad.id)" class="text-sm text-primary hover:text-orange-700">Voir les détails</button>
                             </div>
                             <div class="text-right">
                                 <span

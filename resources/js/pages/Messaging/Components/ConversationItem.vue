@@ -54,7 +54,7 @@
           <!-- Tarif proposé -->
           <div class="text-sm font-medium text-blue-600 mb-1">
             {{ item.proposed_rate }}€/h
-            <span v-if="item.counter_rate" class="text-orange-600">
+            <span v-if="item.counter_rate" class="text-primary">
               → {{ item.counter_rate }}€/h
             </span>
           </div>

@@ -257,10 +257,6 @@
 
             <!-- Suppression de compte -->
             <div class="bg-white rounded-lg shadow border-l-4 border-red-500">
-                <div class="p-6 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-red-900">Zone de danger</h2>
-                    <p class="text-sm text-red-600 mt-1">Actions irréversibles</p>
-                </div>
                 <div class="p-6">
                     <div class="space-y-4">
                         <div>

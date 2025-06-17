@@ -221,7 +221,7 @@ onMounted(() => {
                             </div>
                             <div v-if="accountDetails.requirements.eventually_due?.length > 0">
                                 <span class="font-medium text-orange-700">Éventuellement requis :</span>
-                                <ul class="mt-1 list-inside list-disc text-orange-600">
+                                <ul class="mt-1 list-inside list-disc text-primary">
                                     <li v-for="req in accountDetails.requirements.eventually_due" :key="req">
                                         {{ req }}
                                     </li>

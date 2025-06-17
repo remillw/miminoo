@@ -4,7 +4,7 @@
         <!-- Header Section -->
         <div class="text-center mb-16">
           <!-- Badge -->
-          <div ref="badge" class="inline-block mb-6 px-4 py-2 text-sm font-medium rounded-full bg-orange-100 text-orange-600 border border-orange-200 opacity-0 translate-y-4">
+          <div ref="badge" class="inline-block mb-6 px-4 py-2 text-sm font-medium rounded-full bg-orange-100 text-primary border border-orange-200 opacity-0 translate-y-4">
             Pour les parents
           </div>
   
@@ -22,7 +22,7 @@
               <div class="order-2 lg:order-1">
                 <div class="flex items-center gap-4 mb-6">
                   <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </div>
@@ -175,7 +175,7 @@
                       </div>
                       <div class="flex justify-between items-center py-2 border-t-2 border-gray-200">
                         <span class="font-bold text-gray-900">Total</span>
-                        <span class="font-bold text-orange-600 text-lg">65€</span>
+                        <span class="font-bold text-primary text-lg">65€</span>
                       </div>
                     </div>
                   </div>

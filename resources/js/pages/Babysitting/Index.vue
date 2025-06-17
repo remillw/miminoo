@@ -16,7 +16,7 @@
                         @click="activeTab = 'candidatures'"
                         :class="[
                             activeTab === 'candidatures'
-                                ? 'border-orange-500 text-orange-600'
+                                ? 'border-primary text-primary'
                                 : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700',
                             'border-b-2 px-1 py-2 text-sm font-medium whitespace-nowrap',
                         ]"
@@ -25,7 +25,7 @@
                         <span
                             v-if="applications.length > 0"
                             :class="[
-                                activeTab === 'candidatures' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-900',
+                                activeTab === 'candidatures' ? 'bg-orange-100 text-primary' : 'bg-gray-100 text-gray-900',
                                 'ml-2 inline-block rounded-full px-2 py-1 text-xs font-medium',
                             ]"
                         >
@@ -36,7 +36,7 @@
                         @click="activeTab = 'reservations'"
                         :class="[
                             activeTab === 'reservations'
-                                ? 'border-orange-500 text-orange-600'
+                                ? 'border-primary text-primary'
                                 : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700',
                             'border-b-2 px-1 py-2 text-sm font-medium whitespace-nowrap',
                         ]"
@@ -45,7 +45,7 @@
                         <span
                             v-if="reservations.length > 0"
                             :class="[
-                                activeTab === 'reservations' ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-900',
+                                activeTab === 'reservations' ? 'bg-orange-100 text-primary' : 'bg-gray-100 text-gray-900',
                                 'ml-2 inline-block rounded-full px-2 py-1 text-xs font-medium',
                             ]"
                         >
@@ -68,7 +68,7 @@
                         <div class="mt-6">
                             <Link
                                 href="/annonces"
-                                class="inline-flex items-center rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700"
+                                class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#e66c48]"
                             >
                                 <Search class="mr-2 h-4 w-4" />
                                 Voir les annonces
@@ -148,7 +148,7 @@
                                     </button>
                                     <button
                                         @click="viewDetails(application)"
-                                        class="inline-flex flex-1 items-center justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+                                        class="inline-flex flex-1 items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
                                     >
                                         Détails
                                     </button>
@@ -235,7 +235,7 @@
                                     </button>
                                     <button
                                         @click="viewReservationDetails(reservation)"
-                                        class="inline-flex flex-1 items-center justify-center rounded-md border border-transparent bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+                                        class="inline-flex flex-1 items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
                                     >
                                         Détails
                                     </button>

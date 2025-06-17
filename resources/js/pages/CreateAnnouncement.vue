@@ -304,7 +304,7 @@ initializeChildren();
                 <div class="mb-6">
                     <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                         <div 
-                            class="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-500 ease-out"
+                            class="h-full bg-gradient-to-r from-orange-400 to-primary rounded-full transition-all duration-500 ease-out"
                             :style="{ width: `${progressPercentage}%` }"
                         ></div>
                     </div>
@@ -606,7 +606,7 @@ initializeChildren();
   v-if="currentStep < totalSteps"
   @click="nextStep"
   :disabled="currentStep !== 4 && !canProceedToNext"
-  class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+  class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
 >
   <span v-if="currentStep === 4 && !form.description.trim()">
     Ignorer cette étape →
@@ -620,7 +620,7 @@ initializeChildren();
                     v-else
                     @click="submitAnnouncement"
                     :disabled="!canProceedToNext"
-                    class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-orange-600 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                     Publier l'annonce →
                 </Button>

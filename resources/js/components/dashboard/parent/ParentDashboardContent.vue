@@ -268,7 +268,7 @@ onMounted(() => {
                             <div class="space-y-1">
                                 <h3 class="font-medium text-gray-900">{{ ad.title }}</h3>
                                 <p class="text-sm text-gray-600">{{ formatDate(ad.date) }}, {{ ad.time }}</p>
-                                <button @click="viewAdDetails(ad.id)" class="text-sm text-orange-600 hover:text-orange-700">Voir les détails</button>
+                                <button @click="viewAdDetails(ad.id)" class="text-sm text-primary hover:text-orange-700">Voir les détails</button>
                             </div>
                             <div class="text-right">
                                 <div class="mb-2">

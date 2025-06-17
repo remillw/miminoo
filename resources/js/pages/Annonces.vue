@@ -273,7 +273,7 @@ onMounted(() => {
                     <div class="flex items-center gap-4 rounded-xl bg-white p-4 shadow-md">
                         <MapPin class="h-5 w-5 text-primary" />
                         <span class="text-gray-700">Activez la géolocalisation pour voir les annonces les plus proches</span>
-                        <Button @click="enableGeolocation" :disabled="geoLoading" size="sm" class="bg-primary hover:bg-orange-600">
+                        <Button @click="enableGeolocation" :disabled="geoLoading" size="sm" class="bg-primary hover:bg-primary">
                             <Navigation class="mr-2 h-4 w-4" />
                             {{ geoLoading ? 'Localisation...' : 'Activer' }}
                         </Button>
@@ -460,7 +460,7 @@ onMounted(() => {
                             <button
                                 v-if="Object.keys(props.filters || {}).length > 0"
                                 @click="resetFilters"
-                                class="inline-block rounded-lg bg-primary px-6 py-2 font-semibold text-white transition-colors hover:bg-orange-600"
+                                class="inline-block rounded-lg bg-primary px-6 py-2 font-semibold text-white transition-colors hover:bg-primary"
                             >
                                 Réinitialiser les filtres
                             </button>

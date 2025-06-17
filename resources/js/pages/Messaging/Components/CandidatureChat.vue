@@ -7,7 +7,7 @@
                     Candidature - {{ application.status === 'pending' ? 'En attente' : 'En négociation' }}
                 </div>
                 <div :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-600">
-                    Tarif proposé : <span class="font-semibold text-orange-600">{{ application.proposed_rate }}€/h</span>
+                    Tarif proposé : <span class="font-semibold text-primary">{{ application.proposed_rate }}€/h</span>
                     <span v-if="application.counter_rate" class="ml-2">
                         → <span class="font-semibold text-blue-600">{{ application.counter_rate }}€/h</span>
                     </span>
@@ -99,7 +99,7 @@
                         @click="submitCounterOffer"
                         :disabled="!counterOfferRate"
                         :class="mobile ? 'flex-1' : ''"
-                        class="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
+                        class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
                     >
                         Proposer
                     </button>

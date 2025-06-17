@@ -28,7 +28,7 @@ const SidebarComponent = computed(() => {
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-gray-50">
+    <div class="flex min-h-screen flex-col bg-secondary">
         <DashboardHeader />
 
         <div class="flex flex-1">

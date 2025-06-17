@@ -19,7 +19,7 @@ import ReassuranceSection from '../components/ReassuranceSection.vue';
                 <div class="relative flex flex-col items-center justify-center gap-4 sm:flex-row">
                     <div class="relative order-1">
                         <button
-                            class="bg-primary transform rounded-lg px-8 py-3 text-lg font-medium text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-orange-600 hover:shadow-xl"
+                            class="bg-primary transform rounded-lg px-8 py-3 text-lg font-medium text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-primary hover:shadow-xl"
                         >
                             Créer une annonce
                         </button>

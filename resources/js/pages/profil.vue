@@ -731,8 +731,8 @@ console.log('🔍 Données utilisateur Profil:', {
             </div>
 
             <!-- Header Card -->
-            <Card class="mb-6">
-                <CardHeader class="from-primary/10 rounded-t-xl bg-gradient-to-b to-orange-50">
+            <Card class="mb-6 py-0">
+                <CardHeader class="py-5 rounded-t-xl bg-gradient-to-b from-primary/40 to-secondary/10">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-6">
                             <div class="relative">
@@ -1001,7 +1001,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                 <div v-else-if="(user as any).stripe_account_status === 'pending'" class="space-y-4">
                                     <div class="rounded-lg border border-orange-200 bg-orange-50 p-4">
                                         <div class="flex items-center">
-                                            <Clock class="mr-2 h-5 w-5 text-orange-600" />
+                                            <Clock class="mr-2 h-5 w-5 text-primary" />
                                             <span class="text-sm font-medium text-orange-800">Configuration en cours</span>
                                         </div>
                                         <p class="mt-1 text-sm text-orange-700">

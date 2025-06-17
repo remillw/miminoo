@@ -167,7 +167,7 @@
                     v-if="!success"
                     :disabled="!canSubmit || isLoading"
                     @click="submit"
-                    class="from-primary hover:to-primary flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-orange-600 disabled:opacity-50"
+                    class="from-primary hover:to-primary flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-primary disabled:opacity-50"
                 >
                     <Loader v-if="isLoading" class="h-4 w-4 animate-spin" />
                     <Send v-else class="h-4 w-4" />

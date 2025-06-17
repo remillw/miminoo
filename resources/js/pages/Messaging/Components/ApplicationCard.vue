@@ -64,7 +64,7 @@
 
           <!-- Timer expiration -->
           <div v-if="application.time_remaining && !application.is_expired" 
-               class="flex items-center gap-2 text-xs text-orange-600 mb-3">
+               class="flex items-center gap-2 text-xs text-primary mb-3">
             <Clock class="w-4 h-4" />
             <span>Expire dans {{ application.time_remaining }}</span>
           </div>

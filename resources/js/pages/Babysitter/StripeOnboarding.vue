@@ -318,7 +318,7 @@ onMounted(() => {
                                         <strong>Vérification :</strong>
                                         <span
                                             :class="
-                                                accountDetails.individual.verification.status === 'verified' ? 'text-green-600' : 'text-orange-600'
+                                                accountDetails.individual.verification.status === 'verified' ? 'text-green-600' : 'text-primary'
                                             "
                                         >
                                             {{ accountDetails.individual.verification.status === 'verified' ? 'Vérifié' : 'En cours' }}
@@ -461,7 +461,7 @@ onMounted(() => {
                                 </div>
                                 <div>
                                     <p class="text-sm text-gray-600">En cours</p>
-                                    <p class="text-lg font-semibold text-orange-600">{{ formatCurrency(totalPending) }}</p>
+                                    <p class="text-lg font-semibold text-primary">{{ formatCurrency(totalPending) }}</p>
                                 </div>
                             </div>
                         </CardContent>

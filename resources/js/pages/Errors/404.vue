@@ -32,14 +32,14 @@
                     <div class="bg-white rounded-xl p-6 shadow-sm border border-orange-100 hover:shadow-md transition-all duration-200 hover:border-orange-200">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                <Home class="w-4 h-4 text-orange-600" />
+                                <Home class="w-4 h-4 text-primary" />
                             </div>
                             <h3 class="font-semibold text-gray-900">Retour à l'accueil</h3>
                         </div>
                         <p class="text-sm text-gray-600 mb-3">Découvrez toutes nos annonces de babysitting</p>
                         <Link 
                             :href="route('dashboard')" 
-                            class="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors duration-200"
+                            class="text-primary hover:text-orange-700 text-sm font-medium transition-colors duration-200"
                         >
                             Aller à l'accueil →
                         </Link>
@@ -49,14 +49,14 @@
                     <div class="bg-white rounded-xl p-6 shadow-sm border border-orange-100 hover:shadow-md transition-all duration-200 hover:border-orange-200">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                <Search class="w-4 h-4 text-orange-600" />
+                                <Search class="w-4 h-4 text-primary" />
                             </div>
                             <h3 class="font-semibold text-gray-900">Voir les annonces</h3>
                         </div>
                         <p class="text-sm text-gray-600 mb-3">Trouvez la mission parfaite près de chez vous</p>
                         <Link 
                             :href="route('announcements.index')" 
-                            class="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors duration-200"
+                            class="text-primary hover:text-orange-700 text-sm font-medium transition-colors duration-200"
                         >
                             Parcourir les annonces →
                         </Link>
@@ -68,7 +68,7 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link 
                     :href="route('dashboard')"
-                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-orange-600 hover:to-primary transition-all duration-200 transform hover:scale-105"
+                    class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-primary hover:to-primary transition-all duration-200 transform hover:scale-105"
                 >
                     <Home class="w-5 h-5" />
                     Retour à l'accueil
@@ -91,7 +91,7 @@
                 <div class="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm">
                     <a 
                         href="mailto:support@miminoo.com" 
-                        class="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors duration-200"
+                        class="flex items-center gap-2 text-primary hover:text-orange-700 transition-colors duration-200"
                     >
                         <Mail class="w-4 h-4" />
                         support@miminoo.com
@@ -99,7 +99,7 @@
                     <span class="hidden sm:block text-gray-300">•</span>
                     <Link 
                         href="/comment-ca-marche" 
-                        class="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-colors duration-200"
+                        class="flex items-center gap-2 text-primary hover:text-orange-700 transition-colors duration-200"
                     >
                         <HelpCircle class="w-4 h-4" />
                         Comment ça marche ?
