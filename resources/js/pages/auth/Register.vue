@@ -214,7 +214,7 @@ const onSubmit = () => {
             <div class="mb-6 space-y-3">
                 <!-- Bouton Google -->
                 <a
-                    :href="route('social.redirect', 'google')"
+                    :href="route('google.redirect')"
                     class="focus:ring-primary inline-flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none"
                 >
                     <svg class="h-5 w-5" viewBox="0 0 24 24">

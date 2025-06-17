@@ -14,20 +14,33 @@ use App\Http\Controllers\StripeVerificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-// Routes pour l'authentification sociale
+// Routes pour l'authentification Google uniquement
 Route::prefix('auth')->group(function () {
-    Route::get('/{provider}', [SocialAuthController::class, 'redirectToProvider'])
-        ->where('provider', 'google|apple')
-        ->name('social.redirect');
+    Route::get('/google', [GoogleAuthController::class, 'redirect'])
+        ->name('google.redirect');
     
-    Route::get('/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
-        ->where('provider', 'google|apple')
-        ->name('social.callback');
+    Route::get('/google/callback', [GoogleAuthController::class, 'callback'])
+        ->name('google.callback');
+    
+    Route::post('/google/complete', [GoogleAuthController::class, 'completeRegistration'])
+        ->name('google.complete');
+    
+    // Apple - Commenté pour implémentation future
+    /*
+    Route::get('/apple', [SocialAuthController::class, 'redirectToProvider'])
+        ->defaults('provider', 'apple')
+        ->name('apple.redirect');
+    
+    Route::get('/apple/callback', [SocialAuthController::class, 'handleProviderCallback'])
+        ->defaults('provider', 'apple')
+        ->name('apple.callback');
+    */
     
     Route::middleware('auth')->delete('/{provider}/unlink', [SocialAuthController::class, 'unlinkProvider'])
         ->where('provider', 'google|apple')

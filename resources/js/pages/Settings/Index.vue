@@ -109,7 +109,7 @@
                                 </div>
                                 <a
                                     v-else
-                                    :href="route('social.redirect', 'google')"
+                                    :href="route('google.redirect')"
                                     class="text-sm text-blue-600 hover:text-blue-700"
                                 >
                                     Connecter
