@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Notifications\NewApplication;
+use App\Models\Reservation;
 
 class AnnouncementController extends Controller
 {
@@ -485,6 +486,102 @@ class AnnouncementController extends Controller
 
         return Inertia::render('Announcements/MyAnnouncements', [
             'announcements' => $announcements
+        ]);
+    }
+
+    /**
+     * Show user's announcements and reservations combined.
+     */
+    public function myAnnouncementsAndReservations(): Response
+    {
+        $user = Auth::user();
+
+        // Récupérer les annonces du parent avec leurs candidatures
+        $announcements = Ad::with(['address', 'applications' => function($query) {
+                $query->with(['babysitter' => function($q) {
+                    $q->select('id', 'firstname', 'lastname', 'avatar');
+                }]);
+            }])
+            ->where('parent_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($ad) {
+                return [
+                    'id' => $ad->id,
+                    'title' => $ad->title,
+                    'date_start' => $ad->date_start,
+                    'date_end' => $ad->date_end,
+                    'hourly_rate' => $ad->hourly_rate,
+                    'status' => $ad->status,
+                    'applications_count' => $ad->applications->count(),
+                    'applications' => $ad->applications->map(function ($app) {
+                        return [
+                            'id' => $app->id,
+                            'status' => $app->status,
+                            'proposed_rate' => $app->proposed_rate,
+                            'counter_rate' => $app->counter_rate,
+                            'babysitter' => [
+                                'id' => $app->babysitter->id,
+                                'name' => $app->babysitter->firstname . ' ' . $app->babysitter->lastname,
+                                'avatar' => $app->babysitter->avatar,
+                            ]
+                        ];
+                    }),
+                    'estimated_duration' => $ad->estimated_duration,
+                    'estimated_total' => $ad->estimated_total,
+                    'address' => [
+                        'address' => $ad->address->address,
+                        'postal_code' => $ad->address->postal_code,
+                    ],
+                ];
+            });
+
+        // Récupérer les réservations du parent
+        $reservations = Reservation::with(['babysitter', 'ad'])
+            ->where('parent_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($reservation) {
+                return [
+                    'id' => $reservation->id,
+                    'status' => $reservation->status,
+                    'hourly_rate' => $reservation->hourly_rate,
+                    'deposit_amount' => $reservation->deposit_amount,
+                    'service_fee' => $reservation->service_fee,
+                    'total_deposit' => $reservation->total_deposit,
+                    'babysitter_amount' => $reservation->babysitter_amount,
+                    'service_start_at' => $reservation->service_start_at,
+                    'service_end_at' => $reservation->service_end_at,
+                    'paid_at' => $reservation->paid_at,
+                    'can_be_cancelled' => $reservation->can_be_cancelled,
+                    'can_be_reviewed' => $reservation->can_be_reviewed,
+                    'babysitter' => [
+                        'id' => $reservation->babysitter->id,
+                        'name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
+                        'avatar' => $reservation->babysitter->avatar,
+                    ],
+                    'ad' => [
+                        'id' => $reservation->ad->id,
+                        'title' => $reservation->ad->title,
+                        'date_start' => $reservation->ad->date_start,
+                        'date_end' => $reservation->ad->date_end,
+                    ]
+                ];
+            });
+
+        // Statistiques
+        $stats = [
+            'total_announcements' => $announcements->count(),
+            'active_announcements' => $announcements->where('status', 'active')->count(),
+            'total_reservations' => $reservations->count(),
+            'completed_reservations' => $reservations->where('status', 'completed')->count(),
+            'total_spent' => $reservations->where('status', 'completed')->sum('total_deposit'),
+        ];
+
+        return Inertia::render('Parent/AnnouncementsAndReservations', [
+            'announcements' => $announcements,
+            'reservations' => $reservations,
+            'stats' => $stats,
         ]);
     }
 

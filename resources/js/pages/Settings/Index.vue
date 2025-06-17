@@ -305,7 +305,7 @@
                             Annuler
                         </button>
                         <button
-                            @click="deleteAccount"
+                            @click="confirmDeleteAccount"
                             :disabled="deleteConfirmationText !== 'SUPPRIMER' || isDeletingAccount"
                             class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -324,6 +324,7 @@ import { ref, reactive, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { useToast } from '@/composables/useToast';
 
 // Types
 interface User {
@@ -361,6 +362,9 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Composables
+const { showSuccess, showError, handleApiResponse } = useToast();
 
 // Mode basé sur les rôles de l'utilisateur (détecté côté serveur)
 const currentMode = ref<'babysitter' | 'parent'>(props.current_mode);
@@ -405,13 +409,14 @@ const availableLanguages = ref(props.available_languages);
 
 // Méthodes
 const updateNotifications = () => {
-    router.post('/parametres/notifications', notificationForm, {
+    router.post(route('settings.notifications'), notificationForm, {
         preserveState: true,
-        onSuccess: () => {
-            // Notification de succès
+        onSuccess: (page: any) => {
+            handleApiResponse(page, 'Préférences de notifications mises à jour');
         },
-        onError: (errors) => {
-            console.error('Erreur mise à jour notifications:', errors);
+        onError: (errors: any) => {
+            console.error('❌ Erreur mise à jour notifications:', errors);
+            showError('Erreur', 'Impossible de mettre à jour les préférences de notifications');
         }
     });
 };
@@ -419,49 +424,33 @@ const updateNotifications = () => {
 const updatePassword = () => {
     isUpdatingPassword.value = true;
     
-    router.post('/parametres/password', passwordForm, {
+    router.post(route('settings.password'), passwordForm, {
         preserveState: true,
-        onSuccess: () => {
+        onSuccess: (page: any) => {
             // Réinitialiser le formulaire
             passwordForm.current_password = '';
             passwordForm.password = '';
             passwordForm.password_confirmation = '';
             isUpdatingPassword.value = false;
+            handleApiResponse(page, 'Mot de passe mis à jour avec succès');
         },
-        onError: (errors) => {
-            console.error('Erreur mise à jour mot de passe:', errors);
+        onError: (errors: any) => {
+            console.error('❌ Erreur mise à jour mot de passe:', errors);
             isUpdatingPassword.value = false;
+            showError('Erreur', 'Impossible de mettre à jour le mot de passe');
         }
     });
 };
 
 const updateLanguage = () => {
-    router.post('/parametres/language', languageForm, {
+    router.post(route('settings.language'), languageForm, {
         preserveState: true,
-        onSuccess: () => {
-            // Notification de succès
+        onSuccess: (page: any) => {
+            handleApiResponse(page, 'Langue mise à jour avec succès');
         },
-        onError: (errors) => {
-            console.error('Erreur mise à jour langue:', errors);
-        }
-    });
-};
-
-const deleteAccount = () => {
-    if (deleteConfirmationText.value !== 'SUPPRIMER') return;
-    
-    isDeletingAccount.value = true;
-    
-    router.delete('/parametres/account', {
-        onSuccess: () => {
-            // Redirection vers la page d'accueil après suppression
-            window.location.href = '/';
-        },
-        onError: (errors) => {
-            console.error('Erreur suppression compte:', errors);
-            isDeletingAccount.value = false;
-            showDeleteConfirmation.value = false;
-            deleteConfirmationText.value = '';
+        onError: (errors: any) => {
+            console.error('❌ Erreur mise à jour langue:', errors);
+            showError('Erreur', 'Impossible de mettre à jour la langue');
         }
     });
 };
@@ -469,11 +458,40 @@ const deleteAccount = () => {
 const unlinkProvider = (provider: string) => {
     router.delete(route('social.unlink', provider), {
         preserveState: true,
-        onSuccess: () => {
-            // Notification de succès
+        onSuccess: (page: any) => {
+            handleApiResponse(page, `Compte ${provider} délié avec succès`);
+            // Rafraîchir la page pour mettre à jour les données
+            setTimeout(() => window.location.reload(), 1000);
         },
-        onError: (errors) => {
-            console.error('Erreur déliaison compte:', errors);
+        onError: (errors: any) => {
+            console.error('❌ Erreur suppression compte social:', errors);
+            showError('Erreur', `Impossible de délier le compte ${provider}`);
+        }
+    });
+};
+
+const confirmDeleteAccount = () => {
+    if (deleteConfirmationText.value !== 'SUPPRIMER') {
+        showError('Confirmation requise', 'Veuillez taper "SUPPRIMER" pour confirmer');
+        return;
+    }
+    
+    isDeletingAccount.value = true;
+    
+    router.delete(route('settings.delete-account'), {
+        data: {
+            confirmation: deleteConfirmationText.value
+        },
+        onSuccess: () => {
+            showSuccess('Compte supprimé', 'Votre compte a été supprimé avec succès');
+            // L'utilisateur sera redirigé vers la page d'accueil
+        },
+        onError: (errors: any) => {
+            console.error('❌ Erreur suppression compte:', errors);
+            isDeletingAccount.value = false;
+            showDeleteConfirmation.value = false;
+            deleteConfirmationText.value = '';
+            showError('Erreur', 'Impossible de supprimer le compte');
         }
     });
 };

@@ -14,38 +14,44 @@ class CheckBabysitterVerification
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $requiredAction = 'payments'): Response
     {
         $user = $request->user();
-        
-        // Recharger le profil depuis la base de données pour avoir le statut le plus récent
-        $profile = $user->babysitterProfile()->first();
 
-        Log::info('Middleware CheckBabysitterVerification appelé', [
-            'user_id' => $user->id,
-            'status' => $profile?->verification_status,
-        ]);
-
-        if (!$profile) {
-            return response()->json([
-                'message' => 'Profil babysitter non trouvé'
-            ], 404);
+        // Vérifier que l'utilisateur est authentifié et a le rôle babysitter
+        if (!$user || !$user->hasRole('babysitter')) {
+            return redirect()->route('dashboard')->with('error', 'Accès non autorisé.');
         }
 
-        if ($profile->verification_status === null || $profile->verification_status === '') {
-            return $next($request);
+        $babysitterProfile = $user->babysitterProfile;
+
+        // Vérifier que le profil existe
+        if (!$babysitterProfile) {
+            return redirect()->route('dashboard')->with('error', 'Profil babysitter introuvable.');
         }
 
-        if ($profile->verification_status === 'pending') {
-            return response()->json([
-                'message' => 'Une demande de vérification est déjà en cours'
-            ], 400);
-        }
-
-        if ($profile->verification_status === 'verified') {
-            return response()->json([
-                'message' => 'Votre profil est déjà vérifié'
-            ], 400);
+        // Vérifier le statut de vérification selon l'action demandée
+        switch ($requiredAction) {
+            case 'payments':
+                // Pour accéder aux paiements, le profil doit être vérifié
+                if ($babysitterProfile->verification_status !== 'verified') {
+                    return redirect()->route('dashboard')->with('error', 'Votre profil doit être vérifié pour accéder aux paiements. Veuillez compléter votre profil et attendre la vérification.');
+                }
+                break;
+                
+            case 'apply':
+                // Pour postuler, le profil doit être vérifié
+                if ($babysitterProfile->verification_status !== 'verified') {
+                    return redirect()->route('announcements.index')->with('error', 'Votre profil doit être vérifié pour postuler aux annonces. Veuillez compléter votre profil et attendre la vérification.');
+                }
+                break;
+                
+            case 'verified_only':
+                // Accès général aux fonctionnalités réservées aux vérifiés
+                if ($babysitterProfile->verification_status !== 'verified') {
+                    return redirect()->route('dashboard')->with('warning', 'Cette fonctionnalité est réservée aux babysitters vérifiées.');
+                }
+                break;
         }
 
         return $next($request);

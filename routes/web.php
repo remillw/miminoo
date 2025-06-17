@@ -78,7 +78,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('annonces/create', [AnnouncementController::class, 'create'])->name('announcements.create');
     Route::post('annonces', [AnnouncementController::class, 'store'])->name('announcements.store');
     Route::get('mes-annonces', [AnnouncementController::class, 'myAnnouncements'])->name('announcements.my');
-    Route::post('annonces/{announcement}/apply', [AnnouncementController::class, 'apply'])->name('announcements.apply');
+    Route::get('mes-annonces-et-reservations', [AnnouncementController::class, 'myAnnouncementsAndReservations'])->name('parent.announcements-reservations');
+    Route::post('annonces/{announcement}/apply', [AnnouncementController::class, 'apply'])
+        ->middleware('check.babysitter.verification:apply')
+        ->name('announcements.apply');
     Route::get('annonces/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
     Route::put('annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('annonces/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
@@ -147,11 +150,12 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     Route::get('babysitting', [App\Http\Controllers\BabysittingController::class, 'index'])->name('babysitting.index');
     
     Route::post('/babysitter/request-verification', [BabysitterController::class, 'requestVerification'])
-        ->middleware('check.babysitter.verification')
         ->name('babysitter.request-verification');
     
-    // Page de gestion des paiements dans la sidebar
-    Route::get('/babysitter/paiements', [StripeController::class, 'paymentsPage'])->name('babysitter.payments');
+    // Page de gestion des paiements dans la sidebar - NÉCESSITE VÉRIFICATION
+    Route::get('/babysitter/paiements', [StripeController::class, 'paymentsPage'])
+        ->middleware('check.babysitter.verification:payments')
+        ->name('babysitter.payments');
     
     // Nouvelles routes pour la gestion des paiements
     Route::post('/babysitter/paiements/configure-schedule', [StripeController::class, 'configurePayoutSchedule'])->name('babysitter.payments.configure-schedule');
