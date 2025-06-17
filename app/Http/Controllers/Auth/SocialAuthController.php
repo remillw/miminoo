@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
+use Illuminate\Support\Facades\Log;
 
 class SocialAuthController extends Controller
 {
@@ -77,19 +78,15 @@ class SocialAuthController extends Controller
                 'avatar' => $socialUser->getAvatar(),
             ]);
 
-            // Assigner le rôle parent par défaut
-            $parentRole = Role::where('name', 'parent')->first();
-            if ($parentRole) {
-                $user->assignRole($parentRole);
-            }
+            // Ne pas assigner de rôle - l'utilisateur choisira lors de sa première connexion
 
             Auth::login($user);
             
-            // Rediriger vers la page de choix de rôle si c'est un nouveau compte
-            return redirect()->route('role.selection')->with('success', 'Compte créé avec succès ! Choisissez votre rôle.');
+            // La redirection se fera via redirectAfterLogin qui détectera l'absence de rôles
+            return $this->redirectAfterLogin($user);
 
         } catch (\Exception $e) {
-            \Log::error('Erreur authentification sociale', [
+            Log::error('Erreur authentification sociale', [
                 'provider' => $provider,
                 'error' => $e->getMessage()
             ]);
@@ -134,13 +131,13 @@ class SocialAuthController extends Controller
      */
     private function redirectAfterLogin($user)
     {
-        if ($user->hasRole('babysitter')) {
-            return redirect()->route('babysitter.dashboard');
-        } elseif ($user->hasRole('parent')) {
-            return redirect()->route('parent.dashboard');
-        } else {
-            return redirect()->route('role.selection');
+        // Si l'utilisateur n'a pas de rôles assignés, c'est sa première connexion
+        if (!$user->roles()->exists()) {
+            return redirect()->route('role.selection')->with('success', 'Bienvenue ! Choisissez votre rôle pour commencer.');
         }
+        
+        // Sinon, rediriger vers le dashboard selon le rôle
+        return redirect()->route('dashboard');
     }
 
     /**

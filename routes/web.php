@@ -70,6 +70,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('annonces/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
     
+
+    
     // Routes pour la messagerie
     Route::get('messagerie', [MessagingController::class, 'index'])->name('messaging.index');
     Route::patch('candidatures/{application}/mark-viewed', [MessagingController::class, 'markApplicationAsViewed'])->name('applications.mark-viewed');
@@ -128,6 +130,9 @@ Route::get('comment-ca-marche', function () {
 
 // Routes pour les babysitters - DOIT être AVANT babysitter/{slug}
 Route::middleware(['auth', 'role:babysitter'])->group(function () {
+    // Route pour la page unifiée babysitting
+    Route::get('babysitting', [App\Http\Controllers\BabysittingController::class, 'index'])->name('babysitting.index');
+    
     Route::post('/babysitter/request-verification', [BabysitterController::class, 'requestVerification'])
         ->middleware('check.babysitter.verification')
         ->name('babysitter.request-verification');

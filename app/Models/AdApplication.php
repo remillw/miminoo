@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AdApplication extends Model
@@ -102,6 +103,20 @@ class AdApplication extends Model
             'accepted_at' => now(),
             'counter_rate' => $finalRate
         ]);
+
+        // Archiver automatiquement toutes les autres candidatures de la même annonce
+        AdApplication::where('ad_id', $this->ad_id)
+            ->where('id', '!=', $this->id)
+            ->whereIn('status', ['pending', 'counter_offered'])
+            ->update(['status' => 'archived']);
+
+        // Archiver les conversations associées aux autres candidatures
+        Conversation::whereHas('application', function($query) {
+            $query->where('ad_id', $this->ad_id)
+                  ->where('id', '!=', $this->id);
+        })
+        ->where('status', '!=', 'archived')
+        ->update(['status' => 'archived']);
 
         // Mettre à jour l'annonce pour la marquer comme réservée
         $this->ad->update([

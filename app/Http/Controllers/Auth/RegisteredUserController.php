@@ -61,16 +61,34 @@ class RegisteredUserController extends Controller
     /**
      * Afficher la page de sélection de rôle pour les nouveaux utilisateurs
      */
-    public function roleSelection(): Response
+    public function roleSelection(): Response|RedirectResponse
     {
-        if (!session('newly_registered_user_id')) {
-            return redirect()->route('login')->with('error', 'Session expirée. Veuillez vous connecter.');
+        // Cas 1: Utilisateur inscrit classiquement (avec session)
+        if (session('newly_registered_user_id')) {
+            return Inertia::render('auth/GoogleRoleSelection', [
+                'existingUser' => false,
+                'isGoogleUser' => false
+            ]);
         }
-
-        return Inertia::render('auth/GoogleRoleSelection', [
-            'existingUser' => false,
-            'isGoogleUser' => false
-        ]);
+        
+        // Cas 2: Utilisateur connecté via Google sans rôles
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user && $user->roles()->count() === 0) {
+                return Inertia::render('auth/GoogleRoleSelection', [
+                    'existingUser' => true,
+                    'isGoogleUser' => $user->is_social_account ?? false
+                ]);
+            }
+        }
+        
+        // Cas 3: Utilisateur déjà configuré - rediriger vers dashboard
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+        
+        // Cas 4: Pas de session et pas connecté - rediriger vers login
+        return redirect()->route('login')->with('error', 'Veuillez vous connecter.');
     }
 
     /**
@@ -83,15 +101,24 @@ class RegisteredUserController extends Controller
             'roles.*' => 'in:parent,babysitter'
         ]);
 
+        // Cas 1: Utilisateur inscrit classiquement (avec session)
         $userId = session('newly_registered_user_id');
-        
-        if (!$userId) {
-            return redirect()->route('login')->with('error', 'Session expirée. Veuillez vous connecter.');
+        if ($userId) {
+            $user = User::find($userId);
+            if (!$user) {
+                return redirect()->route('login')->with('error', 'Utilisateur introuvable.');
+            }
         }
-
-        $user = User::find($userId);
-        if (!$user) {
-            return redirect()->route('login')->with('error', 'Utilisateur introuvable.');
+        // Cas 2: Utilisateur connecté via Google sans rôles
+        elseif (Auth::check()) {
+            $user = Auth::user();
+            if (!$user || $user->roles()->count() > 0) {
+                return redirect()->route('dashboard')->with('error', 'Vous avez déjà configuré vos rôles.');
+            }
+        }
+        // Cas 3: Aucun utilisateur valide
+        else {
+            return redirect()->route('login')->with('error', 'Session expirée. Veuillez vous connecter.');
         }
 
         try {
