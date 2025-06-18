@@ -176,7 +176,7 @@ class PaymentController extends Controller
                 'name' => $reservation->parent->firstname . ' ' . $reservation->parent->lastname,
                 'metadata' => [
                     'user_id' => $reservation->parent->id,
-                    'platform' => 'miminoo'
+                    'platform' => 'TrouvetaBabysitter'
                 ]
             ]);
 
@@ -191,7 +191,7 @@ class PaymentController extends Controller
             'metadata' => [
                 'reservation_id' => $reservation->id,
                 'parent_id' => $reservation->parent->id,
-                'platform' => 'miminoo'
+                'platform' => 'TrouvetaBabysitter'
             ]
         ]);
 

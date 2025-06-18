@@ -13,7 +13,7 @@
             <!-- Header -->
             <tr>
               <td style="background-color: #FF8157; color: #ffffff; text-align: center; padding: 20px;">
-                <img src="/storage/logo_miminoo.png" alt="{{ config('app.name') }}" style="max-width: 150px; margin-bottom: 10px;">
+                <img src="/storage/trouve-ta-babysitter-logo.svg" alt="{{ config('app.name') }}" style="max-width: 150px; margin-bottom: 10px;">
                 <h1 style="font-size: 24px; margin: 0;">Demande envoyée avec succès</h1>
                 <p style="margin: 10px 0 0;">Nous allons examiner votre profil rapidement 👀</p>
               </td>

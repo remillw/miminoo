@@ -50,11 +50,11 @@
                     Si le problème persiste, contactez notre support
                 </p>
                 <a 
-                    href="mailto:support@miminoo.com" 
+                    href="mailto:hello@trouvetababysitter.fr" 
                     class="inline-flex items-center gap-2 text-primary hover:text-orange-700 transition-colors duration-200"
                 >
                     <Mail class="w-4 h-4" />
-                    support@miminoo.com
+                    hello@trouvetababysitter.fr
                 </a>
             </div>
         </div>

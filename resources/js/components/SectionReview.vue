@@ -6,7 +6,7 @@
         Ce que les parents disent de nous
       </h2>
       <p class="text-center text-gray-600 mb-10">
-        Découvrez les témoignages des parents qui font confiance à Miminoo pour la garde de leurs enfants.
+        Découvrez les témoignages des parents qui nous font confiance pour la garde de leurs enfants.
       </p>
 
       <!-- Carte avec navigation interne -->
@@ -64,7 +64,7 @@ const reviews = [
     role: 'Maman de 2 enfants',
     rating: 5,
     content:
-      "Miminoo m'a sauvée plus d'une fois ! J'ai pu trouver une babysitter fiable en moins de 30 minutes alors que j'avais une réunion urgente. Le processus est simple et rassurant.",
+      "Trouve ta Babysitter m'a sauvée plus d'une fois ! J'ai pu trouver une babysitter fiable en moins de 30 minutes alors que j'avais une réunion urgente. Le processus est simple et rassurant.",
   },
   {
     avatar: '/storage/review-parent.png',
@@ -72,7 +72,7 @@ const reviews = [
     role: 'Maman solo à Aix',
     rating: 5,
     content:
-      "Un service ultra pratique ! J’utilise Miminoo quand j’ai des imprévus pro, et je n’ai jamais été déçue. Les babysitters sont pros et ponctuelles.",
+      "Un service ultra pratique ! J’utilise la plateforme quand j’ai des imprévus pro, et je n’ai jamais été déçue. Les babysitters sont pros et ponctuelles.",
   },
   {
     avatar: '/storage/review-parent.png',

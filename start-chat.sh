@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script pour démarrer le chat en temps réel Miminoo avec Reverb
-echo "🚀 Démarrage du système de chat temps réel Miminoo..."
+# Script pour démarrer le chat en temps réel Trouve ta Babysitter avec Reverb
+echo "🚀 Démarrage du système de chat temps réel Trouve ta Babysitter..."
 
 # Vider les caches
 echo "🧹 Nettoyage des caches..."

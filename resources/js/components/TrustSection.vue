@@ -15,7 +15,7 @@ const items = [
   {
     icon: Star,
     title: 'Avis 100% authentiques',
-    desc: `Les évaluations sont laissées uniquement par des parents ayant réellement effectué une réservation via Miminoo.`,
+    desc: `Les évaluations sont laissées uniquement par des parents ayant réellement effectué une réservation via la plateforme.`,
   },
   {
     icon: MessageCircle,

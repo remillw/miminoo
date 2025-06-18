@@ -8,7 +8,7 @@
   
         <!-- Titre -->
         <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-20">
-          Rejoignez la communauté Miminoo
+          Rejoignez notre communauté des Babysitters
         </h2>
   
         <!-- Cartes -->

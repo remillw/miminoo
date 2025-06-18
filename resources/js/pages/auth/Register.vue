@@ -145,7 +145,7 @@ const onSubmit = () => {
     inertiaForm.post(route('register'), {
         onSuccess: () => {
             showSuccess(
-                '🎉 Bienvenue sur Miminoo !',
+                '🎉 Bienvenue !',
                 'Votre compte a été créé avec succès. Choisissez maintenant votre rôle pour commencer.',
             );
         },
@@ -203,12 +203,12 @@ const onSubmit = () => {
         <Head title="Inscription" />
 
         <div class="py-10 pt-10 text-center">
-            <img src="/storage/logo_miminoo.png" alt="Miminoo" class="mx-auto h-10" />
+            <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter logo" class="mx-auto h-10" />
         </div>
 
         <div class="mx-auto mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
             <h2 class="mb-1 text-center text-2xl font-bold">Inscription</h2>
-            <p class="mb-6 text-center text-gray-500">Créez votre compte Miminoo</p>
+            <p class="mb-6 text-center text-gray-500">Vous pourrez choisir votre rôle (Parent ou Babysitter) à la prochaine étape.</p>
 
             <!-- Boutons de connexion sociale -->
             <div class="mb-6 space-y-3">

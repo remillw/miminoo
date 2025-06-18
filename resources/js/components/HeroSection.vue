@@ -13,7 +13,7 @@ import { CheckCircle, Clock, Search, Star } from 'lucide-vue-next';
                     Trouvez une <span class="text-primary">babysitter</span> de confiance en quelques minutes
                 </h1>
                 <p class="mb-6 text-base text-gray-700 md:text-lg">
-                    Miminoo vous connecte instantanément avec des babysitters vérifiées et disponibles près de chez vous, pour une garde d'enfants de
+                    La plateforme qui vous connecte instantanément avec des babysitters vérifiées et disponibles près de chez vous, pour une garde d'enfants de
                     dernière minute ou planifiée.
                 </p>
                 <div class="mb-6 flex flex-col gap-3 sm:flex-row">
@@ -50,10 +50,9 @@ import { CheckCircle, Clock, Search, Star } from 'lucide-vue-next';
 </div>
 
             </div>
-            <!-- Right: Illustration & badges -->
           <!-- Right: Illustration -->
 <div class="flex flex-1 items-center justify-center">
-  <img src="/storage/babysitter-domicile-miminoo.png"
+  <img src="/storage/trouve-babysitter-domicile.png"
        alt="Babysitter illustration"
        class="mb-4 max-w-md md:mb-0" />
 </div>

@@ -90,11 +90,11 @@
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm">
                     <a 
-                        href="mailto:support@miminoo.com" 
+                        href="mailto:hello@trouvetababysitter.fr" 
                         class="flex items-center gap-2 text-primary hover:text-orange-700 transition-colors duration-200"
                     >
                         <Mail class="w-4 h-4" />
-                        support@miminoo.com
+                        hello@trouvetababysitter.fr
                     </a>
                     <span class="hidden sm:block text-gray-300">•</span>
                     <Link 

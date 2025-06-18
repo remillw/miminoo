@@ -22,7 +22,7 @@ const submit = () => {
 
     <!-- Logo -->
     <div class="pt-10 text-center py-10">
-  <img src="/storage/logo_miminoo.png" alt="Miminoo" class="mx-auto h-10 w-auto " />
+  <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter" class="mx-auto h-10 w-auto " />
 </div>
 
 

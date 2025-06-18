@@ -67,7 +67,7 @@
                                 <h4 class="mb-2 text-xs font-medium tracking-wide text-gray-700 uppercase">Répartition des fonds</h4>
                                 <div class="space-y-1 text-xs">
                                     <div class="flex justify-between">
-                                        <span class="text-gray-600">Frais Stripe (vers Stripe) :</span>
+                                        <span class="text-gray-600">Frais Stripe :</span>
                                         <span class="font-medium text-gray-500">{{ reservation.stripe_fee }}€</span>
                                     </div>
                                     <div class="flex justify-between">
@@ -75,7 +75,7 @@
                                         <span class="font-medium text-green-600">{{ reservation.babysitter_amount }}€</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-gray-600">Frais plateforme (vers Miminoo) :</span>
+                                        <span class="text-gray-600">Frais plateforme :</span>
                                         <span class="font-medium text-blue-600">{{ reservation.platform_fee }}€</span>
                                     </div>
                                 </div>
