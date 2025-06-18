@@ -260,7 +260,8 @@ class AnnouncementController extends Controller
         
         return Inertia::render('CreateAnnouncement', [
             'user' => $user,
-            'role' => $user->role ?? 'parent'
+            'role' => $user->role ?? 'parent',
+            'googlePlacesApiKey' => config('services.google.places_api_key'),
         ]);
     }
 

@@ -83,6 +83,9 @@ class ProfileController extends Controller
             $profileData['availableAgeRanges'] = AgeRange::where('is_active', true)->orderBy('display_order')->get();
         }
 
+        // Ajouter la clé API Google Places pour le frontend
+        $profileData['googlePlacesApiKey'] = config('services.google.places_api_key');
+
         return Inertia::render('profil', $profileData);
     }
 

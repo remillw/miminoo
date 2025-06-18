@@ -39,6 +39,7 @@ const role = 'parent';
 interface Props {
     user: User;
     role: string;
+    googlePlacesApiKey?: string;
 }
 
 const props = defineProps<Props>();
@@ -198,8 +199,11 @@ const loadGooglePlaces = () => {
         return;
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
-    if (!apiKey) return;
+    const apiKey = props.googlePlacesApiKey;
+    if (!apiKey) {
+        console.error('❌ Clé API Google Places manquante - Vérifiez votre variable GOOGLE_PLACES_API_KEY dans .env');
+        return;
+    }
 
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlacesCallback`;

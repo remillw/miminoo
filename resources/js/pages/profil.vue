@@ -127,6 +127,7 @@ interface Props {
     availableLanguages?: Language[];
     availableSkills?: Skill[];
     availableAgeRanges?: AgeRange[];
+    googlePlacesApiKey?: string;
 }
 
 const props = defineProps<Props>();
@@ -286,10 +287,10 @@ const loadGooglePlaces = () => {
         return;
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+    const apiKey = props.googlePlacesApiKey;
 
     if (!apiKey) {
-        console.error('❌ Clé API Google Places manquante');
+        console.error('❌ Clé API Google Places manquante - Vérifiez votre variable GOOGLE_PLACES_API_KEY dans .env');
         return;
     }
 
@@ -433,9 +434,9 @@ const submitForm = async () => {
         
         // Si les données sociales sont verrouillées, ne pas envoyer les champs protégés
         if (props.user.social_data_locked) {
-            delete formData.firstname;
-            delete formData.lastname;
-            delete formData.email;
+            delete (formData as any).firstname;
+            delete (formData as any).lastname;
+            delete (formData as any).email;
         }
         
         // Ajouter les données d'adresse

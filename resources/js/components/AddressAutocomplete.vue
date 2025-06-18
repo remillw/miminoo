@@ -16,6 +16,7 @@ interface Props {
     modelValue?: AddressData;
     disabled?: boolean;
     placeholder?: string;
+    googlePlacesApiKey?: string;
 }
 
 interface Emits {
@@ -124,10 +125,10 @@ const loadGooglePlaces = () => {
         return;
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+    const apiKey = props.googlePlacesApiKey;
 
     if (!apiKey) {
-        console.error('❌ Clé API Google Places manquante');
+        console.error('❌ Clé API Google Places manquante - Vérifiez votre variable GOOGLE_PLACES_API_KEY dans .env');
         return;
     }
 
@@ -182,14 +183,13 @@ onMounted(() => {
 const onAddressInput = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const updatedValue = {
-        address: '',
-        postal_code: '',
-        country: '',
-        latitude: 0,
-        longitude: 0,
-        google_place_id: '',
         ...props.modelValue,
         address: target.value,
+        postal_code: props.modelValue?.postal_code || '',
+        country: props.modelValue?.country || '',
+        latitude: props.modelValue?.latitude || 0,
+        longitude: props.modelValue?.longitude || 0,
+        google_place_id: props.modelValue?.google_place_id || '',
     };
     emit('update:modelValue', updatedValue);
 };
