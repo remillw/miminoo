@@ -40,7 +40,6 @@ const isCurrentRoute = (href: string) => {
 <template>
     <!-- Desktop Sidebar (inchangée) -->
     <aside class="hidden min-h-screen w-64 flex-col border-r bg-white lg:flex">
-        <div class="text-primary flex items-center gap-2 p-6 text-xl font-bold"><span class="text-2xl">❤️</span> Miminoo</div>
         <nav class="flex flex-1 flex-col gap-1 px-4">
             <Link
                 v-for="link in links"

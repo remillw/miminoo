@@ -63,9 +63,9 @@ const completeRegistration = () => {
     <div class="flex min-h-screen items-center justify-center bg-secondary p-4">
         <Card class="w-full max-w-2xl shadow-2xl">
             <CardHeader class="text-center">
-                <img src="/storage/logo_miminoo.png" alt="Miminoo" class="mx-auto mb-4 w-48">
+                <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta babysitter logo" class="mx-auto mb-4 w-48">
                 <CardTitle class="mb-2 text-3xl font-bold text-gray-800">
-                    {{ existingUser ? 'Finalisons votre profil' : 'Bienvenue sur Miminoo !' }}
+                    {{ existingUser ? 'Finalisons votre profil' : 'Bienvenue !' }}
                 </CardTitle>
                 <p class="text-lg text-gray-600">
                     {{

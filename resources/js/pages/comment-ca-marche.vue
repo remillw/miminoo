@@ -9,10 +9,10 @@ import ReassuranceSection from '../components/ReassuranceSection.vue';
     <GlobalLayout>
         <div class="flex items-center justify-center bg-secondary px-4 py-10">
             <div class="w-full max-w-4xl text-center">
-                <h1 class="mb-6 text-4xl font-bold text-gray-900 md:text-5xl">Comment fonctionne Miminoo ?</h1>
+                <h1 class="mb-6 text-4xl font-bold text-gray-900 md:text-5xl">Comment fonctionne la plateforme ?</h1>
 
                 <p class="mx-auto mb-12 max-w-2xl text-lg leading-relaxed text-gray-600 md:text-xl">
-                    Découvrez comment Miminoo vous aide à trouver la babysitter idéale en toute confiance, que ce soit pour une garde d'urgence ou
+                    Découvrez comment la plateforme vous aide à trouver la babysitter idéale en toute confiance, que ce soit pour une garde d'urgence ou
                     planifiée.
                 </p>
 

@@ -1,4 +1,4 @@
-# 🔐 Guide de Vérification Stripe - Miminoo
+# 🔐 Guide de Vérification Stripe - Trouve ta Babysitter
 
 ## 📋 Vue d'ensemble
 

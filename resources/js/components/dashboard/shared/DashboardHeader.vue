@@ -1,9 +1,15 @@
 <template>
-    <header class="sticky top-0 z-30 w-full bg-white shadow-sm">
+    <header class="sticky top-0 py-3 z-30 w-full bg-white shadow-sm">
         <nav class="max-w-9xl mx-auto flex h-16 items-center justify-between px-4">
             <!-- Logo -->
             <div class="flex items-center gap-2">
-                <img src="/storage/logo_miminoo.png" alt="Miminoo" class="h-8 w-auto" />
+                <Link href="/" class="inline-block">
+    <img
+      src="/storage/trouve-ta-babysitter-logo.svg"
+      alt="Trouve ta Babysitter logo"
+      class="h-15 w-auto"
+    />
+  </Link>
             </div>
 
             <!-- Navigation principale -->
@@ -101,6 +107,7 @@ import { router } from '@inertiajs/vue3';
 import { AlertTriangle, Bell, DollarSign, MessageCircle, Star } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
+import { Link } from '@inertiajs/vue3';
 
 interface User {
     id: number;

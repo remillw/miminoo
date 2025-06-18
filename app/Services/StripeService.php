@@ -41,7 +41,7 @@ class StripeService
                 'business_type' => 'individual',
                 'metadata' => [
                     'user_id' => $user->id,
-                    'platform' => 'miminoo'
+                    'platform' => 'TrouvetaBabysitter'
                 ]
             ];
 
@@ -385,7 +385,7 @@ class StripeService
                     'name' => $user->firstname . ' ' . $user->lastname,
                     'metadata' => [
                         'user_id' => $user->id,
-                        'platform' => 'miminoo'
+                        'platform' => 'TrouvetaBabysitter'
                     ]
                 ]);
                 
@@ -405,7 +405,7 @@ class StripeService
                     'enabled' => true,
                 ],
                 'metadata' => [
-                    'platform' => 'miminoo',
+                    'platform' => 'TrouvetaBabysitter',
                     'type' => 'reservation_deposit',
                     'user_id' => $user->id
                 ]
@@ -1292,7 +1292,7 @@ class StripeService
             $updateData = [
                 'metadata' => [
                     'user_id' => $user->id,
-                    'platform' => 'miminoo',
+                    'platform' => 'TrouvetaBabysitter',
                     'identity_session_id' => $sessionId,
                     'identity_status' => $verificationSession->status,
                     'identity_linked_at' => now()->toISOString()
@@ -1509,7 +1509,7 @@ class StripeService
                 ],
                 'metadata' => [
                     'user_id' => $user->id,
-                    'platform' => 'miminoo',
+                    'platform' => 'TrouvetaBabysitter',
                     'identity_session_id' => $user->stripe_identity_session_id,
                     'identity_status' => $session->status,
                     'identity_document_verified' => 'true',
@@ -1750,7 +1750,7 @@ class StripeService
             $updateData = [
                 'metadata' => [
                     'user_id' => $user->id,
-                    'platform' => 'miminoo',
+                    'platform' => 'TrouvetaBabysitter',
                     'identity_session_id' => $user->stripe_identity_session_id,
                     'identity_status' => $session->status,
                     'identity_document_verified' => 'true',
@@ -1808,7 +1808,7 @@ class StripeService
                     'name' => $user->firstname . ' ' . $user->lastname,
                     'metadata' => [
                         'user_id' => $user->id,
-                        'platform' => 'miminoo'
+                        'platform' => 'TrouvetaBabysitter'
                     ]
                 ]);
                 
@@ -1825,7 +1825,7 @@ class StripeService
                 'return_url' => route('messaging.index'),
                 'metadata' => [
                     'user_id' => $user->id,
-                    'platform' => 'miminoo',
+                    'platform' => 'TrouvetaBabysitter',
                     'payment_type' => 'reservation_deposit'
                 ]
             ];
@@ -1874,7 +1874,7 @@ class StripeService
                     'name' => $user->firstname . ' ' . $user->lastname,
                     'metadata' => [
                         'user_id' => $user->id,
-                        'platform' => 'miminoo'
+                        'platform' => 'TrouvetaBabysitter'
                     ]
                 ]);
                 
@@ -2154,7 +2154,7 @@ class StripeService
                 'metadata' => [
                     'babysitter_id' => $babysitter->id,
                     'period' => $period,
-                    'platform' => 'miminoo'
+                    'platform' => 'TrouvetaBabysitter'
                 ]
             ]);
 
@@ -2198,7 +2198,7 @@ class StripeService
             'name' => $user->firstname . ' ' . $user->lastname,
             'metadata' => [
                 'user_id' => $user->id,
-                'platform' => 'miminoo'
+                'platform' => 'TrouvetaBabysitter'
             ]
         ]);
 

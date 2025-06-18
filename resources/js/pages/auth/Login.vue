@@ -42,13 +42,13 @@ const submit = () => {
 
         <!-- Logo -->
         <div class="py-10 pt-10 text-center">
-            <img src="/storage/logo_miminoo.png" alt="Miminoo" class="mx-auto h-10 w-auto" />
+            <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter logo" class="mx-auto h-10 w-auto" />
         </div>
 
         <!-- Form container -->
         <div class="mx-auto mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
             <h2 class="mb-1 text-center text-2xl font-bold">Connexion</h2>
-            <p class="mb-6 text-center text-gray-500">Bienvenue sur Miminoo</p>
+            <p class="mb-6 text-center text-gray-500">Bienvenue sur la plateforme de babysitting</p>
 
             <!-- Boutons de connexion sociale -->
             <div class="mb-6 space-y-3">

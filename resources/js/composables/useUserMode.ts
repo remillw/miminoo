@@ -2,7 +2,7 @@ import { ref, watch } from 'vue';
 
 type UserMode = 'parent' | 'babysitter';
 
-const STORAGE_KEY = 'miminoo_user_mode';
+const STORAGE_KEY = 'babysitter_user_mode';
 
 // État global réactif
 const currentMode = ref<UserMode>('parent');

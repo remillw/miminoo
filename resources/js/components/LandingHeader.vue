@@ -24,13 +24,19 @@ const authNavLinks = [
 </script>
 
 <template>
-    <header class="sticky top-0 z-30 w-full bg-white/90 shadow-sm">
+    <header class="sticky top-0 py-5 z-30 w-full bg-white/90 shadow-sm">
         <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
             <!-- Logo -->
-            <Link href="/" class="text-primary flex items-center gap-2 text-xl font-bold">
-                <span class="text-2xl">❤️</span>
-                Miminoo
-            </Link>
+            <div class="flex flex-col items-center md:items-start text-center md:text-left">
+  <Link href="/" class="inline-block">
+    <img
+      src="/storage/trouve-ta-babysitter-logo.svg"
+      alt="Trouve ta Babysitter logo"
+      class="h-15 w-auto"
+    />
+  </Link>
+</div>
+
 
             <!-- Desktop nav -->
             <div class="hidden items-center gap-6 md:flex">
@@ -80,8 +86,13 @@ const authNavLinks = [
                     <SheetContent side="left" class="w-64 p-0">
                         <SheetHeader class="border-b p-4">
                             <SheetTitle>
-                                <span class="text-primary flex items-center gap-2 text-xl font-bold"> <span class="text-2xl">❤️</span> Miminoo </span>
-                            </SheetTitle>
+                                <Link href="/" class="inline-block">
+    <img
+      src="/storage/trouve-ta-babysitter-logo.svg"
+      alt="Trouve ta Babysitter logo"
+      class="h-15 w-auto"
+    />
+  </Link>                            </SheetTitle>
                         </SheetHeader>
                         <div class="flex flex-col gap-2 p-4">
                             <template v-if="user">

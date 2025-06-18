@@ -23,7 +23,7 @@ const steps = [
   {
     icon: CreditCard,
     title: 'Payez en toute sécurité',
-    desc: `Réglez directement le nombre d'heures souhaitées via Miminoo. Le paiement est sécurisé, et la babysitter reçoit une confirmation instantanée.`,
+    desc: `Réglez directement le nombre d'heures souhaitées via la plateforme. Le paiement est sécurisé, et la babysitter reçoit une confirmation instantanée.`,
     bgColor: 'bg-[#FFBF43]', // jaune
   },
 ];
