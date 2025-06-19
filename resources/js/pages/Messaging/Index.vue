@@ -369,7 +369,7 @@ import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import CandidatureChat from './Components/CandidatureChat.vue';
 import ChatInput from './Components/ChatInput.vue';
 import ChatMessages from './Components/ChatMessages.vue';
@@ -389,13 +389,28 @@ const { currentMode, initializeMode } = useUserMode();
 onMounted(async () => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
 
-    // Attendre que Echo soit disponible côté client
-    await nextTick();
+    // Attendre que Echo soit disponible avec un timeout
+    let attempts = 0;
+    const maxAttempts = 10;
 
-    // Debug Echo
-    console.log('🔧 Echo disponible:', !!window.Echo);
-    console.log('🔧 Echo connector:', window.Echo?.connector?.name);
-    console.log('🔧 Echo state:', window.Echo?.connector?.pusher?.connection?.state);
+    const checkEcho = () => {
+        if (window.Echo) {
+            console.log('🔧 ✅ Echo maintenant disponible:', !!window.Echo);
+            console.log('🔧 Echo connector:', window.Echo?.connector?.name);
+            console.log('🔧 Echo state:', window.Echo?.connector?.pusher?.connection?.state);
+            return;
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+            console.log(`🔧 ⏳ Echo pas encore prêt (tentative ${attempts}/${maxAttempts}), attente...`);
+            setTimeout(checkEcho, 500);
+        } else {
+            console.log('🔧 ❌ Echo toujours pas disponible après 5 secondes');
+        }
+    };
+
+    checkEcho();
 });
 
 // Refs

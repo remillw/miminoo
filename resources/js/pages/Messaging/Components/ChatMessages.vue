@@ -110,8 +110,52 @@ const props = defineProps({
 const emit = defineEmits(['pay-deposit']);
 const page = usePage();
 
-// Echo composable
-const { echoReady, listenToChannel, leaveChannel } = useEcho();
+// Echo state local
+const echoReady = ref(false);
+const currentEcho = ref(null);
+
+// Fonction pour attendre Echo
+const initEcho = async () => {
+    try {
+        if (window.Echo) {
+            currentEcho.value = window.Echo;
+            echoReady.value = true;
+            return;
+        }
+
+        // Attendre jusqu'à 5 secondes
+        let attempts = 0;
+        while (!window.Echo && attempts < 10) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            attempts++;
+        }
+
+        if (window.Echo) {
+            currentEcho.value = window.Echo;
+            echoReady.value = true;
+            console.log('✅ Echo trouvé après attente');
+        } else {
+            console.warn('❌ Echo toujours introuvable');
+        }
+    } catch (error) {
+        console.error('❌ Erreur init Echo:', error);
+    }
+};
+
+// Fonction pour écouter un canal
+const listenToChannel = (channelName, eventName, callback) => {
+    if (!currentEcho.value) return null;
+    const channel = currentEcho.value.private(channelName);
+    channel.listen(eventName, callback);
+    return channel;
+};
+
+// Fonction pour quitter un canal
+const leaveChannel = (channelName) => {
+    if (currentEcho.value) {
+        currentEcho.value.leave(channelName);
+    }
+};
 
 // État local
 const messages = ref([]);
@@ -123,6 +167,11 @@ const currentChannel = ref(null);
 
 // Utilisateur actuel
 const currentUser = computed(() => page.props.auth.user);
+
+// Initialiser Echo au montage
+onMounted(async () => {
+    await initEcho();
+});
 
 // Watcher pour charger les messages quand la conversation change
 watch(
