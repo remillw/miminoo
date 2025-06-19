@@ -21,25 +21,43 @@ if (typeof window !== 'undefined') {
         .then(({ default: Pusher }) => {
             window.Pusher = Pusher;
 
-            echo = new Echo({
-                broadcaster: 'pusher',
-                key: 'bhdonn8eanhd6h1txapi', // Ton REVERB_APP_KEY
-                cluster: '', // Important : chaîne vide pour désactiver Pusher natif
-                wsHost: 'trouvetababysitter.fr',
-                wsPort: 443,
-                wssPort: 443,
-                wsPath: '/reverb', // ✅ pour Laravel Reverb
-                forceTLS: true,
-                enabledTransports: ['wss'], // pas de fallback HTTP
-                disableStats: true,
-                authEndpoint: '/broadcasting/auth',
-                auth: {
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-                        'X-Requested-With': 'XMLHttpRequest',
+            // Détection environnement
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+            if (isLocal) {
+                // Configuration locale avec Reverb
+                echo = new Echo({
+                    broadcaster: 'reverb',
+                    key: 'bhdonn8eanhd6h1txapi',
+                    wsHost: 'localhost',
+                    wsPort: 8080,
+                    wssPort: 8080,
+                    forceTLS: false,
+                    enabledTransports: ['ws'],
+                    authEndpoint: '/broadcasting/auth',
+                    auth: {
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
                     },
-                },
-            });
+                });
+            } else {
+                // Configuration production avec Pusher
+                echo = new Echo({
+                    broadcaster: 'pusher',
+                    key: import.meta.env.VITE_PUSHER_APP_KEY || 'votre-pusher-key',
+                    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'eu',
+                    forceTLS: true,
+                    authEndpoint: '/broadcasting/auth',
+                    auth: {
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                });
+            }
 
             // 🔧 Debug état de connexion
             echo.connector.pusher.connection.bind('connected', () => {
