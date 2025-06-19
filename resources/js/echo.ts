@@ -30,6 +30,7 @@ if (typeof window !== 'undefined') {
         wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
         wsPort: import.meta.env.VITE_REVERB_PORT || 443,
         wssPort: import.meta.env.VITE_REVERB_PORT || 443,
+        wsPath: '/reverb', // 👈 AJOUT ICI
         forceTLS: true,
         enabledTransports: ['wss'],
         authEndpoint: '/broadcasting/auth',
@@ -40,6 +41,7 @@ if (typeof window !== 'undefined') {
             },
         },
     });
+
 
     // Logs avec typage correct
     if (echo.connector && 'pusher' in echo.connector) {
