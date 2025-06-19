@@ -11,14 +11,16 @@ const getCsrfToken = (): string => document.querySelector('meta[name="csrf-token
 
 // Création de l'instance Echo
 const echo = new Echo({
-    broadcaster: 'pusher', // ✅ même pour Reverb
+    broadcaster: 'pusher',
     key: import.meta.env.VITE_REVERB_APP_KEY,
+    cluster: undefined, // ✅ évite l'erreur "must provide a cluster"
     wsHost: import.meta.env.VITE_REVERB_HOST,
     wsPort: Number(import.meta.env.VITE_REVERB_PORT),
     wssPort: Number(import.meta.env.VITE_REVERB_PORT),
     wsPath: '/reverb',
     forceTLS: import.meta.env.VITE_REVERB_SCHEME === 'https',
-    enabledTransports: ['wss'], // 'ws' si tu veux aussi http local
+    enabledTransports: ['wss'],
+    disableStats: true, // ✅ évite que pusher essaie d’envoyer des metrics
     authEndpoint: '/broadcasting/auth',
     auth: {
         headers: {
@@ -27,6 +29,7 @@ const echo = new Echo({
         },
     },
 });
+
 
 // Logs utiles
 if (echo.connector?.pusher?.connection) {
