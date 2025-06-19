@@ -1,26 +1,26 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-// Injection globale Pusher pour Echo
+// Injection globale
 if (typeof window !== 'undefined') {
     window.Pusher = Pusher;
 }
 
-// Récupération du CSRF token
+// Récupération du CSRF
 const getCsrfToken = (): string => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
-// Création de l'instance Echo
+// Configuration d’Echo avec Reverb
 const echo = new Echo({
     broadcaster: 'pusher',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    cluster: undefined, // ✅ évite l'erreur "must provide a cluster"
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: Number(import.meta.env.VITE_REVERB_PORT),
-    wssPort: Number(import.meta.env.VITE_REVERB_PORT),
+    key: 'bhdonn8eanhd6h1txapi', // Ton REVERB_APP_KEY
+    cluster: '', // important : doit être une string vide ou undefined (pas "undefined")
+    wsHost: 'trouvetababysitter.fr',
+    wsPort: 443,
+    wssPort: 443,
     wsPath: '/reverb',
-    forceTLS: import.meta.env.VITE_REVERB_SCHEME === 'https',
+    forceTLS: true,
     enabledTransports: ['wss'],
-    disableStats: true, // ✅ évite que pusher essaie d’envoyer des metrics
+    disableStats: true,
     authEndpoint: '/broadcasting/auth',
     auth: {
         headers: {
@@ -30,8 +30,7 @@ const echo = new Echo({
     },
 });
 
-
-// Logs utiles
+// Debug
 if (echo.connector?.pusher?.connection) {
     echo.connector.pusher.connection.bind('connected', () => {
         console.log('🟢 Echo Reverb CONNECTÉ !');
