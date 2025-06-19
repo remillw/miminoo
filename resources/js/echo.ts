@@ -2,96 +2,68 @@
 
 import Echo from 'laravel-echo';
 
-// Déclaration TypeScript
 declare global {
     interface Window {
         Pusher: any;
-        Echo: any;
+        Echo: Echo;
     }
 }
 
-let echo: any = null;
+let echo: Echo | null = null;
 
-// ✅ Promesse pour attendre que Echo soit prêt
-let echoPromise: Promise<any> | null = null;
+let echoPromise: Promise<Echo> | null = null;
 
-// ✅ S'assurer d'être côté client
 if (typeof window !== 'undefined') {
     echoPromise = import('pusher-js')
         .then(({ default: Pusher }) => {
             window.Pusher = Pusher;
 
-            // Détection environnement
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-            if (isLocal) {
-                // Configuration locale avec Reverb
-                echo = new Echo({
-                    broadcaster: 'reverb',
-                    key: 'bhdonn8eanhd6h1txapi',
-                    wsHost: 'localhost',
-                    wsPort: 8080,
-                    wssPort: 8080,
-                    forceTLS: false,
-                    enabledTransports: ['ws'],
-                    authEndpoint: '/broadcasting/auth',
-                    auth: {
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
+            echo = new Echo({
+                broadcaster: 'pusher', // ✅ même pour Reverb
+                key: 'bhdonn8eanhd6h1txapi',
+                cluster: '', // vide car c'est Reverb, pas Pusher
+                wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
+                wsPort: isLocal ? 8080 : 443,
+                wssPort: isLocal ? 8080 : 443,
+                wsPath: '/reverb',
+                forceTLS: !isLocal,
+                enabledTransports: ['wss'],
+                disableStats: true,
+                authEndpoint: '/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                        'X-Requested-With': 'XMLHttpRequest',
                     },
-                });
-            } else {
-                // Configuration production avec Pusher
-                echo = new Echo({
-                    broadcaster: 'pusher',
-                    key: import.meta.env.VITE_PUSHER_APP_KEY || 'votre-pusher-key',
-                    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'eu',
-                    forceTLS: true,
-                    authEndpoint: '/broadcasting/auth',
-                    auth: {
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                    },
-                });
-            }
+                },
+            });
 
-            // 🔧 Debug état de connexion
+            // Debug
             echo.connector.pusher.connection.bind('connected', () => {
-                console.log('🟢 Echo Reverb CONNECTÉ !');
+                console.log('🟢 Echo connecté');
             });
             echo.connector.pusher.connection.bind('disconnected', () => {
-                console.log('🔴 Echo Reverb DÉCONNECTÉ !');
+                console.warn('🔴 Echo déconnecté');
             });
             echo.connector.pusher.connection.bind('error', (err: any) => {
-                console.error('❌ Erreur Echo Reverb :', err);
+                console.error('❌ Erreur Echo :', err);
             });
 
-            // ✅ Attacher à window pour accès global
             window.Echo = echo;
-
-            console.log('✅ Echo initialisé et attaché à window.Echo');
             return echo;
         })
-        .catch((error) => {
-            console.error('💥 Erreur initialisation Echo:', error);
+        .catch((e) => {
+            console.error('💥 Erreur chargement Echo:', e);
             return null;
         });
 }
 
-// ✅ Fonction pour attendre que Echo soit prêt
-export const waitForEcho = (): Promise<any> => {
-    if (typeof window === 'undefined') {
-        return Promise.resolve(null);
-    }
-
+export const waitForEcho = (): Promise<Echo | null> => {
     return echoPromise || Promise.resolve(null);
 };
 
-// ✅ Fonction pour vérifier si Echo est déjà prêt
 export const isEchoReady = (): boolean => {
     return typeof window !== 'undefined' && !!window.Echo;
 };
