@@ -52,8 +52,10 @@ createInertiaApp({
 
         app.use(plugin).use(ZiggyVue).mount(el);
 
-        // Rendre Echo disponible globalement
-        window.Echo = echo;
+        // Rendre Echo disponible globalement seulement côté client
+        if (typeof window !== 'undefined') {
+            window.Echo = echo;
+        }
     },
     progress: {
         color: '#4B5563',
