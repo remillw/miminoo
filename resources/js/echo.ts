@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
                 wssPort: isLocal ? 8080 : 443,
                 wsPath: '/reverb',
                 forceTLS: !isLocal,
-                enabledTransports: isLocal ? ['ws'] : ['wss'],
+                enabledTransports: ['websocket'],
                 disableStats: true,
                 authEndpoint: '/broadcasting/auth',
                 auth: {
@@ -37,10 +37,16 @@ if (typeof window !== 'undefined') {
             };
 
             console.log('🔧 Configuration Echo utilisée:', config);
-            echo = new Echo(config as any);
 
-            waitForConnectionEstablished(echo);
+            // Important : cast vers any pour éviter mauvaise détection TS
+            const EchoConstructor = Echo as any;
+            echo = new EchoConstructor(config);
+
             window.Echo = echo;
+
+            // Attendre le temps que `connector` se setup (car avec Reverb c’est asynchrone)
+            waitForConnectionEstablished();
+
             return echo;
         })
         .catch((e) => {
@@ -49,50 +55,33 @@ if (typeof window !== 'undefined') {
         });
 }
 
-/**
- * Attend que la connexion Echo soit bien établie pour debugger proprement
- */
-function waitForConnectionEstablished(echoInstance: any, retry = 0): void {
+function waitForConnectionEstablished(retry = 0) {
     const maxRetries = 10;
-    const connector = echoInstance.connector;
-    const connection = connector?.pusher?.connection;
+    const connector = window.Echo?.connector as any;
+    const connection = connector?.pusher?.connection || connector?.connection;
 
-    console.log(`🔍 [Tentative ${retry + 1}/${maxRetries}] État de la connexion:`, {
+    console.log(`🔍 [Tentative ${retry + 1}/${maxRetries}] Connexion :`, {
         connector: connector?.name,
         state: connection?.state,
-        pusher: !!connector?.pusher,
-        connection: !!connection,
         readyState: connection?.readyState,
-        url: connection?.transport?.url || 'N/A',
+        url: connection?.transport?.url ?? 'N/A',
     });
 
     if (connection?.state === 'connected') {
-        console.log('🟢 Echo connecté avec succès !');
-        console.log('🔧 Connector:', connector?.name);
-        console.log('🔧 State:', connection?.state);
-        console.log('🔧 URL:', connection?.transport?.url);
-
-        // Ajouter les listeners d'événements globaux
-        connection.bind('connected', () => console.log('🎉 Événement connected reçu'));
-        connection.bind('disconnected', () => console.log('🔴 Événement disconnected reçu'));
-        connection.bind('error', (err: any) => console.error('❌ Événement error reçu:', err));
-
+        console.log('✅ Echo connecté à Reverb');
+        connection.bind?.('connected', () => console.log('🎉 Connecté'));
+        connection.bind?.('disconnected', () => console.warn('🔴 Déconnecté'));
+        connection.bind?.('error', (err: any) => console.error('❌ Erreur Echo :', err));
         return;
     }
 
     if (retry >= maxRetries) {
         console.warn('❌ Echo non connecté après plusieurs tentatives');
-        console.warn('🔧 Dernière info connection:', {
-            connector: connector?.name,
-            state: connection?.state,
-            pusher: !!connector?.pusher,
-            connection: !!connection,
-        });
         return;
     }
 
     setTimeout(() => {
-        waitForConnectionEstablished(echoInstance, retry + 1);
+        waitForConnectionEstablished(retry + 1);
     }, 500);
 }
 
