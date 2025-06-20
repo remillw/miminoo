@@ -177,6 +177,38 @@ onMounted(async () => {
     console.log('🔍 Cookies document:', document.cookie);
     console.log('🔍 CSRF token:', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
 
+    // Test manuel de l'endpoint d'authentification
+    console.log('🧪 TEST ENDPOINT BROADCASTING AUTH:');
+    try {
+        const response = await fetch('/broadcasting/auth', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include', // Inclure les cookies
+            body: JSON.stringify({
+                socket_id: 'test-socket-id',
+                channel_name: 'private-conversation.1',
+            }),
+        });
+
+        console.log('🧪 Response status:', response.status);
+        console.log('🧪 Response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('🧪 ✅ AUTH SUCCESS:', data);
+        } else {
+            const errorData = await response.text();
+            console.log('🧪 ❌ AUTH FAILED:', errorData);
+        }
+    } catch (error) {
+        console.error('🧪 ❌ AUTH ERROR:', error);
+    }
+
     await initEcho();
 });
 
@@ -447,7 +479,24 @@ function addChannelListeners() {
     channel.error((error) => {
         console.error('❌ 🚨 ERREUR CONNEXION CANAL:', error);
         console.error('❌ 🚨 Détails erreur:', JSON.stringify(error, null, 2));
+        console.error('❌ 🚨 Type erreur:', typeof error);
+        console.error('❌ 🚨 Status:', error.status);
+        console.error('❌ 🚨 Message:', error.message);
     });
+
+    // Écouter les erreurs d'authentification spécifiques
+    if (currentChannel.value?.pusher) {
+        currentChannel.value.pusher.bind('pusher:subscription_error', (error) => {
+            console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL:', error);
+            console.error('❌ 🔐 Status:', error.status);
+            console.error('❌ 🔐 Type:', error.type);
+            console.error('❌ 🔐 Message:', error.message);
+        });
+
+        currentChannel.value.pusher.bind('pusher:subscription_succeeded', (data) => {
+            console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE:', data);
+        });
+    }
 }
 
 // Exposer la fonction pour recharger depuis le parent
