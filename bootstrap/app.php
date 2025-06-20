@@ -20,9 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
-        // Exclure les webhooks Stripe de la vérification CSRF
+        // Exclure les webhooks Stripe et les routes de broadcasting de la vérification CSRF
         $middleware->validateCsrfTokens(except: [
             'stripe/webhook',
+            'broadcasting/auth',
         ]);
 
         $middleware->alias([

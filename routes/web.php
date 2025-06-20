@@ -256,7 +256,7 @@ require __DIR__.'/auth.php';
 require __DIR__.'/channels.php';
 
 // Support pour le broadcasting (authentification WebSocket)
-Broadcast::routes(['middleware' => ['auth', \App\Http\Middleware\LogBroadcastingAuth::class]]);
+Broadcast::routes(['middleware' => ['auth']]);
 
 
 // Route fallback pour les 404 - DOIT être en dernier
