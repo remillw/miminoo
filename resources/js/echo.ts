@@ -23,8 +23,8 @@ if (typeof window !== 'undefined') {
     try {
         window.Echo = new Echo({
             broadcaster: 'pusher', // Reverb émule Pusher
-            key: appKey,
-            wsHost: host,
+            key: 'bhdonn8eanhd6h1txapi',
+            wsHost: 'trouvetababysitter.fr',
             cluster: 'mt1', // ✅ requis même avec Reverb
             wsPath: '/reverb', // ✅ ajoute uniquement le préfixe custom
             forceTLS: true,
