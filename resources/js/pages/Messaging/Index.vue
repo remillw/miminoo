@@ -1,7 +1,7 @@
 <template>
     <DashboardLayout :currentMode="currentMode">
         <!-- Version Desktop (inchangée) -->
-        <div class="hidden lg:flex h-[calc(100vh-200px)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div class="hidden h-[calc(100vh-200px)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm lg:flex">
             <!-- Sidebar conversations/candidatures -->
             <div class="flex w-80 flex-shrink-0 flex-col border-r border-gray-200 bg-white">
                 <!-- Header avec recherche -->
@@ -95,7 +95,7 @@
 
                                 <!-- Tarif pour candidatures -->
                                 <div v-if="conversation.type === 'application' && conversation.application" class="flex items-center gap-2">
-                                    <span class="bg-secondary rounded px-2 py-1 text-sm font-semibold text-primary">
+                                    <span class="bg-secondary text-primary rounded px-2 py-1 text-sm font-semibold">
                                         {{ conversation.application.proposed_rate }}€/h
                                     </span>
                                     <span v-if="conversation.application.counter_rate" class="text-xs text-gray-500"> → </span>
@@ -185,22 +185,18 @@
         </div>
 
         <!-- Version Mobile -->
-        <div class="lg:hidden h-[calc(100vh-140px)] flex flex-col bg-white">
+        <div class="flex h-[calc(100vh-140px)] flex-col bg-white lg:hidden">
             <!-- Liste des conversations (vue par défaut sur mobile) -->
-            <div v-if="!selectedConversation || showConversationsList" class="flex flex-col h-full">
+            <div v-if="!selectedConversation || showConversationsList" class="flex h-full flex-col">
                 <!-- Header mobile -->
-                <div class="flex-shrink-0 bg-white border-b border-gray-200 p-4">
-                    <div class="flex items-center justify-between mb-3">
+                <div class="flex-shrink-0 border-b border-gray-200 bg-white p-4">
+                    <div class="mb-3 flex items-center justify-between">
                         <h1 class="text-xl font-semibold text-gray-900">Messages</h1>
-                        <button
-                            v-if="selectedConversation"
-                            @click="showConversationsList = false"
-                            class="text-blue-600 text-sm font-medium"
-                        >
+                        <button v-if="selectedConversation" @click="showConversationsList = false" class="text-sm font-medium text-blue-600">
                             Retour au chat
                         </button>
                     </div>
-                    
+
                     <!-- Barre de recherche mobile -->
                     <div class="relative">
                         <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
@@ -268,13 +264,13 @@
                                 </div>
 
                                 <!-- Aperçu du contenu -->
-                                <p class="mb-2 text-sm leading-5 text-gray-600 line-clamp-2">
+                                <p class="mb-2 line-clamp-2 text-sm leading-5 text-gray-600">
                                     {{ conversation.last_message }}
                                 </p>
 
                                 <!-- Tarif pour candidatures -->
                                 <div v-if="conversation.type === 'application' && conversation.application" class="flex items-center gap-2">
-                                    <span class="bg-secondary rounded px-2 py-1 text-sm font-semibold text-primary">
+                                    <span class="bg-secondary text-primary rounded px-2 py-1 text-sm font-semibold">
                                         {{ conversation.application.proposed_rate }}€/h
                                     </span>
                                     <span v-if="conversation.application.counter_rate" class="text-xs text-gray-500"> → </span>
@@ -303,25 +299,22 @@
             </div>
 
             <!-- Vue de chat mobile -->
-            <div v-else class="flex flex-col h-full">
+            <div v-else class="flex h-full flex-col">
                 <!-- Header de chat mobile -->
-                <div class="flex-shrink-0 bg-white border-b border-gray-200 p-4">
+                <div class="flex-shrink-0 border-b border-gray-200 bg-white p-4">
                     <div class="flex items-center gap-3">
-                        <button
-                            @click="backToConversationsList"
-                            class="p-1 -ml-1 text-gray-600 hover:text-gray-900"
-                        >
+                        <button @click="backToConversationsList" class="-ml-1 p-1 text-gray-600 hover:text-gray-900">
                             <ArrowLeft class="h-6 w-6" />
                         </button>
-                        
-                        <div class="flex items-center gap-3 flex-1 min-w-0">
+
+                        <div class="flex min-w-0 flex-1 items-center gap-3">
                             <img
                                 :src="selectedConversation.other_user.avatar || '/default-avatar.svg'"
                                 :alt="selectedConversation.other_user.name"
                                 class="h-10 w-10 rounded-full object-cover ring-2 ring-gray-100"
                             />
                             <div class="min-w-0 flex-1">
-                                <h2 class="font-semibold text-gray-900 truncate">{{ selectedConversation.other_user.name }}</h2>
+                                <h2 class="truncate font-semibold text-gray-900">{{ selectedConversation.other_user.name }}</h2>
                                 <p class="text-sm text-gray-500">
                                     {{ selectedConversation.other_user.online ? 'En ligne' : 'Hors ligne' }}
                                 </p>
@@ -336,7 +329,7 @@
                 </div>
 
                 <!-- Candidature mobile (si applicable) -->
-                <div v-if="selectedConversation.type === 'application'" class="flex-shrink-0 bg-orange-50 border-b border-orange-200 p-4">
+                <div v-if="selectedConversation.type === 'application'" class="flex-shrink-0 border-b border-orange-200 bg-orange-50 p-4">
                     <CandidatureChat
                         :application="selectedConversation.application"
                         :user-role="userRole"
@@ -351,12 +344,7 @@
 
                 <!-- Messages mobile -->
                 <div class="flex-1 overflow-hidden">
-                    <ChatMessages 
-                        :conversation="selectedConversation" 
-                        :user-role="userRole" 
-                        :mobile="true"
-                        ref="chatMessagesRef" 
-                    />
+                    <ChatMessages :conversation="selectedConversation" :user-role="userRole" :mobile="true" ref="chatMessagesRef" />
                 </div>
 
                 <!-- Zone de saisie mobile -->
@@ -380,12 +368,12 @@
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
-import { MessageSquare, MessagesSquare, Search, ChevronRight, ArrowLeft, MoreVertical } from 'lucide-vue-next';
+import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import CandidatureChat from './Components/CandidatureChat.vue';
-import ConversationHeader from './Components/ConversationHeader.vue';
 import ChatInput from './Components/ChatInput.vue';
 import ChatMessages from './Components/ChatMessages.vue';
+import ConversationHeader from './Components/ConversationHeader.vue';
 
 const props = defineProps({
     conversations: Array,
@@ -398,13 +386,34 @@ const props = defineProps({
 const { currentMode, initializeMode } = useUserMode();
 
 // Initialiser le mode au montage du composant
-onMounted(() => {
+onMounted(async () => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
 
-    // Debug Echo
-    console.log('🔧 Echo disponible:', !!window.Echo);
-    console.log('🔧 Echo connector:', window.Echo?.connector?.name);
-    console.log('🔧 Echo state:', window.Echo?.connector?.pusher?.connection?.state);
+    // Attendre que Echo soit disponible avec un timeout
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const checkEcho = () => {
+        if (window.Echo) {
+            console.log('🔧 ✅ Echo maintenant disponible:', !!window.Echo);
+            console.log('🔧 Echo connector:', window.Echo.connector);
+            console.log('🔧 Echo options:', window.Echo.options);
+
+            // Pour Reverb, vérifier la connexion différemment
+            
+            return;
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+            console.log(`🔧 ⏳ Echo pas encore prêt (tentative ${attempts}/${maxAttempts}), attente...`);
+            setTimeout(checkEcho, 500);
+        } else {
+            console.log('🔧 ❌ Echo toujours pas disponible après 5 secondes');
+        }
+    };
+
+    checkEcho();
 });
 
 // Refs

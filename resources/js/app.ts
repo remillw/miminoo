@@ -7,7 +7,7 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { initializeTheme } from './composables/useAppearance';
-import echo from './echo';
+import { waitForEcho } from './echo';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -52,8 +52,13 @@ createInertiaApp({
 
         app.use(plugin).use(ZiggyVue).mount(el);
 
-        // Rendre Echo disponible globalement
-        window.Echo = echo;
+        // Rendre Echo disponible globalement seulement côté client
+       if (typeof window !== 'undefined') {
+           waitForEcho().then((resolvedEcho) => {
+               window.Echo = resolvedEcho;
+               console.log('✅ Echo chargé dans app.ts', resolvedEcho);
+           });
+       }  
     },
     progress: {
         color: '#4B5563',
