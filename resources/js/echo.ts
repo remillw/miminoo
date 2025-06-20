@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
 
-    const path = `/reverb/app/${appKey}`; // au lieu de `/app/${appKey}`
+    const path = `/app/${appKey}`; // ✅ correct
 
     console.log('🔧 Préparation de Laravel Echo...');
     console.log('🔧 Clé Reverb :', appKey);
@@ -100,14 +100,7 @@ if (typeof window !== 'undefined') {
                 console.log('✅ Authentification canal réussie:', data);
             });
 
-            // Log de la configuration utilisée
-            console.log('🔧 Configuration WebSocket utilisée:', {
-                wsHost: host,
-                wsPath: path,
-                wsPort: 443,
-                wssPort: 443,
-                forceTLS: true,
-            });
+            // Log de la configura
         }
     } catch (e) {
         console.error("❌ Erreur lors de l'initialisation de Laravel Echo :", e);
