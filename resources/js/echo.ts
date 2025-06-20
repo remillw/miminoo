@@ -15,7 +15,6 @@ if (typeof window !== 'undefined') {
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
 
-
     console.log('🔧 Préparation de Laravel Echo...');
     console.log('🔧 Clé Reverb :', appKey);
     console.log('🔧 Host Reverb :', host);
@@ -38,6 +37,46 @@ if (typeof window !== 'undefined') {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
                 },
+            },
+            // Configuration pour envoyer les cookies avec les requêtes d'authentification
+            authorizer: (channel: any) => {
+                return {
+                    authorize: (socketId: string, callback: (error: boolean | Error, data?: any) => void) => {
+                        console.log("🔐 Tentative d'authentification pour canal:", channel.name);
+                        console.log('🔐 Socket ID:', socketId);
+
+                        fetch('/broadcasting/auth', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': token,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                Accept: 'application/json',
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include', // 👈 IMPORTANT: inclure les cookies
+                            body: JSON.stringify({
+                                socket_id: socketId,
+                                channel_name: channel.name,
+                            }),
+                        })
+                            .then((response) => {
+                                console.log('🔐 Réponse auth status:', response.status);
+                                if (response.ok) {
+                                    return response.json();
+                                } else {
+                                    throw new Error(`Auth failed with status ${response.status}`);
+                                }
+                            })
+                            .then((data) => {
+                                console.log('🔐 ✅ Authentification réussie:', data);
+                                callback(false, data);
+                            })
+                            .catch((error) => {
+                                console.error('🔐 ❌ Erreur authentification:', error);
+                                callback(error);
+                            });
+                    },
+                };
             },
         });
 
