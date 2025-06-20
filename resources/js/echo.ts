@@ -18,7 +18,7 @@ if (typeof window !== 'undefined') {
             const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
             echo = new Echo({
-                broadcaster: 'reverb', // ✅ pour Laravel Reverb
+                broadcaster: 'reverb',
                 key: 'bhdonn8eanhd6h1txapi',
                 wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
                 wsPort: isLocal ? 8080 : 443,
@@ -36,20 +36,7 @@ if (typeof window !== 'undefined') {
                 },
             });
 
-            // 🔧 Debug
-            echo.connector?.socket?.on('connect', () => {
-                console.log('🟢 Echo connecté');
-            });
-
-            echo.connector?.socket?.on('disconnect', () => {
-                console.warn('🔴 Echo déconnecté');
-            });
-
-            echo.connector?.socket?.on('error', (err: any) => {
-                console.error('❌ Erreur Echo :', err);
-            });
-
-            console.log('🔧 Echo connector:', echo.connector);
+            waitForConnectionEstablished(echo);
             window.Echo = echo;
             return echo;
         })
@@ -57,6 +44,31 @@ if (typeof window !== 'undefined') {
             console.error('💥 Erreur chargement Echo:', e);
             return null;
         });
+}
+
+/**
+ * Attend que la connexion Echo soit bien établie pour debugger proprement
+ */
+function waitForConnectionEstablished(echoInstance: Echo, retry = 0): void {
+    const maxRetries = 10;
+    const connector = echoInstance.connector;
+    const connection = connector?.pusher?.connection;
+
+    if (connection?.state === 'connected') {
+        console.log('🟢 Echo connecté');
+        console.log('🔧 Connector:', connector?.name);
+        console.log('🔧 State:', connection?.state);
+        return;
+    }
+
+    if (retry >= maxRetries) {
+        console.warn('❌ Echo non connecté après plusieurs tentatives');
+        return;
+    }
+
+    setTimeout(() => {
+        waitForConnectionEstablished(echoInstance, retry + 1);
+    }, 500);
 }
 
 export const waitForEcho = (): Promise<Echo | null> => {
