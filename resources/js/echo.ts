@@ -3,12 +3,12 @@ import Echo from 'laravel-echo';
 declare global {
     interface Window {
         Pusher: any;
-        Echo: Echo;
+        Echo: any;
     }
 }
 
-let echo: Echo | null = null;
-let echoPromise: Promise<Echo> | null = null;
+let echo: any = null;
+let echoPromise: Promise<any> | null = null;
 
 if (typeof window !== 'undefined') {
     echoPromise = import('pusher-js')
@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
 
             const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-            echo = new Echo({
+            const config = {
                 broadcaster: 'reverb',
                 key: 'bhdonn8eanhd6h1txapi',
                 wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
                 wssPort: isLocal ? 8080 : 443,
                 wsPath: '/reverb',
                 forceTLS: !isLocal,
-                enabledTransports: ['websocket'],
+                enabledTransports: isLocal ? ['ws'] : ['wss'],
                 disableStats: true,
                 authEndpoint: '/broadcasting/auth',
                 auth: {
@@ -34,7 +34,10 @@ if (typeof window !== 'undefined') {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                 },
-            });
+            };
+
+            console.log('🔧 Configuration Echo utilisée:', config);
+            echo = new Echo(config as any);
 
             waitForConnectionEstablished(echo);
             window.Echo = echo;
@@ -49,20 +52,42 @@ if (typeof window !== 'undefined') {
 /**
  * Attend que la connexion Echo soit bien établie pour debugger proprement
  */
-function waitForConnectionEstablished(echoInstance: Echo, retry = 0): void {
+function waitForConnectionEstablished(echoInstance: any, retry = 0): void {
     const maxRetries = 10;
     const connector = echoInstance.connector;
     const connection = connector?.pusher?.connection;
 
+    console.log(`🔍 [Tentative ${retry + 1}/${maxRetries}] État de la connexion:`, {
+        connector: connector?.name,
+        state: connection?.state,
+        pusher: !!connector?.pusher,
+        connection: !!connection,
+        readyState: connection?.readyState,
+        url: connection?.transport?.url || 'N/A',
+    });
+
     if (connection?.state === 'connected') {
-        console.log('🟢 Echo connecté');
+        console.log('🟢 Echo connecté avec succès !');
         console.log('🔧 Connector:', connector?.name);
         console.log('🔧 State:', connection?.state);
+        console.log('🔧 URL:', connection?.transport?.url);
+
+        // Ajouter les listeners d'événements globaux
+        connection.bind('connected', () => console.log('🎉 Événement connected reçu'));
+        connection.bind('disconnected', () => console.log('🔴 Événement disconnected reçu'));
+        connection.bind('error', (err: any) => console.error('❌ Événement error reçu:', err));
+
         return;
     }
 
     if (retry >= maxRetries) {
         console.warn('❌ Echo non connecté après plusieurs tentatives');
+        console.warn('🔧 Dernière info connection:', {
+            connector: connector?.name,
+            state: connection?.state,
+            pusher: !!connector?.pusher,
+            connection: !!connection,
+        });
         return;
     }
 
@@ -71,7 +96,7 @@ function waitForConnectionEstablished(echoInstance: Echo, retry = 0): void {
     }, 500);
 }
 
-export const waitForEcho = (): Promise<Echo | null> => {
+export const waitForEcho = (): Promise<any> => {
     return echoPromise || Promise.resolve(null);
 };
 
