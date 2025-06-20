@@ -22,3 +22,6 @@ if (typeof window !== 'undefined') {
     console.log('✅ Echo (Reverb) initialisé:', window.Echo);
     console.log('🔧 Connector:', window.Echo.connector?.name); // doît être "reverb"
 }
+export const waitForEcho = (): Promise<any> => {
+    return Promise.resolve(window.Echo);
+};
