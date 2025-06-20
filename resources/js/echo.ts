@@ -15,12 +15,10 @@ if (typeof window !== 'undefined') {
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
 
-    const path = `/app/${appKey}`; // ✅ correct
 
     console.log('🔧 Préparation de Laravel Echo...');
     console.log('🔧 Clé Reverb :', appKey);
     console.log('🔧 Host Reverb :', host);
-    console.log('🔧 Path WebSocket :', path);
     console.log('🔧 Token CSRF :', token);
 
     try {
@@ -29,7 +27,6 @@ if (typeof window !== 'undefined') {
             key: appKey,
             wsHost: host,
             cluster: 'mt1', // ✅ requis même avec Reverb
-            wsPath: path,
             forceTLS: true,
             enabledTransports: ['ws', 'wss'],
             authEndpoint: '/broadcasting/auth',
