@@ -42,53 +42,8 @@ if (typeof window !== 'undefined') {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
                 },
-                // Forcer l'inclusion des cookies
-                withCredentials: true,
             },
-            // Configuration supplémentaire pour Pusher
-            authorizer: (channel: any) => {
-                return {
-                    authorize: (socketId: string, callback: (error: any, data: any) => void) => {
-                        console.log('🔐 AUTHORIZER APPELÉ:', {
-                            channel: channel.name,
-                            socketId: socketId,
-                            authEndpoint: '/broadcasting/auth',
-                        });
-
-                        fetch('/broadcasting/auth', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': token,
-                                'X-Requested-With': 'XMLHttpRequest',
-                                Accept: 'application/json',
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include', // Forcer l'inclusion des cookies
-                            body: JSON.stringify({
-                                socket_id: socketId,
-                                channel_name: channel.name,
-                            }),
-                        })
-                            .then((response) => {
-                                console.log('🔐 AUTH RESPONSE STATUS:', response.status);
-                                if (response.ok) {
-                                    return response.json();
-                                } else {
-                                    throw new Error(`Auth failed: ${response.status}`);
-                                }
-                            })
-                            .then((data) => {
-                                console.log('🔐 ✅ AUTH SUCCESS:', data);
-                                callback(null, data);
-                            })
-                            .catch((error) => {
-                                console.error('🔐 ❌ AUTH ERROR:', error);
-                                callback(error, null);
-                            });
-                    },
-                };
-            },
-        } as any); // Contournement TypeScript
+        });
 
         console.log('✅ Laravel Echo initialisé avec succès');
         console.log('📡 Echo instance:', window.Echo);
