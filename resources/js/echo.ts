@@ -27,6 +27,7 @@ if (typeof window !== 'undefined') {
             key: appKey,
             wsHost: host,
             cluster: 'mt1', // ✅ requis même avec Reverb
+            wsPath: '/reverb', // ✅ ajoute uniquement le préfixe custom
             forceTLS: true,
             enabledTransports: ['ws', 'wss'],
             authEndpoint: '/broadcasting/auth',
