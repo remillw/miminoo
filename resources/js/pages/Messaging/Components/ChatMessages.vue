@@ -93,21 +93,17 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
 import { MessageSquare } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
-const props = defineProps({
-    conversation: Object,
-    userRole: String,
-    mobile: {
-        type: Boolean,
-        default: false,
-    },
-});
+const props = defineProps<{
+    conversation?: any;
+    userRole?: string;
+    mobile?: boolean;
+}>();
 
-const emit = defineEmits(['pay-deposit']);
 const page = usePage();
 
 // Echo state local
@@ -133,12 +129,12 @@ const initEcho = async () => {
         if (window.Echo) {
             currentEcho.value = window.Echo;
             echoReady.value = true;
-            console.log('✅ Echo trouvé après attente');
+            console.log('Echo initialisé avec succès');
         } else {
-            console.warn('❌ Echo toujours introuvable');
+            console.warn('Echo non disponible après attente');
         }
     } catch (error) {
-        console.error('❌ Erreur init Echo:', error);
+        console.error("Erreur lors de l'initialisation d'Echo:", error);
     }
 };
 
@@ -168,47 +164,8 @@ const currentChannel = ref(null);
 // Utilisateur actuel
 const currentUser = computed(() => page.props.auth.user);
 
-// Debug de l'utilisateur au montage
+// Initialisation au montage
 onMounted(async () => {
-    console.log('🔍 DEBUG UTILISATEUR AU MONTAGE:');
-    console.log('🔍 page.props:', page.props);
-    console.log('🔍 page.props.auth:', page.props.auth);
-    console.log('🔍 currentUser:', currentUser.value);
-    console.log('🔍 Cookies document:', document.cookie);
-    console.log('🔍 CSRF token:', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
-
-    // Test manuel de l'endpoint d'authentification
-    console.log('🧪 TEST ENDPOINT BROADCASTING AUTH:');
-    try {
-        const response = await fetch('/broadcasting/auth', {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'include', // Inclure les cookies
-            body: JSON.stringify({
-                socket_id: 'test-socket-id',
-                channel_name: 'private-conversation.1',
-            }),
-        });
-
-        console.log('🧪 Response status:', response.status);
-        console.log('🧪 Response headers:', Object.fromEntries(response.headers.entries()));
-
-        if (response.ok) {
-            const data = await response.json();
-            console.log('🧪 ✅ AUTH SUCCESS:', data);
-        } else {
-            const errorData = await response.text();
-            console.log('🧪 ❌ AUTH FAILED:', errorData);
-        }
-    } catch (error) {
-        console.error('🧪 ❌ AUTH ERROR:', error);
-    }
-
     await initEcho();
 });
 
@@ -258,7 +215,8 @@ async function loadMessages() {
             const errorData = await response.json();
             error.value = errorData.message || 'Erreur lors du chargement des messages';
         }
-    } catch (err) {
+    } catch (networkError) {
+        console.error('Erreur réseau lors du chargement des messages:', networkError);
         error.value = 'Erreur de connexion';
     } finally {
         isLoading.value = false;
@@ -292,7 +250,8 @@ function formatTime(dateString) {
             hour: '2-digit',
             minute: '2-digit',
         });
-    } catch (err) {
+    } catch (formatError) {
+        console.error('Erreur lors du formatage de la date:', formatError);
         return '00:00';
     }
 }
@@ -309,8 +268,6 @@ function scrollToBottom() {
 }
 
 async function markNewMessageAsRead(message) {
-    console.log('👁️ Marquage automatique comme lu pour message:', message.id);
-
     try {
         const response = await fetch(
             route('conversations.mark-message-read', {
@@ -329,36 +286,28 @@ async function markNewMessageAsRead(message) {
         );
 
         if (response.ok) {
-            console.log('👁️ ✅ Message marqué comme lu automatiquement');
-
-            // Marquer le message comme lu côté client aussi (évite d'attendre l'événement WebSocket)
+            // Marquer le message comme lu côté client aussi
             const messageInList = messages.value.find((m) => m.id === message.id);
             if (messageInList) {
                 messageInList.read_at = new Date().toISOString();
-                console.log('👁️ ✅ Message mis à jour côté client');
             }
-        } else {
-            console.log('👁️ ❌ Erreur lors du marquage automatique');
         }
     } catch (error) {
-        console.error('👁️ ❌ Erreur réseau lors du marquage automatique:', error);
+        console.error('Erreur lors du marquage du message comme lu:', error);
     }
 }
 
 function joinConversationChannel() {
     if (!props.conversation?.id) {
-        console.warn('⚠️ Pas de conversation ID');
         return;
     }
 
     if (!echoReady.value) {
-        console.warn('⚠️ Echo pas encore prêt, attente...');
         // Réessayer quand Echo sera prêt
         watch(
             echoReady,
             (ready) => {
                 if (ready) {
-                    console.log('✅ Echo maintenant prêt, connexion au canal...');
                     joinConversationChannel();
                 }
             },
@@ -367,95 +316,48 @@ function joinConversationChannel() {
         return;
     }
 
-    console.log('🔗 Connexion au canal conversation:', props.conversation.id);
+    console.log('Connexion au canal de conversation:', props.conversation.id);
 
-    // Utiliser le composable pour s'abonner au canal (Echo ajoute automatiquement 'private-')
+    // Utiliser le composable pour s'abonner au canal
     const channelName = `conversation.${props.conversation.id}`;
-    console.log('🔗 Nom du canal à écouter:', channelName);
     currentChannel.value = listenToChannel(channelName, 'message.sent', onNewMessage);
 
     if (!currentChannel.value) {
-        console.warn('⚠️ Impossible de créer le canal');
+        console.warn('Impossible de créer le canal');
         return;
     }
 
-    console.log('🔗 Canal créé via composable:', currentChannel.value);
-    console.log('🔗 État du canal:', {
-        name: currentChannel.value.name,
-        subscription: currentChannel.value.subscription,
-        pusher: currentChannel.value.pusher,
-    });
-
-    // Vérifier l'état de Pusher
-    if (currentChannel.value.pusher) {
-        const pusher = currentChannel.value.pusher;
-        console.log('🔗 État Pusher:', {
-            state: pusher.connection.state,
-            socket_id: pusher.connection.socket_id,
-            channels: Object.keys(pusher.channels.channels),
-        });
-
-        // Si Pusher n'est pas connecté, attendre la connexion
-        if (pusher.connection.state !== 'connected') {
-            console.log('⏳ Pusher pas encore connecté, attente...');
-            pusher.connection.bind('connected', () => {
-                console.log('✅ Pusher maintenant connecté, retry subscription');
-                // Réessayer après connexion
-                setTimeout(() => {
-                    console.log('🔄 Retry subscription après connexion Pusher');
-                    addChannelListeners();
-                }, 1000);
-            });
-        }
-    }
-
-    // Maintenant ajouter les autres événements sur le canal
+    // Ajouter les autres écouteurs sur le canal
     addChannelListeners();
 }
 
-// Nouvelle fonction pour gérer les nouveaux messages
+// Fonction pour gérer les nouveaux messages
 function onNewMessage(e) {
-    console.log('📨 🎉 NOUVEAU MESSAGE REÇU EN TEMPS RÉEL:', e);
-    console.log("📨 🔍 Structure complète de l'événement:", JSON.stringify(e, null, 2));
-    console.log('📨 Message sender_id:', e.message?.sender_id, 'type:', typeof e.message?.sender_id);
-    console.log('📨 User actuel:', currentUser.value?.id, 'type:', typeof currentUser.value?.id);
+    console.log('Nouveau message reçu:', e.message);
 
-    // Comparaison en convertissant les deux en string pour éviter les problèmes de type
     const messageSenderId = String(e.message?.sender_id);
     const currentUserId = String(currentUser.value?.id);
     const isMyMessage = messageSenderId === currentUserId;
 
-    console.log('📨 Comparaison:', messageSenderId, '===', currentUserId, '→', isMyMessage);
-
     // Ne pas ajouter notre propre message (déjà ajouté localement)
     if (!isMyMessage) {
-        console.log("📨 ✅ Ajout du message de l'autre utilisateur à la liste:", messages.value.length, '→', messages.value.length + 1);
-        console.log('📨 ✅ Message à ajouter:', e.message);
-
         messages.value.push(e.message);
 
-        // Marquer automatiquement comme lu puisque l'utilisateur est sur la conversation
+        // Marquer automatiquement comme lu
         markNewMessageAsRead(e.message);
 
         // Scroll vers le bas
         nextTick(() => {
             scrollToBottom();
         });
-
-        console.log('📨 ✅ Messages après ajout:', messages.value.length);
-    } else {
-        console.log("📨 ⏭️ Ignoré: c'est mon propre message");
     }
 }
 
 // Fonction pour ajouter les autres écouteurs sur le canal
 function addChannelListeners() {
-    if (!currentChannel.value || !window.Echo) return;
+    if (!currentChannel.value) return;
 
     const channel = currentChannel.value;
-
-    console.log('🎧 Ajout des listeners sur le canal:', channel.name);
-    console.log('🎧 Subscription state:', channel.subscription?.state);
 
     // Écouter les événements "en train d'écrire"
     channel.listenForWhisper('typing', (e) => {
@@ -478,115 +380,24 @@ function addChannelListeners() {
 
     // Écouter les événements de messages lus
     channel.listen('messages.read', (e) => {
-        console.log('👁️ Messages marqués comme lus:', e);
-
         // Marquer mes messages comme lus si c'est l'autre utilisateur qui les a lus
         if (parseInt(e.read_by) !== parseInt(currentUser.value?.id)) {
-            let updatedCount = 0;
             messages.value.forEach((message) => {
                 if (message.sender_id === currentUser.value?.id && !message.read_at) {
                     message.read_at = e.read_at;
-                    updatedCount++;
                 }
             });
-            console.log('👁️ Messages mis à jour avec statut lu:', updatedCount);
-        } else {
-            console.log('👁️ Événement lu ignoré (même utilisateur)');
         }
     });
 
-    // Debug des événements de connexion
+    // Événements de connexion
     channel.subscribed(() => {
-        console.log('✅ 🎊 CONNECTÉ AU CANAL DE CONVERSATION:', props.conversation.id);
-        console.log('✅ 🎊 URL du canal:', `conversation.${props.conversation.id}`);
-        console.log('✅ 🎊 Nom complet du canal:', channel.name);
-    });
-
-    // Debug: écouter TOUS les événements pour voir ce qui arrive
-    channel.listen('*', (eventName, data) => {
-        console.log('🎧 ÉVÉNEMENT REÇU:', eventName, data);
+        console.log('Connecté au canal de conversation:', props.conversation.id);
     });
 
     channel.error((error) => {
-        console.error('❌ 🚨 ERREUR CONNEXION CANAL:', error);
-        console.error('❌ 🚨 Détails erreur:', JSON.stringify(error, null, 2));
-        console.error('❌ 🚨 Type erreur:', typeof error);
-        console.error('❌ 🚨 Status:', error.status);
-        console.error('❌ 🚨 Message:', error.message);
+        console.error('Erreur de connexion au canal:', error);
     });
-
-    // Écouter les erreurs d'authentification spécifiques
-    if (currentChannel.value?.pusher) {
-        const pusher = currentChannel.value.pusher;
-
-        console.log('🔗 Configuration des listeners Pusher');
-
-        // Surveiller l'état de la subscription
-        if (channel.subscription) {
-            console.log('🔗 Subscription initiale state:', channel.subscription.state);
-
-            // Écouter les changements d'état
-            channel.subscription.bind('pusher:subscription_error', (error) => {
-                console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL:', error);
-                console.error('❌ 🔐 Status:', error.status);
-                console.error('❌ 🔐 Type:', error.type);
-                console.error('❌ 🔐 Message:', error.message);
-            });
-
-            channel.subscription.bind('pusher:subscription_succeeded', (data) => {
-                console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE:', data);
-            });
-
-            // Surveiller tous les événements Pusher
-            channel.subscription.bind_global((eventName, data) => {
-                console.log('🎧 PUSHER EVENT:', eventName, data);
-            });
-        } else {
-            console.warn('⚠️ Subscription non initialisée, surveillance...');
-
-            // Surveiller jusqu'à ce que la subscription soit créée
-            let retryCount = 0;
-            const checkSubscription = setInterval(() => {
-                retryCount++;
-                console.log(`🔄 Check subscription #${retryCount}:`, channel.subscription?.state);
-
-                if (channel.subscription) {
-                    console.log('✅ Subscription maintenant disponible:', channel.subscription.state);
-                    clearInterval(checkSubscription);
-
-                    // Configurer les listeners maintenant
-                    channel.subscription.bind('pusher:subscription_error', (error) => {
-                        console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL (DELAYED):', error);
-                        console.error('❌ 🔐 Status:', error.status);
-                        console.error('❌ 🔐 Type:', error.type);
-                        console.error('❌ 🔐 Message:', error.message);
-                    });
-
-                    channel.subscription.bind('pusher:subscription_succeeded', (data) => {
-                        console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE (DELAYED):', data);
-                    });
-
-                    channel.subscription.bind_global((eventName, data) => {
-                        console.log('🎧 PUSHER EVENT (DELAYED):', eventName, data);
-                    });
-                } else if (retryCount > 10) {
-                    console.error('❌ Subscription toujours non disponible après 10 tentatives');
-                    clearInterval(checkSubscription);
-                }
-            }, 500);
-        }
-
-        pusher.bind('pusher:subscription_error', (error) => {
-            console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL (GLOBAL):', error);
-            console.error('❌ 🔐 Status:', error.status);
-            console.error('❌ 🔐 Type:', error.type);
-            console.error('❌ 🔐 Message:', error.message);
-        });
-
-        pusher.bind('pusher:subscription_succeeded', (data) => {
-            console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE (GLOBAL):', data);
-        });
-    }
 }
 
 // Exposer la fonction pour recharger depuis le parent
