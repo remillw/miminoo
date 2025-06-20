@@ -1,12 +1,16 @@
 import Echo from 'laravel-echo';
+import Pusher from 'pusher-js'; // 👈 Import Pusher requis pour Reverb
 
 declare global {
     interface Window {
         Echo: Echo;
+        Pusher: any;
     }
 }
 
 if (typeof window !== 'undefined') {
+    window.Pusher = Pusher; // 👈 Doit être mis avant new Echo
+
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
@@ -20,7 +24,7 @@ if (typeof window !== 'undefined') {
 
     try {
         window.Echo = new Echo({
-            broadcaster: 'pusher', // ✅ même si c’est Reverb
+            broadcaster: 'pusher', // Reverb émule Pusher
             key: appKey,
             wsHost: host,
             wsPort: 443,
