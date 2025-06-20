@@ -26,22 +26,20 @@ class DisputeCreatedNotification extends Notification implements ShouldQueue
         if ($this->isForAdmin) {
             return (new MailMessage)
                 ->subject('Nouvelle réclamation créée')
-                ->greeting('Bonjour,')
-                ->line('Une nouvelle réclamation a été créée par ' . $this->dispute->reporter->firstname . ' ' . $this->dispute->reporter->lastname)
-                ->line('Motif : ' . $this->dispute->reason)
-                ->line('Réservation concernée : #' . $this->dispute->reservation->id)
-                ->action('Gérer la réclamation', route('admin.disputes.show', $this->dispute))
-                ->line('Merci de traiter cette réclamation rapidement.');
+                ->view('emails.dispute-created', [
+                    'notifiable' => $notifiable,
+                    'dispute' => $this->dispute,
+                    'isForAdmin' => true
+                ]);
         }
 
         return (new MailMessage)
             ->subject('Votre réclamation a été créée')
-            ->greeting('Bonjour ' . $notifiable->firstname . ' !')
-            ->line('Votre réclamation a été créée avec succès.')
-            ->line('Notre équipe va examiner votre demande dans les plus brefs délais.')
-            ->line('Vous recevrez une réponse sous 48h maximum.')
-            ->action('Voir ma réclamation', route('disputes.show', $this->dispute))
-            ->line('Merci de votre patience.');
+            ->view('emails.dispute-created', [
+                'notifiable' => $notifiable,
+                'dispute' => $this->dispute,
+                'isForAdmin' => false
+            ]);
     }
 
     public function toArray($notifiable): array

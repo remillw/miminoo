@@ -28,14 +28,6 @@
 
             <!-- Corps avec scroll -->
             <div class="max-h-[50vh] space-y-6 overflow-y-auto px-6 py-4">
-                <!-- Message d'erreur -->
-                <div v-if="error" class="bg-primary-opacity rounded-lg border border-red-200 p-3">
-                    <p class="flex items-center gap-2 text-sm text-red-700">
-                        <AlertCircle class="h-4 w-4" />
-                        {{ error }}
-                    </p>
-                </div>
-
                 <!-- Message de succès -->
                 <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 p-3">
                     <p class="flex items-center gap-2 text-sm text-green-700">
@@ -152,27 +144,37 @@
             </div>
 
             <!-- Pied de pop-up compact -->
-            <div class="flex gap-2 border-t bg-gradient-to-br from-gray-50 to-white px-6 py-4">
-                <Button
-                    variant="outline"
-                    @click="closeModal"
-                    :disabled="isLoading"
-                    class="flex flex-1 items-center justify-center gap-2 rounded-lg border-gray-200 py-2 text-sm transition-all duration-200 hover:bg-gray-50"
-                >
-                    <X class="h-4 w-4" />
-                    {{ success ? 'Fermer' : 'Annuler' }}
-                </Button>
+            <div class="border-t bg-gradient-to-br from-gray-50 to-white px-6 py-4">
+                <!-- Message d'erreur juste au-dessus des boutons -->
+                <div v-if="error" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p class="flex items-start gap-2 text-sm text-red-700">
+                        <AlertCircle class="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span class="leading-relaxed">{{ error }}</span>
+                    </p>
+                </div>
 
-                <Button
-                    v-if="!success"
-                    :disabled="!canSubmit || isLoading"
-                    @click="submit"
-                    class="from-primary hover:to-primary flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-primary disabled:opacity-50"
-                >
-                    <Loader v-if="isLoading" class="h-4 w-4 animate-spin" />
-                    <Send v-else class="h-4 w-4" />
-                    {{ isLoading ? 'Envoi...' : 'Envoyer ma candidature' }}
-                </Button>
+                <div class="flex gap-2">
+                    <Button
+                        variant="outline"
+                        @click="closeModal"
+                        :disabled="isLoading"
+                        class="flex flex-1 items-center justify-center gap-2 rounded-lg border-gray-200 py-2 text-sm transition-all duration-200 hover:bg-gray-50"
+                    >
+                        <X class="h-4 w-4" />
+                        {{ success ? 'Fermer' : 'Annuler' }}
+                    </Button>
+
+                    <Button
+                        v-if="!success"
+                        :disabled="!canSubmit || isLoading"
+                        @click="submit"
+                        class="from-primary hover:to-primary flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r to-orange-400 py-2 text-sm text-white transition-all duration-200 hover:from-primary disabled:opacity-50"
+                    >
+                        <Loader v-if="isLoading" class="h-4 w-4 animate-spin" />
+                        <Send v-else class="h-4 w-4" />
+                        {{ isLoading ? 'Envoi...' : 'Envoyer ma candidature' }}
+                    </Button>
+                </div>
             </div>
         </DialogContent>
     </Dialog>
@@ -263,6 +265,56 @@ const resetModalState = async () => {
 // Watch pour s'assurer que la modal est bien réinitialisée à chaque ouverture
 watch(() => props.isOpen, resetModalState);
 
+// Fonction pour obtenir un message d'erreur convivial
+const getFriendlyErrorMessage = (status: number, serverError?: string) => {
+    switch (status) {
+        case 400:
+            if (serverError?.includes('déjà postulé')) {
+                return "Vous avez déjà envoyé une candidature pour cette annonce. Vous pouvez consulter son statut dans votre espace babysitter.";
+            }
+            if (serverError?.includes('propre annonce')) {
+                return "Vous ne pouvez pas postuler à votre propre annonce. Cette annonce vous appartient !";
+            }
+            if (serverError?.includes('plus disponible')) {
+                return "Cette annonce n'est plus disponible. Elle a peut-être été supprimée ou réservée par quelqu'un d'autre.";
+            }
+            if (serverError?.includes('déjà eu lieu')) {
+                return "Cette annonce a déjà eu lieu ou commence très bientôt. Vous ne pouvez plus y postuler.";
+            }
+            return serverError || "Les données envoyées ne sont pas valides. Veuillez vérifier votre message et votre tarif.";
+        
+        case 401:
+            return "Votre session a expiré. Veuillez vous reconnecter et réessayer.";
+        
+        case 403:
+            if (serverError?.includes('babysitters')) {
+                return "Seuls les comptes babysitter peuvent postuler aux annonces. Vérifiez que vous êtes connecté avec le bon compte.";
+            }
+            if (serverError?.includes('vérifié') || serverError?.includes('vérification')) {
+                return "Votre profil babysitter n'est pas encore vérifié. Complétez votre profil et demandez la vérification dans votre espace personnel avant de postuler.";
+            }
+            return serverError || "Vous n'avez pas l'autorisation d'effectuer cette action.";
+        
+        case 404:
+            return "Cette annonce n'existe plus ou a été supprimée. Retournez à la liste des annonces pour en voir d'autres.";
+        
+        case 422:
+            return "Certaines informations ne sont pas valides :\n• Vérifiez que votre message fait moins de 1000 caractères\n• Vérifiez que votre tarif est entre 0€ et 999€";
+        
+        case 429:
+            return "Trop de tentatives. Attendez quelques minutes avant de réessayer.";
+        
+        case 500:
+            return "Une erreur technique est survenue sur nos serveurs. Notre équipe a été notifiée. Réessayez dans quelques minutes.";
+        
+        case 503:
+            return "Le service est temporairement indisponible pour maintenance. Réessayez dans quelques minutes.";
+        
+        default:
+            return serverError || `Une erreur inattendue est survenue (Code: ${status}). Contactez le support si le problème persiste.`;
+    }
+};
+
 async function submit() {
     if (!canSubmit.value || isLoading.value) return;
 
@@ -280,7 +332,7 @@ async function submit() {
                 Accept: 'application/json',
             },
             body: JSON.stringify({
-                message: message.value.trim(),
+                motivation_note: message.value.trim(), // Utiliser le bon nom de champ
                 proposed_rate: rate.value,
             }),
         });
@@ -294,33 +346,30 @@ async function submit() {
             console.log('📋 Données reçues:', data);
         } catch (parseError) {
             console.error('❌ Erreur parsing JSON:', parseError);
-            // Si on ne peut pas parser le JSON, vérifier le status
-            if (response.status === 403) {
-                error.value =
-                    "Votre compte n'est pas vérifié. Vous devez compléter votre profil et demander la vérification avant de pouvoir postuler aux annonces.";
-            } else {
-                error.value = 'Une erreur serveur est survenue. Veuillez réessayer.';
-            }
+            // Si on ne peut pas parser le JSON, utiliser le status pour deviner l'erreur
+            error.value = getFriendlyErrorMessage(response.status);
             return;
         }
 
         if (response.ok) {
-            console.log('✅ Candidature envoyée avec succès');
-            success.value = data.message || 'Candidature envoyée avec succès !';
+            // Vérifier si la réponse contient une erreur malgré le status 200
+            if (data.error) {
+                console.error('❌ Erreur dans réponse 200:', data);
+                error.value = getFriendlyErrorMessage(response.status, data.error);
+            } else {
+                console.log('✅ Candidature envoyée avec succès');
+                success.value = data.message || 'Candidature envoyée avec succès !';
 
-            // Optionnel: rediriger après un délai
-            setTimeout(() => {
-                closeModal();
-            }, 2000);
+                // Optionnel: rediriger après un délai
+                setTimeout(() => {
+                    closeModal();
+                }, 2000);
+            }
         } else {
             console.error('❌ Erreur serveur:', data);
-
-            // Gestion spécifique des erreurs de vérification
-            if (response.status === 403 && data.error) {
-                error.value = data.error;
-            } else {
-                error.value = data.error || "Une erreur est survenue lors de l'envoi de votre candidature";
-            }
+            
+            // Utiliser le message d'erreur convivial
+            error.value = getFriendlyErrorMessage(response.status, data.error);
         }
     } catch (err) {
         console.error("❌ Erreur réseau lors de l'envoi de la candidature:", err);
@@ -328,8 +377,10 @@ async function submit() {
         // Gestion plus précise des erreurs réseau
         if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
             error.value = 'Problème de connexion réseau. Vérifiez votre connexion internet et réessayez.';
+        } else if (err instanceof TypeError && err.message.includes('NetworkError')) {
+            error.value = 'Erreur de réseau. Vérifiez votre connexion internet ou réessayez plus tard.';
         } else {
-            error.value = 'Une erreur réseau est survenue. Veuillez réessayer.';
+            error.value = 'Une erreur de communication est survenue. Vérifiez votre connexion et réessayez.';
         }
     } finally {
         isLoading.value = false;

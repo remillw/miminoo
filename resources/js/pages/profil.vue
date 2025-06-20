@@ -25,6 +25,7 @@ import {
     Trash2,
     TrendingUp,
     Users,
+    X,
 } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
@@ -66,6 +67,7 @@ interface User {
         availability?: any;
         hourly_rate?: number;
         documents_verified?: boolean;
+        comfortable_with_all_ages?: boolean;
         languages?: Language[];
         skills?: Skill[];
         age_ranges?: AgeRange[];
@@ -117,6 +119,7 @@ interface Props {
         availability?: any;
         hourly_rate?: number;
         documents_verified?: boolean;
+        comfortable_with_all_ages?: boolean;
         languages?: Language[];
         skills?: Skill[];
         age_ranges?: AgeRange[];
@@ -140,6 +143,7 @@ const isLoading = ref(false);
 const isGoogleLoaded = ref(false);
 const isRequestingVerification = ref(false);
 const avatarPreview = ref(''); // Pour l'aperçu de l'avatar
+const isVerificationBannerVisible = ref(true); // Pour contrôler l'affichage de la bannière de vérification
 let autocomplete: any;
 
 const babysitterProfileRef = ref();
@@ -148,6 +152,12 @@ const avatarInput = ref();
 // Initialiser le mode au montage du composant
 onMounted(() => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
+
+    // Vérifier si la bannière de vérification a été fermée précédemment
+    const verificationBannerClosed = localStorage.getItem('verification-banner-closed');
+    if (verificationBannerClosed === 'true') {
+        isVerificationBannerVisible.value = false;
+    }
 
     // Debug: Vérifier toutes les props reçues
     console.log('🔍 Props reçues dans profil.vue:', {
@@ -647,6 +657,77 @@ const isGoogleOnlyUser = computed(() => {
     return props.user.google_id && !props.user.password;
 });
 
+// Fonction pour fermer la bannière de vérification
+const closeVerificationBanner = () => {
+    isVerificationBannerVisible.value = false;
+    localStorage.setItem('verification-banner-closed', 'true');
+};
+
+// Computed pour calculer le pourcentage de progression du profil babysitter
+const babysitterProfileCompletion = computed(() => {
+    if (currentMode.value !== 'babysitter' || !props.hasBabysitterRole) return 0;
+    
+    try {
+        // Utiliser les données du profil babysitter existant
+        const profile = babysitterProfile.value;
+        if (!profile) return 0;
+        
+        let totalFields = 0;
+        let completedFields = 0;
+
+        // Bio (10%)
+        totalFields += 10;
+        if (profile.bio && profile.bio.trim().length > 0) {
+            completedFields += 10;
+        }
+
+        // Années d'expérience (10%)
+        totalFields += 10;
+        if (profile.experience_years && profile.experience_years > 0) {
+            completedFields += 10;
+        }
+
+        // Tarif horaire (15%)
+        totalFields += 15;
+        if (profile.hourly_rate && profile.hourly_rate > 0) {
+            completedFields += 15;
+        }
+
+        // Langues (15%)
+        totalFields += 15;
+        if (profile.languages && profile.languages.length > 0) {
+            completedFields += 15;
+        }
+
+        // Compétences (15%)
+        totalFields += 15;
+        if (profile.skills && profile.skills.length > 0) {
+            completedFields += 15;
+        }
+
+        // Préférences d'âge (15%) - soit "à l'aise avec tous" soit au moins une exclusion
+        totalFields += 15;
+        if (profile.comfortable_with_all_ages || (profile.age_ranges && profile.age_ranges.length > 0)) {
+            completedFields += 15;
+        }
+
+        // Rayon de déplacement (10%)
+        totalFields += 10;
+        if (profile.available_radius_km && profile.available_radius_km > 0) {
+            completedFields += 10;
+        }
+
+        // Statut de disponibilité (10%) - toujours compté car par défaut à true
+        totalFields += 10;
+        completedFields += 10; // Toujours complété car il y a une valeur par défaut
+
+        return Math.round((completedFields / totalFields) * 100);
+    } catch (error) {
+        console.error('Erreur calcul progression profil:', error);
+        return 0;
+    }
+});
+
 // Debug pour vérifier les données utilisateur
 console.log('🔍 Données utilisateur Profil:', {
     provider: props.user.provider,
@@ -698,11 +779,20 @@ console.log('🔍 Données utilisateur Profil:', {
             </div>
 
             <!-- ENCADRÉ VÉRIFICATION EN HAUT -->
-            <div v-if="currentMode === 'babysitter'" class="mb-6">
+            <div v-if="currentMode === 'babysitter' && isVerificationBannerVisible" class="mb-6">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex-1">
-                        <div class="rounded border-l-4 border-blue-400 bg-blue-50 p-4">
-                            <p class="text-blue-800">
+                        <div class="relative rounded border-l-4 border-blue-400 bg-blue-50 p-4">
+                            <!-- Bouton de fermeture -->
+                            <button
+                                @click="closeVerificationBanner"
+                                class="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full text-blue-400 transition-colors hover:bg-blue-100 hover:text-blue-600"
+                                title="Masquer cette bannière"
+                            >
+                                <X class="h-4 w-4" />
+                            </button>
+                            
+                            <p class="text-blue-800 pr-8">
                                 <template v-if="verificationStatus === 'pending'">
                                     Votre demande de vérification est en cours d'examen par nos modérateurs. Vous recevrez un email dès que votre
                                     compte sera validé ou si des modifications sont nécessaires.
@@ -751,6 +841,96 @@ console.log('🔍 Données utilisateur Profil:', {
                         >
                             {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
                         </Button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BARRE DE PROGRESSION DU PROFIL BABYSITTER -->
+            <div v-if="currentMode === 'babysitter' && props.hasBabysitterRole" class="mb-6">
+                <div
+                    :class="[
+                        'rounded-lg border p-6 shadow-sm transition-all duration-300',
+                        babysitterProfileCompletion >= 80
+                            ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50'
+                            : babysitterProfileCompletion >= 50
+                              ? 'border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50'
+                              : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50',
+                    ]"
+                >
+                    <div class="mb-4 flex items-center gap-3">
+                        <div
+                            :class="[
+                                'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300',
+                                babysitterProfileCompletion >= 80 ? 'bg-green-100' : babysitterProfileCompletion >= 50 ? 'bg-yellow-100' : 'bg-red-100',
+                            ]"
+                        >
+                            <svg v-if="babysitterProfileCompletion >= 80" class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            <svg v-else-if="babysitterProfileCompletion >= 50" class="h-5 w-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                            <svg v-else class="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-xl font-bold text-gray-900">🚀 Complétez votre profil pour attirer plus de parents !</h2>
+                            <p
+                                :class="[
+                                    'text-sm font-medium',
+                                    babysitterProfileCompletion >= 80 ? 'text-green-700' : babysitterProfileCompletion >= 50 ? 'text-yellow-700' : 'text-red-700',
+                                ]"
+                            >
+                                <span v-if="babysitterProfileCompletion < 50">Continuez de remplir votre profil pour augmenter vos chances d'être contacté.</span>
+                                <span v-else-if="babysitterProfileCompletion < 80">⭐ Votre profil est bien avancé, continuez !</span>
+                                <span v-else>🎉 Excellent ! Votre profil est complet.</span>
+                            </p>
+                        </div>
+                        
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="font-medium text-gray-700">Progression de votre profil babysitter</span>
+                            <span class="font-bold text-gray-900">{{ babysitterProfileCompletion }}% complété</span>
+                        </div>
+                        <div class="relative h-3 w-full rounded-full bg-white/50 shadow-inner">
+                            <div
+                                :class="[
+                                    'h-3 rounded-full shadow-sm transition-all duration-500 ease-out',
+                                    babysitterProfileCompletion >= 80
+                                        ? 'bg-gradient-to-r from-green-400 to-green-600'
+                                        : babysitterProfileCompletion >= 50
+                                          ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
+                                          : 'bg-gradient-to-r from-red-400 to-red-600',
+                                ]"
+                                :style="{ width: babysitterProfileCompletion + '%' }"
+                            >
+                                <div class="h-full w-full rounded-full bg-white/20"></div>
+                            </div>
+                            <!-- Indicateurs de seuils -->
+                            <div class="absolute top-0 left-1/2 h-3 w-0.5 -translate-x-0.5 transform rounded-full bg-white/60"></div>
+                            <div class="absolute top-0 left-4/5 h-3 w-0.5 -translate-x-0.5 transform rounded-full bg-white/60"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>80%</span>
+                            <span>100%</span>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -33,6 +33,11 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        <!-- Favicon -->
+        <link rel="icon" href="{{ asset('favicon.ico') }}?v={{ now()->timestamp }}" type="image/x-icon">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v={{ now()->timestamp }}" type="image/x-icon">
+        <link rel="apple-touch-icon" href="{{ asset('favicon.ico') }}?v={{ now()->timestamp }}">
+
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 

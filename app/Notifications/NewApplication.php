@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+
 class NewApplication extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -30,18 +31,21 @@ class NewApplication extends Notification implements ShouldQueue
         if ($isParent) {
             return (new MailMessage)
                 ->subject('Nouvelle candidature reçue !')
-                ->greeting('Bonjour !')
-                ->line("Vous avez reçu une nouvelle candidature de {$babysitter->firstname} {$babysitter->lastname}")
-                ->line("Pour l'annonce : {$announcement->title}")
-                ->action('Voir la candidature', route('messaging.index'))
-                ->line('Ne tardez pas à répondre !');
+                ->view('emails.new-application-parent', [
+                    'parent' => $notifiable,
+                    'babysitter' => $babysitter,
+                    'announcement' => $announcement,
+                    'application' => $this->application
+                ]);
         } else {
             return (new MailMessage)
                 ->subject('Votre candidature a été envoyée !')
-                ->greeting('Bonjour !')
-                ->line("Votre candidature pour l'annonce \"{$announcement->title}\" a été envoyée avec succès.")
-                ->action('Voir l\'annonce', route('announcements.show', $announcement))
-                ->line('Le parent sera notifié et pourra vous répondre rapidement.');
+                ->view('emails.new-application-babysitter', [
+                    'babysitter' => $notifiable,
+                    'parent' => $announcement->user,
+                    'announcement' => $announcement,
+                    'application' => $this->application
+                ]);
         }
     }
 

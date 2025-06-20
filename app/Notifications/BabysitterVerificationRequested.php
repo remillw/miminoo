@@ -41,14 +41,10 @@ class BabysitterVerificationRequested extends Notification implements ShouldQueu
         
         return (new MailMessage)
             ->subject('Nouvelle demande de vérification de profil babysitter')
-            ->greeting('Bonjour !')
-            ->line('Une nouvelle demande de vérification de profil babysitter a été soumise.')
-            ->line("**Babysitter :** {$this->babysitter->firstname} {$this->babysitter->lastname}")
-            ->line("**Email :** {$this->babysitter->email}")
-            ->line("**Expérience :** " . ($profile->experience_years ?? 'Non renseigné') . " années")
-            ->line("**Tarif :** " . ($profile->hourly_rate ?? 'Non renseigné') . "€/heure")
-            ->action('Voir le profil en admin', url('/admin/babysitter-moderation'))
-            ->line('Merci de vérifier ce profil dès que possible.');
+            ->view('emails.babysitter-verification-requested', [
+                'babysitter' => $this->babysitter,
+                'profile' => $profile
+            ]);
     }
 
     public function toArray($notifiable): array

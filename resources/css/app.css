@@ -276,7 +276,7 @@ input[type='checkbox']:focus {
 /* Style global pour TOUS les toasts de Sonner */
 [data-sonner-toast] {
     border-radius: 12px !important;
-    padding: 16px 20px !important;
+    padding: 16px 44px 16px 20px !important; /* Plus d'espace à droite pour le bouton de fermeture */
     box-shadow:
         0 20px 25px -5px rgba(0, 0, 0, 0.1),
         0 10px 10px -5px rgba(0, 0, 0, 0.04),
@@ -325,7 +325,23 @@ input[type='checkbox']:focus {
         0 0 0 1px rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Amélioration de la lisibilité des toasts */
+/* Amélioration de la lisibilité des toasts - Version universelle */
+[data-sonner-toast] [data-description] {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 13px !important;
+    margin-top: 2px !important;
+    line-height: 1.4 !important;
+    padding-right: 8px !important; /* Eviter le chevauchement avec le bouton */
+}
+
+[data-sonner-toast] [data-title] {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    font-weight: 600 !important;
+    padding-right: 8px !important; /* Eviter le chevauchement avec le bouton */
+}
+
+/* Amélioration de la lisibilité des toasts - Rétrocompatibilité */
 .custom-toast-success .sonner-toast-description,
 .custom-toast-error .sonner-toast-description,
 .custom-toast-warning .sonner-toast-description,
@@ -334,9 +350,10 @@ input[type='checkbox']:focus {
     font-size: 13px !important;
     margin-top: 2px !important;
     line-height: 1.4 !important;
+    padding-right: 8px !important;
 }
 
-/* Titre du toast */
+/* Titre du toast - Rétrocompatibilité */
 .custom-toast-success .sonner-toast-title,
 .custom-toast-error .sonner-toast-title,
 .custom-toast-warning .sonner-toast-title,
@@ -344,33 +361,65 @@ input[type='checkbox']:focus {
     font-size: 14px !important;
     line-height: 1.3 !important;
     font-weight: 600 !important;
+    padding-right: 8px !important;
 }
 
-/* Style pour le bouton de fermeture */
-.custom-toast-success [data-close-button],
-.custom-toast-error [data-close-button],
-.custom-toast-warning [data-close-button],
-.custom-toast-info [data-close-button] {
-    color: rgba(255, 255, 255, 0.8) !important;
-    background: rgba(255, 255, 255, 0.15) !important;
+/* Style pour le bouton de fermeture - Version universelle pour tous les toasts */
+[data-sonner-toast] [data-close-button] {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background: rgba(255, 255, 255, 0.2) !important;
     border-radius: 50% !important;
-    width: 20px !important;
-    height: 20px !important;
+    width: 22px !important;
+    height: 22px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     transition: all 0.2s ease !important;
     position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
+    top: 10px !important;
+    right: 10px !important;
+    border: none !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    line-height: 1 !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: scale(1.1) !important;
+    color: white !important;
+}
+
+[data-sonner-toast] [data-close-button]:active {
+    transform: scale(0.95) !important;
+}
+
+/* Styles spécifiques pour les anciennes classes (rétrocompatibilité) */
+.custom-toast-success [data-close-button],
+.custom-toast-error [data-close-button],
+.custom-toast-warning [data-close-button],
+.custom-toast-info [data-close-button] {
+    color: rgba(255, 255, 255, 0.9) !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 50% !important;
+    width: 22px !important;
+    height: 22px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
 }
 
 .custom-toast-success [data-close-button]:hover,
 .custom-toast-error [data-close-button]:hover,
 .custom-toast-warning [data-close-button]:hover,
 .custom-toast-info [data-close-button]:hover {
-    background: rgba(255, 255, 255, 0.25) !important;
-    transform: scale(1.05) !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: scale(1.1) !important;
 }
 
 /* Conteneur du toast avec position absolue FORCÉE */

@@ -205,6 +205,7 @@ const annonces = computed(() => {
 
         return {
             id: announcement.id,
+            parentId: announcement.parent.id, // ID du parent pour vérifier la propriété
             avatar: announcement.parent.avatar || '/storage/default-avatar.png',
             name: `${announcement.parent.firstname} ${announcement.parent.lastname.charAt(0)}.`,
             rating: 4.5, // Valeur par défaut, à implémenter plus tard

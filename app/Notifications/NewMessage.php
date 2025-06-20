@@ -28,11 +28,11 @@ class NewMessage extends Notification implements ShouldQueue
         
         return (new MailMessage)
             ->subject('Nouveau message reçu') 
-            ->greeting('Bonjour !')
-            ->line("Vous avez reçu un nouveau message de {$sender->firstname} {$sender->lastname}")
-            ->line(substr($this->message->content, 0, 100) . '...')
-            ->action('Voir la conversation', route('messaging.show', $conversation))
-            ->line('Répondez rapidement pour maintenir le contact !');
+            ->view('emails.new-message', [
+                'sender' => $sender,
+                'conversation' => $conversation,
+                'message' => $this->message
+            ]);
     }
 
     public function toArray($notifiable): array

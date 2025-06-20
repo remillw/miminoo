@@ -2,13 +2,15 @@
 import BabysitterSidebar from '@/components/dashboard/babysitter/BabysitterSidebar.vue';
 import ParentSidebar from '@/components/dashboard/parent/ParentSidebar.vue';
 import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
-import DashboardHeader from '@/components/dashboard/shared/DashboardHeader.vue';
+import LandingHeader from '@/components/LandingHeader.vue';
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface Props {
     role?: string;
     currentMode?: 'parent' | 'babysitter';
+    unreadNotifications?: any[];
+    unreadNotificationsCount?: number;
 }
 
 const props = defineProps<Props>();
@@ -29,7 +31,10 @@ const SidebarComponent = computed(() => {
 
 <template>
     <div class="flex min-h-screen flex-col bg-secondary">
-        <DashboardHeader />
+        <LandingHeader 
+            :unreadNotifications="props.unreadNotifications || []"
+            :unreadNotificationsCount="props.unreadNotificationsCount || 0"
+        />
 
         <div class="flex flex-1">
             <component :is="SidebarComponent" />
