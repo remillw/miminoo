@@ -2,24 +2,17 @@ import Echo from 'laravel-echo';
 
 declare global {
     interface Window {
-        Echo: any;
+        Echo: Echo;
     }
 }
 
-let echo: any = null;
-let echoPromise: Promise<any> | null = null;
+let echo: Echo | null = null;
+let echoPromise: Promise<Echo> | null = null;
 
 if (typeof window !== 'undefined') {
-    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-
     const config = {
         broadcaster: 'reverb',
-        key: 'bhdonn8eanhd6h1txapi',
-        wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
-        wsPort: isLocal ? 8080 : 443,
-        wssPort: isLocal ? 8080 : 443,
-        forceTLS: !isLocal,
-        enabledTransports: ['websocket'],
+        host: 'wss://trouvetababysitter.fr/reverb',
         authEndpoint: '/broadcasting/auth',
         auth: {
             headers: {
@@ -34,14 +27,14 @@ if (typeof window !== 'undefined') {
     echo = new Echo(config);
     window.Echo = echo;
 
+    echoPromise = Promise.resolve(echo);
+
     console.log('✅ Echo Reverb créé:', echo);
     console.log('🔧 Echo.connector:', echo.connector);
     console.log('🔧 Echo.connector.name:', echo.connector?.name);
-
-    echoPromise = Promise.resolve(echo);
 }
 
-export const waitForEcho = (): Promise<any> => {
+export const waitForEcho = (): Promise<Echo | null> => {
     return echoPromise || Promise.resolve(null);
 };
 
