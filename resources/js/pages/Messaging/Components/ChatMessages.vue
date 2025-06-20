@@ -332,7 +332,7 @@ function joinConversationChannel() {
 
     // Utiliser le composable pour s'abonner au canal
     const channelName = `conversation.${props.conversation.id}`;
-    currentChannel.value = listenToChannel(channelName, '.message.sent', onNewMessage);
+    currentChannel.value = listenToChannel(channelName, 'message.sent', onNewMessage);
 
     if (!currentChannel.value) {
         console.warn('⚠️ Impossible de créer le canal');
@@ -406,7 +406,7 @@ function addChannelListeners() {
     });
 
     // Écouter les événements de messages lus
-    channel.listen('.messages.read', (e) => {
+    channel.listen('messages.read', (e) => {
         console.log('👁️ Messages marqués comme lus:', e);
 
         // Marquer mes messages comme lus si c'est l'autre utilisateur qui les a lus
