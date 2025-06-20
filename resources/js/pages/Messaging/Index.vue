@@ -396,8 +396,13 @@ onMounted(async () => {
     const checkEcho = () => {
         if (window.Echo) {
             console.log('🔧 ✅ Echo maintenant disponible:', !!window.Echo);
-            console.log('🔧 Echo connector:', window.Echo?.connector?.name);
-            console.log('🔧 Echo state:', window.Echo?.connector?.pusher?.connection?.state);
+            console.log('🔧 Echo connector:', window.Echo.connector);
+            console.log('🔧 Echo options:', window.Echo.options);
+
+            // Pour Reverb, vérifier la connexion différemment
+            if (window.Echo.connector && window.Echo.connector.pusher) {
+                console.log('🔧 Pusher connection state:', window.Echo.connector.pusher.connection.state);
+            }
             return;
         }
 
