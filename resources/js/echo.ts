@@ -28,8 +28,6 @@ if (typeof window !== 'undefined') {
             broadcaster: 'pusher', // Reverb émule Pusher
             key: appKey,
             wsHost: host,
-            wsPort: 443,
-            wssPort: 443,
             cluster: 'mt1', // ✅ requis même avec Reverb
             wsPath: path,
             forceTLS: true,
