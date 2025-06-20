@@ -21,9 +21,9 @@ if (typeof window !== 'undefined') {
             const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
             echo = new Echo({
-                broadcaster: 'pusher', // ✅ même pour Reverb
+                broadcaster: 'reverb', // 🔧 ici au lieu de 'pusher'
                 key: 'bhdonn8eanhd6h1txapi',
-                cluster: '', // vide car c'est Reverb, pas Pusher
+                cluster: '', // inutile avec Reverb
                 wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
                 wsPort: isLocal ? 8080 : 443,
                 wssPort: isLocal ? 8080 : 443,
