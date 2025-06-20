@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
 
-    const path = `/app/${appKey}`;
+    const path = `/reverb/app/${appKey}`; // au lieu de `/app/${appKey}`
 
     console.log('🔧 Préparation de Laravel Echo...');
     console.log('🔧 Clé Reverb :', appKey);
