@@ -22,4 +22,6 @@ if (typeof window !== 'undefined') {
     console.log('✅ Echo (Reverb) initialisé:', window.Echo);
 }
 
-export default window.Echo;
+export const waitForEcho = (): Promise<any> => {
+    return Promise.resolve(window.Echo);
+};
