@@ -400,9 +400,7 @@ onMounted(async () => {
             console.log('🔧 Echo options:', window.Echo.options);
 
             // Pour Reverb, vérifier la connexion différemment
-            if (window.Echo.connector && window.Echo.connector.pusher) {
-                console.log('🔧 Pusher connection state:', window.Echo.connector.pusher.connection.state);
-            }
+            
             return;
         }
 
