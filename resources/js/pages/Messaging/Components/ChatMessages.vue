@@ -168,8 +168,15 @@ const currentChannel = ref(null);
 // Utilisateur actuel
 const currentUser = computed(() => page.props.auth.user);
 
-// Initialiser Echo au montage
+// Debug de l'utilisateur au montage
 onMounted(async () => {
+    console.log('🔍 DEBUG UTILISATEUR AU MONTAGE:');
+    console.log('🔍 page.props:', page.props);
+    console.log('🔍 page.props.auth:', page.props.auth);
+    console.log('🔍 currentUser:', currentUser.value);
+    console.log('🔍 Cookies document:', document.cookie);
+    console.log('🔍 CSRF token:', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
+
     await initEcho();
 });
 
