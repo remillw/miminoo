@@ -14,6 +14,7 @@ if (typeof window !== 'undefined') {
     window.Echo = new Echo({
         broadcaster: 'pusher',
         key: 'bhdonn8eanhd6h1txapi',
+        cluster: '', // Requis par Pusher mais ignoré par Reverb
         wsHost: 'trouvetababysitter.fr',
         wsPort: 443,
         wssPort: 443,
