@@ -18,7 +18,7 @@ if (typeof window !== 'undefined') {
             const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
             const config = {
-                broadcaster: 'reverb',
+                broadcaster: 'pusher', // 👈 HACK nécessaire pour Echo avec Reverb
                 key: 'bhdonn8eanhd6h1txapi',
                 wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
                 wsPort: isLocal ? 8080 : 443,
@@ -58,7 +58,7 @@ if (typeof window !== 'undefined') {
 function waitForConnectionEstablished(retry = 0) {
     const maxRetries = 10;
     const connector = window.Echo?.connector as any;
-    const connection = connector?.pusher?.connection || connector?.connection;
+    const connection = connector?.pusher?.connection;
 
     console.log(`🔍 [Tentative ${retry + 1}/${maxRetries}] Connexion :`, {
         connector: connector?.name,
