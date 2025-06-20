@@ -12,9 +12,15 @@ if (typeof window !== 'undefined') {
     window.Pusher = Pusher;
 
     window.Echo = new Echo({
-        broadcaster: 'reverb',
+        broadcaster: 'pusher',
         key: 'bhdonn8eanhd6h1txapi',
-        host: 'wss://trouvetababysitter.fr/reverb',
+        wsHost: 'trouvetababysitter.fr',
+        wsPort: 443,
+        wssPort: 443,
+        wsPath: '/reverb/app/bhdonn8eanhd6h1txapi',
+        forceTLS: true,
+        enabledTransports: ['websocket'] as any,
+        disableStats: true,
         authEndpoint: '/broadcasting/auth',
         auth: {
             headers: {
