@@ -380,6 +380,11 @@ function joinConversationChannel() {
     }
 
     console.log('🔗 Canal créé via composable:', currentChannel.value);
+    console.log('🔗 État du canal:', {
+        name: currentChannel.value.name,
+        subscription: currentChannel.value.subscription,
+        pusher: currentChannel.value.pusher,
+    });
 
     // Maintenant ajouter les autres événements sur le canal
     addChannelListeners();
@@ -425,6 +430,9 @@ function addChannelListeners() {
     if (!currentChannel.value || !window.Echo) return;
 
     const channel = currentChannel.value;
+
+    console.log('🎧 Ajout des listeners sur le canal:', channel.name);
+    console.log('🎧 Subscription state:', channel.subscription?.state);
 
     // Écouter les événements "en train d'écrire"
     channel.listenForWhisper('typing', (e) => {
@@ -486,15 +494,41 @@ function addChannelListeners() {
 
     // Écouter les erreurs d'authentification spécifiques
     if (currentChannel.value?.pusher) {
-        currentChannel.value.pusher.bind('pusher:subscription_error', (error) => {
-            console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL:', error);
+        const pusher = currentChannel.value.pusher;
+
+        console.log('🔗 Configuration des listeners Pusher');
+
+        // Surveiller l'état de la subscription
+        if (channel.subscription) {
+            console.log('🔗 Subscription initiale state:', channel.subscription.state);
+
+            // Écouter les changements d'état
+            channel.subscription.bind('pusher:subscription_error', (error) => {
+                console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL:', error);
+                console.error('❌ 🔐 Status:', error.status);
+                console.error('❌ 🔐 Type:', error.type);
+                console.error('❌ 🔐 Message:', error.message);
+            });
+
+            channel.subscription.bind('pusher:subscription_succeeded', (data) => {
+                console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE:', data);
+            });
+
+            // Surveiller tous les événements Pusher
+            channel.subscription.bind_global((eventName, data) => {
+                console.log('🎧 PUSHER EVENT:', eventName, data);
+            });
+        }
+
+        pusher.bind('pusher:subscription_error', (error) => {
+            console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL (GLOBAL):', error);
             console.error('❌ 🔐 Status:', error.status);
             console.error('❌ 🔐 Type:', error.type);
             console.error('❌ 🔐 Message:', error.message);
         });
 
-        currentChannel.value.pusher.bind('pusher:subscription_succeeded', (data) => {
-            console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE:', data);
+        pusher.bind('pusher:subscription_succeeded', (data) => {
+            console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE (GLOBAL):', data);
         });
     }
 }
