@@ -33,6 +33,7 @@ if (typeof window !== 'undefined') {
             auth: {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': token,
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
                 },
