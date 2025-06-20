@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
 
-    const path = `/reverb/app/${appKey}`;
+    const path = `/app/${appKey}`;
 
     console.log('🔧 Préparation de Laravel Echo...');
     console.log('🔧 Clé Reverb :', appKey);
@@ -56,14 +56,39 @@ if (typeof window !== 'undefined') {
 
             pusher.connection.bind('connected', () => {
                 console.log('🟢 WebSocket connecté à Reverb');
+                console.log('🟢 Socket ID:', pusher.connection.socket_id);
+            });
+
+            pusher.connection.bind('connecting', () => {
+                console.log('🟡 WebSocket en cours de connexion...');
             });
 
             pusher.connection.bind('disconnected', () => {
                 console.log('🔴 WebSocket déconnecté');
             });
 
+            pusher.connection.bind('unavailable', () => {
+                console.error('🔴 WebSocket indisponible');
+            });
+
+            pusher.connection.bind('failed', () => {
+                console.error('🔴 Connexion WebSocket échouée');
+            });
+
             pusher.connection.bind('error', (error: any) => {
                 console.error('❌ Erreur WebSocket:', error);
+                console.error('❌ Détails:', {
+                    type: error.type,
+                    error: error.error,
+                    data: error.data,
+                });
+            });
+
+            pusher.connection.bind('state_change', (states: any) => {
+                console.log('🔄 Changement état WebSocket:', {
+                    previous: states.previous,
+                    current: states.current,
+                });
             });
 
             // Debug spécifique pour l'authentification des canaux privés
@@ -75,6 +100,15 @@ if (typeof window !== 'undefined') {
 
             pusher.bind('pusher:subscription_succeeded', (data: any) => {
                 console.log('✅ Authentification canal réussie:', data);
+            });
+
+            // Log de la configuration utilisée
+            console.log('🔧 Configuration WebSocket utilisée:', {
+                wsHost: host,
+                wsPath: path,
+                wsPort: 443,
+                wssPort: 443,
+                forceTLS: true,
             });
         }
     } catch (e) {
