@@ -96,7 +96,7 @@
 <script setup>
 import { usePage } from '@inertiajs/vue3';
 import { MessageSquare } from 'lucide-vue-next';
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps({
     conversation: Object,
