@@ -14,6 +14,7 @@ if (typeof window !== 'undefined') {
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
+    
     const path = `/reverb/app/${appKey}`;
 
     console.log('🔧 Préparation de Laravel Echo...');
@@ -29,6 +30,7 @@ if (typeof window !== 'undefined') {
             wsHost: host,
             wsPort: 443,
             wssPort: 443,
+            cluster: 'mt1', // ✅ requis même avec Reverb
             wsPath: path,
             forceTLS: true,
             enabledTransports: ['ws', 'wss'],
