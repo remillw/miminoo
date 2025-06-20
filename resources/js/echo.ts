@@ -19,6 +19,7 @@ if (typeof window !== 'undefined') {
         wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
         wsPort: isLocal ? 8080 : 443,
         wssPort: isLocal ? 8080 : 443,
+        wsPath: '/reverb/app/bhdonn8eanhd6h1txapi',
         forceTLS: !isLocal,
         enabledTransports: ['websocket'] as any,
         authEndpoint: '/broadcasting/auth',
