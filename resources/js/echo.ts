@@ -20,6 +20,7 @@ if (typeof window !== 'undefined') {
             const config = {
                 broadcaster: 'pusher', // 👈 HACK nécessaire pour Echo avec Reverb
                 key: 'bhdonn8eanhd6h1txapi',
+                cluster: '', // 👈 Cluster vide requis pour Pusher (ignoré par Reverb)
                 wsHost: isLocal ? 'localhost' : 'trouvetababysitter.fr',
                 wsPort: isLocal ? 8080 : 443,
                 wssPort: isLocal ? 8080 : 443,
