@@ -11,14 +11,12 @@ declare global {
 if (typeof window !== 'undefined') {
     window.Pusher = Pusher; // 👈 Doit être mis avant new Echo
 
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
 
     console.log('🔧 Préparation de Laravel Echo...');
     console.log('🔧 Clé Reverb :', appKey);
     console.log('🔧 Host Reverb :', host);
-    console.log('🔧 Token CSRF :', token);
 
     try {
         window.Echo = new Echo({
@@ -33,7 +31,8 @@ if (typeof window !== 'undefined') {
             auth: {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': token,
+                    // ✅ Token récupéré dynamiquement à chaque requête
+                    'X-CSRF-TOKEN': () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
                 },
