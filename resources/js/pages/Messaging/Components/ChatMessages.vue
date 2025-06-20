@@ -330,8 +330,9 @@ function joinConversationChannel() {
 
     console.log('🔗 Connexion au canal conversation:', props.conversation.id);
 
-    // Utiliser le composable pour s'abonner au canal
+    // Utiliser le composable pour s'abonner au canal (Echo ajoute automatiquement 'private-')
     const channelName = `conversation.${props.conversation.id}`;
+    console.log('🔗 Nom du canal à écouter:', channelName);
     currentChannel.value = listenToChannel(channelName, 'message.sent', onNewMessage);
 
     if (!currentChannel.value) {
@@ -428,6 +429,12 @@ function addChannelListeners() {
     channel.subscribed(() => {
         console.log('✅ 🎊 CONNECTÉ AU CANAL DE CONVERSATION:', props.conversation.id);
         console.log('✅ 🎊 URL du canal:', `conversation.${props.conversation.id}`);
+        console.log('✅ 🎊 Nom complet du canal:', channel.name);
+    });
+
+    // Debug: écouter TOUS les événements pour voir ce qui arrive
+    channel.listen('*', (eventName, data) => {
+        console.log('🎧 ÉVÉNEMENT REÇU:', eventName, data);
     });
 
     channel.error((error) => {
