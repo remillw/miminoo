@@ -386,6 +386,29 @@ function joinConversationChannel() {
         pusher: currentChannel.value.pusher,
     });
 
+    // Vérifier l'état de Pusher
+    if (currentChannel.value.pusher) {
+        const pusher = currentChannel.value.pusher;
+        console.log('🔗 État Pusher:', {
+            state: pusher.connection.state,
+            socket_id: pusher.connection.socket_id,
+            channels: Object.keys(pusher.channels.channels),
+        });
+
+        // Si Pusher n'est pas connecté, attendre la connexion
+        if (pusher.connection.state !== 'connected') {
+            console.log('⏳ Pusher pas encore connecté, attente...');
+            pusher.connection.bind('connected', () => {
+                console.log('✅ Pusher maintenant connecté, retry subscription');
+                // Réessayer après connexion
+                setTimeout(() => {
+                    console.log('🔄 Retry subscription après connexion Pusher');
+                    addChannelListeners();
+                }, 1000);
+            });
+        }
+    }
+
     // Maintenant ajouter les autres événements sur le canal
     addChannelListeners();
 }
@@ -518,6 +541,39 @@ function addChannelListeners() {
             channel.subscription.bind_global((eventName, data) => {
                 console.log('🎧 PUSHER EVENT:', eventName, data);
             });
+        } else {
+            console.warn('⚠️ Subscription non initialisée, surveillance...');
+
+            // Surveiller jusqu'à ce que la subscription soit créée
+            let retryCount = 0;
+            const checkSubscription = setInterval(() => {
+                retryCount++;
+                console.log(`🔄 Check subscription #${retryCount}:`, channel.subscription?.state);
+
+                if (channel.subscription) {
+                    console.log('✅ Subscription maintenant disponible:', channel.subscription.state);
+                    clearInterval(checkSubscription);
+
+                    // Configurer les listeners maintenant
+                    channel.subscription.bind('pusher:subscription_error', (error) => {
+                        console.error('❌ 🔐 ERREUR AUTHENTIFICATION CANAL (DELAYED):', error);
+                        console.error('❌ 🔐 Status:', error.status);
+                        console.error('❌ 🔐 Type:', error.type);
+                        console.error('❌ 🔐 Message:', error.message);
+                    });
+
+                    channel.subscription.bind('pusher:subscription_succeeded', (data) => {
+                        console.log('✅ 🔐 AUTHENTIFICATION RÉUSSIE (DELAYED):', data);
+                    });
+
+                    channel.subscription.bind_global((eventName, data) => {
+                        console.log('🎧 PUSHER EVENT (DELAYED):', eventName, data);
+                    });
+                } else if (retryCount > 10) {
+                    console.error('❌ Subscription toujours non disponible après 10 tentatives');
+                    clearInterval(checkSubscription);
+                }
+            }, 500);
         }
 
         pusher.bind('pusher:subscription_error', (error) => {
