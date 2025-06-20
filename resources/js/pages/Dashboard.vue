@@ -4,7 +4,7 @@ import BabysitterSidebar from '@/components/dashboard/babysitter/BabysitterSideb
 import ParentDashboardContent from '@/components/dashboard/parent/ParentDashboardContent.vue';
 import ParentSidebar from '@/components/dashboard/parent/ParentSidebar.vue';
 import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
-import DashboardHeader from '@/components/dashboard/shared/DashboardHeader.vue';
+import LandingHeader from '@/components/LandingHeader.vue';
 import { Button } from '@/components/ui/button';
 import { useUserMode } from '@/composables/useUserMode';
 import { Head, router } from '@inertiajs/vue3';
@@ -86,8 +86,7 @@ const currentContent = computed(() => {
     <div class="flex min-h-screen flex-col bg-[#fcf8f6]">
         <Head title="Dashboard" />
 
-        <DashboardHeader
-            :user="props.user"
+        <LandingHeader
             :unreadNotifications="props.unreadNotifications || []"
             :unreadNotificationsCount="props.unreadNotificationsCount || 0"
         />

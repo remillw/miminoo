@@ -29,12 +29,12 @@ class ReviewRequestNotification extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject('Laissez un avis sur votre expérience')
-            ->greeting('Bonjour ' . $notifiable->firstname . ' !')
-            ->line('Votre service de babysitting avec ' . $otherUserName . ' est maintenant terminé.')
-            ->line('Votre avis est important pour la communauté et aide les autres utilisateurs à faire leur choix.')
-            ->action('Laisser un avis', route('reviews.create', ['reservation' => $this->reservation->id]))
-            ->line('Vous avez 7 jours pour laisser votre avis.')
-            ->line('Merci de faire confiance à ' . config('app.name') . ' !');
+            ->view('emails.review-request', [
+                'notifiable' => $notifiable,
+                'reservation' => $this->reservation,
+                'userRole' => $this->userRole,
+                'otherUserName' => $otherUserName
+            ]);
     }
 
     public function toArray($notifiable): array

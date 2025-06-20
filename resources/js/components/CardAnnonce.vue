@@ -54,12 +54,19 @@
           <span class="font-bold text-lg">{{ rate }}€</span>
           <span class="text-gray-400">/heure</span>
         </p>
+        
+        <!-- Bouton Postuler ou message si c'est sa propre annonce -->
         <button 
+          v-if="!isOwnAnnouncement"
           @click="isModalOpen = true" 
           class="bg-primary hover:bg-primary text-white font-semibold rounded px-5 py-2 transition"
         >
           Postuler
         </button>
+        
+        <div v-else class="text-sm text-gray-500 font-medium px-3 py-2 bg-gray-100 rounded">
+          Votre annonce
+        </div>
       </div>
 
       <!-- Modal de candidature -->
@@ -80,12 +87,14 @@
   </template>
   
   <script setup lang="ts">
-  import { ref } from 'vue';
+  import { ref, computed } from 'vue';
   import { Star, CalendarClock, MapPin, Users } from 'lucide-vue-next';
+  import { usePage } from '@inertiajs/vue3';
   import PostulerModal from './PostulerModal.vue';
   
   const props = defineProps({
     id: Number,
+    parentId: Number, // ID du parent propriétaire de l'annonce
     avatar: String,
     name: String,
     rating: Number,
@@ -112,5 +121,14 @@
   });
 
   const isModalOpen = ref(false);
+  
+  // Accès à l'utilisateur connecté
+  const page = usePage();
+  const user = computed(() => page.props.auth?.user);
+  
+  // Vérifier si c'est la propre annonce de l'utilisateur
+  const isOwnAnnouncement = computed(() => {
+    return user.value && props.parentId === user.value.id;
+  });
   </script>
   

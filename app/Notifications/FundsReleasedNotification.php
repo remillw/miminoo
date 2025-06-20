@@ -25,12 +25,10 @@ class FundsReleasedNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Vos fonds ont été libérés !')
-            ->greeting('Bonjour ' . $notifiable->firstname . ' !')
-            ->line('Les fonds de votre service de babysitting ont été libérés avec succès.')
-            ->line('Montant : ' . $this->reservation->babysitter_amount . '€')
-            ->line('Les fonds seront disponibles sur votre compte selon le calendrier de paiement Stripe.')
-            ->action('Voir mes paiements', route('babysitter.payments'))
-            ->line('Merci pour votre excellent service !');
+            ->view('emails.funds-released', [
+                'notifiable' => $notifiable,
+                'reservation' => $this->reservation
+            ]);
     }
 
     public function toArray($notifiable): array

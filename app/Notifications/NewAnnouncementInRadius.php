@@ -28,13 +28,10 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Nouvelle annonce dans votre rayon')
-            ->greeting('Bonjour ' . $notifiable->firstname . ' !')
-            ->line('Une nouvelle annonce correspondant à vos critères a été publiée.')
-            ->line('Titre : ' . $this->announcement->title)
-            ->line('Lieu : ' . $this->announcement->location)
-            ->line('Date : ' . $this->announcement->date)
-            ->action('Voir l\'annonce', route('announcements.show', $this->announcement->id))
-            ->line('Merci d\'utiliser notre plateforme !');
+            ->view('emails.new-announcement-in-radius', [
+                'notifiable' => $notifiable,
+                'announcement' => $this->announcement
+            ]);
     }
 
     public function toArray($notifiable): array

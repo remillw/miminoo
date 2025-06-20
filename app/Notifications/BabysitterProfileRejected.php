@@ -24,11 +24,10 @@ class BabysitterProfileRejected extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Votre profil babysitter a été rejeté')
-            ->greeting('Bonjour,')
-            ->line('Votre profil babysitter a été rejeté pour la raison suivante :')
-            ->line($this->reason)
-            ->action('Modifier mon profil', route('profil'))
-            ->line('Vous pouvez modifier votre profil et soumettre une nouvelle demande de vérification.');
+            ->view('emails.babysitter-profile-rejected', [
+                'notifiable' => $notifiable,
+                'reason' => $this->reason
+            ]);
     }
 
     public function toArray($notifiable): array

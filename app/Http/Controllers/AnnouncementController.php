@@ -188,12 +188,35 @@ class AnnouncementController extends Controller
     {
         $user = $request->user();
 
+        // Vérifier si l'annonce est encore active et dans le futur
+        if ($announcement->status !== 'active') {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Cette annonce n\'est plus disponible.'], 400);
+            }
+            return back()->with('error', 'Cette annonce n\'est plus disponible.');
+        }
+
+        if ($announcement->date_start <= now()) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Cette annonce a déjà eu lieu ou commence très bientôt.'], 400);
+            }
+            return back()->with('error', 'Cette annonce a déjà eu lieu ou commence très bientôt.');
+        }
+
         // Vérifier si l'utilisateur est un babysitter
         if (!$user->hasRole('babysitter')) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Seuls les babysitters peuvent postuler aux annonces.'], 403);
             }
             return back()->with('error', 'Seuls les babysitters peuvent postuler aux annonces.');
+        }
+
+        // Vérifier que l'utilisateur ne postule pas à sa propre annonce
+        if ($announcement->parent_id === $user->id) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Vous ne pouvez pas postuler à votre propre annonce.'], 400);
+            }
+            return back()->with('error', 'Vous ne pouvez pas postuler à votre propre annonce.');
         }
 
         // Vérifier si le profil est vérifié
@@ -214,11 +237,24 @@ class AnnouncementController extends Controller
             return back()->with('error', 'Vous avez déjà postulé à cette annonce.');
         }
 
-        // Valider les données
-        $validated = $request->validate([
-            'motivation_note' => 'nullable|string|max:1000',
-            'proposed_rate' => 'nullable|numeric|min:0|max:999.99',
-        ]);
+        // Valider les données avec messages personnalisés
+        try {
+            $validated = $request->validate([
+                'motivation_note' => 'nullable|string|max:1000',
+                'proposed_rate' => 'nullable|numeric|min:0|max:999.99',
+            ], [
+                'motivation_note.max' => 'Le message de motivation ne peut pas dépasser 1000 caractères.',
+                'proposed_rate.numeric' => 'Le tarif proposé doit être un nombre valide.',
+                'proposed_rate.min' => 'Le tarif proposé ne peut pas être négatif.',
+                'proposed_rate.max' => 'Le tarif proposé ne peut pas dépasser 999,99€.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                $errors = collect($e->errors())->flatten()->implode(' ');
+                return response()->json(['error' => $errors], 422);
+            }
+            throw $e;
+        }
 
         // Créer la candidature
         $application = $announcement->applications()->create([

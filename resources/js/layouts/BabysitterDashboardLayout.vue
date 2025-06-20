@@ -2,12 +2,12 @@
 import BabysitterDashboardContent from '@/components/dashboard/babysitter/BabysitterDashboardContent.vue';
 import BabysitterSidebar from '@/components/dashboard/babysitter/BabysitterSidebar.vue';
 import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
-import DashboardHeader from '@/components/dashboard/shared/DashboardHeader.vue';
+import LandingHeader from '@/components/LandingHeader.vue';
 </script>
 
 <template>
     <div class="flex min-h-screen flex-col bg-gray-50">
-        <DashboardHeader />
+        <LandingHeader />
 
         <div class="flex flex-1">
             <BabysitterSidebar />

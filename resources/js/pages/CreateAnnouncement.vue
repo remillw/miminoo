@@ -84,6 +84,18 @@ let autocomplete: any;
 const stepIcons = [Calendar, Users, MapPin, FileText, CreditCard];
 const stepTitles = ['Date et horaires', 'Enfants', 'Lieu', 'Détails', 'Tarif'];
 
+// Options d'heures (de 06:00 à 23:30 par tranches de 30 minutes)
+const timeOptions = computed(() => {
+    const options = [];
+    for (let hour = 6; hour <= 23; hour++) {
+        for (let minute = 0; minute < 60; minute += 30) {
+            const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            options.push(timeString);
+        }
+    }
+    return options;
+});
+
 const isStepCompleted = (step: number) => {
     switch (step) {
         case 1:
@@ -192,6 +204,33 @@ const goToStep = (step: number) => {
     }
 };
 
+
+// Gestion intelligente du champ de date
+const handleDateClick = () => {
+    const dateInput = document.getElementById('date') as HTMLInputElement;
+    if (dateInput && dateInput.showPicker) {
+        // Petite temporisation pour permettre le focus
+        setTimeout(() => {
+            dateInput.showPicker();
+        }, 50);
+    }
+};
+
+const handleDateKeydown = (event: KeyboardEvent) => {
+    // Si l'utilisateur commence à taper, on ferme le calendrier s'il est ouvert
+    // et on laisse la saisie manuelle se faire
+    const dateInput = event.target as HTMLInputElement;
+    
+    // Caractères de saisie de date (chiffres, slash, etc.)
+    if (event.key.match(/[0-9\/\-\.]/)) {
+        // L'utilisateur veut taper, on s'assure que le calendrier n'interfère pas
+        dateInput.blur();
+        setTimeout(() => {
+            dateInput.focus();
+        }, 10);
+    }
+};
+
 // Google Places
 const loadGooglePlaces = () => {
     if (window.google?.maps?.places) {
@@ -257,8 +296,168 @@ const initAutocomplete = async () => {
     });
 };
 
+// Fonction pour formater les erreurs de validation
+const formatValidationErrors = (errors: Record<string, string | string[]>) => {
+    const errorMessages: string[] = [];
+    const processedErrors = new Set<string>();
+    
+    // Détecter les cas spécifiques et donner des messages plus clairs
+    const hasAddressErrors = errors.postal_code || errors.country || errors.latitude || errors.longitude;
+    
+    if (hasAddressErrors) {
+        errorMessages.push("• L'adresse saisie n'est pas valide.");
+        // Marquer ces erreurs comme traitées
+        processedErrors.add('postal_code');
+        processedErrors.add('country');
+        processedErrors.add('latitude');
+        processedErrors.add('longitude');
+        processedErrors.add('address');
+    }
+    
+    // Traiter les autres erreurs normalement
+    for (const [field, messages] of Object.entries(errors)) {
+        if (processedErrors.has(field)) continue;
+        
+        const errorList = Array.isArray(messages) ? messages : [messages];
+        
+        errorList.forEach(message => {
+            const friendlyMessage = getFriendlyErrorMessage(field, message);
+            errorMessages.push(`• ${friendlyMessage}`);
+        });
+    }
+    
+    return errorMessages.join('\n');
+};
+
+// Fonction pour obtenir des messages d'erreur plus conviviaux
+const getFriendlyErrorMessage = (field: string, message: string): string => {
+    const fieldName = getFieldDisplayName(field);
+    
+    // Messages spécifiques selon le type d'erreur
+    if (message.includes('required')) {
+        return `${fieldName} : Ce champ est obligatoire`;
+    }
+    
+    if (message.includes('email')) {
+        return `${fieldName} : Veuillez saisir une adresse email valide`;
+    }
+    
+    if (message.includes('numeric') || message.includes('number')) {
+        return `${fieldName} : Veuillez saisir un nombre valide`;
+    }
+    
+    if (message.includes('min:')) {
+        const minValue = message.match(/min:(\d+)/)?.[1];
+        return `${fieldName} : Doit contenir au moins ${minValue} caractères`;
+    }
+    
+    if (message.includes('max:')) {
+        const maxValue = message.match(/max:(\d+)/)?.[1];
+        return `${fieldName} : Ne peut pas dépasser ${maxValue} caractères`;
+    }
+    
+    if (message.includes('date')) {
+        return `${fieldName} : Veuillez saisir une date valide`;
+    }
+    
+    if (message.includes('after') || message.includes('before')) {
+        return `${fieldName} : La date saisie n'est pas valide`;
+    }
+    
+    if (field.includes('children') && message.includes('array')) {
+        return 'Enfants : Veuillez renseigner au moins un enfant';
+    }
+    
+    // Message par défaut avec le nom du champ traduit
+    return `${fieldName} : ${message}`;
+};
+
+// Fonction pour obtenir le nom d'affichage des champs
+const getFieldDisplayName = (field: string): string => {
+    const fieldNames: Record<string, string> = {
+        'date': 'Date',
+        'start_time': 'Heure de début',
+        'end_time': 'Heure de fin',
+        'children': 'Enfants',
+        'children.*.nom': 'Prénom de l\'enfant',
+        'children.*.age': 'Âge de l\'enfant',
+        'children.*.unite': 'Unité d\'âge',
+        'address': 'Adresse',
+        'postal_code': 'Code postal',
+        'country': 'Pays',
+        'additional_info': 'Informations complémentaires',
+        'hourly_rate': 'Tarif horaire',
+        'estimated_duration': 'Durée estimée',
+        'estimated_total': 'Coût total estimé'
+    };
+    
+    return fieldNames[field] || field;
+};
+
+// Validation côté client avant soumission
+const validateForm = (): string[] => {
+    const errors: string[] = [];
+    
+    // Validation de la date
+    if (!form.value.date) {
+        errors.push("• Date : La date est obligatoire");
+    } else {
+        const selectedDate = new Date(form.value.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
+            errors.push("• Date : La date ne peut pas être dans le passé");
+        }
+    }
+    
+    // Validation des horaires
+    if (!form.value.start_time) {
+        errors.push("• Heure de début : L'heure de début est obligatoire");
+    }
+    if (!form.value.end_time) {
+        errors.push("• Heure de fin : L'heure de fin est obligatoire");
+    }
+    if (form.value.start_time && form.value.end_time && form.value.start_time >= form.value.end_time) {
+        errors.push("• Horaires : L'heure de fin doit être après l'heure de début");
+    }
+    
+    // Validation des enfants
+    if (form.value.children.length === 0) {
+        errors.push("• Enfants : Au moins un enfant doit être renseigné");
+    }
+    form.value.children.forEach((child, index) => {
+        if (!child.nom.trim()) {
+            errors.push(`• Enfant ${index + 1} : Le prénom est obligatoire`);
+        }
+        if (!child.age || parseInt(child.age) <= 0) {
+            errors.push(`• Enfant ${index + 1} : L'âge doit être supérieur à 0`);
+        }
+    });
+    
+    // Validation de l'adresse
+    if (!form.value.address.trim()) {
+        errors.push("• Adresse : L'adresse est obligatoire");
+    }
+    
+    // Validation du tarif
+    if (!form.value.hourly_rate) {
+        errors.push("• Tarif horaire : Le tarif horaire est obligatoire");
+    } else if (parseFloat(form.value.hourly_rate) <= 0) {
+        errors.push("• Tarif horaire : Le tarif doit être supérieur à 0");
+    }
+    
+    return errors;
+};
+
 // Soumission
 const submitAnnouncement = async () => {
+    // Validation côté client d'abord
+    const clientErrors = validateForm();
+    if (clientErrors.length > 0) {
+        showError(`❌ Veuillez corriger les erreurs suivantes :\n${clientErrors.join('\n')}`);
+        return;
+    }
+
     const announcementData = {
         ...form.value,
         children: form.value.children.map((child) => ({
@@ -279,13 +478,25 @@ const submitAnnouncement = async () => {
                 }, 1500);
             },
             onError: (errors) => {
-                console.error('Erreurs:', errors);
-                showError("❌ Erreur lors de la création de l'annonce");
+                console.error('Erreurs de validation:', errors);
+                
+                if (errors && Object.keys(errors).length > 0) {
+                    // Erreurs de validation spécifiques
+                    const formattedErrors = formatValidationErrors(errors);
+                    showError(`Erreur dans le formulaire :\n${formattedErrors}`);
+                } else {
+                    // Erreur générique
+                    showError("Erreur lors de la création de l'annonce. Veuillez vérifier vos informations et réessayer.");
+                }
             },
+            onFinish: () => {
+                // Cette fonction est appelée après onSuccess ou onError
+                console.log('Requête terminée');
+            }
         });
     } catch (error) {
-        console.error('Erreur:', error);
-        showError('❌ Une erreur est survenue');
+        console.error('Erreur inattendue:', error);
+        showError('❌ Une erreur inattendue est survenue. Veuillez rafraîchir la page et réessayer.');
     }
 };
 
@@ -398,14 +609,16 @@ initializeChildren();
     <div class="space-y-2">
       <Label for="date">Date</Label>
       <div class="relative">
-        <Calendar class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Calendar class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
         <Input
           id="date"
           type="date"
           v-model="form.date"
           :min="new Date().toISOString().split('T')[0]"
-          class="pl-10"
+          class="pl-10 cursor-pointer hover:border-primary transition-colors focus:border-primary"
           required
+          @click="handleDateClick"
+          @keydown="handleDateKeydown"
         />
       </div>
     </div>
@@ -414,30 +627,36 @@ initializeChildren();
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div class="space-y-2">
         <Label for="start_time">Heure de début</Label>
-        <div class="relative">
-          <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            id="start_time"
-            type="time"
-            v-model="form.start_time"
-            class="pl-10"
-            required
-          />
-        </div>
+        <Select v-model="form.start_time" required>
+          <SelectTrigger class="w-full">
+            <div class="flex items-center gap-2">
+              <Clock class="h-4 w-4 text-gray-400" />
+              <SelectValue placeholder="Sélectionner l'heure" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
+              {{ hour }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div class="space-y-2">
         <Label for="end_time">Heure de fin</Label>
-        <div class="relative">
-          <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            id="end_time"
-            type="time"
-            v-model="form.end_time"
-            class="pl-10"
-            required
-          />
-        </div>
+        <Select v-model="form.end_time" required>
+          <SelectTrigger class="w-full">
+            <div class="flex items-center gap-2">
+              <Clock class="h-4 w-4 text-gray-400" />
+              <SelectValue placeholder="Sélectionner l'heure" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
+              {{ hour }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
 
@@ -581,7 +800,7 @@ initializeChildren();
                             </div>
 
                             <!-- Estimation totale -->
-                            <div v-if="estimatedTotal > 0" class="rounded-lg bg-green-50 p-4">
+                            <div v-if="parseFloat(estimatedTotal) > 0" class="rounded-lg bg-green-50 p-4">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-green-800">Coût estimé total:</span>
                                     <span class="text-lg font-semibold text-green-800">{{ estimatedTotal }}€</span>
@@ -612,7 +831,7 @@ initializeChildren();
   :disabled="currentStep !== 4 && !canProceedToNext"
   class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
 >
-  <span v-if="currentStep === 4 && !form.description.trim()">
+  <span v-if="currentStep === 4 && !form.additional_info.trim()">
     Ignorer cette étape →
   </span>
   <span v-else>
