@@ -28,16 +28,42 @@ if (typeof window !== 'undefined') {
             forceTLS: true,
             enabledTransports: ['ws', 'wss'],
             authEndpoint: '/broadcasting/auth',
-            withCredentials: true, 
 
-            auth: {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    // ✅ Token récupéré dynamiquement à chaque requête
-                    'X-CSRF-TOKEN': () => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                },
+            // ✅ Configuration d'authentification plus explicite
+            authorizer: (channel: any) => {
+                return {
+                    authorize: (socketId: string, callback: (error: boolean, data?: any) => void) => {
+                        // Utiliser fetch avec credentials pour forcer l'envoi des cookies
+                        fetch('/broadcasting/auth', {
+                            method: 'POST',
+                            credentials: 'include', // ✅ Force l'envoi des cookies
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                                Accept: 'application/json',
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: new URLSearchParams({
+                                socket_id: socketId,
+                                channel_name: channel.name,
+                            }),
+                        })
+                            .then((response) => {
+                                if (!response.ok) {
+                                    throw new Error(`HTTP ${response.status}`);
+                                }
+                                return response.json();
+                            })
+                            .then((data) => {
+                                console.log('✅ Auth réussie:', data);
+                                callback(false, data);
+                            })
+                            .catch((error) => {
+                                console.error('❌ Auth échouée:', error);
+                                callback(true, error);
+                            });
+                    },
+                };
             },
         });
 
