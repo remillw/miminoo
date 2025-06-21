@@ -28,6 +28,8 @@ if (typeof window !== 'undefined') {
             forceTLS: true,
             enabledTransports: ['ws', 'wss'],
             authEndpoint: '/broadcasting/auth',
+            withCredentials: true, 
+
             auth: {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
