@@ -255,9 +255,25 @@ Route::middleware(['auth'])->prefix('parametres')->group(function () {
 require __DIR__.'/auth.php';
 require __DIR__.'/channels.php';
 
+// Route de debug pour tester l'authentification (temporaire)
+Route::post('/debug-auth', function () {
+    return response()->json([
+        'auth_user' => auth()->user(),
+        'session_id' => session()->getId(),
+        'has_session' => session()->has('_token'),
+        'csrf_token' => csrf_token(),
+        'cookies' => request()->cookies->all(),
+        'headers' => [
+            'user-agent' => request()->header('user-agent'),
+            'referer' => request()->header('referer'),
+            'x-csrf-token' => request()->header('x-csrf-token'),
+            'cookie' => request()->header('cookie') ? 'Present' : 'Missing',
+        ]
+    ]);
+});
+
 // Support pour le broadcasting (authentification WebSocket)
 Broadcast::routes(['middleware' => ['auth']]);
-
 
 // Route fallback pour les 404 - DOIT être en dernier
 Route::fallback([App\Http\Controllers\ErrorController::class, 'notFound'])->name('errors.404');
