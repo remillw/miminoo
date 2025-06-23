@@ -194,12 +194,59 @@ class MessagingController extends Controller
      */
     public function markApplicationAsViewed(AdApplication $application)
     {
-        // Vérifier que l'utilisateur peut voir cette candidature
-        if ($application->ad->parent_id !== Auth::id()) {
-            abort(403);
+        $user = Auth::user();
+        
+        // Charger la relation ad si elle n'est pas déjà chargée
+        $application->load('ad');
+        
+        \Log::info('=== MARQUAGE CANDIDATURE COMME VUE ===', [
+            'user_id' => $user->id,
+            'application_id' => $application->id,
+            'application_ad_id' => $application->ad?->id,
+            'application_ad_parent_id' => $application->ad?->parent_id,
+            'application_status' => $application->status,
+            'viewed_at' => $application->viewed_at,
+            'user_has_parent_role' => $user->hasRole('parent'),
+            'user_roles' => $user->roles->pluck('name')->toArray(),
+            'ad_loaded' => isset($application->ad)
+        ]);
+
+        // Vérifier que l'annonce existe
+        if (!$application->ad) {
+            \Log::error('APPLICATION SANS ANNONCE', [
+                'application_id' => $application->id
+            ]);
+            abort(404, 'Annonce introuvable pour cette candidature');
         }
 
+        // Vérifier que l'utilisateur peut voir cette candidature
+        if ($application->ad->parent_id !== $user->id) {
+            \Log::error('ACCESS DENIED - Utilisateur non autorisé pour marquer cette candidature', [
+                'user_id' => $user->id,
+                'application_id' => $application->id,
+                'expected_parent_id' => $application->ad->parent_id,
+                'actual_user_id' => $user->id
+            ]);
+            abort(403, 'Vous n\'êtes pas autorisé à voir cette candidature');
+        }
+
+        // Vérifier si la candidature n'est pas déjà marquée comme vue
+        if ($application->viewed_at) {
+            \Log::info('Candidature déjà marquée comme vue', [
+                'application_id' => $application->id,
+                'viewed_at' => $application->viewed_at
+            ]);
+            return response()->json(['success' => true, 'message' => 'Déjà marquée comme vue']);
+        }
+
+        \Log::info('Marquage autorisé, traitement en cours...');
+
         $application->markAsViewed();
+
+        \Log::info('Candidature marquée comme vue avec succès', [
+            'application_id' => $application->id,
+            'viewed_at' => $application->fresh()->viewed_at
+        ]);
 
         return response()->json(['success' => true]);
     }

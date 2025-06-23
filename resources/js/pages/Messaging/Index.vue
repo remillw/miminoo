@@ -499,15 +499,53 @@ function selectConversation(conversation) {
 
     // Marquer comme vue automatiquement pour les candidatures (selon le mode actuel)
     if (conversation.type === 'application' && currentMode.value === 'parent' && !conversation.application?.viewed_at) {
-        console.log('👁️ Marquage candidature comme vue:', conversation.application.id);
+        console.log('👁️ Marquage candidature comme vue:', {
+            applicationId: conversation.application.id,
+            currentMode: currentMode.value,
+            hasParentRole: props.hasParentRole,
+            viewedAt: conversation.application?.viewed_at,
+            conversationType: conversation.type
+        });
+        
+        // Vérifier que l'utilisateur a bien le rôle parent
+        if (!props.hasParentRole) {
+            console.warn('⚠️ Utilisateur n\'a pas le rôle parent, marquage annulé');
+            return;
+        }
+
+        // Vérifier que l'application existe et a un ID valide
+        if (!conversation.application?.id) {
+            console.warn('⚠️ Application ID manquant, marquage annulé');
+            return;
+        }
+
+        // Faire la requête seulement si tout est OK
         router.patch(
             route('applications.mark-viewed', conversation.application.id),
             {},
             {
                 preserveState: true,
                 preserveScroll: true,
+                onSuccess: () => {
+                    console.log('✅ Candidature marquée comme vue avec succès');
+                    // Mettre à jour localement pour éviter les futures tentatives
+                    if (conversation.application) {
+                        conversation.application.viewed_at = new Date().toISOString();
+                    }
+                },
                 onError: (errors) => {
                     console.error('❌ Erreur marquage comme vue:', errors);
+                    
+                    // Gestion spécifique des erreurs
+                    if (errors[0]?.status === 403) {
+                        console.warn('⚠️ Accès refusé - cette candidature ne vous appartient pas');
+                    } else if (errors[0]?.status === 405) {
+                        console.warn('⚠️ Méthode non autorisée - problème de route');
+                    } else if (errors[0]?.status === 404) {
+                        console.warn('⚠️ Candidature introuvable');
+                    } else {
+                        console.warn('⚠️ Erreur inconnue lors du marquage:', errors);
+                    }
                 },
             },
         );
