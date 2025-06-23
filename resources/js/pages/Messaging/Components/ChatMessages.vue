@@ -430,10 +430,25 @@ function addChannelListeners() {
     
     console.log('🎧 Ajout des écouteurs sur le canal...');
 
-    // DEBUG: Écouter TOUS les événements sur le canal
-    if (channel.bind) {
-        channel.bind_global((eventName, data) => {
-            console.log('🌍 Événement global reçu:', eventName, data);
+    // DEBUG: Écouter TOUS les événements sur le canal avec Pusher
+    if (channel.pusherChannel) {
+        console.log('🔍 Configuration écoute globale sur le canal Pusher');
+        
+        // Bind à tous les événements commençant par différents préfixes
+        channel.pusherChannel.bind_global((eventName, data) => {
+            console.log('🌍 Événement Pusher reçu:', eventName, data);
+        });
+        
+        // Écouter spécifiquement l'événement message.sent
+        channel.pusherChannel.bind('message.sent', (data) => {
+            console.log('📨 ÉVÉNEMENT MESSAGE.SENT REÇU DIRECTEMENT:', data);
+            onNewMessage(data);
+        });
+        
+        // Écouter aussi d'autres variantes possibles
+        channel.pusherChannel.bind('MessageSent', (data) => {
+            console.log('📨 ÉVÉNEMENT MessageSent REÇU:', data);
+            onNewMessage(data);
         });
     }
 
