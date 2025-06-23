@@ -59,9 +59,14 @@
             </span>
           </div>
           
-          <!-- Message de motivation (tronqué) -->
-          <p v-if="item.motivation_note" class="text-xs text-gray-600 truncate">
+          <!-- Dernier message s'il existe, sinon note de motivation -->
+          <p v-if="item.last_message" class="text-sm text-gray-600 truncate" v-html="filterSensitiveInfo(item.last_message)">
+          </p>
+          <p v-else-if="item.motivation_note" class="text-xs text-gray-600 truncate">
             {{ item.motivation_note }}
+          </p>
+          <p v-else class="text-xs text-gray-500 italic truncate">
+            La conversation a commencé !
           </p>
         </div>
 
