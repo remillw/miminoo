@@ -53,12 +53,29 @@
                         <!-- Message de l'utilisateur actuel -->
                         <div v-else class="flex justify-end" :class="mobile ? 'max-w-[85%]' : 'max-w-[70%]'">
                             <div class="flex flex-col items-end">
-                                <div class="message-bubble rounded-2xl bg-blue-600 text-white shadow-sm" :class="mobile ? 'px-3 py-2' : 'px-4 py-3'">
+                                <div 
+                                    class="message-bubble rounded-2xl text-white shadow-sm" 
+                                    :class="[
+                                        mobile ? 'px-3 py-2' : 'px-4 py-3',
+                                        message.status === 'sending' ? 'bg-blue-400' : 
+                                        message.status === 'failed' ? 'bg-red-500' : 'bg-blue-600'
+                                    ]"
+                                >
                                     <p :class="mobile ? 'text-sm' : ''">{{ message.message }}</p>
                                 </div>
                                 <div class="mt-1 flex items-center gap-2">
                                     <p class="text-xs text-gray-500">{{ formatTime(message.created_at) }}</p>
-                                    <span v-if="message.read_at" class="text-xs font-medium text-blue-500">lu</span>
+                                    
+                                    <!-- Indicateurs de statut -->
+                                    <div v-if="message.status === 'sending'" class="flex items-center gap-1">
+                                        <div class="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></div>
+                                        <span class="text-xs text-blue-500">envoi...</span>
+                                    </div>
+                                    <div v-else-if="message.status === 'failed'" class="flex items-center gap-1 cursor-pointer" @click="retryMessage(message)">
+                                        <span class="text-xs text-red-500">❌ échec - cliquer pour renvoyer</span>
+                                    </div>
+                                    <span v-else-if="message.read_at" class="text-xs font-medium text-blue-500">lu</span>
+                                    <span v-else class="text-xs text-gray-400">envoyé</span>
                                 </div>
                             </div>
                         </div>
@@ -386,9 +403,10 @@ function onNewMessage(e: any) {
         messages.value.push(e.message);
 
         // Si ce n'est pas mon message, le marquer automatiquement comme lu
-        if (!isMyMessage) {
-            markNewMessageAsRead(e.message);
-        }
+        // Temporairement désactivé pour éviter l'erreur 405
+        // if (!isMyMessage) {
+        //     markNewMessageAsRead(e.message);
+        // }
 
         // Scroll vers le bas
         nextTick(() => {
@@ -490,6 +508,27 @@ defineExpose({
             nextTick(scrollToBottom);
         } else {
             console.log('⚠️ Message local déjà présent, pas d\'ajout');
+        }
+    },
+    confirmMessage: (tempId: string, realMessage: any) => {
+        // Remplacer le message temporaire par le vrai message du serveur
+        const tempIndex = messages.value.findIndex(msg => msg.id === tempId);
+        if (tempIndex >= 0) {
+            console.log('✅ Remplacement message temporaire par le vrai:', { tempId, realMessage });
+            messages.value[tempIndex] = realMessage;
+        } else {
+            console.log('⚠️ Message temporaire non trouvé, ajout du vrai message');
+            messages.value.push(realMessage);
+            nextTick(scrollToBottom);
+        }
+    },
+    markMessageAsFailed: (tempId: string, error: string) => {
+        // Marquer le message comme échoué
+        const tempIndex = messages.value.findIndex(msg => msg.id === tempId);
+        if (tempIndex >= 0) {
+            console.error('❌ Marquage message comme échoué:', { tempId, error });
+            messages.value[tempIndex].status = 'failed';
+            messages.value[tempIndex].error = error;
         }
     },
     sendTypingEvent: () => {

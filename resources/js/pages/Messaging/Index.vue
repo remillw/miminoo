@@ -165,10 +165,14 @@
                         <ChatInput
                             @send="sendMessage"
                             @message-sent="onMessageSent"
+                            @message-sent-optimistic="onMessageSentOptimistic"
+                            @message-confirmed="onMessageConfirmed"
+                            @message-failed="onMessageFailed"
                             @typing="onTyping"
                             :disabled="selectedConversation.status === 'payment_required' || selectedConversation.status === 'archived'"
                             :placeholder="getInputPlaceholder()"
                             :conversation-id="selectedConversation.id"
+                            :current-user-id="page.props.auth.user.id"
                         />
                     </div>
                 </div>
@@ -352,10 +356,14 @@
                     <ChatInput
                         @send="sendMessage"
                         @message-sent="onMessageSent"
+                        @message-sent-optimistic="onMessageSentOptimistic"
+                        @message-confirmed="onMessageConfirmed"
+                        @message-failed="onMessageFailed"
                         @typing="onTyping"
                         :disabled="selectedConversation.status === 'payment_required' || selectedConversation.status === 'archived'"
                         :placeholder="getInputPlaceholder()"
                         :conversation-id="selectedConversation.id"
+                        :current-user-id="page.props.auth.user.id"
                         :mobile="true"
                     />
                 </div>
@@ -653,8 +661,46 @@ function sendMessage(message) {
     // Cette fonction est dépréciée, on utilise maintenant onMessageSent
 }
 
+// 🚀 AFFICHAGE OPTIMISTE - Message affiché immédiatement
+function onMessageSentOptimistic(message) {
+    console.log('🚀 Affichage optimiste du message:', message);
+    
+    // Ajouter immédiatement le message optimiste
+    if (chatMessagesRef.value) {
+        chatMessagesRef.value.addMessageLocally(message);
+    }
+
+    // Mettre à jour la sidebar immédiatement
+    if (selectedConversation.value) {
+        selectedConversation.value.last_message = message.message;
+        selectedConversation.value.last_message_at = message.created_at;
+        selectedConversation.value.last_message_by = message.sender_id;
+    }
+}
+
+// ✅ CONFIRMATION - Remplacer le message temporaire par le vrai
+function onMessageConfirmed({ tempId, realMessage }) {
+    console.log('✅ Message confirmé:', { tempId, realMessage });
+    
+    if (chatMessagesRef.value) {
+        chatMessagesRef.value.confirmMessage(tempId, realMessage);
+    }
+}
+
+// ❌ ÉCHEC - Marquer le message comme échoué
+function onMessageFailed({ tempId, error }) {
+    console.error('❌ Message échoué:', { tempId, error });
+    
+    if (chatMessagesRef.value) {
+        chatMessagesRef.value.markMessageAsFailed(tempId, error);
+    }
+}
+
 function onMessageSent(message) {
-    // Ajouter le message localement via une référence au composant ChatMessages
+    console.log('⚡ onMessageSent (legacy) appelé avec message:', message);
+    
+    // Cette fonction est maintenant utilisée comme fallback
+    // La logique principale est dans onMessageSentOptimistic
     if (chatMessagesRef.value) {
         chatMessagesRef.value.addMessageLocally(message);
     }

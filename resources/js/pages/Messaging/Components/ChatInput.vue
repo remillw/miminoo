@@ -67,13 +67,17 @@ const props = defineProps({
     type: Number,
     required: false
   },
+  currentUserId: {
+    type: Number,
+    required: false
+  },
   mobile: {
     type: Boolean,
     default: false
   }
 })
 
-const emit = defineEmits(['send', 'typing', 'message-sent'])
+const emit = defineEmits(['send', 'typing', 'message-sent', 'message-sent-optimistic', 'message-confirmed', 'message-failed'])
 
 const message = ref('')
 const textarea = ref(null)
@@ -110,7 +114,35 @@ async function sendMessage() {
   const messageText = message.value.trim()
   isSending.value = true
 
+  // 🚀 AFFICHAGE OPTIMISTE - Créer un message temporaire immédiatement
+  const optimisticMessage = {
+    id: `temp-${Date.now()}`, // ID temporaire
+    message: messageText,
+    sender_id: props.currentUserId || 3, // ID de l'utilisateur actuel (fallback temporaire)
+    conversation_id: props.conversationId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    read_at: null,
+    type: 'user',
+    status: 'sending' // Statut temporaire
+  }
+
+  // Vider le champ de saisie IMMÉDIATEMENT
+  message.value = ''
+  textareaHeight.value = 'auto'
+  stopTypingIndicator()
+
+  // 🚀 AFFICHER LE MESSAGE IMMÉDIATEMENT (optimistic UI)
+  console.log('🚀 Affichage optimiste du message:', optimisticMessage)
+  emit('message-sent-optimistic', optimisticMessage)
+
+  // Focus sur le textarea pour continuer à taper
+  if (textarea.value) {
+    textarea.value.focus()
+  }
+
   try {
+    // 📡 ENVOYER AU SERVEUR EN ARRIÈRE-PLAN
     const response = await fetch(route('conversations.send-message', { conversation: props.conversationId }), {
       method: 'POST',
       headers: {
@@ -125,28 +157,31 @@ async function sendMessage() {
     if (response.ok) {
       const data = await response.json()
       
-      // Vider le champ de saisie
-      message.value = ''
+      // ✅ CONFIRMER L'ENVOI - Remplacer le message temporaire par le vrai
+      console.log('✅ Message confirmé par le serveur:', data.message)
+      emit('message-confirmed', { 
+        tempId: optimisticMessage.id, 
+        realMessage: data.message 
+      })
       
-      // Réinitialiser la hauteur du textarea
-      textareaHeight.value = 'auto'
-      
-      // Arrêter l'indicateur de frappe
-      stopTypingIndicator()
-      
-      // Émettre l'événement vers le parent avec le message
-      emit('message-sent', data.message)
-      
-      // Focus sur le textarea pour continuer à taper
-      if (textarea.value) {
-        textarea.value.focus()
-      }
     } else {
       const errorData = await response.json()
-      alert(errorData.error || 'Erreur lors de l\'envoi du message')
+      
+      // ❌ ÉCHEC - Marquer le message comme échoué
+      console.error('❌ Échec envoi message:', errorData)
+      emit('message-failed', { 
+        tempId: optimisticMessage.id, 
+        error: errorData.error || 'Erreur lors de l\'envoi du message' 
+      })
     }
   } catch (error) {
-    alert('Erreur de connexion lors de l\'envoi du message')
+    console.error('❌ Erreur connexion:', error)
+    
+    // ❌ ÉCHEC - Marquer le message comme échoué
+    emit('message-failed', { 
+      tempId: optimisticMessage.id, 
+      error: 'Erreur de connexion lors de l\'envoi du message' 
+    })
   } finally {
     isSending.value = false
   }
