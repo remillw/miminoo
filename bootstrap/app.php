@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\CheckBabysitterVerification;
 use Illuminate\Foundation\Application;
@@ -18,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        $middleware->encryptCookies(except: ['sidebar_state']);
 
         // Exclure les webhooks Stripe et les routes de broadcasting de la vérification CSRF
         $middleware->validateCsrfTokens(except: [
@@ -33,7 +32,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(append: [
-            HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
