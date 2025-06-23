@@ -1,5 +1,16 @@
 <template>
     <DashboardLayout :currentMode="currentMode">
+        <!-- Debug info temporaire -->
+        <div class="mb-4 rounded-lg border bg-yellow-50 p-3 text-sm">
+            <strong>🐛 Debug:</strong>
+            currentMode: {{ currentMode }} |
+            hasParentRole: {{ hasParentRole }} |
+            hasBabysitterRole: {{ hasBabysitterRole }} |
+            hasMultipleRoles: {{ hasMultipleRoles }} |
+            conversations: {{ conversations.length }} |
+            isLoadingConversations: {{ isLoadingConversations }}
+        </div>
+
         <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
         <div v-if="hasMultipleRoles" class="mb-6 rounded-lg border bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between">
@@ -442,22 +453,17 @@ console.log('🚀 Mode initialisé:', {
     hasBabysitterRole: props.hasBabysitterRole
 });
 
-// Vérifier si on doit recharger les conversations avec le bon mode
-const needsReload = computed(() => {
-    const serverMode = props.currentMode || props.requestedMode;
-    const clientMode = currentMode.value;
-    
-    console.log('🔍 Vérification reload:', { serverMode, clientMode });
-    
-    return serverMode && clientMode && serverMode !== clientMode;
-});
-
 // Initialiser le mode au montage du composant
 onMounted(async () => {
     // Vérifier si on doit recharger avec le bon mode
-    if (needsReload.value) {
-        console.log('🔄 Rechargement nécessaire avec le mode client:', currentMode.value);
-        loadConversationsForMode(currentMode.value);
+    const serverMode = props.currentMode || props.requestedMode;
+    const clientMode = currentMode.value;
+    
+    console.log('🔍 Vérification au montage:', { serverMode, clientMode });
+    
+    if (serverMode && clientMode && serverMode !== clientMode) {
+        console.log('🔄 Rechargement nécessaire avec le mode client:', clientMode);
+        loadConversationsForMode(clientMode);
     }
 
     // Attendre que Echo soit disponible avec un timeout
@@ -492,6 +498,7 @@ const selectedConversation = ref(null);
 const isLoading = ref(true);
 const chatMessagesRef = ref(null);
 const showConversationsList = ref(false); // Pour la navigation mobile
+const isLoadingConversations = ref(false); // Variable réactive pour l'état de chargement
 
 // Utiliser les conversations des props
 const conversations = computed(() => props.conversations || []);
@@ -503,12 +510,21 @@ const hasMultipleRoles = computed(() => {
 
 // Fonction pour changer de mode
 const switchMode = (mode) => {
-    if (mode === currentMode.value || isLoadingConversations) return;
+    if (mode === currentMode.value || isLoadingConversations.value) {
+        console.log('⏹️ Switch ignoré:', { 
+            mode, 
+            currentMode: currentMode.value, 
+            isLoading: isLoadingConversations.value 
+        });
+        return;
+    }
 
-    console.log('🔄 Switch mode vers:', mode);
+    console.log('🔄 Switch mode vers:', mode, 'depuis:', currentMode.value);
     
-    // Mettre à jour le localStorage
+    // Mettre à jour le localStorage ET la valeur réactive
     setMode(mode);
+    
+    console.log('✅ Mode mis à jour vers:', currentMode.value);
     
     // Utiliser la nouvelle fonction sécurisée
     loadConversationsForMode(mode);
@@ -872,18 +888,17 @@ function handleReservationUpdate(updatedReservation) {
     // router.get(route('messaging.index'), {}, { preserveState: true });
 }
 
-// Variable pour éviter les boucles infinies
-let isLoadingConversations = false;
-
 // Fonction pour recharger les conversations selon le mode
 function loadConversationsForMode(mode) {
-    if (isLoadingConversations) {
+    if (isLoadingConversations.value) {
         console.log('⏳ Chargement déjà en cours, ignorer');
         return;
     }
     
     console.log('🔄 Chargement conversations pour mode:', mode);
-    isLoadingConversations = true;
+    console.log('🌐 URL qui sera appelée:', route('messaging.index') + '?mode=' + mode);
+    
+    isLoadingConversations.value = true;
     
     // Réinitialiser la conversation sélectionnée
     selectedConversation.value = null;
@@ -892,9 +907,19 @@ function loadConversationsForMode(mode) {
         preserveState: false,
         preserveScroll: true,
         only: ['conversations', 'currentMode'],
+        onSuccess: (page) => {
+            console.log('✅ Requête réussie, nouvelles props:', {
+                conversations: page.props.conversations?.length || 0,
+                currentMode: page.props.currentMode,
+                requestedMode: page.props.requestedMode
+            });
+        },
+        onError: (errors) => {
+            console.error('❌ Erreur lors du chargement:', errors);
+        },
         onFinish: () => {
-            isLoadingConversations = false;
-            console.log('✅ Chargement terminé');
+            isLoadingConversations.value = false;
+            console.log('🏁 Chargement terminé, mode actuel:', currentMode.value);
         }
     });
 }

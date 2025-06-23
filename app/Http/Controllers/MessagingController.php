@@ -26,6 +26,13 @@ class MessagingController extends Controller
         $defaultMode = $user->hasRole('parent') ? 'parent' : 'babysitter';
         $requestedMode = $request->get('mode', $defaultMode);
         
+        // Valider que l'utilisateur a bien le rôle demandé
+        if ($requestedMode === 'parent' && !$user->hasRole('parent')) {
+            $requestedMode = 'babysitter';
+        } elseif ($requestedMode === 'babysitter' && !$user->hasRole('babysitter')) {
+            $requestedMode = 'parent';
+        }
+        
         \Log::info('=== CHARGEMENT CONVERSATIONS ===', [
             'user_id' => $user->id,
             'user_name' => $user->name,
