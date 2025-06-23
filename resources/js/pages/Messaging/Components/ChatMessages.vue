@@ -286,8 +286,14 @@ function scrollToBottom() {
     });
 }
 
-async function markNewMessageAsRead(message) {
+async function markNewMessageAsRead(message: any) {
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!csrfToken) {
+            console.error('❌ Token CSRF manquant');
+            return;
+        }
+
         const response = await fetch(
             route('conversations.mark-message-read', {
                 conversation: props.conversation.id,
@@ -299,20 +305,23 @@ async function markNewMessageAsRead(message) {
                     Accept: 'application/json',
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                    'X-CSRF-TOKEN': csrfToken,
                 },
             },
         );
 
         if (response.ok) {
+            console.log('✅ Message marqué comme lu:', message.id);
             // Marquer le message comme lu côté client aussi
             const messageInList = messages.value.find((m) => m.id === message.id);
             if (messageInList) {
                 messageInList.read_at = new Date().toISOString();
             }
+        } else {
+            console.error('❌ Erreur marquage message lu:', response.status, await response.text());
         }
     } catch (error) {
-        console.error('Erreur lors du marquage du message comme lu:', error);
+        console.error('❌ Erreur lors du marquage du message comme lu:', error);
     }
 }
 
@@ -358,35 +367,36 @@ function joinConversationChannel() {
 }
 
 // Fonction pour gérer les nouveaux messages
-function onNewMessage(e) {
-    console.log('🔥 DÉBUT onNewMessage - Nouveau message reçu:', e);
-    console.log('🔥 Message data:', e.message);
-    console.log('🔥 Sender ID:', e.message?.sender_id, 'type:', typeof e.message?.sender_id);
-    console.log('🔥 Current User ID:', currentUser.value?.id, 'type:', typeof currentUser.value?.id);
-
+function onNewMessage(e: any) {
     const messageSenderId = String(e.message?.sender_id);
     const currentUserId = String(currentUser.value?.id);
     const isMyMessage = messageSenderId === currentUserId;
     
-    console.log('🔥 IDs comparés:', { messageSenderId, currentUserId, isMyMessage });
+    console.log('📨 Nouveau message:', {
+        id: e.message.id,
+        from: isMyMessage ? 'moi' : `user ${messageSenderId}`,
+        message: e.message.message?.substring(0, 50) + '...'
+    });
 
-    // Ne pas ajouter notre propre message (déjà ajouté localement)
-    if (!isMyMessage) {
-        console.log('🔥 Ajout du message à la liste (pas mon message)');
+    // Vérifier si le message existe déjà dans la liste
+    const messageExists = messages.value.some(msg => msg.id === e.message.id);
+    
+    if (!messageExists) {
+        console.log('✅ Ajout du message à la liste');
         messages.value.push(e.message);
 
-        // Marquer automatiquement comme lu
-        markNewMessageAsRead(e.message);
+        // Si ce n'est pas mon message, le marquer automatiquement comme lu
+        if (!isMyMessage) {
+            markNewMessageAsRead(e.message);
+        }
 
         // Scroll vers le bas
         nextTick(() => {
             scrollToBottom();
         });
     } else {
-        console.log('🔥 Message ignoré (c\'est mon propre message)');
+        console.log('⚠️ Message déjà présent, pas d\'ajout');
     }
-    
-    console.log('🔥 FIN onNewMessage');
 }
 
 // Fonction pour ajouter les écouteurs sur le canal
@@ -401,34 +411,9 @@ function addChannelListeners() {
     console.log('🎧 Canal name:', channel.name);
     console.log('🎧 Canal subscription:', channel.subscription);
 
-    // DEBUG GLOBAL: Écouter TOUS les événements sur Pusher
-    if (window.Echo?.connector?.pusher) {
-        const pusher = window.Echo.connector.pusher;
-        console.log('🌐 Configuration debug global Pusher...');
-        
-        // Écouter absolument tous les événements sur tous les canaux
-        pusher.bind_global((eventName: string, data: any) => {
-            console.log('🌍 ÉVÉNEMENT GLOBAL PUSHER:', {
-                event: eventName,
-                data: data,
-                timestamp: new Date().toISOString()
-            });
-        });
-    }
-
-    // DEBUG CANAL: Écouter tous les événements sur ce canal spécifique
-    if (channel.pusherChannel || channel.subscription) {
-        const pusherChannel = channel.pusherChannel || channel.subscription;
-        console.log('🎯 Configuration debug canal spécifique...');
-        
-        pusherChannel.bind_global((eventName: string, data: any) => {
-            console.log('🎯 ÉVÉNEMENT SUR CANAL conversation.1:', {
-                event: eventName,
-                data: data,
-                channel: channel.name,
-                timestamp: new Date().toISOString()
-            });
-        });
+    // Mode debug réduit - ne garder que pour les événements importants
+    if (channel.subscription) {
+        console.log('🎯 Debug: écoute des événements sur canal:', channel.name);
     }
 
     // Écouter les événements de message envoyé (server-side)
