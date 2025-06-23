@@ -8,7 +8,6 @@ import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
-import axios from 'axios';
 import {
     AlertCircle,
     Baby,
@@ -575,37 +574,36 @@ const requestVerification = async () => {
     console.log('📋 Statut actuel avant demande:', verificationStatus.value);
 
     try {
-        const response = await axios.post('/babysitter/request-verification');
-        console.log('✅ Réponse serveur:', response.data);
-        showSuccess(response.data.message);
+        router.post('/babysitaxioster/request-verification', {}, {
+            onSuccess: (response: any) => {
+                console.log('✅ Réponse serveur:', response);
+                showSuccess('Demande de vérification envoyée avec succès !');
 
-        // Force la mise à jour du statut localement IMMÉDIATEMENT
-        if (babysitterProfile.value) {
-            babysitterProfile.value.verification_status = 'pending';
-        }
+                // Force la mise à jour du statut localement IMMÉDIATEMENT
+                if (babysitterProfile.value) {
+                    babysitterProfile.value.verification_status = 'pending';
+                }
 
-        console.log('📋 Statut forcé à pending localement');
+                console.log('📋 Statut forcé à pending localement');
 
-        // Rafraîchir la page après un court délai pour synchroniser avec le serveur
-        setTimeout(() => {
-            router.reload();
-        }, 1500);
+                // Rafraîchir la page après un court délai pour synchroniser avec le serveur
+                setTimeout(() => {
+                    router.reload();
+                }, 1500);
+            },
+            onError: (errors: any) => {
+                console.error('❌ Erreur demande vérification:', errors);
+
+                if (errors.message) {
+                    showError(errors.message);
+                } else {
+                    showError("Une erreur est survenue lors de l'envoi de la demande");
+                }
+            }
+        });
     } catch (error: any) {
-        console.error('❌ Erreur demande vérification:', error);
-
-        if (error.response?.status === 400 && error.response?.data?.message) {
-            // Erreur métier (déjà en cours, déjà vérifié, etc.)
-            console.log('📋 Erreur 400 - demande déjà en cours ou déjà vérifié');
-            showError(error.response.data.message);
-        } else if (error.response?.data?.message) {
-            showError(error.response.data.message);
-        } else if (error.response?.status === 500) {
-            showError('Erreur serveur. Veuillez réessayer plus tard.');
-        } else if (error.code === 'ERR_NETWORK') {
-            showError('Problème de connexion réseau. Vérifiez votre connexion internet.');
-        } else {
-            showError("Une erreur est survenue lors de l'envoi de la demande");
-        }
+        console.error('❌ Erreur inattendue:', error);
+        showError("Une erreur inattendue est survenue");
     } finally {
         isRequestingVerification.value = false;
         console.log('🏁 Demande de vérification - Fin');

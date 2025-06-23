@@ -1,11 +1,9 @@
 import { PageProps as InertiaPageProps } from '@inertiajs/core';
-import { AxiosInstance } from 'axios';
 import { route as ziggyRoute } from 'ziggy-js';
 import Echo from 'laravel-echo';
 
 declare global {
     interface Window {
-        axios: AxiosInstance;
         io: any;
         Echo: Echo;
     }
