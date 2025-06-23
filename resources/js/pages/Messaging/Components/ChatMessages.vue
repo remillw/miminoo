@@ -108,7 +108,7 @@ const page = usePage();
 
 // Echo state local
 const echoReady = ref(false);
-const currentEcho = ref(null);
+const currentEcho = ref<any>(null);
 
 // Fonction pour attendre Echo
 const initEcho = async () => {
@@ -165,55 +165,23 @@ const initEcho = async () => {
     }
 };
 
-// Fonction pour écouter un canal
-const listenToChannel = (channelName, eventName, callback) => {
-    if (!currentEcho.value) {
-        console.error('❌ Echo non disponible pour écouter le canal:', channelName);
-        return null;
-    }
-    
-    console.log('🔗 Tentative de connexion au canal privé:', channelName);
-    const channel = currentEcho.value.private(channelName);
-    
-    // Debug de l'état du canal
-    channel.subscribed(() => {
-        console.log('✅ Abonnement réussi au canal:', channelName);
-    });
-    
-    channel.error((error) => {
-        console.error('❌ Erreur canal:', channelName, error);
-        console.error('❌ Détails erreur:', {
-            status: error.status,
-            type: error.type,
-            error: error.error
-        });
-    });
-    
-    channel.listen(eventName, (data) => {
-        console.log('📨 Événement reçu sur canal:', channelName, 'événement:', eventName, 'data:', data);
-        callback(data);
-    });
-    
-    return channel;
-};
-
 // Fonction pour quitter un canal
-const leaveChannel = (channelName) => {
+const leaveChannel = (channelName: string) => {
     if (currentEcho.value) {
         currentEcho.value.leave(channelName);
     }
 };
 
 // État local
-const messages = ref([]);
+const messages = ref<any[]>([]);
 const isLoading = ref(false);
-const error = ref(null);
+const error = ref<string | null>(null);
 const isOtherUserTyping = ref(false);
-const typingTimeout = ref(null);
-const currentChannel = ref(null);
+const typingTimeout = ref<any>(null);
+const currentChannel = ref<any>(null);
 
 // Utilisateur actuel
-const currentUser = computed(() => page.props.auth.user);
+const currentUser = computed(() => (page.props.auth as any)?.user);
 
 // Initialisation au montage
 onMounted(async () => {
@@ -374,20 +342,19 @@ function joinConversationChannel() {
     console.log('🚀 Echo disponible:', !!currentEcho.value);
     console.log('🚀 Utilisateur actuel:', currentUser.value?.id);
 
-    // Utiliser le composable pour s'abonner au canal
+    // Créer le canal privé pour cette conversation
     const channelName = `conversation.${props.conversation.id}`;
     console.log('🚀 Nom du canal:', channelName);
     
-    currentChannel.value = listenToChannel(channelName, 'message.sent', onNewMessage);
-
-    if (!currentChannel.value) {
-        console.error('❌ Impossible de créer le canal');
-        return;
+    try {
+        currentChannel.value = currentEcho.value.private(channelName);
+        console.log('✅ Canal privé créé:', currentChannel.value);
+        
+        // Ajouter tous les écouteurs sur le canal
+        addChannelListeners();
+    } catch (error) {
+        console.error('❌ Erreur création canal:', error);
     }
-
-    console.log('✅ Canal créé, ajout des écouteurs...');
-    // Ajouter les autres écouteurs sur le canal
-    addChannelListeners();
 }
 
 // Fonction pour gérer les nouveaux messages
@@ -422,35 +389,34 @@ function onNewMessage(e) {
     console.log('🔥 FIN onNewMessage');
 }
 
-// Fonction pour ajouter les autres écouteurs sur le canal
+// Fonction pour ajouter les écouteurs sur le canal
 function addChannelListeners() {
-    if (!currentChannel.value) return;
+    if (!currentChannel.value) {
+        console.error('❌ Pas de canal disponible pour ajouter les écouteurs');
+        return;
+    }
 
     const channel = currentChannel.value;
-    
     console.log('🎧 Ajout des écouteurs sur le canal...');
 
-    // DEBUG: Écouter TOUS les événements sur le canal avec Pusher
-    if (channel.pusherChannel) {
-        console.log('🔍 Configuration écoute globale sur le canal Pusher');
-        
-        // Bind à tous les événements commençant par différents préfixes
-        channel.pusherChannel.bind_global((eventName, data) => {
-            console.log('🌍 Événement Pusher reçu:', eventName, data);
-        });
-        
-        // Écouter spécifiquement l'événement message.sent
-        channel.pusherChannel.bind('message.sent', (data) => {
-            console.log('📨 ÉVÉNEMENT MESSAGE.SENT REÇU DIRECTEMENT:', data);
-            onNewMessage(data);
-        });
-        
-        // Écouter aussi d'autres variantes possibles
-        channel.pusherChannel.bind('MessageSent', (data) => {
-            console.log('📨 ÉVÉNEMENT MessageSent REÇU:', data);
-            onNewMessage(data);
-        });
-    }
+    // Écouter les événements de message envoyé (server-side)
+    channel.listen('message.sent', (data: any) => {
+        console.log('📨 Événement message.sent reçu:', data);
+        onNewMessage(data);
+    });
+
+    // Écouter les événements de messages lus (server-side)
+    channel.listen('messages.read', (data: any) => {
+        console.log('👁️ Événement messages.read reçu:', data);
+        // Marquer mes messages comme lus si c'est l'autre utilisateur qui les a lus
+        if (parseInt(data.read_by) !== parseInt(currentUser.value?.id)) {
+            messages.value.forEach((message) => {
+                if (message.sender_id === currentUser.value?.id && !message.read_at) {
+                    message.read_at = data.read_at;
+                }
+            });
+        }
+    });
 
     // Écouter les événements "en train d'écrire"
     channel.listenForWhisper('typing', (e) => {
