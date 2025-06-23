@@ -406,9 +406,9 @@ class MessagingController extends Controller
                 'responded_at' => now()
             ]);
 
-            // Récupérer ou créer la conversation
+            // Récupérer ou créer la conversation mais ne pas encore passer en active
             $conversation = $application->conversation;
-            $conversation->update(['status' => 'active']);
+            // Le statut passera en 'active' seulement lors du paiement effectif
 
             return back()->with([
                 'success' => true,
@@ -491,21 +491,203 @@ class MessagingController extends Controller
             return back()->withErrors(['error' => 'Cette candidature ne peut plus être annulée']);
         }
 
-        // Vérifier qu'il n'y a pas de paiement en cours
-        if ($application->conversation && $application->conversation->status === 'active') {
-            return back()->withErrors(['error' => 'Cette candidature ne peut plus être annulée car un paiement a été effectué']);
+        $conversation = $application->conversation;
+        $isPaid = $conversation && $conversation->status === 'active';
+        $message = 'Votre candidature a été annulée avec succès.';
+
+        if ($isPaid) {
+            // Candidature payée - la babysitter a déjà reçu les fonds via Stripe Connect
+            // Mais elle va les perdre et ils seront renvoyés au parent
+            $reservation = $conversation->reservation;
+            
+            if ($reservation && $reservation->service_start_at) {
+                $hoursBefore = now()->diffInHours($reservation->service_start_at, false);
+                
+                if ($hoursBefore < 48) {
+                    // Annulation dans les 48h - avis négatif + babysitter perd les fonds
+                    $this->generateAutomaticBadReview($application);
+                    $this->refundParentFromBabysitterFunds($reservation);
+                    
+                    $message = 'Candidature annulée. Un avis négatif a été généré automatiquement car l\'annulation est dans les 48h. Vous perdez les fonds qui seront renvoyés intégralement au parent. La plateforme couvre les frais de remboursement.';
+                } else {
+                    // Annulation avec plus de 48h d'avance - babysitter perd quand même les fonds
+                    $this->refundParentFromBabysitterFunds($reservation);
+                    $message = 'Candidature annulée avec succès. Les fonds seront renvoyés intégralement au parent. La plateforme couvre les frais de remboursement.';
+                }
+            }
+        } else {
+            // Candidature non payée - annulation sans frais
+            $message = 'Candidature annulée sans frais.';
         }
 
         $application->update(['status' => 'cancelled']);
         
         // Archiver la conversation
-        if ($application->conversation) {
-            $application->conversation->update(['status' => 'archived']);
+        if ($conversation) {
+            $conversation->update(['status' => 'archived']);
         }
 
         return back()->with([
             'success' => true,
-            'message' => 'Votre candidature a été annulée avec succès.'
+            'message' => $message
+        ]);
+    }
+
+    /**
+     * Générer un avis négatif automatique pour annulation tardive
+     */
+    private function generateAutomaticBadReview(AdApplication $application)
+    {
+        try {
+            $reservation = $application->conversation?->reservation;
+            
+            if (!$reservation) {
+                \Log::warning('Impossible de générer un avis automatique - pas de réservation', [
+                    'application_id' => $application->id
+                ]);
+                return;
+            }
+
+            // Créer un avis automatique négatif (1 étoile)
+            \App\Models\Review::create([
+                'reviewer_id' => $application->ad->parent_id, // Le parent laisse l'avis
+                'reviewed_id' => $application->babysitter_id, // La babysitter est évaluée
+                'reservation_id' => $reservation->id,
+                'role' => 'parent', // L'avis vient du parent
+                'rating' => 1, // Note minimale
+                'comment' => '⚠️ Avis automatique : Cette babysitter a annulé sa candidature moins de 48h avant le service. Ceci peut causer des désagréments importants aux familles.',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Marquer la réservation comme ayant reçu un avis du parent
+            $reservation->update(['parent_reviewed' => true]);
+
+            \Log::info('Avis négatif automatique généré avec succès', [
+                'application_id' => $application->id,
+                'babysitter_id' => $application->babysitter_id,
+                'reservation_id' => $reservation->id,
+                'reason' => 'Annulation dans les 48h'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la génération d\'avis automatique', [
+                'application_id' => $application->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Rembourser le parent en récupérant les fonds chez la babysitter
+     * (Utilisé quand la babysitter annule et doit perdre les fonds)
+     */
+    private function refundParentFromBabysitterFunds($reservation)
+    {
+        try {
+            if (!$reservation->stripe_payment_intent_id) {
+                \Log::warning('Impossible de rembourser le parent - pas de payment_intent_id', [
+                    'reservation_id' => $reservation->id
+                ]);
+                return;
+            }
+
+            // Utiliser le service Stripe pour créer le remboursement
+            // La PLATEFORME couvre les frais de remboursement quand la babysitter annule
+            $stripeService = app(\App\Services\StripeService::class);
+            
+            // Créer un remboursement complet via Stripe (PLATEFORME couvre les frais)
+            $refund = $stripeService->createRefundPlatformCoversfees(
+                $reservation->stripe_payment_intent_id,
+                'Annulation babysitter - Plateforme couvre les frais de remboursement'
+            );
+
+            // Mettre à jour la réservation
+            $reservation->update([
+                'status' => 'refunded_babysitter_penalty',
+                'refund_stripe_id' => $refund->id,
+                'refunded_at' => now()
+            ]);
+
+            \Log::info('Remboursement parent avec plateforme couvrant les frais', [
+                'reservation_id' => $reservation->id,
+                'refund_id' => $refund->id,
+                'amount' => $reservation->total_deposit,
+                'payment_intent_id' => $reservation->stripe_payment_intent_id,
+                'note' => 'Plateforme couvre les frais de remboursement - Annulation babysitter'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors du remboursement avec plateforme couvrant les frais', [
+                'reservation_id' => $reservation->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // En cas d'erreur Stripe, au moins marquer comme à rembourser manuellement
+            $reservation->update([
+                'status' => 'babysitter_refund_pending',
+                'refund_error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Annuler une réservation (côté parent)
+     */
+    public function cancelReservationByParent(AdApplication $application)
+    {
+        $user = Auth::user();
+
+        // Vérifier que l'utilisateur peut annuler cette réservation
+        if ($application->ad->parent_id !== $user->id) {
+            abort(403);
+        }
+
+        // Vérifier que la candidature est dans un état annulable
+        $allowedStatuses = ['accepted'];
+        if (!in_array($application->status, $allowedStatuses)) {
+            return back()->withErrors(['error' => 'Cette réservation ne peut plus être annulée']);
+        }
+
+        $conversation = $application->conversation;
+        $reservation = $conversation?->reservation;
+        $message = 'Réservation annulée avec succès.';
+
+        if ($reservation && $reservation->service_start_at) {
+            $hoursBefore = now()->diffInHours($reservation->service_start_at, false);
+            
+            if ($hoursBefore < 24) {
+                // Annulation dans les 24h - AUCUN remboursement, les fonds restent chez la babysitter
+                $message = 'Réservation annulée. Votre acompte est définitivement perdu car l\'annulation est dans les 24h. Les fonds restent chez la babysitter.';
+                
+                // Marquer comme annulé mais pas de remboursement
+                $reservation->update([
+                    'status' => 'cancelled_by_parent_late',
+                    'cancelled_at' => now()
+                ]);
+                
+            } else {
+                // Annulation avec plus de 24h d'avance - remboursement avec frais à la charge du parent
+                $this->refundParentWithFees($reservation);
+                $platformFee = 2.00;
+                $estimatedRefund = max(0, $reservation->total_deposit - $platformFee);
+                $message = "Réservation annulée avec succès. Vous serez remboursé {$estimatedRefund}€ (montant moins 2€ de frais de service). Les frais de remboursement Stripe restent à votre charge.";
+            }
+        } else {
+            // Pas de réservation créée encore - annulation sans frais
+            $message = 'Réservation annulée sans frais.';
+        }
+
+        $application->update(['status' => 'cancelled']);
+        
+        // Archiver la conversation
+        if ($conversation) {
+            $conversation->update(['status' => 'archived']);
+        }
+
+        return back()->with([
+            'success' => true,
+            'message' => $message
         ]);
     }
 
@@ -918,6 +1100,82 @@ class MessagingController extends Controller
 
             return back()->withErrors([
                 'error' => 'Erreur lors de l\'archivage de la conversation'
+            ]);
+        }
+    }
+
+    /**
+     * Rembourser le parent avec déduction des frais de service et frais de remboursement
+     * (Utilisé pour les annulations parent >24h avant le service)
+     */
+    private function refundParentWithFees($reservation)
+    {
+        try {
+            if (!$reservation->stripe_payment_intent_id) {
+                \Log::warning('Impossible de rembourser le parent - pas de payment_intent_id', [
+                    'reservation_id' => $reservation->id
+                ]);
+                return;
+            }
+
+            // Calculer le montant à rembourser (montant - 2€ frais de service)
+            $platformFee = 2.00; // Frais de service de la plateforme
+            $refundAmount = $reservation->total_deposit - $platformFee;
+            
+            // S'assurer qu'on ne rembourse pas un montant négatif
+            if ($refundAmount <= 0) {
+                \Log::warning('Montant de remboursement négatif ou nul', [
+                    'reservation_id' => $reservation->id,
+                    'original_amount' => $reservation->total_deposit,
+                    'platform_fee' => $platformFee
+                ]);
+                
+                $reservation->update([
+                    'status' => 'cancelled_by_parent_late',
+                    'cancelled_at' => now()
+                ]);
+                return;
+            }
+
+            // Utiliser le service Stripe pour créer le remboursement partiel
+            // Frais de remboursement Stripe à la charge du parent
+            $stripeService = app(\App\Services\StripeService::class);
+            
+            // Créer un remboursement partiel via Stripe (frais à la charge du parent)
+            $refund = $stripeService->createRefund(
+                $reservation->stripe_payment_intent_id,
+                $refundAmount * 100, // Montant en centimes (moins les 2€ de frais)
+                'Remboursement parent -2€ frais service - Frais remboursement à sa charge'
+            );
+
+            // Mettre à jour la réservation
+            $reservation->update([
+                'status' => 'refunded_minus_service_fees',
+                'refund_stripe_id' => $refund->id,
+                'refunded_at' => now(),
+                'platform_fee_retained' => $platformFee
+            ]);
+
+            \Log::info('Remboursement parent avec déduction frais de service', [
+                'reservation_id' => $reservation->id,
+                'refund_id' => $refund->id,
+                'original_amount' => $reservation->total_deposit,
+                'platform_fee_deducted' => $platformFee,
+                'refunded_amount' => $refundAmount,
+                'payment_intent_id' => $reservation->stripe_payment_intent_id,
+                'note' => 'Frais de service (2€) déduits + frais de remboursement à charge du parent'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors du remboursement parent avec frais de service', [
+                'reservation_id' => $reservation->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // En cas d'erreur Stripe, au moins marquer comme à rembourser manuellement
+            $reservation->update([
+                'status' => 'parent_refund_pending',
+                'refund_error' => $e->getMessage()
             ]);
         }
     }

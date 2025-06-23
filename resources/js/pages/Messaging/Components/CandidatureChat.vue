@@ -138,15 +138,69 @@
 
         <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
         <div v-if="currentMode === 'babysitter' && canCancelApplication" class="border-t border-gray-200 pt-4">
-            <button
-                @click="handleCancelApplication"
-                :class="mobile ? 'w-full justify-center' : ''"
-                class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
-                :title="getCancelTooltipText()"
-            >
-                <X class="h-4 w-4" />
-                Annuler ma candidature
-            </button>
+            <div class="space-y-3">
+                <button
+                    @click="handleCancelApplication"
+                    :class="mobile ? 'w-full justify-center' : ''"
+                    class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                    :title="getCancelTooltipText()"
+                >
+                    <X class="h-4 w-4" />
+                    Annuler ma candidature
+                </button>
+
+                <!-- Message d'information pour babysitter -->
+                <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <p class="text-xs text-blue-700">
+                        <strong>⚠️ Attention :</strong>
+                        <br />
+                        • <strong>Avant paiement :</strong> Annulation gratuite sans conséquences
+                        <br />
+                        • <strong>Après paiement :</strong> Vous perdez tous les fonds reçus
+                        <br />
+                        • <strong>Parent récupère :</strong> L'intégralité de ce qu'il a payé (plateforme couvre les frais)
+                        <br />
+                        • <strong>Moins de 48h avant le service :</strong> Un avis négatif automatique sera également généré
+                        <br />
+                        <span class="text-xs text-blue-600 italic"
+                            >Les annulations après paiement entraînent toujours une perte financière complète pour la babysitter</span
+                        >
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions supplémentaires pour parent (selon le mode actuel) -->
+        <div v-if="currentMode === 'parent' && canParentCancelReservation" class="border-t border-gray-200 pt-4">
+            <div class="space-y-3">
+                <button
+                    @click="handleCancelReservationByParent"
+                    :class="mobile ? 'w-full justify-center' : ''"
+                    class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                    :title="getParentCancelTooltipText()"
+                >
+                    <X class="h-4 w-4" />
+                    Annuler ma réservation
+                </button>
+
+                <!-- Message d'avertissement -->
+                <div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <p class="text-xs text-amber-700">
+                        <strong>⚠️ Politique d'annulation :</strong>
+                        <br />
+                        • <strong>Plus de 24h avant le service :</strong> Remboursement moins 2€ de frais de service moins les frais de remboursement
+                        Stripe
+                        <br />
+                        • <strong>Exemple :</strong> Acompte 30€ → Vous récupérez ~27€ (30€ - 2€ de frais - ~1€ frais Stripe)
+                        <br />
+                        • <strong>Moins de 24h avant le service :</strong> Aucun remboursement, votre acompte est définitivement perdu
+                        <br />
+                        <span class="text-xs text-amber-600 italic"
+                            >Note : Avec Stripe Connect, les fonds vont directement à la babysitter une fois le paiement validé</span
+                        >
+                    </p>
+                </div>
+            </div>
         </div>
 
         <!-- Modal de réservation (gardé pour compatibilité) -->
@@ -203,14 +257,19 @@ const currentRate = computed(() => {
 const canCancelApplication = computed(() => {
     // Permettre l'annulation tant que :
     // - Le statut n'est pas 'declined', 'expired' ou 'cancelled'
-    // - Et que le paiement n'est pas encore effectué (pas de status 'payment_required' ou 'active')
+    // - Même si c'est payé, on peut toujours annuler (avec conditions différentes)
     const allowedStatuses = ['pending', 'counter_offered', 'accepted'];
 
-    // Vérifier aussi que la conversation n'a pas un statut 'active' (paiement effectué)
-    const conversationStatus = props.application.conversation?.status;
-    const isPaid = conversationStatus === 'active';
+    return allowedStatuses.includes(props.application.status);
+});
 
-    return allowedStatuses.includes(props.application.status) && !isPaid;
+const canParentCancelReservation = computed(() => {
+    // Permettre l'annulation par le parent tant que :
+    // - Le statut n'est pas 'declined', 'expired' ou 'cancelled'
+    // - Même si c'est payé, on peut toujours annuler (avec conditions différentes)
+    const allowedStatuses = ['pending', 'counter_offered', 'accepted'];
+
+    return allowedStatuses.includes(props.application.status);
 });
 
 // Méthodes
@@ -309,13 +368,51 @@ function getCancelTooltipText() {
     const conversationStatus = props.application.conversation?.status;
 
     if (conversationStatus === 'active') {
-        return "Impossible d'annuler : le paiement a été effectué";
+        return 'Annuler ma candidature (paiement déjà effectué - conditions spéciales)';
     } else if (props.application.status === 'accepted') {
         return 'Annuler ma candidature acceptée (avant paiement du parent)';
     } else if (props.application.status === 'counter_offered') {
         return 'Annuler ma candidature en cours de négociation';
     } else {
         return 'Annuler ma candidature en attente de réponse';
+    }
+}
+
+function handleCancelReservationByParent() {
+    if (confirm('Êtes-vous sûr de vouloir annuler votre réservation ? Cette action est irréversible.')) {
+        router.post(
+            route('applications.cancel-by-parent', props.application.id),
+            {},
+            {
+                preserveState: true,
+                onSuccess: (response) => {
+                    console.log('✅ Réservation annulée avec succès');
+
+                    // Rediriger vers la messagerie pour rafraîchir la liste
+                    router.get(route('messaging.index'));
+                },
+                onError: (errors) => {
+                    console.error('❌ Erreur annulation réservation:', errors);
+
+                    // Afficher l'erreur avec le wrapper de toast
+                    showError('❌ Erreur', errors.error || "Erreur lors de l'annulation de la réservation");
+                },
+            },
+        );
+    }
+}
+
+function getParentCancelTooltipText() {
+    const conversationStatus = props.application.conversation?.status;
+
+    if (conversationStatus === 'active') {
+        return 'Annuler ma réservation (paiement déjà effectué - conditions spéciales)';
+    } else if (props.application.status === 'accepted') {
+        return 'Annuler ma réservation acceptée (avant paiement du parent)';
+    } else if (props.application.status === 'counter_offered') {
+        return 'Annuler ma réservation en cours de négociation';
+    } else {
+        return 'Annuler ma réservation en attente de réponse';
     }
 }
 </script>

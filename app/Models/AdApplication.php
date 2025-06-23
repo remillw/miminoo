@@ -124,7 +124,7 @@ class AdApplication extends Model
             'confirmed_application_id' => $this->id
         ]);
 
-        // Mettre à jour la conversation pour la marquer comme active avec paiement requis
+        // Mettre à jour la conversation pour la marquer comme paiement requis (pas encore active)
         $this->conversation->update([
             'status' => 'payment_required'
         ]);
@@ -164,8 +164,20 @@ class AdApplication extends Model
     public function respondToCounterOffer($response)
     {
         if ($response === 'accept') {
-            // Accepter la contre-offre = réserver avec le tarif proposé
-            return $this->reserve($this->counter_rate);
+            // Accepter la contre-offre = marquer comme accepté mais ne pas encore réserver
+            $this->update([
+                'status' => 'accepted',
+                'accepted_at' => now(),
+                'counter_rate' => $this->counter_rate
+            ]);
+            
+            // Archiver les autres candidatures mais ne pas encore passer en 'payment_required'
+            AdApplication::where('ad_id', $this->ad_id)
+                ->where('id', '!=', $this->id)
+                ->whereIn('status', ['pending', 'counter_offered'])
+                ->update(['status' => 'archived']);
+                
+            return $this->conversation;
         } else {
             // Refuser la contre-offre = retour au statut pending pour nouvelle négociation
             $this->update([

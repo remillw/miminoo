@@ -2121,67 +2121,147 @@ class StripeService
     public function generateInvoiceForBabysitter(User $babysitter, $reservations, $period)
     {
         try {
-            if (!$babysitter->stripe_account_id) {
-                throw new \Exception('Aucun compte Stripe Connect trouvé');
-            }
-
-            // Calculer le total des réservations
             $totalAmount = 0;
-            $lineItems = [];
-
+            $services = [];
+            
             foreach ($reservations as $reservation) {
-                $amount = $reservation->total_amount - $reservation->platform_fee;
+                $amount = $reservation->total_amount ?? $reservation->hourly_rate * $reservation->duration_hours;
                 $totalAmount += $amount;
-
-                $lineItems[] = [
-                    'price_data' => [
-                        'currency' => 'eur',
-                        'product_data' => [
-                            'name' => 'Service de garde - ' . $reservation->start_date->format('d/m/Y'),
-                            'description' => 'Garde de ' . $reservation->duration . 'h pour ' . $reservation->parent->firstname,
-                        ],
-                        'unit_amount' => $amount * 100, // Convertir en centimes
-                    ],
-                    'quantity' => 1,
+                
+                $services[] = [
+                    'date' => $reservation->service_start_at->format('d/m/Y'),
+                    'description' => "Service de babysitting - {$reservation->duration_hours}h",
+                    'amount' => $amount
                 ];
             }
-
-            // Créer une facture Stripe
-            $invoice = $this->stripe->invoices->create([
-                'customer' => $babysitter->stripe_customer_id ?: $this->createCustomerForUser($babysitter)->id,
-                'collection_method' => 'send_invoice',
-                'days_until_due' => 30,
-                'metadata' => [
-                    'babysitter_id' => $babysitter->id,
-                    'period' => $period,
-                    'platform' => 'TrouvetaBabysitter'
-                ]
+            
+            // Ici vous pourriez utiliser une librairie comme DomPDF ou Snappy
+            // Pour cet exemple, on retourne les données structurées
+            return [
+                'babysitter' => [
+                    'name' => $babysitter->firstname . ' ' . $babysitter->lastname,
+                    'email' => $babysitter->email,
+                ],
+                'period' => $period,
+                'services' => $services,
+                'total_amount' => $totalAmount,
+                'generated_at' => now(),
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la génération de facture', [
+                'babysitter_id' => $babysitter->id,
+                'error' => $e->getMessage()
             ]);
+            throw $e;
+        }
+    }
 
-            // Ajouter les éléments de ligne
-            foreach ($lineItems as $item) {
-                $this->stripe->invoiceItems->create([
-                    'customer' => $babysitter->stripe_customer_id,
-                    'invoice' => $invoice->id,
-                    'price_data' => $item['price_data'],
-                    'quantity' => $item['quantity'],
-                ]);
+    /**
+     * Créer un remboursement Stripe
+     */
+    public function createRefund($paymentIntentId, $amount = null, $reason = null)
+    {
+        try {
+            $refundData = [
+                'payment_intent' => $paymentIntentId,
+                'reason' => 'requested_by_customer', // Raison Stripe standard
+                'metadata' => [
+                    'platform' => 'TrouvetaBabysitter',
+                    'refund_reason' => $reason ?? 'Annulation de service'
+                ]
+            ];
+
+            // Si un montant spécifique est fourni, l'utiliser (sinon remboursement complet)
+            if ($amount !== null) {
+                $refundData['amount'] = $amount; // Montant en centimes
             }
 
-            // Finaliser la facture
-            $this->stripe->invoices->finalizeInvoice($invoice->id);
+            // Créer le remboursement
+            $refund = $this->stripe->refunds->create($refundData);
 
-            Log::info('Facture générée pour babysitter', [
-                'babysitter_id' => $babysitter->id,
-                'invoice_id' => $invoice->id,
-                'total_amount' => $totalAmount,
-                'period' => $period
+            Log::info('Remboursement Stripe créé avec succès', [
+                'refund_id' => $refund->id,
+                'payment_intent_id' => $paymentIntentId,
+                'amount' => $refund->amount,
+                'status' => $refund->status,
+                'reason' => $reason
             ]);
 
-            return $invoice;
+            return $refund;
+
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la génération de la facture', [
-                'babysitter_id' => $babysitter->id,
+            Log::error('Erreur lors de la création du remboursement Stripe', [
+                'payment_intent_id' => $paymentIntentId,
+                'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Créer un remboursement partiel Stripe
+     */
+    public function createPartialRefund($paymentIntentId, $refundPercentage = 0.8, $reason = null)
+    {
+        try {
+            // Récupérer le PaymentIntent pour connaître le montant total
+            $paymentIntent = $this->stripe->paymentIntents->retrieve($paymentIntentId);
+            
+            // Calculer le montant du remboursement partiel
+            $refundAmount = intval($paymentIntent->amount * $refundPercentage);
+
+            return $this->createRefund($paymentIntentId, $refundAmount, $reason);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création du remboursement partiel Stripe', [
+                'payment_intent_id' => $paymentIntentId,
+                'refund_percentage' => $refundPercentage,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Créer un remboursement où la plateforme couvre les frais
+     * (Utilisé quand la babysitter annule et doit être pénalisée)
+     */
+    public function createRefundPlatformCoversfees($paymentIntentId, $reason = null)
+    {
+        try {
+            // Récupérer le PaymentIntent pour connaître le montant total
+            $paymentIntent = $this->stripe->paymentIntents->retrieve($paymentIntentId);
+            
+            $refundData = [
+                'payment_intent' => $paymentIntentId,
+                'reason' => 'requested_by_customer', // Raison Stripe standard
+                // Pas de montant spécifié = remboursement complet
+                'metadata' => [
+                    'platform' => 'TrouvetaBabysitter',
+                    'refund_reason' => $reason ?? 'Annulation babysitter - Plateforme couvre les frais',
+                    'fees_covered_by' => 'platform'
+                ]
+            ];
+
+            // Créer le remboursement complet
+            $refund = $this->stripe->refunds->create($refundData);
+
+            Log::info('Remboursement complet avec frais couverts par la plateforme', [
+                'refund_id' => $refund->id,
+                'payment_intent_id' => $paymentIntentId,
+                'amount' => $refund->amount,
+                'status' => $refund->status,
+                'reason' => $reason,
+                'fees_covered_by' => 'platform'
+            ]);
+
+            return $refund;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors du remboursement avec frais couverts par la plateforme', [
+                'payment_intent_id' => $paymentIntentId,
                 'error' => $e->getMessage()
             ]);
             throw $e;
