@@ -113,36 +113,87 @@ const currentEcho = ref(null);
 // Fonction pour attendre Echo
 const initEcho = async () => {
     try {
+        console.log('🔧 Initialisation Echo...');
+        console.log('🔧 Variables env:', {
+            VITE_REVERB_APP_KEY: import.meta.env.VITE_REVERB_APP_KEY,
+            VITE_REVERB_HOST: import.meta.env.VITE_REVERB_HOST,
+            VITE_REVERB_PORT: import.meta.env.VITE_REVERB_PORT,
+            VITE_REVERB_SCHEME: import.meta.env.VITE_REVERB_SCHEME
+        });
+        
         if (window.Echo) {
             currentEcho.value = window.Echo;
             echoReady.value = true;
+            console.log('✅ Echo déjà disponible');
+            
+            // Vérifier l'état de la connexion
+            if (window.Echo.connector?.pusher?.connection) {
+                const connection = window.Echo.connector.pusher.connection;
+                console.log('🔗 État connexion WebSocket:', connection.state);
+                console.log('🔗 Socket ID:', connection.socket_id);
+            }
             return;
         }
 
+        console.log('⏳ Echo non trouvé, attente...');
         // Attendre jusqu'à 5 secondes
         let attempts = 0;
         while (!window.Echo && attempts < 10) {
             await new Promise((resolve) => setTimeout(resolve, 500));
             attempts++;
+            console.log(`⏳ Tentative ${attempts}/10`);
         }
 
         if (window.Echo) {
             currentEcho.value = window.Echo;
             echoReady.value = true;
-            console.log('Echo initialisé avec succès');
+            console.log('✅ Echo initialisé avec succès après attente');
+            
+            // Vérifier l'état de la connexion
+            if (window.Echo.connector?.pusher?.connection) {
+                const connection = window.Echo.connector.pusher.connection;
+                console.log('🔗 État connexion WebSocket:', connection.state);
+                console.log('🔗 Socket ID:', connection.socket_id);
+            }
         } else {
-            console.warn('Echo non disponible après attente');
+            console.error('❌ Echo non disponible après attente');
+            console.error('❌ window.Echo:', window.Echo);
+            console.error('❌ Vérifiez que echo.ts est bien chargé');
         }
     } catch (error) {
-        console.error("Erreur lors de l'initialisation d'Echo:", error);
+        console.error("❌ Erreur lors de l'initialisation d'Echo:", error);
     }
 };
 
 // Fonction pour écouter un canal
 const listenToChannel = (channelName, eventName, callback) => {
-    if (!currentEcho.value) return null;
+    if (!currentEcho.value) {
+        console.error('❌ Echo non disponible pour écouter le canal:', channelName);
+        return null;
+    }
+    
+    console.log('🔗 Tentative de connexion au canal privé:', channelName);
     const channel = currentEcho.value.private(channelName);
-    channel.listen(eventName, callback);
+    
+    // Debug de l'état du canal
+    channel.subscribed(() => {
+        console.log('✅ Abonnement réussi au canal:', channelName);
+    });
+    
+    channel.error((error) => {
+        console.error('❌ Erreur canal:', channelName, error);
+        console.error('❌ Détails erreur:', {
+            status: error.status,
+            type: error.type,
+            error: error.error
+        });
+    });
+    
+    channel.listen(eventName, (data) => {
+        console.log('📨 Événement reçu sur canal:', channelName, 'événement:', eventName, 'data:', data);
+        callback(data);
+    });
+    
     return channel;
 };
 
@@ -299,15 +350,18 @@ async function markNewMessageAsRead(message) {
 
 function joinConversationChannel() {
     if (!props.conversation?.id) {
+        console.error('❌ Pas de conversation ID pour rejoindre le canal');
         return;
     }
 
     if (!echoReady.value) {
+        console.log('⏳ Echo pas encore prêt, attente...');
         // Réessayer quand Echo sera prêt
         watch(
             echoReady,
             (ready) => {
                 if (ready) {
+                    console.log('✅ Echo prêt, nouvelle tentative de connexion canal');
                     joinConversationChannel();
                 }
             },
@@ -316,17 +370,22 @@ function joinConversationChannel() {
         return;
     }
 
-    console.log('Connexion au canal de conversation:', props.conversation.id);
+    console.log('🚀 Connexion au canal de conversation:', props.conversation.id);
+    console.log('🚀 Echo disponible:', !!currentEcho.value);
+    console.log('🚀 Utilisateur actuel:', currentUser.value?.id);
 
     // Utiliser le composable pour s'abonner au canal
     const channelName = `conversation.${props.conversation.id}`;
+    console.log('🚀 Nom du canal:', channelName);
+    
     currentChannel.value = listenToChannel(channelName, 'message.sent', onNewMessage);
 
     if (!currentChannel.value) {
-        console.warn('Impossible de créer le canal');
+        console.error('❌ Impossible de créer le canal');
         return;
     }
 
+    console.log('✅ Canal créé, ajout des écouteurs...');
     // Ajouter les autres écouteurs sur le canal
     addChannelListeners();
 }
