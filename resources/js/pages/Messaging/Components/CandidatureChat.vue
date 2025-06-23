@@ -17,8 +17,8 @@
 
         <!-- Actions principales -->
         <div :class="mobile ? 'space-y-2' : 'flex items-center gap-3'">
-            <!-- Actions pour parents UNIQUEMENT -->
-            <template v-if="userRole === 'parent' && application.status !== 'declined' && application.status !== 'expired'">
+            <!-- Actions pour parents UNIQUEMENT (selon le mode actuel) -->
+            <template v-if="currentMode === 'parent' && application.status !== 'declined' && application.status !== 'expired'">
                 <button
                     @click="handleReserveDirectly"
                     :class="mobile ? 'w-full justify-center' : ''"
@@ -51,8 +51,8 @@
                 </div>
             </template>
 
-            <!-- Actions pour babysitter -->
-            <template v-if="userRole === 'babysitter' && application.status === 'counter_offered' && application.counter_rate">
+            <!-- Actions pour babysitter (selon le mode actuel) -->
+            <template v-if="currentMode === 'babysitter' && application.status === 'counter_offered' && application.counter_rate">
                 <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
                     Contre-offre reçue : <span class="font-semibold">{{ application.counter_rate }}€/h</span>
                 </div>
@@ -77,8 +77,8 @@
             </template>
         </div>
 
-        <!-- Formulaire contre-offre parent UNIQUEMENT -->
-        <div v-if="showCounterOffer && userRole === 'parent' && application.status !== 'declined' && application.status !== 'expired'" class="bg-secondary rounded-lg border border-orange-200 p-4">
+        <!-- Formulaire contre-offre parent UNIQUEMENT (selon le mode actuel) -->
+        <div v-if="showCounterOffer && currentMode === 'parent' && application.status !== 'declined' && application.status !== 'expired'" class="bg-secondary rounded-lg border border-orange-200 p-4">
             <h4 :class="mobile ? 'text-sm' : ''" class="mb-3 font-medium text-gray-900">Faire une contre-proposition :</h4>
             <div :class="mobile ? 'space-y-3' : 'flex items-center gap-3'">
                 <div class="relative" :class="mobile ? 'w-full' : ''">
@@ -119,8 +119,8 @@
             <p :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-700 italic">"{{ application.motivation_note }}"</p>
         </div>
 
-        <!-- Actions supplémentaires pour babysitter -->
-        <div v-if="userRole === 'babysitter' && application.status === 'pending'" class="border-t border-gray-200 pt-4">
+        <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
+        <div v-if="currentMode === 'babysitter' && application.status === 'pending'" class="border-t border-gray-200 pt-4">
             <button
                 @click="handleCancelApplication"
                 :class="mobile ? 'w-full justify-center' : ''"
@@ -146,6 +146,7 @@ import { router } from '@inertiajs/vue3';
 import { Check, Euro, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
+import { useUserMode } from '@/composables/useUserMode';
 import ReservationModal from './ReservationModal.vue';
 
 const props = defineProps({
@@ -159,6 +160,9 @@ const props = defineProps({
 
 const emit = defineEmits(['reserve', 'decline', 'counter-offer', 'respond-counter', 'babysitter-counter', 'cancel-application']);
 
+// Utiliser le mode actuel depuis localStorage
+const { currentMode } = useUserMode();
+
 // État local
 const showCounterOffer = ref(false);
 const counterOfferRate = ref('');
@@ -166,7 +170,7 @@ const showReservationModal = ref(false);
 
 // Computed
 const otherUser = computed(() => {
-    return props.userRole === 'parent' ? props.application.babysitter : props.application.parent;
+    return currentMode.value === 'parent' ? props.application.babysitter : props.application.parent;
 });
 
 const currentRate = computed(() => {
@@ -204,10 +208,12 @@ function handleCancelApplication() {
 function handleReserveDirectly() {
     console.log('🔄 Tentative de réservation directe');
     console.log('Application ID:', props.application.id);
-    console.log('User role:', props.userRole);
+    console.log('User role (prop):', props.userRole);
+    console.log('Current mode (localStorage):', currentMode.value);
 
-    if (props.userRole !== 'parent') {
-        console.error('❌ Seuls les parents peuvent réserver');
+    // Vérifier le mode actuel depuis localStorage au lieu du prop
+    if (currentMode.value !== 'parent') {
+        console.error('❌ Seuls les parents peuvent réserver (mode actuel:', currentMode.value, ')');
         return;
     }
 

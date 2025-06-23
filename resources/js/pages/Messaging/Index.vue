@@ -1,5 +1,40 @@
 <template>
     <DashboardLayout :currentMode="currentMode">
+        <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
+        <div v-if="hasMultipleRoles" class="mb-6 rounded-lg border bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-medium text-gray-700">Mode de messagerie :</span>
+                    <div class="flex rounded-lg border bg-gray-50 p-1">
+                        <Button
+                            @click="switchMode('parent')"
+                            :variant="currentMode === 'parent' ? 'default' : 'ghost'"
+                            size="sm"
+                            class="flex items-center gap-2"
+                            :class="currentMode === 'parent' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
+                        >
+                            <Users class="h-4 w-4" />
+                            Parent
+                        </Button>
+                        <Button
+                            @click="switchMode('babysitter')"
+                            :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
+                            size="sm"
+                            class="flex items-center gap-2"
+                            :class="currentMode === 'babysitter' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
+                        >
+                            <Baby class="h-4 w-4" />
+                            Babysitter
+                        </Button>
+                    </div>
+                </div>
+
+                <div class="text-sm text-gray-500">
+                    <span class="capitalize">{{ currentMode }}</span> - Conversations
+                </div>
+            </div>
+        </div>
+
         <!-- Version Desktop (inchangée) -->
         <div class="hidden h-[calc(100vh-200px)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm lg:flex">
             <!-- Sidebar conversations/candidatures -->
@@ -8,7 +43,7 @@
                 <div class="border-b border-gray-200 p-4">
                     <h1 class="mb-3 text-xl font-semibold text-gray-900">Messagerie</h1>
                     <p class="mb-3 text-sm text-gray-500">
-                        {{ userRole === 'parent' ? 'Gérez vos candidatures et conversations' : 'Vos candidatures et conversations' }}
+                        {{ currentMode === 'parent' ? 'Gérez vos candidatures et conversations' : 'Vos candidatures et conversations' }}
                     </p>
 
                     <!-- Barre de recherche -->
@@ -113,7 +148,7 @@
                     <!-- État vide -->
                     <div v-if="conversations.length === 0" class="p-6 text-center text-gray-500">
                         <MessagesSquare class="mx-auto mb-3 h-12 w-12 text-gray-300" />
-                        <p class="text-sm">{{ userRole === 'parent' ? 'Aucune candidature reçue' : 'Aucune candidature envoyée' }}</p>
+                        <p class="text-sm">{{ currentMode === 'parent' ? 'Aucune candidature reçue' : 'Aucune candidature envoyée' }}</p>
                     </div>
                 </div>
             </div>
@@ -124,7 +159,7 @@
                     <!-- En-tête de chat avec liens -->
                     <ConversationHeader
                         :conversation="selectedConversation"
-                        :user-role="userRole"
+                        :user-role="currentMode"
                         :reservation="selectedConversation.reservation"
                         @reservation-updated="handleReservationUpdate"
                     />
@@ -137,7 +172,7 @@
                             <div class="bg-secondary flex-shrink-0 border-b border-orange-200 p-4">
                                 <CandidatureChat
                                     :application="selectedConversation.application"
-                                    :user-role="userRole"
+                                    :user-role="currentMode"
                                     @reserve="reserveApplication"
                                     @decline="archiveConversation"
                                     @counter-offer="submitCounterOffer"
@@ -148,14 +183,14 @@
 
                             <!-- Messages de chat - zone scrollable -->
                             <div class="min-h-0 flex-1 overflow-y-auto">
-                                <ChatMessages :conversation="selectedConversation" :user-role="userRole" ref="chatMessagesRef" />
+                                <ChatMessages :conversation="selectedConversation" :user-role="currentMode" ref="chatMessagesRef" />
                             </div>
                         </div>
 
                         <!-- Conversation normale -->
                         <div v-else class="flex h-full flex-col">
                             <div class="min-h-0 flex-1 overflow-y-auto">
-                                <ChatMessages :conversation="selectedConversation" :user-role="userRole" ref="chatMessagesRef" />
+                                <ChatMessages :conversation="selectedConversation" :user-role="currentMode" ref="chatMessagesRef" />
                             </div>
                         </div>
                     </div>
@@ -297,7 +332,7 @@
                     <!-- État vide mobile -->
                     <div v-if="conversations.length === 0" class="p-6 text-center text-gray-500">
                         <MessagesSquare class="mx-auto mb-3 h-12 w-12 text-gray-300" />
-                        <p class="text-sm">{{ userRole === 'parent' ? 'Aucune candidature reçue' : 'Aucune candidature envoyée' }}</p>
+                        <p class="text-sm">{{ currentMode === 'parent' ? 'Aucune candidature reçue' : 'Aucune candidature envoyée' }}</p>
                     </div>
                 </div>
             </div>
@@ -336,7 +371,7 @@
                 <div v-if="selectedConversation.type === 'application'" class="flex-shrink-0 border-b border-orange-200 bg-orange-50 p-4">
                     <CandidatureChat
                         :application="selectedConversation.application"
-                        :user-role="userRole"
+                        :user-role="currentMode"
                         :mobile="true"
                         @reserve="reserveApplication"
                         @decline="archiveConversation"
@@ -348,7 +383,7 @@
 
                 <!-- Messages mobile -->
                 <div class="flex-1 overflow-hidden">
-                    <ChatMessages :conversation="selectedConversation" :user-role="userRole" :mobile="true" ref="chatMessagesRef" />
+                    <ChatMessages :conversation="selectedConversation" :user-role="currentMode" :mobile="true" ref="chatMessagesRef" />
                 </div>
 
                 <!-- Zone de saisie mobile -->
@@ -375,8 +410,9 @@
 <script setup lang="ts">
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search } from 'lucide-vue-next';
+import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search, Users, Baby } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import CandidatureChat from './Components/CandidatureChat.vue';
 import ChatInput from './Components/ChatInput.vue';
@@ -391,7 +427,7 @@ const props = defineProps({
     requestedMode: String,
 });
 
-const { currentMode, initializeMode } = useUserMode();
+const { currentMode, initializeMode, setMode } = useUserMode();
 
 // Initialiser le mode au montage du composant
 onMounted(async () => {
@@ -433,13 +469,36 @@ const showConversationsList = ref(false); // Pour la navigation mobile
 // Utiliser les conversations des props
 const conversations = computed(() => props.conversations || []);
 
+// Computed pour vérifier si l'utilisateur a plusieurs rôles
+const hasMultipleRoles = computed(() => {
+    return props.hasParentRole && props.hasBabysitterRole;
+});
+
+// Fonction pour changer de mode
+const switchMode = (mode) => {
+    if (mode === currentMode.value) return;
+
+    // Mettre à jour le localStorage
+    setMode(mode);
+
+    // Rediriger vers la messagerie avec le nouveau mode
+    router.get(
+        route('messaging.index', { mode }),
+        {},
+        {
+            preserveState: false,
+            preserveScroll: true,
+        },
+    );
+};
+
 // Helpers
 function selectConversation(conversation) {
     console.log('🔄 Changement de conversation:', conversation.id, conversation.type);
     selectedConversation.value = conversation;
 
-    // Marquer comme vue automatiquement pour les candidatures
-    if (conversation.type === 'application' && props.userRole === 'parent' && !conversation.application?.viewed_at) {
+    // Marquer comme vue automatiquement pour les candidatures (selon le mode actuel)
+    if (conversation.type === 'application' && currentMode.value === 'parent' && !conversation.application?.viewed_at) {
         console.log('👁️ Marquage candidature comme vue:', conversation.application.id);
         router.patch(
             route('applications.mark-viewed', conversation.application.id),
