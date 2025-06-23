@@ -160,6 +160,7 @@
 </template>
 
 <script setup>
+import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
 import { router } from '@inertiajs/vue3';
 import { Check, Euro, X } from 'lucide-vue-next';
