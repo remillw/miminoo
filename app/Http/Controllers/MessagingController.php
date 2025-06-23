@@ -96,15 +96,16 @@ class MessagingController extends Controller
                         'application_id' => $application?->id
                     ]);
                     
-                    // Récupérer le dernier message directement
-                    $lastMessage = $conversation->messages()
+                    // Récupérer le dernier message directement avec une requête simple
+                    $lastMessage = \DB::table('messages')
+                        ->where('conversation_id', $conversation->id)
                         ->orderBy('created_at', 'desc')
                         ->first();
                     
                     \Log::info('Dernier message récupéré', [
                         'conversation_id' => $conversation->id,
                         'has_last_message' => $lastMessage ? true : false,
-                        'last_message_id' => $lastMessage?->id,
+                        'last_message_id' => $lastMessage?->id ?? 'N/A',
                         'last_message_preview' => $lastMessage ? substr($lastMessage->message, 0, 50) . '...' : 'Aucun message'
                     ]);
                     
@@ -420,7 +421,7 @@ class MessagingController extends Controller
             $conversation = $application->conversation;
             $conversation->update(['status' => 'active']);
 
-            return response()->json([
+            return back()->with([
                 'success' => true,
                 'message' => 'Contre-offre acceptée ! La candidature est maintenant réservée.',
                 'application' => [
@@ -429,10 +430,6 @@ class MessagingController extends Controller
                     'final_rate' => $application->final_rate,
                     'counter_rate' => $application->counter_rate,
                     'proposed_rate' => $application->proposed_rate
-                ],
-                'conversation' => [
-                    'id' => $conversation->id,
-                    'status' => $conversation->status
                 ]
             ]);
         } else {
@@ -449,7 +446,7 @@ class MessagingController extends Controller
                 $application->conversation->update(['status' => 'pending']);
             }
 
-            return response()->json([
+            return back()->with([
                 'success' => true,
                 'message' => 'Contre-offre refusée. Retour au tarif initial.',
                 'application' => [
@@ -483,7 +480,7 @@ class MessagingController extends Controller
             $validated['counter_message']
         );
 
-        return response()->json([
+        return back()->with([
             'success' => true,
             'message' => 'Votre contre-proposition a été envoyée au parent.'
         ]);

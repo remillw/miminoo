@@ -69,7 +69,7 @@
                     <button
                         v-if="canCancelReservation"
                         @click="showCancelModal = true"
-                        class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 transition-colors hover:bg-red-50"
+                        class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 transition-colors hover:bg-red-50 cursor-pointer"
                     >
                         Annuler
                     </button>
@@ -77,7 +77,7 @@
                     <button
                         v-if="canStartService"
                         @click="startService"
-                        class="rounded bg-green-600 px-3 py-1 text-sm text-white transition-colors hover:bg-green-700"
+                        class="rounded bg-green-600 px-3 py-1 text-sm text-white transition-colors hover:bg-green-700 cursor-pointer"
                     >
                         Commencer
                     </button>
@@ -85,7 +85,7 @@
                     <button
                         v-if="canCompleteService"
                         @click="completeService"
-                        class="rounded bg-blue-600 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-700"
+                        class="rounded bg-blue-600 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-700 cursor-pointer"
                     >
                         Terminer
                     </button>
