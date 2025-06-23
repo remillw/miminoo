@@ -447,6 +447,9 @@ function selectConversation(conversation) {
             {
                 preserveState: true,
                 preserveScroll: true,
+                onError: (errors) => {
+                    console.error('❌ Erreur marquage comme vue:', errors);
+                },
             },
         );
     }
@@ -592,7 +595,7 @@ function archiveConversation(applicationId) {
 function submitCounterOffer(applicationId, counterRate, counterMessage = null) {
     console.log('🔄 Contre-offre parent:', applicationId, counterRate, counterMessage);
     router.post(
-        route('applications.counter', applicationId),
+        route('applications.counter-offer', applicationId),
         {
             counter_rate: counterRate,
             counter_message: counterMessage,

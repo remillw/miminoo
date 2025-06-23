@@ -17,8 +17,8 @@
 
         <!-- Actions principales -->
         <div :class="mobile ? 'space-y-2' : 'flex items-center gap-3'">
-            <!-- Actions pour parents -->
-            <template v-if="userRole === 'parent'">
+            <!-- Actions pour parents UNIQUEMENT -->
+            <template v-if="userRole === 'parent' && application.status !== 'declined' && application.status !== 'expired'">
                 <button
                     @click="handleReserveDirectly"
                     :class="mobile ? 'w-full justify-center' : ''"
@@ -77,8 +77,8 @@
             </template>
         </div>
 
-        <!-- Formulaire contre-offre parent -->
-        <div v-if="showCounterOffer && userRole === 'parent'" class="bg-secondary rounded-lg border border-orange-200 p-4">
+        <!-- Formulaire contre-offre parent UNIQUEMENT -->
+        <div v-if="showCounterOffer && userRole === 'parent' && application.status !== 'declined' && application.status !== 'expired'" class="bg-secondary rounded-lg border border-orange-200 p-4">
             <h4 :class="mobile ? 'text-sm' : ''" class="mb-3 font-medium text-gray-900">Faire une contre-proposition :</h4>
             <div :class="mobile ? 'space-y-3' : 'flex items-center gap-3'">
                 <div class="relative" :class="mobile ? 'w-full' : ''">
@@ -204,12 +204,22 @@ function handleCancelApplication() {
 function handleReserveDirectly() {
     console.log('🔄 Tentative de réservation directe');
     console.log('Application ID:', props.application.id);
+    console.log('User role:', props.userRole);
 
-    const url = route('applications.payment', props.application.id);
-    console.log('URL générée:', url);
+    if (props.userRole !== 'parent') {
+        console.error('❌ Seuls les parents peuvent réserver');
+        return;
+    }
 
-    // Rediriger directement vers la page de paiement avec l'ID de l'application
-    router.visit(url);
+    try {
+        const url = route('applications.payment', props.application.id);
+        console.log('URL générée:', url);
+
+        // Rediriger directement vers la page de paiement avec l'ID de l'application
+        router.visit(url);
+    } catch (error) {
+        console.error('❌ Erreur lors de la génération de l\'URL:', error);
+    }
 }
 
 function handleReservationSuccess(reservation) {
