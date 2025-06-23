@@ -139,7 +139,7 @@
         <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
         <div v-if="currentMode === 'babysitter' && canCancelApplication" class="border-t border-gray-200 pt-4">
             <button
-                @click="handleCancelApplication"
+                @click="showBabysitterCancelModal = true"
                 :class="mobile ? 'w-full justify-center' : ''"
                 class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
                 :title="getCancelTooltipText()"
@@ -152,7 +152,7 @@
         <!-- Actions supplémentaires pour parent (selon le mode actuel) -->
         <div v-if="currentMode === 'parent' && canParentCancelReservation" class="border-t border-gray-200 pt-4">
             <button
-                @click="handleCancelReservationByParent"
+                @click="showParentCancelModal = true"
                 :class="mobile ? 'w-full justify-center' : ''"
                 class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
                 :title="getParentCancelTooltipText()"
@@ -161,6 +161,24 @@
                 Annuler ma réservation
             </button>
         </div>
+
+        <!-- Modal de confirmation annulation babysitter -->
+        <CancelConfirmationModal
+            :show="showBabysitterCancelModal"
+            :type="'babysitter'"
+            :application="application"
+            @close="showBabysitterCancelModal = false"
+            @confirm="handleConfirmBabysitterCancel"
+        />
+
+        <!-- Modal de confirmation annulation parent -->
+        <CancelConfirmationModal
+            :show="showParentCancelModal"
+            :type="'parent'"
+            :application="application"
+            @close="showParentCancelModal = false"
+            @confirm="handleConfirmParentCancel"
+        />
 
         <!-- Modal de réservation (gardé pour compatibilité) -->
         <ReservationModal
@@ -179,6 +197,7 @@ import { router } from '@inertiajs/vue3';
 import { Check, Euro, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
+import CancelConfirmationModal from './CancelConfirmationModal.vue';
 import ReservationModal from './ReservationModal.vue';
 
 const props = defineProps({
@@ -194,12 +213,16 @@ const emit = defineEmits(['reserve', 'decline', 'counter-offer', 'respond-counte
 
 // Utiliser le mode actuel depuis localStorage
 const { currentMode } = useUserMode();
-const { showError } = useToast();
 
 // État local
 const showCounterOffer = ref(false);
 const counterOfferRate = ref('');
 const showReservationModal = ref(false);
+const showBabysitterCancelModal = ref(false);
+const showParentCancelModal = ref(false);
+
+// Toast
+const { toast } = useToast();
 
 // Computed
 const otherUser = computed(() => {
@@ -256,41 +279,6 @@ function submitCounterOffer() {
     emit('counter-offer', props.application.id, parseFloat(counterOfferRate.value));
     showCounterOffer.value = false;
     counterOfferRate.value = '';
-}
-
-function handleCancelApplication() {
-    const isPaid = props.application.conversation?.status === 'active';
-    let confirmMessage;
-
-    if (isPaid) {
-        confirmMessage =
-            '⚠️ ATTENTION - Candidature payée !\n\n' +
-            '• Vous allez PERDRE tous les fonds reçus\n' +
-            '• Le parent sera remboursé intégralement\n' +
-            "• Si c'est moins de 48h avant le service, un avis négatif sera généré\n\n" +
-            'Voulez-vous vraiment continuer ?';
-    } else {
-        confirmMessage =
-            'Êtes-vous sûr de vouloir annuler votre candidature ?\n\n' + 'Cette action est irréversible mais gratuite (pas encore payée).';
-    }
-
-    if (confirm(confirmMessage)) {
-        router.post(
-            route('applications.cancel', props.application.id),
-            {},
-            {
-                preserveState: true,
-                onSuccess: (response) => {
-                    console.log('✅ Candidature annulée avec succès');
-                    router.get(route('messaging.index'));
-                },
-                onError: (errors) => {
-                    console.error('❌ Erreur annulation candidature:', errors);
-                    showError('❌ Erreur', errors.error || "Erreur lors de l'annulation de la candidature");
-                },
-            },
-        );
-    }
 }
 
 function handleReserveDirectly() {
@@ -350,53 +338,42 @@ function getCancelTooltipText() {
     }
 }
 
-function handleCancelReservationByParent() {
-    const reservation = props.application.conversation?.reservation;
-    let confirmMessage;
-
-    if (reservation?.service_start_at) {
-        const serviceDate = new Date(reservation.service_start_at);
-        const hoursBeforeService = Math.floor((serviceDate - new Date()) / (1000 * 60 * 60));
-        const amount = reservation.total_deposit || props.application.proposed_rate * 3; // Estimation si pas de montant
-
-        if (hoursBeforeService < 24) {
-            confirmMessage =
-                `⚠️ ANNULATION TARDIVE (<24h)\n\n` +
-                `• Vous perdez TOUT votre acompte (${amount}€)\n` +
-                `• Aucun remboursement ne sera effectué\n` +
-                `• Les fonds restent chez la babysitter\n\n` +
-                `Voulez-vous vraiment continuer ?`;
-        } else {
-            const estimatedRefund = Math.max(0, amount - 2);
-            confirmMessage =
-                `💰 REMBOURSEMENT PARTIEL (>24h)\n\n` +
-                `• Acompte: ${amount}€\n` +
-                `• Frais de service: -2€\n` +
-                `• Frais Stripe: ~-1€\n` +
-                `• Vous récupérez: ~${estimatedRefund}€\n\n` +
-                `Voulez-vous continuer ?`;
-        }
-    } else {
-        confirmMessage = 'Êtes-vous sûr de vouloir annuler votre réservation ?\n\n' + "Aucun paiement n'a encore été effectué.";
-    }
-
-    if (confirm(confirmMessage)) {
-        router.post(
-            route('applications.cancel-by-parent', props.application.id),
-            {},
-            {
-                preserveState: true,
-                onSuccess: (response) => {
-                    console.log('✅ Réservation annulée avec succès');
-                    router.get(route('messaging.index'));
-                },
-                onError: (errors) => {
-                    console.error('❌ Erreur annulation réservation:', errors);
-                    showError('❌ Erreur', errors.error || "Erreur lors de l'annulation de la réservation");
-                },
+function handleConfirmBabysitterCancel() {
+    router.post(
+        route('applications.cancel', props.application.id),
+        {},
+        {
+            preserveState: true,
+            onSuccess: (response) => {
+                showBabysitterCancelModal.value = false;
+                toast.success('Candidature annulée avec succès');
+                router.get(route('messaging.index'));
             },
-        );
-    }
+            onError: (errors) => {
+                console.error('❌ Erreur annulation candidature:', errors);
+                toast.error(errors.error || "Erreur lors de l'annulation de la candidature");
+            },
+        },
+    );
+}
+
+function handleConfirmParentCancel() {
+    router.post(
+        route('applications.cancel-by-parent', props.application.id),
+        {},
+        {
+            preserveState: true,
+            onSuccess: (response) => {
+                showParentCancelModal.value = false;
+                toast.success('Réservation annulée avec succès');
+                router.get(route('messaging.index'));
+            },
+            onError: (errors) => {
+                console.error('❌ Erreur annulation réservation:', errors);
+                toast.error(errors.error || "Erreur lors de l'annulation de la réservation");
+            },
+        },
+    );
 }
 
 function getParentCancelTooltipText() {
