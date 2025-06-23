@@ -13,57 +13,31 @@ if (typeof window !== 'undefined') {
 
     const appKey = import.meta.env.VITE_REVERB_APP_KEY;
     const host = import.meta.env.VITE_REVERB_HOST;
+    const port = import.meta.env.VITE_REVERB_PORT;
+    const scheme = import.meta.env.VITE_REVERB_SCHEME;
 
     console.log('🔧 Préparation de Laravel Echo...');
     console.log('🔧 Clé Reverb :', appKey);
     console.log('🔧 Host Reverb :', host);
+    console.log('🔧 Port Reverb :', port);
+    console.log('🔧 Scheme Reverb :', scheme);
 
     try {
         window.Echo = new Echo({
             broadcaster: 'pusher', // Reverb émule Pusher
-            key: 'bhdonn8eanhd6h1txapi',
-            wsHost: 'trouvetababysitter.fr',
+            key: appKey,
+            wsHost: host,
+            wsPort: port,
+            wssPort: port,
             cluster: 'mt1', // ✅ requis même avec Reverb
             wsPath: '/reverb', // ✅ ajoute uniquement le préfixe custom
-            forceTLS: true,
+            forceTLS: scheme === 'https',
             enabledTransports: ['ws', 'wss'],
             authEndpoint: '/broadcasting/auth',
-
-            // ✅ Configuration d'authentification plus explicite
-            authorizer: (channel: any) => {
-                return {
-                    authorize: (socketId: string, callback: (error: boolean, data?: any) => void) => {
-                        // Utiliser fetch avec credentials pour forcer l'envoi des cookies
-                        fetch('/broadcasting/auth', {
-                            method: 'POST',
-                            credentials: 'include', // ✅ Force l'envoi des cookies
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-                                Accept: 'application/json',
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: new URLSearchParams({
-                                socket_id: socketId,
-                                channel_name: channel.name,
-                            }),
-                        })
-                            .then((response) => {
-                                if (!response.ok) {
-                                    throw new Error(`HTTP ${response.status}`);
-                                }
-                                return response.json();
-                            })
-                            .then((data) => {
-                                console.log('✅ Auth réussie:', data);
-                                callback(false, data);
-                            })
-                            .catch((error) => {
-                                console.error('❌ Auth échouée:', error);
-                                callback(true, error);
-                            });
-                    },
-                };
+            auth: {
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                },
             },
         });
 
@@ -123,8 +97,6 @@ if (typeof window !== 'undefined') {
             pusher.bind('pusher:subscription_succeeded', (data: any) => {
                 console.log('✅ Authentification canal réussie:', data);
             });
-
-            // Log de la configura
         }
     } catch (e) {
         console.error("❌ Erreur lors de l'initialisation de Laravel Echo :", e);
