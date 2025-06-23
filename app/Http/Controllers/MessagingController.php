@@ -49,7 +49,7 @@ class MessagingController extends Controller
                 'application' => function($query) {
                     $query->with(['babysitter:id,firstname,lastname,avatar', 'ad.parent:id,firstname,lastname,avatar']);
                 }
-            ])
+            ]);
 
             // Filtrer selon le mode demandé
             if ($requestedMode === 'parent') {
