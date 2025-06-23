@@ -43,6 +43,7 @@
 </template>
 
 <script setup>
+import { useToast } from '@/composables/useToast';
 import { Send } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
