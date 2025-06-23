@@ -493,7 +493,16 @@ const showConversationsList = ref(false); // Pour la navigation mobile
 const isLoadingConversations = ref(false); // Variable réactive pour l'état de chargement
 
 // Utiliser les conversations des props
-const conversations = computed(() => props.conversations || []);
+const conversations = computed(() => {
+    const convs = props.conversations || [];
+    
+    // Trier les conversations par date de dernier message (plus récent en premier)
+    return [...convs].sort((a, b) => {
+        const dateA = new Date(a.last_message_at || a.created_at);
+        const dateB = new Date(b.last_message_at || b.created_at);
+        return dateB - dateA; // Plus récent en premier
+    });
+});
 
 // Computed pour vérifier si l'utilisateur a plusieurs rôles
 const hasMultipleRoles = computed(() => {
@@ -845,6 +854,10 @@ function onMessageSentOptimistic(message) {
         selectedConversation.value.last_message = message.message;
         selectedConversation.value.last_message_at = message.created_at;
         selectedConversation.value.last_message_by = message.sender_id;
+
+        // Le tri automatique via le computed se charge de remonter la conversation
+        // Mettre à jour le timestamp pour déclencher le re-tri
+        selectedConversation.value.last_message_at = new Date().toISOString();
     }
 }
 
@@ -881,14 +894,8 @@ function onMessageSent(message) {
         selectedConversation.value.last_message_at = message.created_at;
         selectedConversation.value.last_message_by = message.sender_id;
 
-        // Remonter cette conversation en haut de la liste
-        const conversations = props.conversations;
-        const currentIndex = conversations.findIndex((c) => c.id === selectedConversation.value.id);
-        if (currentIndex > 0) {
-            // Déplacer la conversation vers le haut
-            const currentConv = conversations.splice(currentIndex, 1)[0];
-            conversations.unshift(currentConv);
-        }
+        // Le tri automatique via le computed se charge de remonter la conversation
+        // (pas besoin de manipulation manuelle du tableau)
     }
 }
 

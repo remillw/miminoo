@@ -68,6 +68,8 @@ class MessagingController extends Controller
             
             $conversations = $conversationsQuery
                 ->where('status', '!=', 'archived') // Exclure les conversations archivées
+                ->orderByDesc('last_message_at')
+                ->orderByDesc('updated_at')
                 ->orderByDesc('created_at')
                 ->get();
 
