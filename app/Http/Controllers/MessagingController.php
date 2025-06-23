@@ -48,11 +48,8 @@ class MessagingController extends Controller
                 'babysitter:id,firstname,lastname,avatar',
                 'application' => function($query) {
                     $query->with(['babysitter:id,firstname,lastname,avatar', 'ad.parent:id,firstname,lastname,avatar']);
-                },
-                'messages' => function($query) {
-                    $query->orderBy('created_at', 'desc')->take(1);
                 }
-            ]);
+            ])
 
             // Filtrer selon le mode demandé
             if ($requestedMode === 'parent') {
@@ -99,6 +96,18 @@ class MessagingController extends Controller
                         'application_id' => $application?->id
                     ]);
                     
+                    // Récupérer le dernier message directement
+                    $lastMessage = $conversation->messages()
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                    
+                    \Log::info('Dernier message récupéré', [
+                        'conversation_id' => $conversation->id,
+                        'has_last_message' => $lastMessage ? true : false,
+                        'last_message_id' => $lastMessage?->id,
+                        'last_message_preview' => $lastMessage ? substr($lastMessage->message, 0, 50) . '...' : 'Aucun message'
+                    ]);
+                    
                     $conversationData = [
                         'id' => $conversation->id,
                         'type' => $conversation->status === 'pending' ? 'application' : 'conversation',
@@ -111,7 +120,7 @@ class MessagingController extends Controller
                             'lastname' => $otherUser->lastname,
                             'avatar' => $otherUser->avatar ?? '/default-avatar.svg'
                         ],
-                        'last_message' => $conversation->messages->first()?->message ?? ($conversation->status === 'pending' ? 'La conversation a commencé !' : 'La conversation a commencé !'),
+                        'last_message' => $lastMessage?->message ?? 'La conversation a commencé !',
                         'last_message_at' => $conversation->last_message_at ?? $conversation->created_at,
                         'unread_count' => 0, // TODO: implémenter le compteur
                         'status' => $conversation->status,

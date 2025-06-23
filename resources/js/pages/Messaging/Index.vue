@@ -851,13 +851,21 @@ function onMessageSentOptimistic(message) {
 
     // Mettre à jour la sidebar immédiatement
     if (selectedConversation.value) {
+        const newTimestamp = new Date().toISOString();
+        
         selectedConversation.value.last_message = message.message;
-        selectedConversation.value.last_message_at = message.created_at;
+        selectedConversation.value.last_message_at = newTimestamp;
         selectedConversation.value.last_message_by = message.sender_id;
 
-        // Le tri automatique via le computed se charge de remonter la conversation
-        // Mettre à jour le timestamp pour déclencher le re-tri
-        selectedConversation.value.last_message_at = new Date().toISOString();
+        // Mettre à jour aussi la conversation dans la liste des props
+        const conversationInList = props.conversations.find(c => c.id === selectedConversation.value.id);
+        if (conversationInList) {
+            conversationInList.last_message = message.message;
+            conversationInList.last_message_at = newTimestamp;
+            conversationInList.last_message_by = message.sender_id;
+        }
+
+        // Le tri automatique via le computed se charge de remonter la conversation avec le nouveau timestamp
     }
 }
 
@@ -890,9 +898,19 @@ function onMessageSent(message) {
 
     // Mettre à jour le dernier message dans la sidebar
     if (selectedConversation.value) {
+        const messageTimestamp = message.created_at || new Date().toISOString();
+        
         selectedConversation.value.last_message = message.message;
-        selectedConversation.value.last_message_at = message.created_at;
+        selectedConversation.value.last_message_at = messageTimestamp;
         selectedConversation.value.last_message_by = message.sender_id;
+
+        // Mettre à jour aussi la conversation dans la liste des props
+        const conversationInList = props.conversations.find(c => c.id === selectedConversation.value.id);
+        if (conversationInList) {
+            conversationInList.last_message = message.message;
+            conversationInList.last_message_at = messageTimestamp;
+            conversationInList.last_message_by = message.sender_id;
+        }
 
         // Le tri automatique via le computed se charge de remonter la conversation
         // (pas besoin de manipulation manuelle du tableau)
