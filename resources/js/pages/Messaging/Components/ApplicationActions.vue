@@ -16,18 +16,21 @@
         <button
           @click="$emit('accept')"
           class="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 transition-colors"
+          :title="`Accepter la candidature au tarif de ${application.proposed_rate}€/h`"
         >
           Accepter
         </button>
         <button
           @click="$emit('counter-offer')"
           class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+          title="Proposer un tarif différent"
         >
           Contre-offre
         </button>
         <button
           @click="$emit('decline')"
           class="bg-red-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-700 transition-colors"
+          title="Refuser cette candidature"
         >
           Refuser
         </button>
@@ -50,12 +53,14 @@
         <button
           @click="$emit('respond-counter', 'accept')"
           class="bg-green-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-green-700 transition-colors"
+          :title="`Accepter la contre-offre de ${application.counter_rate}€/h et procéder au paiement`"
         >
           Accepter {{ application.counter_rate }}€/h
         </button>
         <button
           @click="$emit('respond-counter', 'decline')"
           class="bg-red-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-red-700 transition-colors"
+          title="Refuser la contre-offre et retourner au tarif initial"
         >
           Refuser
         </button>

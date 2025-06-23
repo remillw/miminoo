@@ -24,17 +24,6 @@
 
     <!-- Boutons d'action -->
     <div class="flex" :class="mobile ? 'gap-1' : 'gap-2'">
-      <!-- Bouton pièce jointe (masqué sur mobile pour économiser l'espace) -->
-      <button
-        v-if="!mobile"
-        type="button"
-        :disabled="disabled"
-        class="p-3 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title="Ajouter une pièce jointe"
-      >
-        <Paperclip class="w-5 h-5" />
-      </button>
-
       <!-- Bouton envoi -->
       <button
         @click="sendMessage"
@@ -52,7 +41,7 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
-import { Send, Paperclip } from 'lucide-vue-next'
+import { Send } from 'lucide-vue-next'
 
 const props = defineProps({
   disabled: {

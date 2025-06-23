@@ -44,8 +44,7 @@
         </div>
 
         <!-- Dernier message -->
-        <p class="text-sm text-gray-600 truncate mb-1">
-          {{ conversation.last_message }}
+        <p class="text-sm text-gray-600 truncate mb-1" v-html="filterSensitiveInfo(conversation.last_message)">
         </p>
 
         <!-- Temps -->
@@ -68,11 +67,48 @@
 <script setup>
 import { BadgeCheck } from 'lucide-vue-next'
 
-defineProps({
+const props = defineProps({
   conversation: Object
 })
 
 defineEmits(['click'])
+
+function filterSensitiveInfo(text) {
+  if (!text) return '';
+  
+  // Vérifier si le paiement est effectué via props.conversation
+  const isPaymentCompleted = props.conversation?.status === 'active' || props.conversation?.deposit_paid;
+  
+  if (isPaymentCompleted) {
+    // Si le paiement est fait, pas de filtrage
+    return text;
+  }
+  
+  // Patterns pour détecter les numéros de téléphone
+  const phonePatterns = [
+    // Numéros français (06, 07, etc.)
+    /(?:(?:0|\+33\s?)[1-9](?:[\s.-]?\d{2}){4})/g,
+    // Numéros avec indicatifs internationaux
+    /(?:\+\d{1,3}[\s.-]?)?(?:\d[\s.-]?){6,14}\d/g,
+    // Patterns simples pour 10 chiffres consécutifs
+    /\b\d{10}\b/g,
+    // Numéros avec espaces ou tirets
+    /\b\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b/g
+  ];
+  
+  let filteredText = text;
+  
+  // Remplacer les numéros de téléphone par un message de restriction
+  phonePatterns.forEach(pattern => {
+    filteredText = filteredText.replace(pattern, '<span class="bg-red-100 text-red-600 px-1 py-0.5 rounded text-xs">🔒 Masqué</span>');
+  });
+  
+  // Patterns pour détecter d'autres infos sensibles
+  const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  filteredText = filteredText.replace(emailPattern, '<span class="bg-red-100 text-red-600 px-1 py-0.5 rounded text-xs">🔒 Email masqué</span>');
+  
+  return filteredText;
+}
 
 function getStatusClasses(status) {
   switch (status) {

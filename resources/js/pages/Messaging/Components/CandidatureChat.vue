@@ -23,9 +23,10 @@
                     @click="handleReserveDirectly"
                     :class="mobile ? 'w-full justify-center' : ''"
                     class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                    :title="`Réserver cette candidature au tarif de ${currentRate}€/h`"
                 >
                     <Check class="h-4 w-4" />
-                    Réserver {{ application.counter_rate || application.proposed_rate }}€/h
+                    Réserver {{ currentRate }}€/h
                 </button>
 
                 <div :class="mobile ? 'flex gap-2' : 'contents'">
@@ -34,6 +35,7 @@
                         @click="showCounterOffer = true"
                         :class="mobile ? 'flex-1' : ''"
                         class="hover:bg-secondary flex items-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors justify-center"
+                        title="Proposer un tarif différent de celui proposé par le babysitter"
                     >
                         <Euro class="h-4 w-4" />
                         <span v-if="!mobile">Contre-offre</span>
@@ -44,6 +46,7 @@
                         @click="handleDecline"
                         :class="mobile ? 'flex-1' : ''"
                         class="hover:bg-primary-opacity flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors justify-center"
+                        title="Refuser définitivement cette candidature"
                     >
                         <X class="h-4 w-4" />
                         Refuser
@@ -62,6 +65,7 @@
                         @click="$emit('respond-counter', application.id, true, application.counter_rate)"
                         :class="mobile ? 'flex-1' : ''"
                         class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                        :title="`Accepter la contre-offre de ${application.counter_rate}€/h`"
                     >
                         Accepter
                     </button>
@@ -70,6 +74,7 @@
                         @click="$emit('respond-counter', application.id, false)"
                         :class="mobile ? 'flex-1' : ''"
                         class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        title="Refuser la contre-offre et revenir au tarif initial"
                     >
                         Refuser
                     </button>
@@ -100,6 +105,7 @@
                         :disabled="!counterOfferRate"
                         :class="mobile ? 'flex-1' : ''"
                         class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
+                        :title="counterOfferRate ? `Envoyer une contre-offre de ${counterOfferRate}€/h` : 'Veuillez saisir un tarif'"
                     >
                         Proposer
                     </button>
@@ -107,6 +113,7 @@
                         @click="showCounterOffer = false" 
                         :class="mobile ? 'flex-1' : ''"
                         class="px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800 rounded-lg border border-gray-300"
+                        title="Annuler la contre-offre et revenir aux actions principales"
                     >
                         Annuler
                     </button>
@@ -174,12 +181,19 @@ const otherUser = computed(() => {
 });
 
 const currentRate = computed(() => {
-    return props.application.counter_rate || props.application.proposed_rate;
+    // Afficher le tarif de contre-offre seulement si elle est acceptée
+    return (props.application.status === 'accepted' && props.application.counter_rate)
+        ? props.application.counter_rate
+        : props.application.proposed_rate;
 });
 
 // Méthodes
 function handleReserve() {
-    const rate = props.application.counter_rate || props.application.proposed_rate;
+    // Utiliser le tarif initial si la contre-offre n'est pas encore acceptée
+    const rate = (props.application.status === 'accepted' && props.application.counter_rate) 
+        ? props.application.counter_rate 
+        : props.application.proposed_rate;
+    
     if (confirm(`Réserver cette candidature au tarif de ${rate}€/h ?`)) {
         emit('reserve', props.application.id, rate);
     }

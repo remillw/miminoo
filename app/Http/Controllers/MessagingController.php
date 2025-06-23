@@ -350,14 +350,31 @@ class MessagingController extends Controller
             'counter_message' => 'nullable|string|max:500'
         ]);
 
-        $application->counterOffer(
-            $validated['counter_rate'],
-            $validated['counter_message']
-        );
+        // Mettre à jour l'application avec la contre-offre
+        $application->update([
+            'status' => 'counter_offered',
+            'counter_rate' => $validated['counter_rate'],
+            'counter_message' => $validated['counter_message'],
+            'counter_offered_at' => now()
+        ]);
+
+                 // Récupérer la conversation (elle existe normalement déjà)
+         $conversation = $application->conversation;
 
         return response()->json([
             'success' => true,
-            'message' => 'Contre-offre envoyée ! La babysitter peut accepter ou continuer à négocier.'
+            'message' => 'Contre-offre envoyée ! La babysitter peut accepter ou continuer à négocier.',
+            'application' => [
+                'id' => $application->id,
+                'status' => $application->status,
+                'counter_rate' => $application->counter_rate,
+                'counter_message' => $application->counter_message,
+                'proposed_rate' => $application->proposed_rate
+            ],
+            'conversation' => [
+                'id' => $conversation->id,
+                'status' => $conversation->status
+            ]
         ]);
     }
 
@@ -376,25 +393,61 @@ class MessagingController extends Controller
         }
 
         $validated = $request->validate([
-            'response' => 'required|in:accept,decline,counter'
+            'accept' => 'required|boolean',
+            'final_rate' => 'nullable|numeric|min:0|max:999.99'
         ]);
 
-        if ($validated['response'] === 'accept') {
-            // Accepter la contre-offre = réserver
-            $conversation = $application->respondToCounterOffer('accept');
+        if ($validated['accept']) {
+            // Accepter la contre-offre
+            $application->update([
+                'status' => 'accepted',
+                'final_rate' => $validated['final_rate'] ?? $application->counter_rate,
+                'responded_at' => now()
+            ]);
+
+            // Récupérer ou créer la conversation
+            $conversation = $application->conversation;
+            $conversation->update(['status' => 'active']);
+
             return response()->json([
                 'success' => true,
-                'message' => 'Contre-offre acceptée ! La candidature est réservée.',
-                'conversation_id' => $conversation->id,
-                'payment_required' => true
+                'message' => 'Contre-offre acceptée ! La candidature est maintenant réservée.',
+                'application' => [
+                    'id' => $application->id,
+                    'status' => $application->status,
+                    'final_rate' => $application->final_rate,
+                    'counter_rate' => $application->counter_rate,
+                    'proposed_rate' => $application->proposed_rate
+                ],
+                'conversation' => [
+                    'id' => $conversation->id,
+                    'status' => $conversation->status
+                ]
             ]);
         } else {
-            // Refuser ou faire une nouvelle contre-offre = continuer la négociation
-            $conversation = $application->respondToCounterOffer('decline');
+            // Refuser la contre-offre - retour au statut pending avec tarif initial
+            $application->update([
+                'status' => 'pending',
+                'counter_rate' => null,
+                'counter_message' => null,
+                'responded_at' => now()
+            ]);
+
+            // Maintenir la conversation mais en mode pending
+            if ($application->conversation) {
+                $application->conversation->update(['status' => 'pending']);
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Vous pouvez continuer à négocier.',
-                'conversation_id' => $conversation->id
+                'message' => 'Contre-offre refusée. Retour au tarif initial.',
+                'application' => [
+                    'id' => $application->id,
+                    'status' => $application->status,
+                    'final_rate' => null,
+                    'counter_rate' => null,
+                    'proposed_rate' => $application->proposed_rate
+                ]
             ]);
         }
     }

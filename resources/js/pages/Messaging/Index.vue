@@ -733,13 +733,26 @@ function submitCounterOffer(applicationId, counterRate, counterMessage = null) {
         },
         {
             preserveState: true,
-            onSuccess: () => {
-                console.log('✅ Contre-offre envoyée avec succès');
-                // Recharger les conversations
-                router.get(route('messaging.index'));
+            only: ['conversations', 'selectedConversation'],
+            onSuccess: (response) => {
+                console.log('✅ Contre-offre envoyée avec succès:', response);
+                
+                // Mettre à jour la candidature locale avec les données du serveur
+                if (selectedConversation.value && selectedConversation.value.application && response.props?.application) {
+                    Object.assign(selectedConversation.value.application, response.props.application);
+                } else if (selectedConversation.value && selectedConversation.value.application) {
+                    // Fallback si pas de données serveur
+                    selectedConversation.value.application.status = 'counter_offered';
+                    selectedConversation.value.application.counter_rate = counterRate;
+                    selectedConversation.value.application.counter_message = counterMessage;
+                }
+                
+                // Afficher un message de succès
+                window.toast?.success('Contre-offre envoyée !');
             },
             onError: (errors) => {
                 console.error('❌ Erreur contre-offre:', errors);
+                window.toast?.error('Erreur lors de l\'envoi de la contre-offre');
             },
         },
     );
@@ -755,13 +768,36 @@ function respondToCounterOffer(applicationId, accept, finalRate = null) {
         },
         {
             preserveState: true,
-            onSuccess: () => {
-                console.log('✅ Réponse contre-offre envoyée avec succès');
-                // Recharger les conversations
-                router.get(route('messaging.index'));
+            only: ['conversations', 'selectedConversation'],
+            onSuccess: (response) => {
+                console.log('✅ Réponse contre-offre envoyée avec succès:', response);
+                
+                // Mettre à jour la candidature locale avec les données du serveur
+                if (selectedConversation.value && selectedConversation.value.application && response.props?.application) {
+                    Object.assign(selectedConversation.value.application, response.props.application);
+                    
+                    if (accept) {
+                        window.toast?.success('Contre-offre acceptée !');
+                    } else {
+                        window.toast?.info('Contre-offre refusée, retour au tarif initial');
+                    }
+                } else if (selectedConversation.value && selectedConversation.value.application) {
+                    // Fallback si pas de données serveur
+                    if (accept) {
+                        selectedConversation.value.application.status = 'accepted';
+                        selectedConversation.value.application.final_rate = finalRate;
+                        window.toast?.success('Contre-offre acceptée !');
+                    } else {
+                        selectedConversation.value.application.status = 'pending';
+                        selectedConversation.value.application.counter_rate = null;
+                        selectedConversation.value.application.counter_message = null;
+                        window.toast?.info('Contre-offre refusée, retour au tarif initial');
+                    }
+                }
             },
             onError: (errors) => {
                 console.error('❌ Erreur réponse contre-offre:', errors);
+                window.toast?.error('Erreur lors de la réponse à la contre-offre');
             },
         },
     );
