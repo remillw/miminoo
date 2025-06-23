@@ -392,14 +392,20 @@ function joinConversationChannel() {
 
 // Fonction pour gérer les nouveaux messages
 function onNewMessage(e) {
-    console.log('Nouveau message reçu:', e.message);
+    console.log('🔥 DÉBUT onNewMessage - Nouveau message reçu:', e);
+    console.log('🔥 Message data:', e.message);
+    console.log('🔥 Sender ID:', e.message?.sender_id, 'type:', typeof e.message?.sender_id);
+    console.log('🔥 Current User ID:', currentUser.value?.id, 'type:', typeof currentUser.value?.id);
 
     const messageSenderId = String(e.message?.sender_id);
     const currentUserId = String(currentUser.value?.id);
     const isMyMessage = messageSenderId === currentUserId;
+    
+    console.log('🔥 IDs comparés:', { messageSenderId, currentUserId, isMyMessage });
 
     // Ne pas ajouter notre propre message (déjà ajouté localement)
     if (!isMyMessage) {
+        console.log('🔥 Ajout du message à la liste (pas mon message)');
         messages.value.push(e.message);
 
         // Marquer automatiquement comme lu
@@ -409,7 +415,11 @@ function onNewMessage(e) {
         nextTick(() => {
             scrollToBottom();
         });
+    } else {
+        console.log('🔥 Message ignoré (c\'est mon propre message)');
     }
+    
+    console.log('🔥 FIN onNewMessage');
 }
 
 // Fonction pour ajouter les autres écouteurs sur le canal
@@ -417,9 +427,19 @@ function addChannelListeners() {
     if (!currentChannel.value) return;
 
     const channel = currentChannel.value;
+    
+    console.log('🎧 Ajout des écouteurs sur le canal...');
+
+    // DEBUG: Écouter TOUS les événements sur le canal
+    if (channel.bind) {
+        channel.bind_global((eventName, data) => {
+            console.log('🌍 Événement global reçu:', eventName, data);
+        });
+    }
 
     // Écouter les événements "en train d'écrire"
     channel.listenForWhisper('typing', (e) => {
+        console.log('👀 Événement typing reçu:', e);
         if (parseInt(e.user_id) !== parseInt(currentUser.value?.id)) {
             isOtherUserTyping.value = true;
             clearTimeout(typingTimeout.value);
@@ -431,6 +451,7 @@ function addChannelListeners() {
 
     // Écouter les événements "arrêt d'écriture"
     channel.listenForWhisper('stop-typing', (e) => {
+        console.log('🛑 Événement stop-typing reçu:', e);
         if (parseInt(e.user_id) !== parseInt(currentUser.value?.id)) {
             isOtherUserTyping.value = false;
             clearTimeout(typingTimeout.value);
@@ -439,6 +460,7 @@ function addChannelListeners() {
 
     // Écouter les événements de messages lus
     channel.listen('messages.read', (e) => {
+        console.log('👁️ Événement messages.read reçu:', e);
         // Marquer mes messages comme lus si c'est l'autre utilisateur qui les a lus
         if (parseInt(e.read_by) !== parseInt(currentUser.value?.id)) {
             messages.value.forEach((message) => {
@@ -451,11 +473,11 @@ function addChannelListeners() {
 
     // Événements de connexion
     channel.subscribed(() => {
-        console.log('Connecté au canal de conversation:', props.conversation.id);
+        console.log('✅ Abonnement réussi au canal:', props.conversation.id);
     });
 
     channel.error((error) => {
-        console.error('Erreur de connexion au canal:', error);
+        console.error('❌ Erreur de connexion au canal:', error);
     });
 }
 
