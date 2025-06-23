@@ -26,6 +26,7 @@
                     :href="getProfileUrl()"
                     target="_blank"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
+                    :title="userRole === 'parent' ? 'Voir le profil de la babysitter' : 'Voir le profil du parent'"
                 >
                     <User class="h-4 w-4" />
                     Profil
@@ -36,6 +37,7 @@
                     :href="getAdUrl()"
                     target="_blank"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
+                    :title="userRole === 'parent' ? 'Voir votre annonce' : 'Voir l\'annonce du parent'"
                 >
                     <FileText class="h-4 w-4" />
                     Annonce

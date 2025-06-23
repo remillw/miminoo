@@ -50,7 +50,7 @@ class MessagingController extends Controller
                     $query->with(['babysitter:id,firstname,lastname,avatar', 'ad.parent:id,firstname,lastname,avatar']);
                 },
                 'messages' => function($query) {
-                    $query->latest()->take(1);
+                    $query->orderBy('created_at', 'desc')->take(1);
                 }
             ]);
 
@@ -111,7 +111,7 @@ class MessagingController extends Controller
                             'lastname' => $otherUser->lastname,
                             'avatar' => $otherUser->avatar ?? '/default-avatar.svg'
                         ],
-                        'last_message' => $conversation->messages->first()?->message ?? ($conversation->status === 'pending' ? 'Nouvelle candidature' : 'Conversation démarrée'),
+                        'last_message' => $conversation->messages->first()?->message ?? ($conversation->status === 'pending' ? 'La conversation a commencé !' : 'La conversation a commencé !'),
                         'last_message_at' => $conversation->last_message_at ?? $conversation->created_at,
                         'unread_count' => 0, // TODO: implémenter le compteur
                         'status' => $conversation->status,
