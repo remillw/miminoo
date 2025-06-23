@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 type UserMode = 'parent' | 'babysitter';
 
@@ -47,10 +47,8 @@ export function useUserMode() {
     // Obtenir le mode actuel
     const getMode = () => currentMode.value;
 
-    // Watcher pour synchroniser avec localStorage
-    watch(currentMode, (newMode) => {
-        localStorage.setItem(STORAGE_KEY, newMode);
-    });
+    // Pas de watcher automatique pour éviter les boucles infinies
+    // Le localStorage est mis à jour explicitement dans setMode() et initializeMode()
 
     return {
         currentMode,

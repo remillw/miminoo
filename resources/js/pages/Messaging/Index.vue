@@ -476,20 +476,15 @@ const hasMultipleRoles = computed(() => {
 
 // Fonction pour changer de mode
 const switchMode = (mode) => {
-    if (mode === currentMode.value) return;
+    if (mode === currentMode.value || isLoadingConversations) return;
 
+    console.log('🔄 Switch mode vers:', mode);
+    
     // Mettre à jour le localStorage
     setMode(mode);
-
-    // Rediriger vers la messagerie avec le nouveau mode
-    router.get(
-        route('messaging.index', { mode }),
-        {},
-        {
-            preserveState: false,
-            preserveScroll: true,
-        },
-    );
+    
+    // Utiliser la nouvelle fonction sécurisée
+    loadConversationsForMode(mode);
 };
 
 // Helpers
@@ -850,34 +845,47 @@ function handleReservationUpdate(updatedReservation) {
     // router.get(route('messaging.index'), {}, { preserveState: true });
 }
 
-// Watcher pour le changement de mode
-watch(currentMode, (newMode, oldMode) => {
-    if (newMode !== oldMode) {
-        console.log('🔄 Mode changé de', oldMode, 'vers:', newMode);
-        
-        // Réinitialiser la conversation sélectionnée
-        selectedConversation.value = null;
-        
-        // Recharger les conversations selon le nouveau mode
-        router.get(route('messaging.index'), { mode: newMode }, {
-            preserveState: false, // On veut recharger les données
-            preserveScroll: true,
-            only: ['conversations', 'currentMode'] // Ne recharger que ces props
-        });
-    }
-}, { immediate: false });
+// Variable pour éviter les boucles infinies
+let isLoadingConversations = false;
 
-// Charger les conversations au démarrage avec le mode actuel
+// Fonction pour recharger les conversations selon le mode
+function loadConversationsForMode(mode) {
+    if (isLoadingConversations) {
+        console.log('⏳ Chargement déjà en cours, ignorer');
+        return;
+    }
+    
+    console.log('🔄 Chargement conversations pour mode:', mode);
+    isLoadingConversations = true;
+    
+    // Réinitialiser la conversation sélectionnée
+    selectedConversation.value = null;
+    
+    router.get(route('messaging.index'), { mode: mode }, {
+        preserveState: false,
+        preserveScroll: true,
+        only: ['conversations', 'currentMode'],
+        onFinish: () => {
+            isLoadingConversations = false;
+            console.log('✅ Chargement terminé');
+        }
+    });
+}
+
+// Le changement de mode se fait uniquement via switchMode() maintenant
+// Plus de watcher automatique pour éviter les boucles
+
+// Initialisation au montage
 onMounted(() => {
-    // Si on n'a pas encore de mode défini ou si on a besoin de filtrer
-    const currentModeValue = currentMode.value;
-    if (currentModeValue && currentModeValue !== props.currentMode) {
-        console.log('🔄 Chargement initial avec mode:', currentModeValue);
-        router.get(route('messaging.index'), { mode: currentModeValue }, {
-            preserveState: false,
-            preserveScroll: true,
-            only: ['conversations', 'currentMode']
-        });
+    console.log('🚀 Composant monté avec mode:', currentMode.value);
+    
+    // Si le mode localStorage diffère du mode des props, recharger avec le bon mode
+    const storageMode = currentMode.value;
+    const propsMode = props.currentMode;
+    
+    if (storageMode && propsMode && storageMode !== propsMode) {
+        console.log('🔄 Mode localStorage différent des props, rechargement...', { storageMode, propsMode });
+        loadConversationsForMode(storageMode);
     }
 });
 </script>
