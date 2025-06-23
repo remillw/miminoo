@@ -14,36 +14,35 @@ export function useUserMode() {
         
         console.log('🔧 Initialisation mode:', { hasParentRole, hasBabysitterRole, serverMode });
         
-        // Si on a un mode serveur explicite, l'utiliser
-        if (serverMode && ((serverMode === 'parent' && hasParentRole) || (serverMode === 'babysitter' && hasBabysitterRole))) {
-            mode = serverMode;
-            console.log('✅ Mode serveur valide utilisé:', mode);
-        }
-        // Sinon, vérifier localStorage
-        else {
-            const stored = localStorage.getItem(STORAGE_KEY) as UserMode | null;
-            console.log('🔍 Mode localStorage:', stored);
-            
-            if (stored && (stored === 'parent' || stored === 'babysitter')) {
-                // Vérifier que l'utilisateur a bien ce rôle
-                if ((stored === 'parent' && hasParentRole) || (stored === 'babysitter' && hasBabysitterRole)) {
-                    mode = stored;
-                    console.log('✅ Mode localStorage valide utilisé:', mode);
-                } else {
-                    // Fallback si le rôle stocké n'est pas valide
-                    mode = hasParentRole ? 'parent' : 'babysitter';
-                    console.log('⚠️ Mode localStorage invalide, fallback:', mode);
-                }
+        // PRIORITÉ 1: localStorage (pour respecter le choix de l'utilisateur)
+        const stored = localStorage.getItem(STORAGE_KEY) as UserMode | null;
+        console.log('🔍 Mode localStorage:', stored);
+        
+        if (stored && (stored === 'parent' || stored === 'babysitter')) {
+            // Vérifier que l'utilisateur a bien ce rôle
+            if ((stored === 'parent' && hasParentRole) || (stored === 'babysitter' && hasBabysitterRole)) {
+                mode = stored;
+                console.log('✅ Mode localStorage valide utilisé:', mode);
             } else {
-                // Par défaut parent s'il l'a, sinon babysitter
+                // Fallback si le rôle stocké n'est pas valide
                 mode = hasParentRole ? 'parent' : 'babysitter';
-                console.log('🆕 Mode par défaut:', mode);
+                console.log('⚠️ Mode localStorage invalide, fallback:', mode);
             }
+        }
+        // PRIORITÉ 2: Mode serveur si pas de localStorage
+        else if (serverMode && ((serverMode === 'parent' && hasParentRole) || (serverMode === 'babysitter' && hasBabysitterRole))) {
+            mode = serverMode;
+            console.log('✅ Mode serveur utilisé (pas de localStorage):', mode);
+        }
+        // PRIORITÉ 3: Mode par défaut
+        else {
+            mode = hasParentRole ? 'parent' : 'babysitter';
+            console.log('🆕 Mode par défaut:', mode);
         }
         
         currentMode.value = mode;
         localStorage.setItem(STORAGE_KEY, mode);
-        console.log('💾 Mode sauvegardé:', mode);
+        console.log('💾 Mode final sauvegardé:', mode);
         return mode;
     };
 

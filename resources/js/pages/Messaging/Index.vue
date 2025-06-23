@@ -1,16 +1,5 @@
 <template>
     <DashboardLayout :currentMode="currentMode">
-        <!-- Debug info temporaire -->
-        <div class="mb-4 rounded-lg border bg-yellow-50 p-3 text-sm">
-            <strong>🐛 Debug:</strong>
-            currentMode: {{ currentMode }} |
-            hasParentRole: {{ hasParentRole }} |
-            hasBabysitterRole: {{ hasBabysitterRole }} |
-            hasMultipleRoles: {{ hasMultipleRoles }} |
-            conversations: {{ conversations.length }} |
-            isLoadingConversations: {{ isLoadingConversations }}
-        </div>
-
         <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
         <div v-if="hasMultipleRoles" class="mb-6 rounded-lg border bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between">
@@ -442,10 +431,13 @@ const props = defineProps({
 const { currentMode, initializeMode, setMode } = useUserMode();
 
 // Initialiser le mode IMMÉDIATEMENT (pas dans onMounted)
-const initializedMode = initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode || props.currentMode);
+// Utiliser currentMode du serveur en priorité, puis requestedMode comme fallback
+const serverMode = props.currentMode || props.requestedMode;
+const initializedMode = initializeMode(props.hasParentRole, props.hasBabysitterRole, serverMode);
 
 console.log('🚀 Mode initialisé:', {
     initializedMode,
+    serverMode,
     requestedMode: props.requestedMode,
     currentModeProp: props.currentMode,
     localStorage: localStorage.getItem('babysitter_user_mode'),
