@@ -432,23 +432,29 @@ function addChannelListeners() {
     }
 
     // Écouter les événements de message envoyé (server-side)
-    channel.listen('message.sent', (data: any) => {
-        console.log('📨 Événement message.sent reçu:', data);
-        onNewMessage(data);
-    });
-
-    // Écouter les événements de messages lus (server-side)
-    channel.listen('messages.read', (data: any) => {
-        console.log('👁️ Événement messages.read reçu:', data);
-        // Marquer mes messages comme lus si c'est l'autre utilisateur qui les a lus
-        if (parseInt(data.read_by) !== parseInt(currentUser.value?.id)) {
-            messages.value.forEach((message) => {
-                if (message.sender_id === currentUser.value?.id && !message.read_at) {
-                    message.read_at = data.read_at;
-                }
-            });
-        }
-    });
+    // Utiliser directement Pusher car Laravel Echo ne capture pas l'événement
+    if (channel.subscription) {
+        console.log('📡 Configuration écoute directe Pusher pour message.sent');
+        
+        channel.subscription.bind('message.sent', (data: any) => {
+            console.log('📨 ÉVÉNEMENT MESSAGE.SENT CAPTURÉ DIRECTEMENT:', data);
+            onNewMessage(data);
+        });
+        
+        channel.subscription.bind('messages.read', (data: any) => {
+            console.log('👁️ ÉVÉNEMENT MESSAGES.READ CAPTURÉ DIRECTEMENT:', data);
+            // Marquer mes messages comme lus si c'est l'autre utilisateur qui les a lus
+            if (parseInt(data.read_by) !== parseInt(currentUser.value?.id)) {
+                messages.value.forEach((message) => {
+                    if (message.sender_id === currentUser.value?.id && !message.read_at) {
+                        message.read_at = data.read_at;
+                    }
+                });
+            }
+        });
+    } else {
+        console.error('❌ Pas de subscription Pusher disponible');
+    }
 
     // Écouter les événements "en train d'écrire"
     channel.listenForWhisper('typing', (e: any) => {
