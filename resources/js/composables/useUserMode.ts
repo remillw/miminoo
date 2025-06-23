@@ -12,29 +12,38 @@ export function useUserMode() {
     const initializeMode = (hasParentRole: boolean, hasBabysitterRole: boolean, serverMode?: UserMode) => {
         let mode: UserMode;
         
-        // Priorité 1: mode du serveur (paramètre URL)
-        if (serverMode) {
+        console.log('🔧 Initialisation mode:', { hasParentRole, hasBabysitterRole, serverMode });
+        
+        // Si on a un mode serveur explicite, l'utiliser
+        if (serverMode && ((serverMode === 'parent' && hasParentRole) || (serverMode === 'babysitter' && hasBabysitterRole))) {
             mode = serverMode;
+            console.log('✅ Mode serveur valide utilisé:', mode);
         }
-        // Priorité 2: localStorage
+        // Sinon, vérifier localStorage
         else {
             const stored = localStorage.getItem(STORAGE_KEY) as UserMode | null;
+            console.log('🔍 Mode localStorage:', stored);
+            
             if (stored && (stored === 'parent' || stored === 'babysitter')) {
                 // Vérifier que l'utilisateur a bien ce rôle
                 if ((stored === 'parent' && hasParentRole) || (stored === 'babysitter' && hasBabysitterRole)) {
                     mode = stored;
+                    console.log('✅ Mode localStorage valide utilisé:', mode);
                 } else {
                     // Fallback si le rôle stocké n'est pas valide
                     mode = hasParentRole ? 'parent' : 'babysitter';
+                    console.log('⚠️ Mode localStorage invalide, fallback:', mode);
                 }
             } else {
-                // Priorité 3: par défaut parent s'il l'a, sinon babysitter
+                // Par défaut parent s'il l'a, sinon babysitter
                 mode = hasParentRole ? 'parent' : 'babysitter';
+                console.log('🆕 Mode par défaut:', mode);
             }
         }
         
         currentMode.value = mode;
         localStorage.setItem(STORAGE_KEY, mode);
+        console.log('💾 Mode sauvegardé:', mode);
         return mode;
     };
 

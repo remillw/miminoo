@@ -21,7 +21,10 @@ class MessagingController extends Controller
     public function index(Request $request): Response
     {
         $user = Auth::user();
-        $requestedMode = $request->get('mode', 'parent'); // Par défaut parent
+        
+        // Déterminer le mode par défaut selon les rôles de l'utilisateur
+        $defaultMode = $user->hasRole('parent') ? 'parent' : 'babysitter';
+        $requestedMode = $request->get('mode', $defaultMode);
         
         \Log::info('=== CHARGEMENT CONVERSATIONS ===', [
             'user_id' => $user->id,

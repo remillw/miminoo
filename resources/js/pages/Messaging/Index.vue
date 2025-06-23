@@ -425,13 +425,40 @@ const props = defineProps({
     hasParentRole: Boolean,
     hasBabysitterRole: Boolean,
     requestedMode: String,
+    currentMode: String, // Ajout de la prop currentMode du serveur
 });
 
 const { currentMode, initializeMode, setMode } = useUserMode();
 
+// Initialiser le mode IMMÉDIATEMENT (pas dans onMounted)
+const initializedMode = initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode || props.currentMode);
+
+console.log('🚀 Mode initialisé:', {
+    initializedMode,
+    requestedMode: props.requestedMode,
+    currentModeProp: props.currentMode,
+    localStorage: localStorage.getItem('babysitter_user_mode'),
+    hasParentRole: props.hasParentRole,
+    hasBabysitterRole: props.hasBabysitterRole
+});
+
+// Vérifier si on doit recharger les conversations avec le bon mode
+const needsReload = computed(() => {
+    const serverMode = props.currentMode || props.requestedMode;
+    const clientMode = currentMode.value;
+    
+    console.log('🔍 Vérification reload:', { serverMode, clientMode });
+    
+    return serverMode && clientMode && serverMode !== clientMode;
+});
+
 // Initialiser le mode au montage du composant
 onMounted(async () => {
-    initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
+    // Vérifier si on doit recharger avec le bon mode
+    if (needsReload.value) {
+        console.log('🔄 Rechargement nécessaire avec le mode client:', currentMode.value);
+        loadConversationsForMode(currentMode.value);
+    }
 
     // Attendre que Echo soit disponible avec un timeout
     let attempts = 0;
@@ -874,18 +901,4 @@ function loadConversationsForMode(mode) {
 
 // Le changement de mode se fait uniquement via switchMode() maintenant
 // Plus de watcher automatique pour éviter les boucles
-
-// Initialisation au montage
-onMounted(() => {
-    console.log('🚀 Composant monté avec mode:', currentMode.value);
-    
-    // Si le mode localStorage diffère du mode des props, recharger avec le bon mode
-    const storageMode = currentMode.value;
-    const propsMode = props.currentMode;
-    
-    if (storageMode && propsMode && storageMode !== propsMode) {
-        console.log('🔄 Mode localStorage différent des props, rechargement...', { storageMode, propsMode });
-        loadConversationsForMode(storageMode);
-    }
-});
 </script>
