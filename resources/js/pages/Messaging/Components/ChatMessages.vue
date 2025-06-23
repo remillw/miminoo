@@ -480,9 +480,17 @@ function addChannelListeners() {
 // Exposer la fonction pour recharger depuis le parent
 defineExpose({
     reloadMessages: loadMessages,
-    addMessageLocally: (message) => {
-        messages.value.push(message);
-        nextTick(scrollToBottom);
+    addMessageLocally: (message: any) => {
+        // Vérifier si le message existe déjà (même logique que onNewMessage)
+        const messageExists = messages.value.some(msg => msg.id === message.id);
+        
+        if (!messageExists) {
+            console.log('⚡ Ajout immédiat du message (local):', message.id);
+            messages.value.push(message);
+            nextTick(scrollToBottom);
+        } else {
+            console.log('⚠️ Message local déjà présent, pas d\'ajout');
+        }
     },
     sendTypingEvent: () => {
         if (currentChannel.value && props.conversation?.id) {
