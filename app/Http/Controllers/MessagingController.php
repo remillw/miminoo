@@ -18,19 +18,21 @@ class MessagingController extends Controller
     /**
      * Affiche la liste des conversations (qui incluent maintenant les candidatures)
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
+        $requestedMode = $request->get('mode', 'parent'); // Par défaut parent
         
         \Log::info('=== CHARGEMENT CONVERSATIONS ===', [
             'user_id' => $user->id,
             'user_name' => $user->name,
-            'user_roles' => $user->roles->pluck('name')->toArray()
+            'user_roles' => $user->roles->pluck('name')->toArray(),
+            'requested_mode' => $requestedMode
         ]);
         
         try {
-            // Récupérer toutes les conversations actives (pas archivées)
-            $conversations = Conversation::with([
+            // Démarrer la requête de base
+            $conversationsQuery = Conversation::with([
                 'ad', // Charger toutes les données de l'annonce pour le slug
                 'parent:id,firstname,lastname,avatar',
                 'babysitter:id,firstname,lastname,avatar',
@@ -40,16 +42,30 @@ class MessagingController extends Controller
                 'messages' => function($query) {
                     $query->latest()->take(1);
                 }
-            ])
-            ->forUser($user->id)
-            ->where('status', '!=', 'archived') // Exclure les conversations archivées
-            ->orderByDesc('created_at')
-            ->get();
+            ]);
+
+            // Filtrer selon le mode demandé
+            if ($requestedMode === 'parent') {
+                // En mode parent : voir uniquement les candidatures à MES annonces
+                $conversationsQuery->where('parent_id', $user->id);
+            } elseif ($requestedMode === 'babysitter') {
+                // En mode babysitter : voir uniquement les candidatures que J'AI faites
+                $conversationsQuery->where('babysitter_id', $user->id);
+            } else {
+                // Mode par défaut : toutes les conversations de l'utilisateur
+                $conversationsQuery->forUser($user->id);
+            }
+            
+            $conversations = $conversationsQuery
+                ->where('status', '!=', 'archived') // Exclure les conversations archivées
+                ->orderByDesc('created_at')
+                ->get();
 
             \Log::info('Conversations brutes récupérées', [
                 'conversations_count' => $conversations->count(),
                 'conversations_ids' => $conversations->pluck('id')->toArray(),
-                'conversations_status' => $conversations->pluck('status')->toArray()
+                'conversations_status' => $conversations->pluck('status')->toArray(),
+                'filtered_by_mode' => $requestedMode
             ]);
 
             $conversationsFormatted = $conversations->map(function ($conversation) use ($user) {
@@ -157,7 +173,8 @@ class MessagingController extends Controller
                 'userRole' => $user->roles->first()->name ?? 'user',
                 'hasParentRole' => $user->hasRole('parent'),
                 'hasBabysitterRole' => $user->hasRole('babysitter'),
-                'requestedMode' => request('mode')
+                'requestedMode' => $requestedMode,
+                'currentMode' => $requestedMode
             ];
 
             \Log::info('Réponse index préparée', [
@@ -183,7 +200,8 @@ class MessagingController extends Controller
                 'userRole' => $user->roles->first()->name ?? 'user',
                 'hasParentRole' => $user->hasRole('parent'),
                 'hasBabysitterRole' => $user->hasRole('babysitter'),
-                'requestedMode' => request('mode'),
+                'requestedMode' => $requestedMode,
+                'currentMode' => $requestedMode,
                 'error' => 'Erreur lors du chargement des conversations'
             ]);
         }
@@ -236,7 +254,14 @@ class MessagingController extends Controller
                 'application_id' => $application->id,
                 'viewed_at' => $application->viewed_at
             ]);
-            return response()->json(['success' => true, 'message' => 'Déjà marquée comme vue']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'Déjà marquée comme vue',
+                'application_id' => $application->id,
+                'viewed_at' => $application->viewed_at
+            ], 200, [
+                'Content-Type' => 'application/json'
+            ]);
         }
 
         \Log::info('Marquage autorisé, traitement en cours...');
@@ -248,7 +273,14 @@ class MessagingController extends Controller
             'viewed_at' => $application->fresh()->viewed_at
         ]);
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Candidature marquée comme vue',
+            'application_id' => $application->id,
+            'viewed_at' => $application->fresh()->viewed_at
+        ], 200, [
+            'Content-Type' => 'application/json'
+        ]);
     }
 
     /**

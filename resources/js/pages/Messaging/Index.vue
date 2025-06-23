@@ -413,7 +413,7 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
 import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search, Users, Baby } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import CandidatureChat from './Components/CandidatureChat.vue';
 import ChatInput from './Components/ChatInput.vue';
 import ChatMessages from './Components/ChatMessages.vue';
@@ -520,13 +520,14 @@ function selectConversation(conversation) {
         }
 
         // Faire la requête seulement si tout est OK
-        router.patch(
+        router.post(
             route('applications.mark-viewed', conversation.application.id),
             {},
             {
                 preserveState: true,
                 preserveScroll: true,
-                onSuccess: () => {
+                only: [], // Ne pas recharger les données de la page
+                onSuccess: (page) => {
                     console.log('✅ Candidature marquée comme vue avec succès');
                     // Mettre à jour localement pour éviter les futures tentatives
                     if (conversation.application) {
@@ -537,15 +538,18 @@ function selectConversation(conversation) {
                     console.error('❌ Erreur marquage comme vue:', errors);
                     
                     // Gestion spécifique des erreurs
-                    if (errors[0]?.status === 403) {
+                    if (errors.message?.includes('405')) {
+                        console.warn('⚠️ Méthode non autorisée - problème de configuration nginx');
+                    } else if (errors.message?.includes('403')) {
                         console.warn('⚠️ Accès refusé - cette candidature ne vous appartient pas');
-                    } else if (errors[0]?.status === 405) {
-                        console.warn('⚠️ Méthode non autorisée - problème de route');
-                    } else if (errors[0]?.status === 404) {
+                    } else if (errors.message?.includes('404')) {
                         console.warn('⚠️ Candidature introuvable');
                     } else {
-                        console.warn('⚠️ Erreur inconnue lors du marquage:', errors);
+                        console.warn('⚠️ Erreur lors du marquage:', errors);
                     }
+                },
+                onFinish: () => {
+                    console.log('🏁 Requête mark-viewed terminée');
                 },
             },
         );
@@ -845,4 +849,35 @@ function handleReservationUpdate(updatedReservation) {
     // Optionnel : recharger les conversations pour synchroniser
     // router.get(route('messaging.index'), {}, { preserveState: true });
 }
+
+// Watcher pour le changement de mode
+watch(currentMode, (newMode, oldMode) => {
+    if (newMode !== oldMode) {
+        console.log('🔄 Mode changé de', oldMode, 'vers:', newMode);
+        
+        // Réinitialiser la conversation sélectionnée
+        selectedConversation.value = null;
+        
+        // Recharger les conversations selon le nouveau mode
+        router.get(route('messaging.index'), { mode: newMode }, {
+            preserveState: false, // On veut recharger les données
+            preserveScroll: true,
+            only: ['conversations', 'currentMode'] // Ne recharger que ces props
+        });
+    }
+}, { immediate: false });
+
+// Charger les conversations au démarrage avec le mode actuel
+onMounted(() => {
+    // Si on n'a pas encore de mode défini ou si on a besoin de filtrer
+    const currentModeValue = currentMode.value;
+    if (currentModeValue && currentModeValue !== props.currentMode) {
+        console.log('🔄 Chargement initial avec mode:', currentModeValue);
+        router.get(route('messaging.index'), { mode: currentModeValue }, {
+            preserveState: false,
+            preserveScroll: true,
+            only: ['conversations', 'currentMode']
+        });
+    }
+});
 </script>
