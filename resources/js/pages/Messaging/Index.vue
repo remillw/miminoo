@@ -208,6 +208,8 @@
                             :placeholder="getInputPlaceholder()"
                             :conversation-id="selectedConversation.id"
                             :current-user-id="page?.props?.auth?.user?.id"
+                            :conversation-status="selectedConversation.status"
+                            :is-payment-completed="selectedConversation.status === 'active' || selectedConversation.deposit_paid"
                         />
                     </div>
                 </div>
@@ -400,6 +402,8 @@
                         :conversation-id="selectedConversation.id"
                         :current-user-id="page?.props?.auth?.user?.id"
                         :mobile="true"
+                        :conversation-status="selectedConversation.status"
+                        :is-payment-completed="selectedConversation.status === 'active' || selectedConversation.deposit_paid"
                     />
                 </div>
             </div>
@@ -408,12 +412,12 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search, Users, Baby } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { ArrowLeft, Baby, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search, Users } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
 import CandidatureChat from './Components/CandidatureChat.vue';
 import ChatInput from './Components/ChatInput.vue';
 import ChatMessages from './Components/ChatMessages.vue';
@@ -442,7 +446,7 @@ console.log('🚀 Mode initialisé:', {
     currentModeProp: props.currentMode,
     localStorage: localStorage.getItem('babysitter_user_mode'),
     hasParentRole: props.hasParentRole,
-    hasBabysitterRole: props.hasBabysitterRole
+    hasBabysitterRole: props.hasBabysitterRole,
 });
 
 // Initialiser le mode au montage du composant
@@ -450,9 +454,9 @@ onMounted(async () => {
     // Vérifier si on doit recharger avec le bon mode
     const serverMode = props.currentMode || props.requestedMode;
     const clientMode = currentMode.value;
-    
+
     console.log('🔍 Vérification au montage:', { serverMode, clientMode });
-    
+
     if (serverMode && clientMode && serverMode !== clientMode) {
         console.log('🔄 Rechargement nécessaire avec le mode client:', clientMode);
         loadConversationsForMode(clientMode);
@@ -469,7 +473,7 @@ onMounted(async () => {
             console.log('🔧 Echo options:', window.Echo.options);
 
             // Pour Reverb, vérifier la connexion différemment
-            
+
             return;
         }
 
@@ -495,7 +499,7 @@ const isLoadingConversations = ref(false); // Variable réactive pour l'état de
 // Utiliser les conversations des props
 const conversations = computed(() => {
     const convs = props.conversations || [];
-    
+
     // Trier les conversations par date de dernier message (plus récent en premier)
     return [...convs].sort((a, b) => {
         const dateA = new Date(a.last_message_at || a.created_at);
@@ -512,21 +516,21 @@ const hasMultipleRoles = computed(() => {
 // Fonction pour changer de mode
 const switchMode = (mode) => {
     if (mode === currentMode.value || isLoadingConversations.value) {
-        console.log('⏹️ Switch ignoré:', { 
-            mode, 
-            currentMode: currentMode.value, 
-            isLoading: isLoadingConversations.value 
+        console.log('⏹️ Switch ignoré:', {
+            mode,
+            currentMode: currentMode.value,
+            isLoading: isLoadingConversations.value,
         });
         return;
     }
 
     console.log('🔄 Switch mode vers:', mode, 'depuis:', currentMode.value);
-    
+
     // Mettre à jour le localStorage ET la valeur réactive
     setMode(mode);
-    
+
     console.log('✅ Mode mis à jour vers:', currentMode.value);
-    
+
     // Utiliser la nouvelle fonction sécurisée
     loadConversationsForMode(mode);
 };
@@ -543,12 +547,12 @@ function selectConversation(conversation) {
             currentMode: currentMode.value,
             hasParentRole: props.hasParentRole,
             viewedAt: conversation.application?.viewed_at,
-            conversationType: conversation.type
+            conversationType: conversation.type,
         });
-        
+
         // Vérifier que l'utilisateur a bien le rôle parent
         if (!props.hasParentRole) {
-            console.warn('⚠️ Utilisateur n\'a pas le rôle parent, marquage annulé');
+            console.warn("⚠️ Utilisateur n'a pas le rôle parent, marquage annulé");
             return;
         }
 
@@ -575,7 +579,7 @@ function selectConversation(conversation) {
                 },
                 onError: (errors) => {
                     console.error('❌ Erreur marquage comme vue:', errors);
-                    
+
                     // Gestion spécifique des erreurs
                     if (errors.message?.includes('405')) {
                         console.warn('⚠️ Méthode non autorisée - problème de configuration nginx');
@@ -745,7 +749,7 @@ function submitCounterOffer(applicationId, counterRate, counterMessage = null) {
             only: ['conversations', 'selectedConversation'],
             onSuccess: (response) => {
                 console.log('✅ Contre-offre envoyée avec succès:', response);
-                
+
                 // Mettre à jour la candidature locale avec les données du serveur
                 if (selectedConversation.value && selectedConversation.value.application && response.props?.application) {
                     Object.assign(selectedConversation.value.application, response.props.application);
@@ -755,13 +759,13 @@ function submitCounterOffer(applicationId, counterRate, counterMessage = null) {
                     selectedConversation.value.application.counter_rate = counterRate;
                     selectedConversation.value.application.counter_message = counterMessage;
                 }
-                
+
                 // Afficher un message de succès
                 window.toast?.success('Contre-offre envoyée !');
             },
             onError: (errors) => {
                 console.error('❌ Erreur contre-offre:', errors);
-                window.toast?.error('Erreur lors de l\'envoi de la contre-offre');
+                window.toast?.error("Erreur lors de l'envoi de la contre-offre");
             },
         },
     );
@@ -780,11 +784,11 @@ function respondToCounterOffer(applicationId, accept, finalRate = null) {
             only: ['conversations', 'selectedConversation'],
             onSuccess: (response) => {
                 console.log('✅ Réponse contre-offre envoyée avec succès:', response);
-                
+
                 // Mettre à jour la candidature locale avec les données du serveur
                 if (selectedConversation.value && selectedConversation.value.application && response.props?.application) {
                     Object.assign(selectedConversation.value.application, response.props.application);
-                    
+
                     if (accept) {
                         window.toast?.success('Contre-offre acceptée !');
                     } else {
@@ -843,7 +847,7 @@ function sendMessage(message) {
 // 🚀 AFFICHAGE OPTIMISTE - Message affiché immédiatement
 function onMessageSentOptimistic(message) {
     console.log('🚀 Affichage optimiste du message:', message);
-    
+
     // Ajouter immédiatement le message optimiste
     if (chatMessagesRef.value) {
         chatMessagesRef.value.addMessageLocally(message);
@@ -852,13 +856,13 @@ function onMessageSentOptimistic(message) {
     // Mettre à jour la sidebar immédiatement
     if (selectedConversation.value) {
         const newTimestamp = new Date().toISOString();
-        
+
         selectedConversation.value.last_message = message.message;
         selectedConversation.value.last_message_at = newTimestamp;
         selectedConversation.value.last_message_by = message.sender_id;
 
         // Mettre à jour aussi la conversation dans la liste des props
-        const conversationInList = props.conversations.find(c => c.id === selectedConversation.value.id);
+        const conversationInList = props.conversations.find((c) => c.id === selectedConversation.value.id);
         if (conversationInList) {
             conversationInList.last_message = message.message;
             conversationInList.last_message_at = newTimestamp;
@@ -872,7 +876,7 @@ function onMessageSentOptimistic(message) {
 // ✅ CONFIRMATION - Remplacer le message temporaire par le vrai
 function onMessageConfirmed({ tempId, realMessage }) {
     console.log('✅ Message confirmé:', { tempId, realMessage });
-    
+
     if (chatMessagesRef.value) {
         chatMessagesRef.value.confirmMessage(tempId, realMessage);
     }
@@ -881,7 +885,7 @@ function onMessageConfirmed({ tempId, realMessage }) {
 // ❌ ÉCHEC - Marquer le message comme échoué
 function onMessageFailed({ tempId, error }) {
     console.error('❌ Message échoué:', { tempId, error });
-    
+
     if (chatMessagesRef.value) {
         chatMessagesRef.value.markMessageAsFailed(tempId, error);
     }
@@ -889,7 +893,7 @@ function onMessageFailed({ tempId, error }) {
 
 function onMessageSent(message) {
     console.log('⚡ onMessageSent (legacy) appelé avec message:', message);
-    
+
     // Cette fonction est maintenant utilisée comme fallback
     // La logique principale est dans onMessageSentOptimistic
     if (chatMessagesRef.value) {
@@ -899,13 +903,13 @@ function onMessageSent(message) {
     // Mettre à jour le dernier message dans la sidebar
     if (selectedConversation.value) {
         const messageTimestamp = message.created_at || new Date().toISOString();
-        
+
         selectedConversation.value.last_message = message.message;
         selectedConversation.value.last_message_at = messageTimestamp;
         selectedConversation.value.last_message_by = message.sender_id;
 
         // Mettre à jour aussi la conversation dans la liste des props
-        const conversationInList = props.conversations.find(c => c.id === selectedConversation.value.id);
+        const conversationInList = props.conversations.find((c) => c.id === selectedConversation.value.id);
         if (conversationInList) {
             conversationInList.last_message = message.message;
             conversationInList.last_message_at = messageTimestamp;
@@ -947,34 +951,38 @@ function loadConversationsForMode(mode) {
         console.log('⏳ Chargement déjà en cours, ignorer');
         return;
     }
-    
+
     console.log('🔄 Chargement conversations pour mode:', mode);
     console.log('🌐 URL qui sera appelée:', route('messaging.index') + '?mode=' + mode);
-    
+
     isLoadingConversations.value = true;
-    
+
     // Réinitialiser la conversation sélectionnée
     selectedConversation.value = null;
-    
-    router.get(route('messaging.index'), { mode: mode }, {
-        preserveState: false,
-        preserveScroll: true,
-        only: ['conversations', 'currentMode'],
-        onSuccess: (page) => {
-            console.log('✅ Requête réussie, nouvelles props:', {
-                conversations: page.props.conversations?.length || 0,
-                currentMode: page.props.currentMode,
-                requestedMode: page.props.requestedMode
-            });
+
+    router.get(
+        route('messaging.index'),
+        { mode: mode },
+        {
+            preserveState: false,
+            preserveScroll: true,
+            only: ['conversations', 'currentMode'],
+            onSuccess: (page) => {
+                console.log('✅ Requête réussie, nouvelles props:', {
+                    conversations: page.props.conversations?.length || 0,
+                    currentMode: page.props.currentMode,
+                    requestedMode: page.props.requestedMode,
+                });
+            },
+            onError: (errors) => {
+                console.error('❌ Erreur lors du chargement:', errors);
+            },
+            onFinish: () => {
+                isLoadingConversations.value = false;
+                console.log('🏁 Chargement terminé, mode actuel:', currentMode.value);
+            },
         },
-        onError: (errors) => {
-            console.error('❌ Erreur lors du chargement:', errors);
-        },
-        onFinish: () => {
-            isLoadingConversations.value = false;
-            console.log('🏁 Chargement terminé, mode actuel:', currentMode.value);
-        }
-    });
+    );
 }
 
 // Le changement de mode se fait uniquement via switchMode() maintenant

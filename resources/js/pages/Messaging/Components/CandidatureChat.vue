@@ -7,7 +7,7 @@
                     Candidature - {{ application.status === 'pending' ? 'En attente' : 'En négociation' }}
                 </div>
                 <div :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-600">
-                    Tarif proposé : <span class="font-semibold text-primary">{{ application.proposed_rate }}€/h</span>
+                    Tarif proposé : <span class="text-primary font-semibold">{{ application.proposed_rate }}€/h</span>
                     <span v-if="application.counter_rate" class="ml-2">
                         → <span class="font-semibold text-blue-600">{{ application.counter_rate }}€/h</span>
                     </span>
@@ -34,7 +34,7 @@
                         v-if="!showCounterOffer"
                         @click="showCounterOffer = true"
                         :class="mobile ? 'flex-1' : ''"
-                        class="hover:bg-secondary flex items-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors justify-center"
+                        class="hover:bg-secondary flex items-center justify-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors"
                         title="Proposer un tarif différent de celui proposé par le babysitter"
                     >
                         <Euro class="h-4 w-4" />
@@ -45,7 +45,7 @@
                     <button
                         @click="handleDecline"
                         :class="mobile ? 'flex-1' : ''"
-                        class="hover:bg-primary-opacity flex items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors justify-center"
+                        class="hover:bg-primary-opacity flex items-center justify-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors"
                         title="Refuser définitivement cette candidature"
                     >
                         <X class="h-4 w-4" />
@@ -90,7 +90,10 @@
         </div>
 
         <!-- Formulaire contre-offre parent UNIQUEMENT (selon le mode actuel) -->
-        <div v-if="showCounterOffer && currentMode === 'parent' && application.status !== 'declined' && application.status !== 'expired'" class="bg-secondary rounded-lg border border-orange-200 p-4">
+        <div
+            v-if="showCounterOffer && currentMode === 'parent' && application.status !== 'declined' && application.status !== 'expired'"
+            class="bg-secondary rounded-lg border border-orange-200 p-4"
+        >
             <h4 :class="mobile ? 'text-sm' : ''" class="mb-3 font-medium text-gray-900">Faire une contre-proposition :</h4>
             <div :class="mobile ? 'space-y-3' : 'flex items-center gap-3'">
                 <div class="relative" :class="mobile ? 'w-full' : ''">
@@ -111,15 +114,15 @@
                         @click="submitCounterOffer"
                         :disabled="!counterOfferRate"
                         :class="mobile ? 'flex-1' : ''"
-                        class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
+                        class="bg-primary rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-700 disabled:opacity-50"
                         :title="counterOfferRate ? `Envoyer une contre-offre de ${counterOfferRate}€/h` : 'Veuillez saisir un tarif'"
                     >
                         Proposer
                     </button>
-                    <button 
-                        @click="showCounterOffer = false" 
+                    <button
+                        @click="showCounterOffer = false"
                         :class="mobile ? 'flex-1' : ''"
-                        class="px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800 rounded-lg border border-gray-300"
+                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800"
                         title="Annuler la contre-offre et revenir aux actions principales"
                     >
                         Annuler
@@ -157,11 +160,11 @@
 </template>
 
 <script setup>
+import { useUserMode } from '@/composables/useUserMode';
 import { router } from '@inertiajs/vue3';
 import { Check, Euro, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
-import { useUserMode } from '@/composables/useUserMode';
 import ReservationModal from './ReservationModal.vue';
 
 const props = defineProps({
@@ -169,14 +172,15 @@ const props = defineProps({
     userRole: String,
     mobile: {
         type: Boolean,
-        default: false
-    }
+        default: false,
+    },
 });
 
 const emit = defineEmits(['reserve', 'decline', 'counter-offer', 'respond-counter', 'babysitter-counter', 'cancel-application']);
 
 // Utiliser le mode actuel depuis localStorage
 const { currentMode } = useUserMode();
+const { showError } = useToast();
 
 // État local
 const showCounterOffer = ref(false);
@@ -190,26 +194,30 @@ const otherUser = computed(() => {
 
 const currentRate = computed(() => {
     // Afficher le tarif de contre-offre seulement si elle est acceptée
-    return (props.application.status === 'accepted' && props.application.counter_rate)
+    return props.application.status === 'accepted' && props.application.counter_rate
         ? props.application.counter_rate
         : props.application.proposed_rate;
 });
 
 const canCancelApplication = computed(() => {
     // Permettre l'annulation tant que :
-    // - Le statut n'est pas 'declined' ou 'expired'
+    // - Le statut n'est pas 'declined', 'expired' ou 'cancelled'
     // - Et que le paiement n'est pas encore effectué (pas de status 'payment_required' ou 'active')
     const allowedStatuses = ['pending', 'counter_offered', 'accepted'];
-    return allowedStatuses.includes(props.application.status);
+
+    // Vérifier aussi que la conversation n'a pas un statut 'active' (paiement effectué)
+    const conversationStatus = props.application.conversation?.status;
+    const isPaid = conversationStatus === 'active';
+
+    return allowedStatuses.includes(props.application.status) && !isPaid;
 });
 
 // Méthodes
 function handleReserve() {
     // Utiliser le tarif initial si la contre-offre n'est pas encore acceptée
-    const rate = (props.application.status === 'accepted' && props.application.counter_rate) 
-        ? props.application.counter_rate 
-        : props.application.proposed_rate;
-    
+    const rate =
+        props.application.status === 'accepted' && props.application.counter_rate ? props.application.counter_rate : props.application.proposed_rate;
+
     if (confirm(`Réserver cette candidature au tarif de ${rate}€/h ?`)) {
         emit('reserve', props.application.id, rate);
     }
@@ -231,7 +239,25 @@ function submitCounterOffer() {
 
 function handleCancelApplication() {
     if (confirm('Êtes-vous sûr de vouloir annuler votre candidature ? Cette action est irréversible.')) {
-        emit('cancel-application', props.application.id);
+        router.post(
+            route('applications.cancel', props.application.id),
+            {},
+            {
+                preserveState: true,
+                onSuccess: (response) => {
+                    console.log('✅ Candidature annulée avec succès');
+
+                    // Rediriger vers la messagerie pour rafraîchir la liste
+                    router.get(route('messaging.index'));
+                },
+                onError: (errors) => {
+                    console.error('❌ Erreur annulation candidature:', errors);
+
+                    // Afficher l'erreur avec le wrapper de toast
+                    showError('❌ Erreur', errors.error || "Erreur lors de l'annulation de la candidature");
+                },
+            },
+        );
     }
 }
 
@@ -254,7 +280,7 @@ function handleReserveDirectly() {
         // Rediriger directement vers la page de paiement avec l'ID de l'application
         router.visit(url);
     } catch (error) {
-        console.error('❌ Erreur lors de la génération de l\'URL:', error);
+        console.error("❌ Erreur lors de la génération de l'URL:", error);
     }
 }
 
@@ -279,7 +305,11 @@ function formatTime(dateString) {
 }
 
 function getCancelTooltipText() {
-    if (props.application.status === 'accepted') {
+    const conversationStatus = props.application.conversation?.status;
+
+    if (conversationStatus === 'active') {
+        return "Impossible d'annuler : le paiement a été effectué";
+    } else if (props.application.status === 'accepted') {
         return 'Annuler ma candidature acceptée (avant paiement du parent)';
     } else if (props.application.status === 'counter_offered') {
         return 'Annuler ma candidature en cours de négociation';

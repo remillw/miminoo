@@ -64,7 +64,10 @@ class MessagingController extends Controller
             }
             
             $conversations = $conversationsQuery
-                ->where('status', '!=', 'archived') // Exclure les conversations archivées
+                ->where('status', '!=', 'archived') // Excluer les conversations archivées
+                ->whereHas('application', function($query) {
+                    $query->whereNotIn('status', ['cancelled', 'archived']);
+                })
                 ->orderByDesc('last_message_at')
                 ->orderByDesc('updated_at')
                 ->orderByDesc('created_at')
@@ -469,6 +472,40 @@ class MessagingController extends Controller
         return back()->with([
             'success' => true,
             'message' => 'Votre contre-proposition a été envoyée au parent.'
+        ]);
+    }
+
+    /**
+     * Annuler une candidature (côté babysitter)
+     */
+    public function cancelApplication(AdApplication $application)
+    {
+        // Vérifier que l'utilisateur peut annuler cette candidature
+        if ($application->babysitter_id !== Auth::id()) {
+            abort(403);
+        }
+
+        // Vérifier que la candidature peut être annulée
+        $allowedStatuses = ['pending', 'counter_offered', 'accepted'];
+        if (!in_array($application->status, $allowedStatuses)) {
+            return back()->withErrors(['error' => 'Cette candidature ne peut plus être annulée']);
+        }
+
+        // Vérifier qu'il n'y a pas de paiement en cours
+        if ($application->conversation && $application->conversation->status === 'active') {
+            return back()->withErrors(['error' => 'Cette candidature ne peut plus être annulée car un paiement a été effectué']);
+        }
+
+        $application->update(['status' => 'cancelled']);
+        
+        // Archiver la conversation
+        if ($application->conversation) {
+            $application->conversation->update(['status' => 'archived']);
+        }
+
+        return back()->with([
+            'success' => true,
+            'message' => 'Votre candidature a été annulée avec succès.'
         ]);
     }
 

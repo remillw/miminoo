@@ -97,6 +97,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('candidatures/{application}/counter-offer', [MessagingController::class, 'counterOffer'])->name('applications.counter-offer');
     Route::post('candidatures/{application}/babysitter-counter', [MessagingController::class, 'babysitterCounterOffer'])->name('applications.babysitter-counter');
     Route::post('candidatures/{application}/respond-counter', [MessagingController::class, 'respondToCounterOffer'])->name('applications.respond-counter');
+    Route::post('candidatures/{application}/cancel', [MessagingController::class, 'cancelApplication'])->name('applications.cancel');
     
     // Routes pour le chat temps réel
     Route::post('conversations/{conversation}/messages', [MessagingController::class, 'sendMessage'])->name('conversations.send-message');
