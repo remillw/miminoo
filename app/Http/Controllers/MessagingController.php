@@ -276,13 +276,9 @@ class MessagingController extends Controller
                 'application_id' => $application->id,
                 'viewed_at' => $application->viewed_at
             ]);
-            return response()->json([
+            return back()->with([
                 'success' => true, 
-                'message' => 'Déjà marquée comme vue',
-                'application_id' => $application->id,
-                'viewed_at' => $application->viewed_at
-            ], 200, [
-                'Content-Type' => 'application/json'
+                'message' => 'Déjà marquée comme vue'
             ]);
         }
 
@@ -295,13 +291,9 @@ class MessagingController extends Controller
             'viewed_at' => $application->fresh()->viewed_at
         ]);
 
-        return response()->json([
+        return back()->with([
             'success' => true,
-            'message' => 'Candidature marquée comme vue',
-            'application_id' => $application->id,
-            'viewed_at' => $application->fresh()->viewed_at
-        ], 200, [
-            'Content-Type' => 'application/json'
+            'message' => 'Candidature marquée comme vue'
         ]);
     }
 
@@ -321,11 +313,9 @@ class MessagingController extends Controller
 
         $conversation = $application->reserve($validated['final_rate'] ?? null);
 
-        return response()->json([
+        return back()->with([
             'success' => true,
-            'message' => 'Candidature réservée ! Procédez au paiement pour confirmer.',
-            'conversation_id' => $conversation->id,
-            'payment_required' => true
+            'message' => 'Candidature réservée ! Procédez au paiement pour confirmer.'
         ]);
     }
 
@@ -341,7 +331,7 @@ class MessagingController extends Controller
 
         $application->decline();
 
-        return response()->json([
+        return back()->with([
             'success' => true,
             'message' => 'Candidature refusée. La conversation a été archivée.'
         ]);
@@ -373,7 +363,7 @@ class MessagingController extends Controller
                  // Récupérer la conversation (elle existe normalement déjà)
          $conversation = $application->conversation;
 
-        return response()->json([
+        return back()->with([
             'success' => true,
             'message' => 'Contre-offre envoyée ! La babysitter peut accepter ou continuer à négocier.',
             'application' => [
@@ -382,10 +372,6 @@ class MessagingController extends Controller
                 'counter_rate' => $application->counter_rate,
                 'counter_message' => $application->counter_message,
                 'proposed_rate' => $application->proposed_rate
-            ],
-            'conversation' => [
-                'id' => $conversation->id,
-                'status' => $conversation->status
             ]
         ]);
     }
@@ -401,7 +387,7 @@ class MessagingController extends Controller
         }
 
         if ($application->status !== 'counter_offered') {
-            return response()->json(['error' => 'Aucune contre-offre en attente'], 400);
+            return back()->withErrors(['error' => 'Aucune contre-offre en attente']);
         }
 
         $validated = $request->validate([
@@ -879,7 +865,7 @@ class MessagingController extends Controller
                 'archived_by' => $user->id
             ]);
 
-            return response()->json([
+            return back()->with([
                 'success' => true,
                 'message' => 'Conversation archivée avec succès'
             ]);
@@ -893,10 +879,9 @@ class MessagingController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return response()->json([
-                'success' => false,
+            return back()->withErrors([
                 'error' => 'Erreur lors de l\'archivage de la conversation'
-            ], 500);
+            ]);
         }
     }
 } 

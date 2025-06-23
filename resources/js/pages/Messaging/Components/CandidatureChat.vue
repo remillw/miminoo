@@ -80,6 +80,13 @@
                     </button>
                 </div>
             </template>
+
+            <!-- Statut accepté pour babysitter -->
+            <template v-if="currentMode === 'babysitter' && application.status === 'accepted'">
+                <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+                    ✅ Candidature acceptée au tarif de <span class="font-semibold">{{ currentRate }}€/h</span>
+                </div>
+            </template>
         </div>
 
         <!-- Formulaire contre-offre parent UNIQUEMENT (selon le mode actuel) -->
@@ -127,11 +134,12 @@
         </div>
 
         <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
-        <div v-if="currentMode === 'babysitter' && application.status === 'pending'" class="border-t border-gray-200 pt-4">
+        <div v-if="currentMode === 'babysitter' && canCancelApplication" class="border-t border-gray-200 pt-4">
             <button
                 @click="handleCancelApplication"
                 :class="mobile ? 'w-full justify-center' : ''"
                 class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                :title="getCancelTooltipText()"
             >
                 <X class="h-4 w-4" />
                 Annuler ma candidature
@@ -185,6 +193,14 @@ const currentRate = computed(() => {
     return (props.application.status === 'accepted' && props.application.counter_rate)
         ? props.application.counter_rate
         : props.application.proposed_rate;
+});
+
+const canCancelApplication = computed(() => {
+    // Permettre l'annulation tant que :
+    // - Le statut n'est pas 'declined' ou 'expired'
+    // - Et que le paiement n'est pas encore effectué (pas de status 'payment_required' ou 'active')
+    const allowedStatuses = ['pending', 'counter_offered', 'accepted'];
+    return allowedStatuses.includes(props.application.status);
 });
 
 // Méthodes
@@ -259,6 +275,16 @@ function formatTime(dateString) {
         });
     } catch (err) {
         return 'Date inconnue';
+    }
+}
+
+function getCancelTooltipText() {
+    if (props.application.status === 'accepted') {
+        return 'Annuler ma candidature acceptée (avant paiement du parent)';
+    } else if (props.application.status === 'counter_offered') {
+        return 'Annuler ma candidature en cours de négociation';
+    } else {
+        return 'Annuler ma candidature en attente de réponse';
     }
 }
 </script>
