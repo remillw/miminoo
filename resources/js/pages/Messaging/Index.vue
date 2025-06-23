@@ -172,7 +172,7 @@
                             :disabled="selectedConversation.status === 'payment_required' || selectedConversation.status === 'archived'"
                             :placeholder="getInputPlaceholder()"
                             :conversation-id="selectedConversation.id"
-                            :current-user-id="page.props.auth.user.id"
+                            :current-user-id="page?.props?.auth?.user?.id"
                         />
                     </div>
                 </div>
@@ -363,7 +363,7 @@
                         :disabled="selectedConversation.status === 'payment_required' || selectedConversation.status === 'archived'"
                         :placeholder="getInputPlaceholder()"
                         :conversation-id="selectedConversation.id"
-                        :current-user-id="page.props.auth.user.id"
+                        :current-user-id="page?.props?.auth?.user?.id"
                         :mobile="true"
                     />
                 </div>

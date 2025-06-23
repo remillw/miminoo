@@ -198,7 +198,7 @@ const typingTimeout = ref<any>(null);
 const currentChannel = ref<any>(null);
 
 // Utilisateur actuel
-const currentUser = computed(() => (page.props.auth as any)?.user);
+const currentUser = computed(() => (page?.props?.auth as any)?.user);
 
 // Initialisation au montage
 onMounted(async () => {
