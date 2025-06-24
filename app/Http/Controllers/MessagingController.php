@@ -117,6 +117,12 @@ class MessagingController extends Controller
                         'type' => $conversation->status === 'pending' ? 'application' : 'conversation',
                         'ad_title' => $conversation->ad->title ?? 'Annonce supprimée',
                         'ad_date' => $conversation->ad ? $conversation->ad->date_start->format('d/m/Y') : 'Date inconnue',
+                        'ad' => $conversation->ad ? [
+                            'id' => $conversation->ad->id,
+                            'title' => $conversation->ad->title,
+                            'date_start' => $conversation->ad->date_start,
+                            'date_end' => $conversation->ad->date_end,
+                        ] : null,
                         'other_user' => [
                             'id' => $otherUser->id,
                             'name' => $otherUser->firstname . ' ' . substr($otherUser->lastname, 0, 1) . '.',

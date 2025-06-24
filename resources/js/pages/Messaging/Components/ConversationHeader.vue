@@ -133,11 +133,9 @@ const canCompleteService = computed(() => {
 
 // Méthodes
 function getProfileUrl() {
-    console.log('🔗 Ouverture profil:', props.conversation?.other_user);
-    
     if (!props.conversation?.other_user?.id) {
         console.error('❌ Pas d\'other_user.id disponible');
-        return;
+        return '#';
     }
     
     try {
@@ -152,7 +150,6 @@ function getProfileUrl() {
             url = route('parent.show', { slug });
         }
         
-        console.log('🚀 Ouverture URL profil:', url);
         return url;
     } catch (error) {
         console.error('❌ Erreur ouverture profil:', error);
@@ -161,88 +158,81 @@ function getProfileUrl() {
 }
 
 function getAdUrl() {
-    console.log('🔍 Debug getAdUrl:', {
-        conversation: props.conversation,
-        ad: props.conversation?.ad
-    });
-    
-    if (!props.conversation?.ad) {
-        console.error('❌ Pas d\'ad dans la conversation');
+    if (!props.conversation?.ad?.id) {
+        console.error('❌ Pas d\'ad.id disponible');
         return '#';
     }
     
     const slug = createAdSlug(props.conversation.ad);
-    console.log('🔗 Slug annonce généré:', slug);
     return `/annonce/${slug}`;
 }
 
 function createBabysitterSlug(user) {
-    console.log('🏷️ Creating babysitter slug for:', user);
-    
     if (!user || !user.id) {
         console.error('❌ User invalide pour babysitter slug:', user);
         return 'babysitter-inconnu';
     }
     
-    // Créer un slug pour babysitter : prenom-nom-id
+    // Reproduire exactement l'algorithme PHP : strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->firstname))
     const firstName = user.firstname ? 
-        user.firstname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'babysitter';
+        user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'babysitter';
     const lastName = user.lastname ? 
-        user.lastname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : '';
+        user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
     
+    // trim($firstName . '-' . $lastName . '-' . $user->id, '-')
     const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
+    // preg_replace('/-+/', '-', $slug)
     const finalSlug = slug.replace(/-+/g, '-');
     
-    console.log('✅ Babysitter slug final:', finalSlug);
     return finalSlug;
 }
 
 function createParentSlug(user) {
-    console.log('🏷️ Creating parent slug for:', user);
-    
     if (!user || !user.id) {
         console.error('❌ User invalide pour parent slug:', user);
         return 'parent-inconnu';
     }
     
-    // Créer un slug pour parent : prenom-nom-id
+    // Reproduire exactement l'algorithme PHP : strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->firstname))
     const firstName = user.firstname ? 
-        user.firstname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'parent';
+        user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'parent';
     const lastName = user.lastname ? 
-        user.lastname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : '';
+        user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
     
+    // trim($firstName . '-' . $lastName . '-' . $user->id, '-')
     const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
+    // preg_replace('/-+/', '-', $slug)
     const finalSlug = slug.replace(/-+/g, '-');
     
-    console.log('✅ Parent slug final:', finalSlug);
     return finalSlug;
 }
 
 function createAdSlug(ad) {
-    console.log('🏷️ Creating ad slug for:', ad);
-    
     if (!ad || !ad.id) {
         console.error('❌ Ad invalide pour slug:', ad);
         return 'annonce-inconnue';
     }
 
-    // Créer un slug pour annonce : date-titre-id
+    // Reproduire exactement l'algorithme PHP
     let date = 'date-inconnue';
     if (ad.date_start) {
         try {
+            // PHP: $ad->date_start->format('Y-m-d');
             date = new Date(ad.date_start).toISOString().split('T')[0]; // YYYY-MM-DD
         } catch (e) {
             console.error('❌ Erreur parsing date:', ad.date_start);
         }
     }
     
+    // PHP: strtolower(preg_replace('/[^a-z0-9]/i', '-', $ad->title))
     const title = ad.title ? 
-        ad.title.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'annonce';
+        ad.title.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'annonce';
 
+    // PHP: trim($date . '-' . $title . '-' . $ad->id, '-')
     const slug = (date + '-' + title + '-' + ad.id).replace(/^-+|-+$/g, '');
+    // PHP: preg_replace('/-+/', '-', $slug)
     const finalSlug = slug.replace(/-+/g, '-');
     
-    console.log('✅ Ad slug final:', finalSlug);
     return finalSlug;
 }
 
@@ -436,8 +426,6 @@ function handleCancellationSuccess(reservation) {
 }
 
 function openProfileUrl() {
-    console.log('🔗 Ouverture profil:', props.conversation?.other_user);
-    
     if (!props.conversation?.other_user?.id) {
         console.error('❌ Pas d\'other_user.id disponible');
         return;
@@ -455,7 +443,6 @@ function openProfileUrl() {
             url = route('parent.show', { slug });
         }
         
-        console.log('🚀 Ouverture URL profil:', url);
         window.open(url, '_blank');
     } catch (error) {
         console.error('❌ Erreur ouverture profil:', error);
@@ -463,8 +450,6 @@ function openProfileUrl() {
 }
 
 function openAdUrl() {
-    console.log('🔗 Ouverture annonce:', props.conversation?.ad);
-    
     if (!props.conversation?.ad?.id) {
         console.error('❌ Pas d\'ad.id disponible');
         return;
@@ -474,7 +459,6 @@ function openAdUrl() {
         const slug = createAdSlug(props.conversation.ad);
         const url = route('announcements.show', { slug });
         
-        console.log('🚀 Ouverture URL annonce:', url);
         window.open(url, '_blank');
     } catch (error) {
         console.error('❌ Erreur ouverture annonce:', error);
