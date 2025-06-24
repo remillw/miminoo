@@ -131,8 +131,8 @@
             </div>
         </div>
 
-        <!-- Message de motivation -->
-        <div v-if="application.motivation_note" class="rounded-lg bg-gray-50 p-3">
+        <!-- Message de motivation (masqué pour les babysitters) -->
+        <div v-if="application.motivation_note && currentMode === 'parent'" class="rounded-lg bg-gray-50 p-3">
             <p :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-700 italic">"{{ application.motivation_note }}"</p>
         </div>
 

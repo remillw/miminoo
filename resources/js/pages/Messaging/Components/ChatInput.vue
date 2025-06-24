@@ -1,5 +1,5 @@
 <template>
-    <div class="flex items-end" :class="mobile ? 'gap-2' : 'gap-3'">
+    <div class="flex items-center" :class="mobile ? 'gap-2' : 'gap-3'">
         <!-- Zone de saisie -->
         <div class="relative flex-1">
             <textarea

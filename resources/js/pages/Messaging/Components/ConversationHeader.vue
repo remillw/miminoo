@@ -22,26 +22,24 @@
             <!-- Actions -->
             <div class="flex items-center gap-2">
                 <!-- Lien vers profil -->
-                <a
-                    :href="getProfileUrl()"
-                    target="_blank"
+                <button
+                    @click="openProfileUrl()"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
                     :title="userRole === 'parent' ? 'Voir le profil de la babysitter' : 'Voir le profil du parent'"
                 >
                     <User class="h-4 w-4" />
                     Profil
-                </a>
+                </button>
 
                 <!-- Lien vers annonce -->
-                <a
-                    :href="getAdUrl()"
-                    target="_blank"
+                <button
+                    @click="openAdUrl()"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
                     :title="userRole === 'parent' ? 'Voir votre annonce' : 'Voir l\'annonce du parent'"
                 >
                     <FileText class="h-4 w-4" />
                     Annonce
-                </a>
+                </button>
 
                 <!-- Statut de réservation -->
                 <div v-if="reservation" class="flex items-center gap-2">
@@ -151,16 +149,24 @@ function getAdUrl() {
 
 function createBabysitterSlug(user) {
     // Créer un slug pour babysitter : prenom-nom-id
-    const firstName = user.firstname?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'babysitter';
-    const lastName = user.lastname?.toLowerCase().replace(/[^a-z0-9]/g, '-') || '';
-    return `${firstName}-${lastName}-${user.id}`.replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const firstName = user.firstname ? 
+        user.firstname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'babysitter';
+    const lastName = user.lastname ? 
+        user.lastname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : '';
+    
+    const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
+    return slug.replace(/-+/g, '-');
 }
 
 function createParentSlug(user) {
     // Créer un slug pour parent : prenom-nom-id
-    const firstName = user.firstname?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'parent';
-    const lastName = user.lastname?.toLowerCase().replace(/[^a-z0-9]/g, '-') || '';
-    return `${firstName}-${lastName}-${user.id}`.replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const firstName = user.firstname ? 
+        user.firstname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'parent';
+    const lastName = user.lastname ? 
+        user.lastname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : '';
+    
+    const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
+    return slug.replace(/-+/g, '-');
 }
 
 function createAdSlug(ad) {
@@ -168,18 +174,11 @@ function createAdSlug(ad) {
 
     // Créer un slug pour annonce : date-titre-id
     const date = new Date(ad.date_start).toISOString().split('T')[0]; // YYYY-MM-DD
-    const title =
-        ad.title
-            ?.toLowerCase()
-            .replace(/[àáâãäå]/g, 'a')
-            .replace(/[èéêë]/g, 'e')
-            .replace(/[ìíîï]/g, 'i')
-            .replace(/[òóôõö]/g, 'o')
-            .replace(/[ùúûü]/g, 'u')
-            .replace(/[ç]/g, 'c')
-            .replace(/[^a-z0-9]/g, '-') || 'annonce';
+    const title = ad.title ? 
+        ad.title.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'annonce';
 
-    return `${date}-${title}-${ad.id}`.replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const slug = (date + '-' + title + '-' + ad.id).replace(/^-+|-+$/g, '');
+    return slug.replace(/-+/g, '-');
 }
 
 function getConversationStatus() {
@@ -369,5 +368,13 @@ async function completeService() {
 function handleCancellationSuccess(reservation) {
     showCancelModal.value = false;
     emit('reservation-updated', reservation);
+}
+
+function openProfileUrl() {
+    window.open(getProfileUrl(), '_blank');
+}
+
+function openAdUrl() {
+    window.open(getAdUrl(), '_blank');
 }
 </script>
