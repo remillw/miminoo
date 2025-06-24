@@ -137,26 +137,26 @@
         </div>
 
         <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
-        <div v-if="currentMode === 'babysitter' && canCancelApplication" class="flex justify-end pt-2">
+        <div v-if="currentMode === 'babysitter' && canCancelApplication" class="mt-4 flex justify-center">
             <button
                 @click="showBabysitterCancelModal = true"
-                class="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-red-600"
+                class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 hover:border-red-300"
                 :title="getCancelTooltipText()"
             >
-                <X class="h-3 w-3" />
-                Annuler
+                <X class="h-4 w-4" />
+                Annuler ma candidature
             </button>
         </div>
 
         <!-- Actions supplémentaires pour parent (selon le mode actuel) -->
-        <div v-if="currentMode === 'parent' && canParentCancelReservation" class="flex justify-end pt-2">
+        <div v-if="currentMode === 'parent' && canParentCancelReservation" class="mt-4 flex justify-center">
             <button
                 @click="showParentCancelModal = true"
-                class="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-red-600"
+                class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 hover:border-red-300"
                 :title="getParentCancelTooltipText()"
             >
-                <X class="h-3 w-3" />
-                Annuler
+                <X class="h-4 w-4" />
+                Annuler la réservation
             </button>
         </div>
 

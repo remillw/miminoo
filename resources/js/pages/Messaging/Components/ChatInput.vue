@@ -1,5 +1,5 @@
 <template>
-    <div class="flex items-center" :class="mobile ? 'gap-2' : 'gap-3'">
+    <div class="flex items-end" :class="mobile ? 'gap-2' : 'gap-3'">
         <!-- Zone de saisie -->
         <div class="relative flex-1">
             <textarea
@@ -26,13 +26,13 @@
         </div>
 
         <!-- Boutons d'action -->
-        <div class="flex" :class="mobile ? 'gap-1' : 'gap-2'">
+        <div class="flex flex-shrink-0" :class="mobile ? 'gap-1' : 'gap-2'">
             <!-- Bouton envoi -->
             <button
                 @click="sendMessage"
                 :disabled="!canSend || isSending"
-                class="flex items-center gap-2 rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                :class="mobile ? 'p-2' : 'p-3'"
+                class="flex items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                :class="mobile ? 'h-8 w-8 min-h-[32px] min-w-[32px]' : 'h-10 w-10 min-h-[40px] min-w-[40px]'"
                 :title="isSending ? 'Envoi en cours...' : 'Envoyer le message'"
             >
                 <div v-if="isSending" class="animate-spin rounded-full border-b-2 border-white" :class="mobile ? 'h-3 w-3' : 'h-4 w-4'"></div>

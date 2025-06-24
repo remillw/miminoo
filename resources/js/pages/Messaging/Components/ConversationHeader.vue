@@ -133,21 +133,57 @@ const canCompleteService = computed(() => {
 
 // Méthodes
 function getProfileUrl() {
-    if (props.userRole === 'parent') {
-        // Lien vers profil babysitter
-        return `/babysitter/${createBabysitterSlug(props.conversation.other_user)}`;
-    } else {
-        // Lien vers profil parent
-        return `/parent/${createParentSlug(props.conversation.other_user)}`;
+    console.log('🔗 Ouverture profil:', props.conversation?.other_user);
+    
+    if (!props.conversation?.other_user?.id) {
+        console.error('❌ Pas d\'other_user.id disponible');
+        return;
+    }
+    
+    try {
+        let url;
+        if (props.userRole === 'parent') {
+            // Lien vers profil babysitter
+            const slug = createBabysitterSlug(props.conversation.other_user);
+            url = route('babysitter.show', { slug });
+        } else {
+            // Lien vers profil parent
+            const slug = createParentSlug(props.conversation.other_user);
+            url = route('parent.show', { slug });
+        }
+        
+        console.log('🚀 Ouverture URL profil:', url);
+        return url;
+    } catch (error) {
+        console.error('❌ Erreur ouverture profil:', error);
+        return '#';
     }
 }
 
 function getAdUrl() {
-    if (!props.conversation.ad) return '#';
-    return `/annonce/${createAdSlug(props.conversation.ad)}`;
+    console.log('🔍 Debug getAdUrl:', {
+        conversation: props.conversation,
+        ad: props.conversation?.ad
+    });
+    
+    if (!props.conversation?.ad) {
+        console.error('❌ Pas d\'ad dans la conversation');
+        return '#';
+    }
+    
+    const slug = createAdSlug(props.conversation.ad);
+    console.log('🔗 Slug annonce généré:', slug);
+    return `/annonce/${slug}`;
 }
 
 function createBabysitterSlug(user) {
+    console.log('🏷️ Creating babysitter slug for:', user);
+    
+    if (!user || !user.id) {
+        console.error('❌ User invalide pour babysitter slug:', user);
+        return 'babysitter-inconnu';
+    }
+    
     // Créer un slug pour babysitter : prenom-nom-id
     const firstName = user.firstname ? 
         user.firstname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'babysitter';
@@ -155,10 +191,20 @@ function createBabysitterSlug(user) {
         user.lastname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : '';
     
     const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
-    return slug.replace(/-+/g, '-');
+    const finalSlug = slug.replace(/-+/g, '-');
+    
+    console.log('✅ Babysitter slug final:', finalSlug);
+    return finalSlug;
 }
 
 function createParentSlug(user) {
+    console.log('🏷️ Creating parent slug for:', user);
+    
+    if (!user || !user.id) {
+        console.error('❌ User invalide pour parent slug:', user);
+        return 'parent-inconnu';
+    }
+    
     // Créer un slug pour parent : prenom-nom-id
     const firstName = user.firstname ? 
         user.firstname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'parent';
@@ -166,19 +212,38 @@ function createParentSlug(user) {
         user.lastname.toLowerCase().replace(/[^a-z0-9]/gi, '-') : '';
     
     const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
-    return slug.replace(/-+/g, '-');
+    const finalSlug = slug.replace(/-+/g, '-');
+    
+    console.log('✅ Parent slug final:', finalSlug);
+    return finalSlug;
 }
 
 function createAdSlug(ad) {
-    if (!ad) return '';
+    console.log('🏷️ Creating ad slug for:', ad);
+    
+    if (!ad || !ad.id) {
+        console.error('❌ Ad invalide pour slug:', ad);
+        return 'annonce-inconnue';
+    }
 
     // Créer un slug pour annonce : date-titre-id
-    const date = new Date(ad.date_start).toISOString().split('T')[0]; // YYYY-MM-DD
+    let date = 'date-inconnue';
+    if (ad.date_start) {
+        try {
+            date = new Date(ad.date_start).toISOString().split('T')[0]; // YYYY-MM-DD
+        } catch (e) {
+            console.error('❌ Erreur parsing date:', ad.date_start);
+        }
+    }
+    
     const title = ad.title ? 
         ad.title.toLowerCase().replace(/[^a-z0-9]/gi, '-') : 'annonce';
 
     const slug = (date + '-' + title + '-' + ad.id).replace(/^-+|-+$/g, '');
-    return slug.replace(/-+/g, '-');
+    const finalSlug = slug.replace(/-+/g, '-');
+    
+    console.log('✅ Ad slug final:', finalSlug);
+    return finalSlug;
 }
 
 function getConversationStatus() {
@@ -371,10 +436,48 @@ function handleCancellationSuccess(reservation) {
 }
 
 function openProfileUrl() {
-    window.open(getProfileUrl(), '_blank');
+    console.log('🔗 Ouverture profil:', props.conversation?.other_user);
+    
+    if (!props.conversation?.other_user?.id) {
+        console.error('❌ Pas d\'other_user.id disponible');
+        return;
+    }
+    
+    try {
+        let url;
+        if (props.userRole === 'parent') {
+            // Lien vers profil babysitter
+            const slug = createBabysitterSlug(props.conversation.other_user);
+            url = route('babysitter.show', { slug });
+        } else {
+            // Lien vers profil parent
+            const slug = createParentSlug(props.conversation.other_user);
+            url = route('parent.show', { slug });
+        }
+        
+        console.log('🚀 Ouverture URL profil:', url);
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('❌ Erreur ouverture profil:', error);
+    }
 }
 
 function openAdUrl() {
-    window.open(getAdUrl(), '_blank');
+    console.log('🔗 Ouverture annonce:', props.conversation?.ad);
+    
+    if (!props.conversation?.ad?.id) {
+        console.error('❌ Pas d\'ad.id disponible');
+        return;
+    }
+    
+    try {
+        const slug = createAdSlug(props.conversation.ad);
+        const url = route('announcements.show', { slug });
+        
+        console.log('🚀 Ouverture URL annonce:', url);
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('❌ Erreur ouverture annonce:', error);
+    }
 }
 </script>
