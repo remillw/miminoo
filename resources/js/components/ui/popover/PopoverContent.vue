@@ -2,7 +2,7 @@
 import { PopoverContent, type PopoverContentProps } from 'radix-vue'
 import { cn } from '@/lib/utils'
 
-interface Props extends PopoverContentProps {
+interface Props extends /* @vue-ignore */ PopoverContentProps {
   class?: string
 }
 
