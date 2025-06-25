@@ -189,6 +189,12 @@ class AnnouncementController extends Controller
     {
         $user = $request->user();
 
+        Log::info('🚀 Début candidature:', [
+            'user_id' => $user->id,
+            'announcement_id' => $announcement->id,
+            'data' => $request->all()
+        ]);
+
         // Vérifier si l'annonce est encore active et dans le futur
         if ($announcement->status !== 'active') {
             if ($request->expectsJson()) {
@@ -206,6 +212,10 @@ class AnnouncementController extends Controller
 
         // Vérifier si l'utilisateur est un babysitter
         if (!$user->hasRole('babysitter')) {
+            Log::warning('❌ Utilisateur non babysitter tentant de postuler:', [
+                'user_id' => $user->id,
+                'roles' => $user->roles->pluck('name')
+            ]);
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Seuls les babysitters peuvent postuler aux annonces.'], 403);
             }
@@ -222,6 +232,11 @@ class AnnouncementController extends Controller
 
         // Vérifier si le profil est vérifié
         if (!$user->babysitterProfile || $user->babysitterProfile->verification_status !== 'verified') {
+            Log::warning('❌ Profil babysitter non vérifié:', [
+                'user_id' => $user->id,
+                'has_profile' => !!$user->babysitterProfile,
+                'verification_status' => $user->babysitterProfile?->verification_status
+            ]);
             $errorMessage = 'Votre compte n\'est pas vérifié. Vous devez compléter votre profil et demander la vérification avant de pouvoir postuler aux annonces.';
             
             if ($request->expectsJson()) {
@@ -258,11 +273,23 @@ class AnnouncementController extends Controller
         }
 
         // Créer la candidature
+        Log::info('📝 Création de la candidature:', [
+            'announcement_id' => $announcement->id,
+            'babysitter_id' => $user->id,
+            'validated_data' => $validated
+        ]);
+
         $application = $announcement->applications()->create([
             'babysitter_id' => $user->id,
             'status' => 'pending',
             'motivation_note' => $validated['motivation_note'] ?? null,
             'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate,
+        ]);
+
+        Log::info('✅ Candidature créée avec succès:', [
+            'application_id' => $application->id,
+            'announcement_id' => $announcement->id,
+            'babysitter_id' => $user->id
         ]);
 
         // Envoyer les notifications
@@ -281,6 +308,12 @@ class AnnouncementController extends Controller
                 'error' => $e->getMessage()
             ]);
         }
+
+        Log::info('🎉 Candidature terminée avec succès:', [
+            'application_id' => $application->id,
+            'user_id' => $user->id,
+            'announcement_id' => $announcement->id
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Votre candidature a été envoyée avec succès.'], 200);

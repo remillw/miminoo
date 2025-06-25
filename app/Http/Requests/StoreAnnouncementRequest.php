@@ -34,7 +34,7 @@ class StoreAnnouncementRequest extends FormRequest
             
             // Étape 2: Enfants
             'children' => 'required|array|min:1|max:10',
-            'children.*.nom' => 'required|string|max:50|regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/',
+            'children.*.nom' => 'required|string|max:50|regex:/^[a-zA-ZÀ-ÿ\s\-\']+$/u',
             'children.*.age' => 'required|string|max:3',
             'children.*.unite' => 'required|in:ans,mois',
             
