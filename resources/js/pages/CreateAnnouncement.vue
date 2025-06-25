@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Datepicker } from '@/components/ui/datepicker';
 import { useToast } from '@/composables/useToast';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { router } from '@inertiajs/vue3';
@@ -246,7 +247,7 @@ const removeChild = (index: number) => {
 
 // Navigation du wizard avec validation
 const nextStep = () => {
-    if (currentStep.value < totalSteps) {
+  if (currentStep.value < totalSteps) {
         // Valider l'étape actuelle avant de continuer
         const { isValid, errors } = validateCurrentStep();
         
@@ -260,9 +261,9 @@ const nextStep = () => {
         currentStep.value++;
 
         // Charger Google Places si on arrive à l'étape 3
-        if (currentStep.value === 3 && !isGoogleLoaded.value) {
+      if (currentStep.value === 3 && !isGoogleLoaded.value) {
             loadGooglePlaces();
-        }
+      }
     }
 };
 
@@ -508,37 +509,59 @@ const validateCurrentStep = (): { isValid: boolean; errors: string[] } => {
     
     switch (currentStep.value) {
         case 1:
-            if (!form.value.date) {
+    if (!form.value.date) {
                 errors.push("La date est obligatoire");
-            } else {
-                const selectedDate = new Date(form.value.date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (selectedDate < today) {
+    } else {
+        const selectedDate = new Date(form.value.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
                     errors.push("La date ne peut pas être dans le passé");
-                }
-            }
-            
-            if (!form.value.start_time) {
+        }
+    }
+    
+    if (!form.value.start_time) {
                 errors.push("L'heure de début est obligatoire");
-            }
-            if (!form.value.end_time) {
+    }
+    if (!form.value.end_time) {
                 errors.push("L'heure de fin est obligatoire");
-            }
-            if (form.value.start_time && form.value.end_time && form.value.start_time >= form.value.end_time) {
-                errors.push("L'heure de fin doit être après l'heure de début");
-            }
+    }
+    // Validation pour garde de nuit (logique identique à AfterTime.php)
+    if (form.value.start_time && form.value.end_time) {
+        const [startHour, startMin] = form.value.start_time.split(':').map(Number);
+        const [endHour, endMin] = form.value.end_time.split(':').map(Number);
+        
+        const startMinutes = startHour * 60 + startMin;
+        let endMinutes = endHour * 60 + endMin;
+        
+        // Si l'heure de fin est plus petite, c'est le lendemain
+        if (endMinutes <= startMinutes) {
+            endMinutes += 24 * 60; // Ajouter 24 heures
+        }
+        
+        const durationMinutes = endMinutes - startMinutes;
+        
+        // Vérifier durée minimale de 30 minutes
+        if (durationMinutes < 30) {
+            errors.push("La garde doit durer au moins 30 minutes");
+        }
+        
+        // Vérifier durée maximale de 24 heures
+        if (durationMinutes > 24 * 60) {
+            errors.push("La garde ne peut pas durer plus de 24 heures");
+        }
+    }
             break;
-            
+    
         case 2:
-            if (form.value.children.length === 0) {
+    if (form.value.children.length === 0) {
                 errors.push("Au moins un enfant doit être renseigné");
-            }
-            form.value.children.forEach((child, index) => {
-                if (!child.nom.trim()) {
+    }
+    form.value.children.forEach((child, index) => {
+        if (!child.nom.trim()) {
                     errors.push(`Enfant ${index + 1} : Le prénom est obligatoire`);
-                }
-                if (!child.age || parseInt(child.age) <= 0) {
+        }
+        if (!child.age || parseInt(child.age) <= 0) {
                     errors.push(`Enfant ${index + 1} : L'âge doit être supérieur à 0`);
                 }
                 
@@ -554,7 +577,7 @@ const validateCurrentStep = (): { isValid: boolean; errors: string[] } => {
             break;
             
         case 3:
-            if (!form.value.address.trim()) {
+    if (!form.value.address.trim()) {
                 errors.push("L'adresse est obligatoire");
             } else if (form.value.address.length < 10) {
                 errors.push("L'adresse doit contenir au moins 10 caractères");
@@ -573,7 +596,7 @@ const validateCurrentStep = (): { isValid: boolean; errors: string[] } => {
             break;
             
         case 5:
-            if (!form.value.hourly_rate) {
+    if (!form.value.hourly_rate) {
                 errors.push("Le tarif horaire est obligatoire");
             } else {
                 const rate = parseFloat(form.value.hourly_rate);
@@ -626,7 +649,7 @@ const submitAnnouncement = async () => {
                 if (successData && typeof successData === 'object') {
                     showSuccess(`${successData.title}\n${successData.message}`);
                 } else {
-                    showSuccess('🎉 Annonce publiée avec succès !');
+                showSuccess('🎉 Annonce publiée avec succès !');
                 }
                 
                 // Redirection après un délai pour voir le toast
@@ -723,21 +746,7 @@ const getStepState = (step: number) => {
     return 'disabled';
 };
 
-// Gestion améliorée du calendrier
-const dateInput = ref<HTMLInputElement>();
-
-const openDatePicker = () => {
-    if (dateInput.value && dateInput.value.showPicker) {
-        try {
-            dateInput.value.showPicker();
-        } catch (error) {
-            // Fallback si showPicker n'est pas supporté
-            dateInput.value.focus();
-        }
-    } else if (dateInput.value) {
-        dateInput.value.focus();
-    }
-};
+// Le datepicker Shadcn gère automatiquement l'ouverture
 
 // Initialisation
 initializeChildren();
@@ -857,34 +866,23 @@ initializeChildren();
             <!-- Contenu des étapes -->
             <Card class="mb-6 shadow-lg border-0">
                 <CardContent class="p-8">
-                    <!-- Étape 1: Date et horaires -->
-                    <div v-if="currentStep === 1">
-                        <h2 class="mb-6 text-xl font-semibold">Quand avez-vous besoin d'une babysitter ?</h2>
+ <!-- Étape 1: Date et horaires -->
+<div v-if="currentStep === 1">
+  <h2 class="mb-6 text-xl font-semibold">Quand avez-vous besoin d'une babysitter ?</h2>
 
-                        <div class="space-y-6">
-                            <!-- Date -->
-                            <div class="space-y-2">
-                                <Label for="date">Date</Label>
-                                <div class="relative">
-                                    <Calendar 
-                                        class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 cursor-pointer hover:text-primary transition-colors" 
-                                        @click="openDatePicker"
-                                    />
-                                    <Input
-                                        ref="dateInput"
-                                        id="date"
-                                        type="date"
-                                        v-model="form.date"
-                                        :min="new Date().toISOString().split('T')[0]"
-                                        class="pl-10 cursor-pointer hover:border-primary transition-colors focus:border-primary"
-                                        required
-                                        placeholder="JJ/MM/AAAA"
-                                    />
-                                </div>
-                                <p class="text-xs text-gray-500">
-                                    📅 Cliquez sur l'icône calendrier ou dans le champ pour sélectionner une date
-                                </p>
-                            </div>
+  <div class="space-y-6">
+    <!-- Date -->
+    <div class="space-y-2">
+      <Label for="date">Date</Label>
+      <Datepicker 
+        v-model="form.date"
+        placeholder="Sélectionner une date"
+        locale="fr-FR"
+      />
+      <p class="text-xs text-gray-500">
+        📅 Cliquez pour ouvrir le calendrier et sélectionner une date
+      </p>
+    </div>
 
                             <!-- Horaires avec mode de saisie -->
                             <div class="space-y-4">
@@ -905,40 +903,40 @@ initializeChildren();
 
                                 <!-- Mode sélection (par défaut) -->
                                 <div v-if="timeInputType === 'select'" class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <div class="space-y-2">
-                                        <Label for="start_time">Heure de début</Label>
-                                        <Select v-model="form.start_time" required>
-                                            <SelectTrigger class="w-full">
-                                                <div class="flex items-center gap-2">
-                                                    <Clock class="h-4 w-4 text-gray-400" />
-                                                    <SelectValue placeholder="Sélectionner l'heure" />
-                                                </div>
-                                            </SelectTrigger>
+      <div class="space-y-2">
+        <Label for="start_time">Heure de début</Label>
+        <Select v-model="form.start_time" required>
+          <SelectTrigger class="w-full">
+            <div class="flex items-center gap-2">
+              <Clock class="h-4 w-4 text-gray-400" />
+              <SelectValue placeholder="Sélectionner l'heure" />
+            </div>
+          </SelectTrigger>
                                             <SelectContent class="max-h-60">
-                                                <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
-                                                    {{ hour }}
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+            <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
+              {{ hour }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-                                    <div class="space-y-2">
-                                        <Label for="end_time">Heure de fin</Label>
-                                        <Select v-model="form.end_time" required>
-                                            <SelectTrigger class="w-full">
-                                                <div class="flex items-center gap-2">
-                                                    <Clock class="h-4 w-4 text-gray-400" />
-                                                    <SelectValue placeholder="Sélectionner l'heure" />
-                                                </div>
-                                            </SelectTrigger>
+      <div class="space-y-2">
+        <Label for="end_time">Heure de fin</Label>
+        <Select v-model="form.end_time" required>
+          <SelectTrigger class="w-full">
+            <div class="flex items-center gap-2">
+              <Clock class="h-4 w-4 text-gray-400" />
+              <SelectValue placeholder="Sélectionner l'heure" />
+            </div>
+          </SelectTrigger>
                                             <SelectContent class="max-h-60">
-                                                <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
-                                                    {{ hour }}
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
+            <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
+              {{ hour }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
 
                                 <!-- Mode saisie manuelle -->
                                 <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -1173,20 +1171,20 @@ initializeChildren();
                 </Button>
                 <div v-else></div>
 
-                <!-- Bouton « Suivant » / « Ignorer cette étape » -->
-                <Button
-                    v-if="currentStep < totalSteps"
-                    @click="nextStep"
-                    :disabled="currentStep !== 4 && !canProceedToNext"
-                    class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                    <span v-if="currentStep === 4 && !form.additional_info.trim()">
-                        Ignorer cette étape →
-                    </span>
-                    <span v-else>
-                        Suivant →
-                    </span>
-                </Button>
+           <!-- Bouton « Suivant » / « Ignorer cette étape » -->
+<Button
+  v-if="currentStep < totalSteps"
+  @click="nextStep"
+  :disabled="currentStep !== 4 && !canProceedToNext"
+  class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+>
+  <span v-if="currentStep === 4 && !form.additional_info.trim()">
+    Ignorer cette étape →
+  </span>
+  <span v-else>
+    Suivant →
+  </span>
+</Button>
 
                 <Button
                     v-else

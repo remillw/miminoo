@@ -85,13 +85,13 @@
                         <span class="text-red-500">*</span>
                     </Label>
                     <div class="relative">
-                        <Textarea
-                            id="message"
-                            v-model="message"
-                            placeholder="Présentez-vous et expliquez pourquoi vous êtes la babysitter idéale pour cette famille…"
-                            :maxlength="500"
-                            rows="3"
-                            :disabled="isLoading"
+                    <Textarea
+                        id="message"
+                        v-model="message"
+                        placeholder="Présentez-vous et expliquez pourquoi vous êtes la babysitter idéale pour cette famille…"
+                        :maxlength="500"
+                        rows="3"
+                        :disabled="isLoading"
                             :class="[
                                 'resize-none rounded-lg text-sm transition-all focus:ring-orange-100',
                                 messageError || fieldErrors.motivation_note 
@@ -216,11 +216,11 @@
 
                     <!-- Message d'erreur général -->
                     <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 p-3 animate-in fade-in duration-300">
-                        <p class="flex items-start gap-2 text-sm text-red-700">
-                            <AlertCircle class="h-4 w-4 mt-0.5 flex-shrink-0" />
-                            <span class="leading-relaxed">{{ error }}</span>
-                        </p>
-                    </div>
+                    <p class="flex items-start gap-2 text-sm text-red-700">
+                        <AlertCircle class="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <span class="leading-relaxed">{{ error }}</span>
+                    </p>
+                </div>
 
                     <!-- Résumé des erreurs de champs si il y en a -->
                     <div v-if="Object.keys(fieldErrors).length > 0" class="rounded-lg border border-orange-200 bg-orange-50 p-3">
@@ -558,14 +558,38 @@ async function submit() {
                 motivation_note: message.value.trim(),
                 proposed_rate: rate.value,
             }),
+            redirect: 'manual' // Important: ne pas suivre automatiquement les redirections
         });
 
         console.log('📡 Réponse serveur - Status:', response.status, 'OK:', response.ok);
 
+        // Gérer les redirections (302, 301, etc.) comme des erreurs d'auth
+        if (response.status >= 300 && response.status < 400) {
+            console.error('❌ Redirection détectée:', response.status);
+            error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
+            return;
+        }
+
+        // Vérifier si on a été redirigé vers une page de login (détection par URL)
+        if (response.url && (response.url.includes('/login') || response.url.includes('/connexion'))) {
+            console.error('❌ Redirection vers login détectée');
+            error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
+            return;
+        }
+
         // Essayer de parser la réponse JSON
         let data;
         try {
-            data = await response.json();
+            const textResponse = await response.text();
+            
+            // Vérifier si c'est du HTML (page de login) au lieu de JSON
+            if (textResponse.includes('<!DOCTYPE html>') || textResponse.includes('<html')) {
+                console.error('❌ Réponse HTML reçue au lieu de JSON (probable redirection vers login)');
+                error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
+                return;
+            }
+            
+            data = JSON.parse(textResponse);
             console.log('📋 Données reçues:', data);
         } catch (parseError) {
             console.error('❌ Erreur parsing JSON:', parseError);

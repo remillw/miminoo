@@ -328,9 +328,27 @@ class AnnouncementController extends Controller
 
             Log::info('📍 Adresse créée/récupérée:', ['address_id' => $address->id]);
 
-            // Créer les dates complètes
+            // Créer les dates complètes en gérant les gardes de nuit
             $dateStart = $validated['date'] . ' ' . $validated['start_time'] . ':00';
-            $dateEnd = $validated['date'] . ' ' . $validated['end_time'] . ':00';
+            
+            // Pour la date de fin, vérifier si c'est une garde de nuit
+            $startTime = $validated['start_time'];
+            $endTime = $validated['end_time'];
+            
+            // Convertir en minutes pour comparaison
+            [$startHour, $startMin] = explode(':', $startTime);
+            [$endHour, $endMin] = explode(':', $endTime);
+            $startMinutes = (int)$startHour * 60 + (int)$startMin;
+            $endMinutes = (int)$endHour * 60 + (int)$endMin;
+            
+            // Si l'heure de fin est plus petite que l'heure de début, c'est le lendemain
+            if ($endMinutes <= $startMinutes) {
+                // Ajouter un jour à la date de fin
+                $endDate = Carbon::parse($validated['date'])->addDay()->format('Y-m-d');
+                $dateEnd = $endDate . ' ' . $validated['end_time'] . ':00';
+            } else {
+                $dateEnd = $validated['date'] . ' ' . $validated['end_time'] . ':00';
+            }
 
             // Créer un titre automatique
             $childrenCount = count($validated['children']);
