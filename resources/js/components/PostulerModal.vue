@@ -547,103 +547,64 @@ async function submit() {
     try {
         console.log('🚀 Envoi candidature pour annonce:', props.announcementId);
 
-        const response = await fetch(route('announcements.apply', { announcement: props.announcementId }), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                Accept: 'application/json',
-            },
-            body: JSON.stringify({
-                motivation_note: message.value.trim(),
-                proposed_rate: rate.value,
-            }),
-            redirect: 'manual' // Important: ne pas suivre automatiquement les redirections
-        });
-
-        console.log('📡 Réponse serveur - Status:', response.status, 'OK:', response.ok);
-
-        // Gérer les redirections (302, 301, etc.) comme des erreurs d'auth
-        if (response.status >= 300 && response.status < 400) {
-            console.error('❌ Redirection détectée:', response.status);
-            error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
-            return;
-        }
-
-        // Vérifier si on a été redirigé vers une page de login (détection par URL)
-        if (response.url && (response.url.includes('/login') || response.url.includes('/connexion'))) {
-            console.error('❌ Redirection vers login détectée');
-            error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
-            return;
-        }
-
-        // Essayer de parser la réponse JSON
-        let data;
-        try {
-            const textResponse = await response.text();
-            
-            // Vérifier si c'est du HTML (page de login) au lieu de JSON
-            if (textResponse.includes('<!DOCTYPE html>') || textResponse.includes('<html')) {
-                console.error('❌ Réponse HTML reçue au lieu de JSON (probable redirection vers login)');
-                error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
-                return;
-            }
-            
-            data = JSON.parse(textResponse);
-            console.log('📋 Données reçues:', data);
-        } catch (parseError) {
-            console.error('❌ Erreur parsing JSON:', parseError);
-            // Si on ne peut pas parser le JSON, utiliser le status pour deviner l'erreur
-            error.value = getFriendlyErrorMessage(response.status);
-            return;
-        }
-
-        if (response.ok) {
-            // Vérifications multiples pour détecter les erreurs dans une réponse 200
-            if (data.error || data.errors || data.status === 'error' || !data.message) {
-                console.error('❌ Erreur dans réponse 200:', data);
-                
-                // Si on a des erreurs de validation spécifiques
-                if (data.errors) {
-                    parseValidationErrors(data);
-                    error.value = 'Veuillez corriger les erreurs dans le formulaire.';
-                } else {
-                    // Utiliser le message d'erreur ou un message générique
-                    error.value = data.error || data.message || 'Une erreur est survenue lors de l\'envoi de votre candidature. Veuillez réessayer.';
-                }
-            } else {
+        // Utiliser Inertia pour une meilleure gestion des sessions Laravel
+        const { router } = await import('@inertiajs/vue3');
+        
+        router.post(route('announcements.apply', { announcement: props.announcementId }), {
+            motivation_note: message.value.trim(),
+            proposed_rate: rate.value,
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: (page) => {
                 console.log('✅ Candidature envoyée avec succès');
-                success.value = data.message || 'Candidature envoyée avec succès ! La famille sera notifiée de votre demande.';
+                
+                // Récupérer le message de succès depuis la session flash
+                const successData = page.props.flash?.success;
+                if (successData && typeof successData === 'object') {
+                    success.value = `${successData.title}\n${successData.message}`;
+                } else if (typeof successData === 'string') {
+                    success.value = successData;
+                } else {
+                    success.value = 'Candidature envoyée avec succès ! La famille sera notifiée de votre demande.';
+                }
 
                 // Fermer automatiquement après 2.5 secondes
                 setTimeout(() => {
                     closeModal();
                 }, 2500);
+            },
+            onError: (errors) => {
+                console.error('❌ Erreurs de validation reçues:', errors);
+                
+                if (errors && Object.keys(errors).length > 0) {
+                    // Traiter les erreurs de validation
+                    parseValidationErrors({ errors });
+                    
+                    // Message d'erreur principal basé sur le type d'erreur
+                    const errorKeys = Object.keys(errors);
+                    if (errorKeys.includes('motivation_note')) {
+                        error.value = 'Le message de motivation contient des erreurs.';
+                    } else if (errorKeys.includes('proposed_rate')) {
+                        error.value = 'Le tarif proposé n\'est pas valide.';
+                    } else if (errorKeys.some(key => key.includes('auth') || key.includes('session'))) {
+                        error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
+                    } else {
+                        error.value = 'Veuillez corriger les erreurs dans le formulaire.';
+                    }
+                } else {
+                    error.value = 'Une erreur est survenue lors de l\'envoi de votre candidature. Veuillez réessayer.';
+                }
+            },
+            onFinish: () => {
+                isLoading.value = false;
+                console.log('📤 Requête de candidature terminée');
             }
-        } else {
-            console.error('❌ Erreur serveur:', data);
-            
-            // Gestion spécifique des erreurs de validation (422)
-            if (response.status === 422 && data.errors) {
-                parseValidationErrors(data);
-                error.value = 'Veuillez corriger les erreurs dans le formulaire.';
-            } else {
-                // Utiliser le message d'erreur convivial pour les autres erreurs
-                error.value = getFriendlyErrorMessage(response.status, data.error, data.errors ? data : null);
-            }
-        }
-    } catch (err) {
-        console.error("❌ Erreur réseau lors de l'envoi de la candidature:", err);
+        });
 
-        // Gestion plus précise des erreurs réseau
-        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-            error.value = 'Problème de connexion réseau. Vérifiez votre connexion internet et réessayez.';
-        } else if (err instanceof TypeError && err.message.includes('NetworkError')) {
-            error.value = 'Erreur de réseau. Vérifiez votre connexion internet ou réessayez plus tard.';
-        } else {
-            error.value = 'Une erreur de communication est survenue. Vérifiez votre connexion et réessayez.';
-        }
-    } finally {
+    } catch (err) {
+        console.error("❌ Erreur lors de l'envoi de la candidature:", err);
+        error.value = 'Une erreur technique est survenue. Veuillez rafraîchir la page et réessayer.';
         isLoading.value = false;
     }
 }
