@@ -19,21 +19,10 @@ class ParentController extends Controller
 
         // Vérifier que l'ID est numérique
         if (!is_numeric($userId)) {
-            abort(404, 'Slug invalide');
+            abort(404, 'Profil introuvable');
         }
 
-        // Récupérer d'abord l'utilisateur pour vérifier qu'il existe
-        $user = User::find($userId);
-        if (!$user) {
-            abort(404, 'Utilisateur introuvable');
-        }
-
-        // Vérifier que l'utilisateur a le rôle parent
-        if (!$user->hasRole('parent')) {
-            abort(404, 'Cet utilisateur n\'est pas un parent');
-        }
-
-        // Récupérer le parent avec ses relations
+        // Récupérer l'utilisateur et vérifier qu'il existe et a le rôle parent
         $parent = User::with([
             'address',
             'ads' => function($query) {
@@ -41,7 +30,15 @@ class ParentController extends Controller
                       ->orderBy('created_at', 'desc')
                       ->limit(5);
             }
-        ])->find($userId);
+        ])
+        ->whereHas('roles', function($query) {
+            $query->where('name', 'parent');
+        })
+        ->find($userId);
+
+        if (!$parent) {
+            abort(404, 'Profil parent introuvable');
+        }
 
         // Vérifier que le slug correspond bien à l'utilisateur
         $expectedSlug = $this->createParentSlug($parent);
