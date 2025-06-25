@@ -9,7 +9,7 @@ import { useToast } from '@/composables/useToast';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { Calendar, Check, Clock, CreditCard, FileText, MapPin, Users } from 'lucide-vue-next';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 
 interface Child {
@@ -50,6 +50,9 @@ const currentStep = ref(1);
 const totalSteps = 5;
 const completedSteps = ref(new Set<number>()); // Track des étapes confirmées
 
+// État des erreurs pour chaque étape
+const stepErrors = ref<Record<number, string[]>>({});
+
 // Données du formulaire
 const form = ref({
     // Étape 1: Date et horaires
@@ -84,17 +87,49 @@ let autocomplete: any;
 const stepIcons = [Calendar, Users, MapPin, FileText, CreditCard];
 const stepTitles = ['Date et horaires', 'Enfants', 'Lieu', 'Détails', 'Tarif'];
 
-// Options d'heures (de 06:00 à 23:30 par tranches de 30 minutes)
+// Options d'heures (de 06:00 à 23:45 par tranches de 15 minutes)
 const timeOptions = computed(() => {
     const options = [];
     for (let hour = 6; hour <= 23; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
+        for (let minute = 0; minute < 60; minute += 15) {
             const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
             options.push(timeString);
         }
     }
     return options;
 });
+
+// Gestion des champs d'heure avec saisie manuelle ou sélection
+const timeInputType = ref<'select' | 'manual'>('select');
+
+const toggleTimeInputType = () => {
+    timeInputType.value = timeInputType.value === 'select' ? 'manual' : 'select';
+};
+
+// Validation des heures saisies manuellement
+const validateTimeFormat = (time: string): boolean => {
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    return timeRegex.test(time);
+};
+
+// Formatage automatique des heures pendant la saisie
+const formatTimeInput = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.replace(/[^\d]/g, '');
+    
+    if (value.length >= 3) {
+        value = value.slice(0, 2) + ':' + value.slice(2, 4);
+    }
+    
+    input.value = value;
+    
+    // Mettre à jour le modèle
+    if (input.id === 'start_time_manual') {
+        form.value.start_time = value;
+    } else if (input.id === 'end_time_manual') {
+        form.value.end_time = value;
+    }
+};
 
 const isStepCompleted = (step: number) => {
     switch (step) {
@@ -119,9 +154,22 @@ const estimatedDuration = computed(() => {
     if (form.value.start_time && form.value.end_time) {
         const [startHour, startMin] = form.value.start_time.split(':').map(Number);
         const [endHour, endMin] = form.value.end_time.split(':').map(Number);
+        
         const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
-        return Math.max(0, (endMinutes - startMinutes) / 60);
+        let endMinutes = endHour * 60 + endMin;
+        
+        // Si l'heure de fin est plus petite que l'heure de début, 
+        // cela signifie que ça se termine le lendemain
+        if (endMinutes <= startMinutes) {
+            // Ajouter 24 heures (1440 minutes) pour passer au lendemain
+            endMinutes += 24 * 60;
+        }
+        
+        const durationInMinutes = endMinutes - startMinutes;
+        const durationInHours = durationInMinutes / 60;
+        
+        // Limiter à un maximum raisonnable (par exemple 24 heures)
+        return Math.min(24, Math.max(0, durationInHours));
     }
     return 0;
 });
@@ -129,6 +177,40 @@ const estimatedDuration = computed(() => {
 const estimatedTotal = computed(() => {
     const rate = parseFloat(form.value.hourly_rate) || 0;
     return (estimatedDuration.value * rate).toFixed(2);
+});
+
+// Calculé pour savoir si l'annonce s'étend sur deux jours
+const spansNextDay = computed(() => {
+    if (form.value.start_time && form.value.end_time) {
+        const [startHour, startMin] = form.value.start_time.split(':').map(Number);
+        const [endHour, endMin] = form.value.end_time.split(':').map(Number);
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        return endMinutes <= startMinutes;
+    }
+    return false;
+});
+
+// Formatage de l'affichage de la durée
+const durationDisplayText = computed(() => {
+    if (estimatedDuration.value <= 0) return '';
+    
+    const hours = Math.floor(estimatedDuration.value);
+    const minutes = Math.round((estimatedDuration.value - hours) * 60);
+    
+    let text = '';
+    if (hours > 0) {
+        text += `${hours}h`;
+        if (minutes > 0) text += ` ${minutes}min`;
+    } else if (minutes > 0) {
+        text += `${minutes}min`;
+    }
+    
+    if (spansNextDay.value) {
+        text += ' (sur 2 jours)';
+    }
+    
+    return text;
 });
 
 // Calculer le pourcentage de progression
@@ -162,29 +244,27 @@ const removeChild = (index: number) => {
     form.value.children.splice(index, 1);
 };
 
-// Navigation du wizard
+// Navigation du wizard avec validation
 const nextStep = () => {
-  if (currentStep.value < totalSteps) {
-    // on passe toujours à la suite si c'est l'étape 4 ou si la validation standard passe
-    if (currentStep.value === 4 || canProceedToNext.value) {
-      // **si on est à l'étape 4 et que c'est vide**, on marque quand même comme complétée
-      if (currentStep.value === 4) {
-        completedSteps.value.add(4)
-      }
-      // **pour les autres**, on ne marque que si c'est validé
-      else if (canProceedToNext.value) {
-        completedSteps.value.add(currentStep.value)
-      }
-      currentStep.value++
+    if (currentStep.value < totalSteps) {
+        // Valider l'étape actuelle avant de continuer
+        const { isValid, errors } = validateCurrentStep();
+        
+        if (!isValid && currentStep.value !== 4) { // L'étape 4 est optionnelle
+            showError(`Veuillez corriger les erreurs suivantes :\n\n${errors.map(err => `• ${err}`).join('\n')}`);
+            return;
+        }
+        
+        // Marquer l'étape comme complétée
+        completedSteps.value.add(currentStep.value);
+        currentStep.value++;
 
-      if (currentStep.value === 3 && !isGoogleLoaded.value) {
-        loadGooglePlaces()
-      }
+        // Charger Google Places si on arrive à l'étape 3
+        if (currentStep.value === 3 && !isGoogleLoaded.value) {
+            loadGooglePlaces();
+        }
     }
-  }
-}
-
-
+};
 
 const prevStep = () => {
     if (currentStep.value > 1) {
@@ -193,41 +273,31 @@ const prevStep = () => {
 };
 
 const goToStep = (step: number) => {
-    // Permettre de naviguer vers une étape si elle est complétée ou si c'est la suivante
-    if (completedSteps.value.has(step) || step === currentStep.value || (step === currentStep.value + 1 && canProceedToNext.value)) {
+    // Permettre de naviguer vers une étape si elle est complétée ou si c'est l'étape suivante
+    const canNavigate = completedSteps.value.has(step) || 
+                       step === currentStep.value || 
+                       (step === currentStep.value + 1 && (canProceedToNext.value || currentStep.value === 4));
+    
+    if (canNavigate) {
+        // Si on va vers une étape future, valider l'étape actuelle
+        if (step > currentStep.value) {
+            const { isValid, errors } = validateCurrentStep();
+            
+            if (!isValid && currentStep.value !== 4) {
+                showError(`Veuillez corriger les erreurs suivantes :\n\n${errors.map(err => `• ${err}`).join('\n')}`);
+                return;
+            }
+            
+            // Marquer l'étape actuelle comme complétée
+            completedSteps.value.add(currentStep.value);
+        }
+        
         currentStep.value = step;
         
         // Charger Google Places si on va à l'étape 3
         if (step === 3 && !isGoogleLoaded.value) {
             loadGooglePlaces();
         }
-    }
-};
-
-
-// Gestion intelligente du champ de date
-const handleDateClick = () => {
-    const dateInput = document.getElementById('date') as HTMLInputElement;
-    if (dateInput && dateInput.showPicker) {
-        // Petite temporisation pour permettre le focus
-        setTimeout(() => {
-            dateInput.showPicker();
-        }, 50);
-    }
-};
-
-const handleDateKeydown = (event: KeyboardEvent) => {
-    // Si l'utilisateur commence à taper, on ferme le calendrier s'il est ouvert
-    // et on laisse la saisie manuelle se faire
-    const dateInput = event.target as HTMLInputElement;
-    
-    // Caractères de saisie de date (chiffres, slash, etc.)
-    if (event.key.match(/[0-9\/\-\.]/)) {
-        // L'utilisateur veut taper, on s'assure que le calendrier n'interfère pas
-        dateInput.blur();
-        setTimeout(() => {
-            dateInput.focus();
-        }, 10);
     }
 };
 
@@ -296,80 +366,76 @@ const initAutocomplete = async () => {
     });
 };
 
-// Fonction pour formater les erreurs de validation
-const formatValidationErrors = (errors: Record<string, string | string[]>) => {
-    const errorMessages: string[] = [];
-    const processedErrors = new Set<string>();
+// Fonction pour formater les erreurs de validation reçues du backend
+const formatBackendErrors = (errors: Record<string, string | string[]>) => {
+    const errorsByStep: Record<number, string[]> = {};
+    const allErrors: string[] = [];
     
-    // Détecter les cas spécifiques et donner des messages plus clairs
-    const hasAddressErrors = errors.postal_code || errors.country || errors.latitude || errors.longitude;
+    // Mapper les champs aux étapes
+    const fieldStepMapping: Record<string, number> = {
+        'date': 1,
+        'start_time': 1,
+        'end_time': 1,
+        'children': 2,
+        'children.0.nom': 2,
+        'children.1.nom': 2,
+        'children.2.nom': 2,
+        'children.0.age': 2,
+        'children.1.age': 2,
+        'children.2.age': 2,
+        'children.0.unite': 2,
+        'children.1.unite': 2,
+        'children.2.unite': 2,
+        'address': 3,
+        'postal_code': 3,
+        'country': 3,
+        'latitude': 3,
+        'longitude': 3,
+        'additional_info': 4,
+        'hourly_rate': 5,
+        'estimated_duration': 5,
+        'estimated_total': 5,
+    };
     
-    if (hasAddressErrors) {
-        errorMessages.push("• L'adresse saisie n'est pas valide.");
-        // Marquer ces erreurs comme traitées
-        processedErrors.add('postal_code');
-        processedErrors.add('country');
-        processedErrors.add('latitude');
-        processedErrors.add('longitude');
-        processedErrors.add('address');
-    }
-    
-    // Traiter les autres erreurs normalement
     for (const [field, messages] of Object.entries(errors)) {
-        if (processedErrors.has(field)) continue;
-        
         const errorList = Array.isArray(messages) ? messages : [messages];
+        const step = getStepForField(field, fieldStepMapping);
         
         errorList.forEach(message => {
-            const friendlyMessage = getFriendlyErrorMessage(field, message);
-            errorMessages.push(`• ${friendlyMessage}`);
+            const formattedMessage = formatSingleError(field, message);
+            allErrors.push(formattedMessage);
+            
+            if (step) {
+                if (!errorsByStep[step]) errorsByStep[step] = [];
+                errorsByStep[step].push(formattedMessage);
+            }
         });
     }
     
-    return errorMessages.join('\n');
+    return { errorsByStep, allErrors };
 };
 
-// Fonction pour obtenir des messages d'erreur plus conviviaux
-const getFriendlyErrorMessage = (field: string, message: string): string => {
-    const fieldName = getFieldDisplayName(field);
+const getStepForField = (field: string, mapping: Record<string, number>): number | null => {
+    // Correspondance exacte
+    if (mapping[field]) return mapping[field];
     
-    // Messages spécifiques selon le type d'erreur
-    if (message.includes('required')) {
-        return `${fieldName} : Ce champ est obligatoire`;
+    // Pour les champs d'enfants avec indices dynamiques
+    if (field.startsWith('children.') && field.includes('.nom')) return 2;
+    if (field.startsWith('children.') && field.includes('.age')) return 2;
+    if (field.startsWith('children.') && field.includes('.unite')) return 2;
+    
+    return null;
+};
+
+const formatSingleError = (field: string, message: string): string => {
+    // Messages déjà bien formatés depuis le backend
+    if (message.includes(':') || message.includes('obligatoire') || message.includes('doit')) {
+        return message;
     }
     
-    if (message.includes('email')) {
-        return `${fieldName} : Veuillez saisir une adresse email valide`;
-    }
-    
-    if (message.includes('numeric') || message.includes('number')) {
-        return `${fieldName} : Veuillez saisir un nombre valide`;
-    }
-    
-    if (message.includes('min:')) {
-        const minValue = message.match(/min:(\d+)/)?.[1];
-        return `${fieldName} : Doit contenir au moins ${minValue} caractères`;
-    }
-    
-    if (message.includes('max:')) {
-        const maxValue = message.match(/max:(\d+)/)?.[1];
-        return `${fieldName} : Ne peut pas dépasser ${maxValue} caractères`;
-    }
-    
-    if (message.includes('date')) {
-        return `${fieldName} : Veuillez saisir une date valide`;
-    }
-    
-    if (message.includes('after') || message.includes('before')) {
-        return `${fieldName} : La date saisie n'est pas valide`;
-    }
-    
-    if (field.includes('children') && message.includes('array')) {
-        return 'Enfants : Veuillez renseigner au moins un enfant';
-    }
-    
-    // Message par défaut avec le nom du champ traduit
-    return `${fieldName} : ${message}`;
+    // Fallback pour des messages non formatés
+    const fieldDisplayName = getFieldDisplayName(field);
+    return `${fieldDisplayName}: ${message}`;
 };
 
 // Fonction pour obtenir le nom d'affichage des champs
@@ -385,76 +451,159 @@ const getFieldDisplayName = (field: string): string => {
         'address': 'Adresse',
         'postal_code': 'Code postal',
         'country': 'Pays',
+        'latitude': 'Coordonnées',
+        'longitude': 'Coordonnées',
         'additional_info': 'Informations complémentaires',
         'hourly_rate': 'Tarif horaire',
         'estimated_duration': 'Durée estimée',
         'estimated_total': 'Coût total estimé'
     };
     
+    // Pour les champs d'enfants avec indices
+    if (field.includes('children.') && field.includes('.nom')) {
+        const index = field.match(/children\.(\d+)\.nom/)?.[1];
+        return `Prénom de l'enfant ${parseInt(index || '0') + 1}`;
+    }
+    if (field.includes('children.') && field.includes('.age')) {
+        const index = field.match(/children\.(\d+)\.age/)?.[1];
+        return `Âge de l'enfant ${parseInt(index || '0') + 1}`;
+    }
+    if (field.includes('children.') && field.includes('.unite')) {
+        const index = field.match(/children\.(\d+)\.unite/)?.[1];
+        return `Unité d'âge de l'enfant ${parseInt(index || '0') + 1}`;
+    }
+    
     return fieldNames[field] || field;
 };
 
-// Validation côté client avant soumission
-const validateForm = (): string[] => {
-    const errors: string[] = [];
+// Gestion des erreurs avec navigation automatique vers l'étape concernée
+const handleValidationErrors = (errors: Record<string, string | string[]>) => {
+    const { errorsByStep, allErrors } = formatBackendErrors(errors);
     
-    // Validation de la date
-    if (!form.value.date) {
-        errors.push("• Date : La date est obligatoire");
-    } else {
-        const selectedDate = new Date(form.value.date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (selectedDate < today) {
-            errors.push("• Date : La date ne peut pas être dans le passé");
+    // Afficher toutes les erreurs
+    const errorMessage = allErrors.length > 1 
+        ? `Veuillez corriger les erreurs suivantes :\n\n${allErrors.map(err => `• ${err}`).join('\n')}`
+        : allErrors[0];
+    
+    showError(errorMessage);
+    
+    // Naviguer vers la première étape avec des erreurs
+    const stepsWithErrors = Object.keys(errorsByStep).map(Number).sort();
+    if (stepsWithErrors.length > 0) {
+        const firstErrorStep = stepsWithErrors[0];
+        if (firstErrorStep !== currentStep.value) {
+            setTimeout(() => {
+                currentStep.value = firstErrorStep;
+                showError(`Étape ${firstErrorStep} : ${errorsByStep[firstErrorStep].join(', ')}`);
+            }, 500);
         }
     }
     
-    // Validation des horaires
-    if (!form.value.start_time) {
-        errors.push("• Heure de début : L'heure de début est obligatoire");
-    }
-    if (!form.value.end_time) {
-        errors.push("• Heure de fin : L'heure de fin est obligatoire");
-    }
-    if (form.value.start_time && form.value.end_time && form.value.start_time >= form.value.end_time) {
-        errors.push("• Horaires : L'heure de fin doit être après l'heure de début");
-    }
-    
-    // Validation des enfants
-    if (form.value.children.length === 0) {
-        errors.push("• Enfants : Au moins un enfant doit être renseigné");
-    }
-    form.value.children.forEach((child, index) => {
-        if (!child.nom.trim()) {
-            errors.push(`• Enfant ${index + 1} : Le prénom est obligatoire`);
-        }
-        if (!child.age || parseInt(child.age) <= 0) {
-            errors.push(`• Enfant ${index + 1} : L'âge doit être supérieur à 0`);
-        }
-    });
-    
-    // Validation de l'adresse
-    if (!form.value.address.trim()) {
-        errors.push("• Adresse : L'adresse est obligatoire");
-    }
-    
-    // Validation du tarif
-    if (!form.value.hourly_rate) {
-        errors.push("• Tarif horaire : Le tarif horaire est obligatoire");
-    } else if (parseFloat(form.value.hourly_rate) <= 0) {
-        errors.push("• Tarif horaire : Le tarif doit être supérieur à 0");
-    }
-    
-    return errors;
+    return errorsByStep;
 };
 
-// Soumission
+// Amélioration de la validation côté client
+const validateCurrentStep = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    switch (currentStep.value) {
+        case 1:
+            if (!form.value.date) {
+                errors.push("La date est obligatoire");
+            } else {
+                const selectedDate = new Date(form.value.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (selectedDate < today) {
+                    errors.push("La date ne peut pas être dans le passé");
+                }
+            }
+            
+            if (!form.value.start_time) {
+                errors.push("L'heure de début est obligatoire");
+            }
+            if (!form.value.end_time) {
+                errors.push("L'heure de fin est obligatoire");
+            }
+            if (form.value.start_time && form.value.end_time && form.value.start_time >= form.value.end_time) {
+                errors.push("L'heure de fin doit être après l'heure de début");
+            }
+            break;
+            
+        case 2:
+            if (form.value.children.length === 0) {
+                errors.push("Au moins un enfant doit être renseigné");
+            }
+            form.value.children.forEach((child, index) => {
+                if (!child.nom.trim()) {
+                    errors.push(`Enfant ${index + 1} : Le prénom est obligatoire`);
+                }
+                if (!child.age || parseInt(child.age) <= 0) {
+                    errors.push(`Enfant ${index + 1} : L'âge doit être supérieur à 0`);
+                }
+                
+                // Validation des âges selon l'unité
+                const age = parseInt(child.age);
+                if (child.unite === 'mois' && (age < 1 || age > 36)) {
+                    errors.push(`Enfant ${index + 1} : L'âge en mois doit être entre 1 et 36`);
+                }
+                if (child.unite === 'ans' && (age < 1 || age > 17)) {
+                    errors.push(`Enfant ${index + 1} : L'âge en années doit être entre 1 et 17`);
+                }
+            });
+            break;
+            
+        case 3:
+            if (!form.value.address.trim()) {
+                errors.push("L'adresse est obligatoire");
+            } else if (form.value.address.length < 10) {
+                errors.push("L'adresse doit contenir au moins 10 caractères");
+            }
+            
+            if (!form.value.latitude || !form.value.longitude) {
+                errors.push("Veuillez sélectionner une adresse dans la liste proposée pour obtenir les coordonnées");
+            }
+            break;
+            
+        case 4:
+            // Étape optionnelle, toujours valide
+            if (form.value.additional_info && form.value.additional_info.length > 2000) {
+                errors.push("Les informations complémentaires ne peuvent pas dépasser 2000 caractères");
+            }
+            break;
+            
+        case 5:
+            if (!form.value.hourly_rate) {
+                errors.push("Le tarif horaire est obligatoire");
+            } else {
+                const rate = parseFloat(form.value.hourly_rate);
+                if (rate < 5) {
+                    errors.push("Le tarif horaire doit être d'au moins 5€/h");
+                }
+                if (rate > 100) {
+                    errors.push("Le tarif horaire ne peut pas dépasser 100€/h");
+                }
+            }
+            break;
+    }
+    
+    return { isValid: errors.length === 0, errors };
+};
+
+// Soumission améliorée avec meilleure gestion d'erreurs
 const submitAnnouncement = async () => {
-    // Validation côté client d'abord
-    const clientErrors = validateForm();
-    if (clientErrors.length > 0) {
-        showError(`❌ Veuillez corriger les erreurs suivantes :\n${clientErrors.join('\n')}`);
+    // Validation côté client pour toutes les étapes
+    const allErrors: string[] = [];
+    for (let step = 1; step <= totalSteps; step++) {
+        const originalStep = currentStep.value;
+        currentStep.value = step;
+        const { errors } = validateCurrentStep();
+        allErrors.push(...errors);
+        currentStep.value = originalStep;
+    }
+    
+    if (allErrors.length > 0) {
+        showError(`Veuillez corriger les erreurs suivantes :\n\n${allErrors.map(err => `• ${err}`).join('\n')}`);
         return;
     }
 
@@ -470,34 +619,89 @@ const submitAnnouncement = async () => {
 
     try {
         router.post('/annonces', announcementData, {
-            onSuccess: () => {
-                showSuccess('🎉 Annonce publiée avec succès !');
-                // Redirection après un petit délai pour voir le toast
+            onSuccess: (page) => {
+                // Récupérer le message de succès depuis la session
+                const successData = page.props.flash?.success;
+                
+                if (successData && typeof successData === 'object') {
+                    showSuccess(`${successData.title}\n${successData.message}`);
+                } else {
+                    showSuccess('🎉 Annonce publiée avec succès !');
+                }
+                
+                // Redirection après un délai pour voir le toast
                 setTimeout(() => {
                     router.visit('/annonces');
-                }, 1500);
+                }, 2000);
             },
             onError: (errors) => {
-                console.error('Erreurs de validation:', errors);
+                console.error('❌ Erreurs de validation reçues:', errors);
                 
                 if (errors && Object.keys(errors).length > 0) {
-                    // Erreurs de validation spécifiques
-                    const formattedErrors = formatValidationErrors(errors);
-                    showError(`Erreur dans le formulaire :\n${formattedErrors}`);
+                    handleValidationErrors(errors);
                 } else {
-                    // Erreur générique
-                    showError("Erreur lors de la création de l'annonce. Veuillez vérifier vos informations et réessayer.");
+                    showError("❌ Erreur lors de la création de l'annonce. Veuillez vérifier vos informations et réessayer.");
                 }
             },
             onFinish: () => {
-                // Cette fonction est appelée après onSuccess ou onError
-                console.log('Requête terminée');
+                console.log('📤 Requête de création d\'annonce terminée');
             }
         });
     } catch (error) {
-        console.error('Erreur inattendue:', error);
+        console.error('❌ Erreur inattendue:', error);
         showError('❌ Une erreur inattendue est survenue. Veuillez rafraîchir la page et réessayer.');
     }
+};
+
+// Validation en temps réel lors des changements
+const validateStepRealTime = (step: number) => {
+    const originalStep = currentStep.value;
+    currentStep.value = step;
+    const { isValid, errors } = validateCurrentStep();
+    currentStep.value = originalStep;
+    
+    if (errors.length > 0) {
+        stepErrors.value[step] = errors;
+    } else {
+        delete stepErrors.value[step];
+    }
+    
+    return isValid;
+};
+
+// Watchers pour validation en temps réel
+watch([() => form.value.date, () => form.value.start_time, () => form.value.end_time], () => {
+    validateStepRealTime(1);
+});
+
+watch(() => form.value.children, () => {
+    validateStepRealTime(2);
+}, { deep: true });
+
+watch([() => form.value.address, () => form.value.latitude, () => form.value.longitude], () => {
+    validateStepRealTime(3);
+});
+
+watch(() => form.value.additional_info, () => {
+    validateStepRealTime(4);
+});
+
+watch(() => form.value.hourly_rate, () => {
+    validateStepRealTime(5);
+});
+
+// Fonction pour vérifier si une étape a des erreurs
+const hasStepErrors = (step: number): boolean => {
+    return stepErrors.value[step] && stepErrors.value[step].length > 0;
+};
+
+// Amélioration du calcul de l'état d'une étape
+const getStepState = (step: number) => {
+    if (currentStep.value === step) return 'current';
+    if (completedSteps.value.has(step) && !hasStepErrors(step)) return 'completed';
+    if (hasStepErrors(step)) return 'error';
+    if (step === currentStep.value + 1 && canProceedToNext.value) return 'available';
+    return 'disabled';
 };
 
 // Initialisation
@@ -532,25 +736,34 @@ initializeChildren();
                 <!-- Étapes interactives -->
                 <div class="relative flex items-center justify-between">
                     <div v-for="step in totalSteps" :key="step" class="flex flex-col items-center z-10">
-                        <!-- Cercle de l'étape avec animations -->
+                        <!-- Cercle de l'étape avec animations et états -->
                         <div
                             class="group flex h-14 w-14 cursor-pointer items-center justify-center rounded-full border-3 transition-all duration-300 transform hover:scale-105"
                             :class="{
                                 // Étape actuelle
-                                'border-primary bg-primary text-white shadow-lg shadow-orange-200 scale-110': currentStep === step,
-                                // Étape complétée
-                                'border-green-500 bg-green-500 text-white shadow-lg shadow-green-200': completedSteps.has(step) && currentStep !== step,
-                                // Étape non visitée mais accessible
-                                'border-orange-200 bg-secondary text-primary hover:border-orange-300 hover:bg-orange-100': currentStep !== step && !completedSteps.has(step) && (step === currentStep + 1 && canProceedToNext),
+                                'border-primary bg-primary text-white shadow-lg shadow-orange-200 scale-110': getStepState(step) === 'current',
+                                // Étape complétée sans erreur
+                                'border-green-500 bg-green-500 text-white shadow-lg shadow-green-200': getStepState(step) === 'completed',
+                                // Étape avec erreurs
+                                'border-red-500 bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse': getStepState(step) === 'error',
+                                // Étape accessible
+                                'border-orange-200 bg-secondary text-primary hover:border-orange-300 hover:bg-orange-100': getStepState(step) === 'available',
                                 // Étape non accessible
-                                'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed': currentStep !== step && !completedSteps.has(step) && !(step === currentStep + 1 && canProceedToNext),
+                                'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed': getStepState(step) === 'disabled',
                             }"
                             @click="goToStep(step)"
                         >
                             <!-- Icône check pour les étapes complétées -->
-                            <div v-if="completedSteps.has(step) && currentStep !== step" 
+                            <div v-if="getStepState(step) === 'completed'" 
                                  class="animate-in zoom-in duration-300">
                                 <Check class="h-6 w-6" />
+                            </div>
+                            <!-- Icône X pour les étapes avec erreurs -->
+                            <div v-else-if="getStepState(step) === 'error'" 
+                                 class="animate-in zoom-in duration-300">
+                                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
                             </div>
                             <!-- Icône de l'étape pour les autres -->
                             <component v-else :is="stepIcons[step - 1]" class="h-6 w-6 transition-all duration-200" />
@@ -561,19 +774,27 @@ initializeChildren();
                             <span
                                 class="text-sm font-medium transition-all duration-200"
                                 :class="{
-                                    'text-primary font-semibold': currentStep === step,
-                                    'text-green-600 font-medium': completedSteps.has(step) && currentStep !== step,
-                                    'text-gray-500': currentStep !== step && !completedSteps.has(step),
+                                    'text-primary font-semibold': getStepState(step) === 'current',
+                                    'text-green-600 font-medium': getStepState(step) === 'completed',
+                                    'text-red-600 font-medium': getStepState(step) === 'error',
+                                    'text-gray-500': getStepState(step) === 'disabled' || getStepState(step) === 'available',
                                 }"
                             >
                                 {{ stepTitles[step - 1] }}
                             </span>
+                            
+                            <!-- Indicateur d'erreurs sous le titre -->
+                            <div v-if="hasStepErrors(step)" class="mt-1 text-xs text-red-600">
+                                {{ stepErrors[step]?.length }} erreur{{ stepErrors[step]?.length > 1 ? 's' : '' }}
+                            </div>
+                            
                             <!-- Indicateur de progression sous le titre -->
                             <div class="mt-1 h-1 w-16 mx-auto rounded-full transition-all duration-300"
                                  :class="{
-                                     'bg-primary': currentStep === step,
-                                     'bg-green-500': completedSteps.has(step) && currentStep !== step,
-                                     'bg-transparent': currentStep !== step && !completedSteps.has(step),
+                                     'bg-primary': getStepState(step) === 'current',
+                                     'bg-green-500': getStepState(step) === 'completed',
+                                     'bg-red-500': getStepState(step) === 'error',
+                                     'bg-transparent': getStepState(step) === 'disabled' || getStepState(step) === 'available',
                                  }">
                             </div>
                         </div>
@@ -585,9 +806,10 @@ initializeChildren();
                             <div v-for="i in totalSteps - 1" :key="i" class="flex-1 flex items-center">
                                 <div class="h-1 w-full transition-all duration-500"
                                      :class="{
-                                         'bg-green-500': completedSteps.has(i),
-                                         'bg-primary': currentStep > i && !completedSteps.has(i),
-                                         'bg-gray-200': currentStep <= i && !completedSteps.has(i),
+                                         'bg-green-500': completedSteps.has(i) && !hasStepErrors(i),
+                                         'bg-red-500': hasStepErrors(i),
+                                         'bg-primary': currentStep > i && !completedSteps.has(i) && !hasStepErrors(i),
+                                         'bg-gray-200': currentStep <= i && !completedSteps.has(i) && !hasStepErrors(i),
                                      }">
                                 </div>
                                 <div class="w-14"></div> <!-- Espace pour le cercle suivant -->
@@ -600,69 +822,154 @@ initializeChildren();
             <!-- Contenu des étapes -->
             <Card class="mb-6 shadow-lg border-0">
                 <CardContent class="p-8">
- <!-- Étape 1: Date et horaires -->
-<div v-if="currentStep === 1">
-  <h2 class="mb-6 text-xl font-semibold">Quand avez-vous besoin d'une babysitter ?</h2>
+                    <!-- Étape 1: Date et horaires -->
+                    <div v-if="currentStep === 1">
+                        <h2 class="mb-6 text-xl font-semibold">Quand avez-vous besoin d'une babysitter ?</h2>
 
-  <div class="space-y-6">
-    <!-- Date -->
-    <div class="space-y-2">
-      <Label for="date">Date</Label>
-      <div class="relative">
-        <Calendar class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
-        <Input
-          id="date"
-          type="date"
-          v-model="form.date"
-          :min="new Date().toISOString().split('T')[0]"
-          class="pl-10 cursor-pointer hover:border-primary transition-colors focus:border-primary"
-          required
-          @click="handleDateClick"
-          @keydown="handleDateKeydown"
-        />
-      </div>
-    </div>
+                        <div class="space-y-6">
+                            <!-- Date -->
+                            <div class="space-y-2">
+                                <Label for="date">Date</Label>
+                                <div class="relative">
+                                    <Calendar class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+                                    <Input
+                                        id="date"
+                                        type="date"
+                                        v-model="form.date"
+                                        :min="new Date().toISOString().split('T')[0]"
+                                        class="pl-10 cursor-text hover:border-primary transition-colors focus:border-primary"
+                                        required
+                                        placeholder="JJ/MM/AAAA"
+                                    />
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    💡 Vous pouvez cliquer sur l'icône calendrier ou saisir directement la date
+                                </p>
+                            </div>
 
-    <!-- Horaires -->
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <div class="space-y-2">
-        <Label for="start_time">Heure de début</Label>
-        <Select v-model="form.start_time" required>
-          <SelectTrigger class="w-full">
-            <div class="flex items-center gap-2">
-              <Clock class="h-4 w-4 text-gray-400" />
-              <SelectValue placeholder="Sélectionner l'heure" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
-              {{ hour }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+                            <!-- Horaires avec mode de saisie -->
+                            <div class="space-y-4">
+                                <!-- Bouton pour basculer entre sélection et saisie manuelle -->
+                                <div class="flex items-center justify-between">
+                                    <Label class="text-base font-medium">Horaires</Label>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        @click="toggleTimeInputType"
+                                        class="text-xs"
+                                    >
+                                        <Clock class="h-3 w-3 mr-1" />
+                                        {{ timeInputType === 'select' ? 'Saisie manuelle' : 'Sélection rapide' }}
+                                    </Button>
+                                </div>
 
-      <div class="space-y-2">
-        <Label for="end_time">Heure de fin</Label>
-        <Select v-model="form.end_time" required>
-          <SelectTrigger class="w-full">
-            <div class="flex items-center gap-2">
-              <Clock class="h-4 w-4 text-gray-400" />
-              <SelectValue placeholder="Sélectionner l'heure" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
-              {{ hour }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+                                <!-- Mode sélection (par défaut) -->
+                                <div v-if="timeInputType === 'select'" class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <Label for="start_time">Heure de début</Label>
+                                        <Select v-model="form.start_time" required>
+                                            <SelectTrigger class="w-full">
+                                                <div class="flex items-center gap-2">
+                                                    <Clock class="h-4 w-4 text-gray-400" />
+                                                    <SelectValue placeholder="Sélectionner l'heure" />
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent class="max-h-60">
+                                                <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
+                                                    {{ hour }}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                            <!-- Durée estimée -->
-                            <div v-if="estimatedDuration > 0" class="rounded-lg bg-blue-50 p-4">
-                                <p class="text-sm text-blue-800"><strong>Durée estimée:</strong> {{ estimatedDuration.toFixed(1) }} heures</p>
+                                    <div class="space-y-2">
+                                        <Label for="end_time">Heure de fin</Label>
+                                        <Select v-model="form.end_time" required>
+                                            <SelectTrigger class="w-full">
+                                                <div class="flex items-center gap-2">
+                                                    <Clock class="h-4 w-4 text-gray-400" />
+                                                    <SelectValue placeholder="Sélectionner l'heure" />
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent class="max-h-60">
+                                                <SelectItem v-for="hour in timeOptions" :key="hour" :value="hour">
+                                                    {{ hour }}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <!-- Mode saisie manuelle -->
+                                <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <Label for="start_time_manual">Heure de début</Label>
+                                        <div class="relative">
+                                            <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+                                            <Input
+                                                id="start_time_manual"
+                                                type="time"
+                                                v-model="form.start_time"
+                                                min="06:00"
+                                                max="23:59"
+                                                step="900"
+                                                class="pl-10"
+                                                required
+                                                placeholder="HH:MM"
+                                                @input="formatTimeInput"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <Label for="end_time_manual">Heure de fin</Label>
+                                        <div class="relative">
+                                            <Clock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+                                            <Input
+                                                id="end_time_manual"
+                                                type="time"
+                                                v-model="form.end_time"
+                                                min="06:00"
+                                                max="23:59"
+                                                step="900"
+                                                class="pl-10"
+                                                required
+                                                placeholder="HH:MM"
+                                                @input="formatTimeInput"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p class="text-xs text-gray-500">
+                                    ⏰ {{ timeInputType === 'select' ? 'Créneaux par tranches de 15 minutes' : 'Saisissez l\'heure au format HH:MM (ex: 14:30)' }}
+                                </p>
+                            </div>
+
+                            <!-- Durée estimée avec avertissement pour garde de nuit -->
+                            <div v-if="estimatedDuration > 0" class="space-y-3">
+                                <div class="rounded-lg bg-blue-50 p-4">
+                                    <p class="text-sm text-blue-800"><strong>Durée estimée:</strong> {{ durationDisplayText }}</p>
+                                </div>
+                                
+                                <!-- Avertissement pour garde de nuit -->
+                                <div v-if="spansNextDay" class="rounded-lg bg-orange-50 border border-orange-200 p-4">
+                                    <div class="flex items-start gap-3">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h3 class="text-sm font-medium text-orange-800">Garde de nuit détectée</h3>
+                                            <p class="mt-1 text-sm text-orange-700">
+                                                Cette annonce s'étend sur deux jours (se termine le lendemain). 
+                                                Assurez-vous que c'est bien ce que vous souhaitez et que le tarif proposé correspond à une garde de nuit.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -805,7 +1112,10 @@ initializeChildren();
                                     <span class="text-sm text-green-800">Coût estimé total:</span>
                                     <span class="text-lg font-semibold text-green-800">{{ estimatedTotal }}€</span>
                                 </div>
-                                <p class="mt-1 text-xs text-green-600">Basé sur {{ estimatedDuration.toFixed(1) }}h à {{ form.hourly_rate }}€/h</p>
+                                <div class="mt-1 flex items-center justify-between text-xs">
+                                    <span class="text-green-600">{{ durationDisplayText }} à {{ form.hourly_rate }}€/h</span>
+                                    <span v-if="spansNextDay" class="text-orange-600 font-medium">⚠️ Garde de nuit</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -824,20 +1134,20 @@ initializeChildren();
                 </Button>
                 <div v-else></div>
 
-           <!-- Bouton « Suivant » / « Ignorer cette étape » -->
-<Button
-  v-if="currentStep < totalSteps"
-  @click="nextStep"
-  :disabled="currentStep !== 4 && !canProceedToNext"
-  class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
->
-  <span v-if="currentStep === 4 && !form.additional_info.trim()">
-    Ignorer cette étape →
-  </span>
-  <span v-else>
-    Suivant →
-  </span>
-</Button>
+                <!-- Bouton « Suivant » / « Ignorer cette étape » -->
+                <Button
+                    v-if="currentStep < totalSteps"
+                    @click="nextStep"
+                    :disabled="currentStep !== 4 && !canProceedToNext"
+                    class="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                    <span v-if="currentStep === 4 && !form.additional_info.trim()">
+                        Ignorer cette étape →
+                    </span>
+                    <span v-else>
+                        Suivant →
+                    </span>
+                </Button>
 
                 <Button
                     v-else

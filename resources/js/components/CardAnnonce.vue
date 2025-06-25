@@ -82,6 +82,8 @@
         :family-name="name"
         :requested-rate="rate"
         :additional-info="additionalInfo"
+        :start-time="startTime"
+        :end-time="endTime"
       />
     </div>
   </template>
@@ -102,6 +104,8 @@
     date: String,
     rawDate: String, // Date au format ISO pour le modal
     time: String,
+    startTime: String, // Heure de début pour calcul de durée
+    endTime: String, // Heure de fin pour calcul de durée
     postalCode: String,
     city: String,
     childrenLabel: String,

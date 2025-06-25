@@ -213,6 +213,8 @@ const annonces = computed(() => {
             date: formatDate(dateStart),
             rawDate: announcement.date_start, // Date ISO pour le modal
             time: `${formatTime(dateStart)} - ${formatTime(dateEnd)}`,
+            startTime: formatTime(dateStart), // Heure de début pour calcul de durée
+            endTime: formatTime(dateEnd), // Heure de fin pour calcul de durée
             postalCode: postalCode,
             city: city,
             childrenLabel: `${announcement.children.length} enfant${announcement.children.length > 1 ? 's' : ''} (${childrenAges.join(', ')})`,

@@ -6,6 +6,7 @@ use App\Models\Ad;
 use App\Models\AdApplication;
 use App\Models\Address;
 use App\Models\User;
+use App\Http\Requests\StoreAnnouncementRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -302,45 +303,20 @@ class AnnouncementController extends Controller
     }
 
     /**
-     * Store a newly created announcement.
+     * Store a new announcement.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreAnnouncementRequest $request): RedirectResponse
     {
-        // Debug: Log des données reçues
-        Log::info('Données reçues pour création annonce:', $request->all());
-
         try {
-            $validated = $request->validate([
-                // Étape 1: Date et horaires
-                'date' => 'required|date|after_or_equal:today',
-                'start_time' => 'required|string',
-                'end_time' => 'required|string',
-                
-                // Étape 2: Enfants
-                'children' => 'required|array|min:1',
-                'children.*.nom' => 'required|string|max:255',
-                'children.*.age' => 'required|string|max:3',
-                'children.*.unite' => 'required|in:ans,mois',
-                
-                // Étape 3: Lieu
-                'address' => 'required|string|max:500',
-                'postal_code' => 'required|string|max:10',
-                'country' => 'required|string|max:100',
-                'latitude' => 'required|numeric|between:-90,90',
-                'longitude' => 'required|numeric|between:-180,180',
-                
-                // Étape 4: Détails (optionnel)
-                'additional_info' => 'nullable|string|max:2000',
-                
-                // Étape 5: Tarif
-                'hourly_rate' => 'required|numeric|min:0|max:999.99',
-                'estimated_duration' => 'nullable|numeric|min:0',
-                'estimated_total' => 'nullable|numeric|min:0',
+            // Récupérer les données validées
+            $validated = $request->validated();
+
+            Log::info('📝 Création d\'annonce - Données validées reçues:', [
+                'user_id' => Auth::id(),
+                'data_keys' => array_keys($validated)
             ]);
 
-            Log::info('Données validées:', $validated);
-
-            // Créer ou récupérer l'adresse avec firstOrCreate
+            // Créer ou récupérer l'adresse
             $address = Address::firstOrCreate([
                 'address' => $validated['address'],
                 'postal_code' => $validated['postal_code'],
@@ -350,7 +326,7 @@ class AnnouncementController extends Controller
                 'longitude' => $validated['longitude'],
             ]);
 
-            Log::info('Adresse créée/récupérée:', ['address_id' => $address->id]);
+            Log::info('📍 Adresse créée/récupérée:', ['address_id' => $address->id]);
 
             // Créer les dates complètes
             $dateStart = $validated['date'] . ' ' . $validated['start_time'] . ':00';
@@ -359,7 +335,7 @@ class AnnouncementController extends Controller
             // Créer un titre automatique
             $childrenCount = count($validated['children']);
             $title = "Garde de {$childrenCount} enfant" . ($childrenCount > 1 ? 's' : '') . 
-                    " le " . \Carbon\Carbon::parse($validated['date'])->format('d/m/Y');
+                    " le " . Carbon::parse($validated['date'])->format('d/m/Y');
 
             // Créer l'annonce
             $announcement = Ad::create([
@@ -376,21 +352,35 @@ class AnnouncementController extends Controller
                 'additional_info' => $validated['additional_info'] ?? null
             ]);
 
-            Log::info('Annonce créée avec succès:', ['ad_id' => $announcement->id]);
+            Log::info('✅ Annonce créée avec succès:', [
+                'ad_id' => $announcement->id,
+                'title' => $title,
+                'parent_id' => Auth::id()
+            ]);
 
+            // Réponse avec message de succès structuré
             return redirect()
                 ->route('announcements.index')
-                ->with('success', 'Annonce créée avec succès !');
+                ->with('success', [
+                    'title' => 'Annonce publiée !',
+                    'message' => 'Votre annonce a été créée avec succès et est maintenant visible par toutes les babysitters.',
+                    'type' => 'success'
+                ]);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Erreur de validation:', ['errors' => $e->errors()]);
-            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Erreur lors de la création de l\'annonce:', [
+            Log::error('❌ Erreur lors de la création de l\'annonce:', [
+                'user_id' => Auth::id(),
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return back()->with('error', 'Une erreur est survenue lors de la création de l\'annonce.');
+
+            return back()
+                ->withInput()
+                ->with('error', [
+                    'title' => 'Erreur lors de la création',
+                    'message' => 'Une erreur technique est survenue. Veuillez réessayer dans quelques instants.',
+                    'type' => 'error'
+                ]);
         }
     }
 
