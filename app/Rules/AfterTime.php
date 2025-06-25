@@ -25,27 +25,48 @@ class AfterTime implements ValidationRule
             return;
         }
 
-        // Convertir les heures en timestamps pour comparaison
-        $startTimestamp = strtotime("1970-01-01 " . $this->startTime);
-        $endTimestamp = strtotime("1970-01-01 " . $value);
+        // Convertir les heures en minutes depuis minuit
+        $startMinutes = $this->timeToMinutes($this->startTime);
+        $endMinutes = $this->timeToMinutes($value);
 
-        // Vérifier que l'heure de fin est après l'heure de début
-        if ($endTimestamp <= $startTimestamp) {
-            $fail('L\'heure de fin doit être après l\'heure de début.');
-            return;
+        // Si l'heure de fin est plus petite que l'heure de début,
+        // cela signifie que ça se termine le lendemain
+        if ($endMinutes <= $startMinutes) {
+            // Ajouter 24 heures (1440 minutes) pour passer au lendemain
+            $endMinutes += 24 * 60;
         }
 
+        $durationMinutes = $endMinutes - $startMinutes;
+
         // Vérifier que la durée est d'au moins 30 minutes
-        $durationMinutes = ($endTimestamp - $startTimestamp) / 60;
         if ($durationMinutes < 30) {
             $fail('La garde doit durer au moins 30 minutes.');
             return;
         }
 
-        // Vérifier que la durée ne dépasse pas 12 heures
+        // Vérifier que la durée ne dépasse pas 24 heures
+        if ($durationMinutes > 24 * 60) {
+            $fail('La garde ne peut pas durer plus de 24 heures.');
+            return;
+        }
+
+        // Avertissement si la garde dure plus de 12 heures (garde de nuit)
         $durationHours = $durationMinutes / 60;
         if ($durationHours > 12) {
-            $fail('La garde ne peut pas durer plus de 12 heures.');
+            // Note: On pourrait ajouter un warning ici, mais pour l'instant on accepte
+            // les gardes de nuit longues
         }
+    }
+
+    /**
+     * Convertit une heure au format HH:MM en minutes depuis minuit
+     */
+    private function timeToMinutes($time): int
+    {
+        $parts = explode(':', $time);
+        $hours = (int) $parts[0];
+        $minutes = (int) ($parts[1] ?? 0);
+        
+        return $hours * 60 + $minutes;
     }
 }

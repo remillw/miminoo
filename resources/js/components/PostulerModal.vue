@@ -575,10 +575,18 @@ async function submit() {
         }
 
         if (response.ok) {
-            // Vérifier si la réponse contient une erreur malgré le status 200
-            if (data.error) {
+            // Vérifications multiples pour détecter les erreurs dans une réponse 200
+            if (data.error || data.errors || data.status === 'error' || !data.message) {
                 console.error('❌ Erreur dans réponse 200:', data);
-                error.value = getFriendlyErrorMessage(response.status, data.error);
+                
+                // Si on a des erreurs de validation spécifiques
+                if (data.errors) {
+                    parseValidationErrors(data);
+                    error.value = 'Veuillez corriger les erreurs dans le formulaire.';
+                } else {
+                    // Utiliser le message d'erreur ou un message générique
+                    error.value = data.error || data.message || 'Une erreur est survenue lors de l\'envoi de votre candidature. Veuillez réessayer.';
+                }
             } else {
                 console.log('✅ Candidature envoyée avec succès');
                 success.value = data.message || 'Candidature envoyée avec succès ! La famille sera notifiée de votre demande.';

@@ -655,6 +655,11 @@ const submitAnnouncement = async () => {
 
 // Validation en temps réel lors des changements
 const validateStepRealTime = (step: number) => {
+    // Ne valider que si l'étape a été visitée ou est l'étape actuelle
+    if (step > currentStep.value && !completedSteps.value.has(step)) {
+        return true; // Ignorer la validation pour les étapes futures non visitées
+    }
+    
     const originalStep = currentStep.value;
     currentStep.value = step;
     const { isValid, errors } = validateCurrentStep();
@@ -669,29 +674,43 @@ const validateStepRealTime = (step: number) => {
     return isValid;
 };
 
-// Watchers pour validation en temps réel
+// Watchers pour validation en temps réel (seulement pour l'étape actuelle)
 watch([() => form.value.date, () => form.value.start_time, () => form.value.end_time], () => {
-    validateStepRealTime(1);
+    if (currentStep.value === 1 || completedSteps.value.has(1)) {
+        validateStepRealTime(1);
+    }
 });
 
 watch(() => form.value.children, () => {
-    validateStepRealTime(2);
+    if (currentStep.value === 2 || completedSteps.value.has(2)) {
+        validateStepRealTime(2);
+    }
 }, { deep: true });
 
 watch([() => form.value.address, () => form.value.latitude, () => form.value.longitude], () => {
-    validateStepRealTime(3);
+    if (currentStep.value === 3 || completedSteps.value.has(3)) {
+        validateStepRealTime(3);
+    }
 });
 
 watch(() => form.value.additional_info, () => {
-    validateStepRealTime(4);
+    if (currentStep.value === 4 || completedSteps.value.has(4)) {
+        validateStepRealTime(4);
+    }
 });
 
 watch(() => form.value.hourly_rate, () => {
-    validateStepRealTime(5);
+    if (currentStep.value === 5 || completedSteps.value.has(5)) {
+        validateStepRealTime(5);
+    }
 });
 
-// Fonction pour vérifier si une étape a des erreurs
+// Fonction pour vérifier si une étape a des erreurs (seulement si visitée)
 const hasStepErrors = (step: number): boolean => {
+    // N'afficher les erreurs que pour les étapes visitées ou l'étape actuelle
+    if (step > currentStep.value && !completedSteps.value.has(step)) {
+        return false;
+    }
     return stepErrors.value[step] && stepErrors.value[step].length > 0;
 };
 
@@ -702,6 +721,22 @@ const getStepState = (step: number) => {
     if (hasStepErrors(step)) return 'error';
     if (step === currentStep.value + 1 && canProceedToNext.value) return 'available';
     return 'disabled';
+};
+
+// Gestion améliorée du calendrier
+const dateInput = ref<HTMLInputElement>();
+
+const openDatePicker = () => {
+    if (dateInput.value && dateInput.value.showPicker) {
+        try {
+            dateInput.value.showPicker();
+        } catch (error) {
+            // Fallback si showPicker n'est pas supporté
+            dateInput.value.focus();
+        }
+    } else if (dateInput.value) {
+        dateInput.value.focus();
+    }
 };
 
 // Initialisation
@@ -831,19 +866,23 @@ initializeChildren();
                             <div class="space-y-2">
                                 <Label for="date">Date</Label>
                                 <div class="relative">
-                                    <Calendar class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 pointer-events-none" />
+                                    <Calendar 
+                                        class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 z-10 cursor-pointer hover:text-primary transition-colors" 
+                                        @click="openDatePicker"
+                                    />
                                     <Input
+                                        ref="dateInput"
                                         id="date"
                                         type="date"
                                         v-model="form.date"
                                         :min="new Date().toISOString().split('T')[0]"
-                                        class="pl-10 cursor-text hover:border-primary transition-colors focus:border-primary"
+                                        class="pl-10 cursor-pointer hover:border-primary transition-colors focus:border-primary"
                                         required
                                         placeholder="JJ/MM/AAAA"
                                     />
                                 </div>
                                 <p class="text-xs text-gray-500">
-                                    💡 Vous pouvez cliquer sur l'icône calendrier ou saisir directement la date
+                                    📅 Cliquez sur l'icône calendrier ou dans le champ pour sélectionner une date
                                 </p>
                             </div>
 
