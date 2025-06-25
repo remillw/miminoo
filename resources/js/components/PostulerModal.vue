@@ -28,14 +28,6 @@
 
             <!-- Corps avec scroll -->
             <div class="max-h-[50vh] space-y-6 overflow-y-auto px-6 py-4">
-                <!-- Message de succès -->
-                <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 p-3">
-                    <p class="flex items-center gap-2 text-sm text-green-700">
-                        <CheckCircle class="h-4 w-4" />
-                        {{ success }}
-                    </p>
-                </div>
-
                 <!-- Récapitulatif en cards compactes -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-secondary/50 hover:bg-secondary rounded-lg p-3 transition-all">
@@ -204,36 +196,12 @@
 
             <!-- Pied de pop-up compact -->
             <div class="border-t bg-gradient-to-br from-gray-50 to-white px-6 py-4">
-                <!-- Messages d'état améliorés -->
-                <div v-if="success || error" class="mb-4 space-y-3">
-                    <!-- Message de succès -->
-                    <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 p-3 animate-in fade-in duration-300">
-                        <p class="flex items-center gap-2 text-sm text-green-700">
-                            <CheckCircle class="h-4 w-4" />
-                            {{ success }}
-                        </p>
-                    </div>
-
-                    <!-- Message d'erreur général -->
-                    <div v-if="error" class="rounded-lg border border-red-200 bg-red-50 p-3 animate-in fade-in duration-300">
+                <!-- Message d'erreur général -->
+                <div v-if="error" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3">
                     <p class="flex items-start gap-2 text-sm text-red-700">
                         <AlertCircle class="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <span class="leading-relaxed">{{ error }}</span>
                     </p>
-                </div>
-
-                    <!-- Résumé des erreurs de champs si il y en a -->
-                    <div v-if="Object.keys(fieldErrors).length > 0" class="rounded-lg border border-orange-200 bg-orange-50 p-3">
-                        <p class="flex items-center gap-2 text-sm text-orange-700 font-medium mb-2">
-                            <AlertCircle class="h-4 w-4" />
-                            Erreurs de validation :
-                        </p>
-                        <ul class="text-xs text-orange-600 space-y-1 ml-6">
-                            <li v-for="(error, field) in fieldErrors" :key="field" class="list-disc">
-                                {{ error }}
-                            </li>
-                        </ul>
-                    </div>
                 </div>
 
                 <!-- Boutons d'action -->
@@ -245,11 +213,10 @@
                         class="flex flex-1 items-center justify-center gap-2 rounded-lg border-gray-200 py-2 text-sm transition-all duration-200 hover:bg-gray-50"
                     >
                         <X class="h-4 w-4" />
-                        {{ success ? 'Fermer' : 'Annuler' }}
+                        Annuler
                     </Button>
 
                     <Button
-                        v-if="!success"
                         :disabled="!canSubmit || isLoading"
                         @click="submit"
                         :class="[
@@ -280,7 +247,6 @@ import {
     Baby,
     Calculator,
     Calendar,
-    CheckCircle,
     Clock,
     Euro,
     Info,
@@ -294,6 +260,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
+import { useToast } from '@/composables/useToast';
 
 interface Props {
     isOpen: boolean;
@@ -314,6 +281,9 @@ interface Props {
 const props = defineProps<Props>();
 const message = ref('');
 const rate = ref(props.requestedRate);
+
+// Composable pour les toasts
+const { showSuccess, showError } = useToast();
 
 // Calcul dynamique de la durée basé sur les heures de l'annonce
 const duration = computed(() => {
@@ -393,7 +363,6 @@ const spansNextDay = computed(() => {
 const isLoading = ref(false);
 const error = ref('');
 const fieldErrors = ref<Record<string, string>>({});
-const success = ref('');
 
 const isCounterProposal = computed(() => rate.value !== props.requestedRate);
 const effectiveRate = computed(() => rate.value);
@@ -459,83 +428,10 @@ const resetModalState = async () => {
 // Watch pour s'assurer que la modal est bien réinitialisée à chaque ouverture
 watch(() => props.isOpen, resetModalState);
 
-// Fonction pour parser les erreurs de validation du backend
-const parseValidationErrors = (data: any) => {
-    fieldErrors.value = {};
-    
-    if (data.errors) {
-        // Format Laravel validation errors
-        Object.entries(data.errors).forEach(([field, messages]: [string, any]) => {
-            const errorArray = Array.isArray(messages) ? messages : [messages];
-            fieldErrors.value[field] = errorArray[0];
-        });
-    } else if (data.error && typeof data.error === 'string') {
-        // Erreur générale
-        error.value = data.error;
-    }
-};
-
 // Fonction pour réinitialiser les erreurs
 const clearErrors = () => {
     error.value = '';
     fieldErrors.value = {};
-    success.value = '';
-};
-
-// Fonction pour obtenir un message d'erreur convivial amélioré
-const getFriendlyErrorMessage = (status: number, serverError?: string, validationErrors?: any) => {
-    // Si on a des erreurs de validation spécifiques, les traiter séparément
-    if (validationErrors) {
-        parseValidationErrors(validationErrors);
-        return 'Veuillez corriger les erreurs dans le formulaire.';
-    }
-
-    switch (status) {
-        case 400:
-            if (serverError?.includes('déjà postulé')) {
-                return "Vous avez déjà envoyé une candidature pour cette annonce. Vous pouvez consulter son statut dans votre espace babysitter.";
-            }
-            if (serverError?.includes('propre annonce')) {
-                return "Vous ne pouvez pas postuler à votre propre annonce. Cette annonce vous appartient !";
-            }
-            if (serverError?.includes('plus disponible')) {
-                return "Cette annonce n'est plus disponible. Elle a peut-être été supprimée ou réservée par quelqu'un d'autre.";
-            }
-            if (serverError?.includes('déjà eu lieu')) {
-                return "Cette annonce a déjà eu lieu ou commence très bientôt. Vous ne pouvez plus y postuler.";
-            }
-            return serverError || "Les données envoyées ne sont pas valides. Veuillez vérifier votre message et votre tarif.";
-        
-        case 401:
-            return "Votre session a expiré. Veuillez vous reconnecter et réessayer.";
-        
-        case 403:
-            if (serverError?.includes('babysitters')) {
-                return "Seuls les comptes babysitter peuvent postuler aux annonces. Vérifiez que vous êtes connecté avec le bon compte.";
-            }
-            if (serverError?.includes('vérifié') || serverError?.includes('vérification')) {
-                return "Votre profil babysitter n'est pas encore vérifié. Complétez votre profil et demandez la vérification dans votre espace personnel avant de postuler.";
-            }
-            return serverError || "Vous n'avez pas l'autorisation d'effectuer cette action.";
-        
-        case 404:
-            return "Cette annonce n'existe plus ou a été supprimée. Retournez à la liste des annonces pour en voir d'autres.";
-        
-        case 422:
-            return "Certaines informations ne sont pas valides. Veuillez corriger les champs en erreur.";
-        
-        case 429:
-            return "Trop de tentatives. Attendez quelques minutes avant de réessayer.";
-        
-        case 500:
-            return "Une erreur technique est survenue sur nos serveurs. Notre équipe a été notifiée. Réessayez dans quelques minutes.";
-        
-        case 503:
-            return "Le service est temporairement indisponible pour maintenance. Réessayez dans quelques minutes.";
-        
-        default:
-            return serverError || `Une erreur inattendue est survenue (Code: ${status}). Contactez le support si le problème persiste.`;
-    }
 };
 
 async function submit() {
@@ -544,68 +440,46 @@ async function submit() {
     isLoading.value = true;
     clearErrors();
 
-    try {
-        console.log('🚀 Envoi candidature pour annonce:', props.announcementId);
-
-        // Utiliser Inertia pour une meilleure gestion des sessions Laravel
-        const { router } = await import('@inertiajs/vue3');
-        
-        router.post(route('announcements.apply', { announcement: props.announcementId }), {
-            motivation_note: message.value.trim(),
-            proposed_rate: rate.value,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-            onSuccess: (page) => {
-                console.log('✅ Candidature envoyée avec succès');
-                
-                // Récupérer le message de succès depuis la session flash
-                const successData = page.props.flash?.success;
-                if (successData && typeof successData === 'object') {
-                    success.value = `${successData.title}\n${successData.message}`;
-                } else if (typeof successData === 'string') {
-                    success.value = successData;
-                } else {
-                    success.value = 'Candidature envoyée avec succès ! La famille sera notifiée de votre demande.';
-                }
-
-                // Fermer automatiquement après 2.5 secondes
-                setTimeout(() => {
-                    closeModal();
-                }, 2500);
-            },
-            onError: (errors) => {
-                console.error('❌ Erreurs de validation reçues:', errors);
-                
-                if (errors && Object.keys(errors).length > 0) {
-                    // Traiter les erreurs de validation
-                    parseValidationErrors({ errors });
-                    
-                    // Message d'erreur principal basé sur le type d'erreur
-                    const errorKeys = Object.keys(errors);
-                    if (errorKeys.includes('motivation_note')) {
-                        error.value = 'Le message de motivation contient des erreurs.';
-                    } else if (errorKeys.includes('proposed_rate')) {
-                        error.value = 'Le tarif proposé n\'est pas valide.';
-                    } else if (errorKeys.some(key => key.includes('auth') || key.includes('session'))) {
-                        error.value = 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
-                    } else {
-                        error.value = 'Veuillez corriger les erreurs dans le formulaire.';
-                    }
-                } else {
-                    error.value = 'Une erreur est survenue lors de l\'envoi de votre candidature. Veuillez réessayer.';
-                }
-            },
-            onFinish: () => {
-                isLoading.value = false;
-                console.log('📤 Requête de candidature terminée');
+    // Utiliser Inertia pour une meilleure gestion des sessions Laravel
+    const { router } = await import('@inertiajs/vue3');
+    
+    router.post(route('announcements.apply', { announcement: props.announcementId }), {
+        motivation_note: message.value.trim(),
+        proposed_rate: rate.value,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        onSuccess: (page) => {
+            // Fermer la modal immédiatement
+            closeModal();
+            
+            // Afficher le toast de succès
+            showSuccess(
+                '🎉 Candidature envoyée !', 
+                'Votre candidature a été transmise à la famille.'
+            );
+        },
+        onError: (errors) => {
+            // Traiter les erreurs de validation
+            if (errors.motivation_note) {
+                fieldErrors.value.motivation_note = Array.isArray(errors.motivation_note) 
+                    ? errors.motivation_note[0] 
+                    : errors.motivation_note;
             }
-        });
-
-    } catch (err) {
-        console.error("❌ Erreur lors de l'envoi de la candidature:", err);
-        error.value = 'Une erreur technique est survenue. Veuillez rafraîchir la page et réessayer.';
-        isLoading.value = false;
-    }
+            if (errors.proposed_rate) {
+                fieldErrors.value.proposed_rate = Array.isArray(errors.proposed_rate) 
+                    ? errors.proposed_rate[0] 
+                    : errors.proposed_rate;
+            }
+            
+            // Message d'erreur générique si pas d'erreurs spécifiques
+            if (!errors.motivation_note && !errors.proposed_rate) {
+                error.value = 'Une erreur est survenue lors de l\'envoi de votre candidature.';
+            }
+        },
+        onFinish: () => {
+            isLoading.value = false;
+        }
+    });
 }
 </script>
