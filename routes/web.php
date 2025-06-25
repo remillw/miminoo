@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\StripeVerificationController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ParentController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -195,7 +196,7 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
 Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('babysitter.show');
 
 // Routes publiques avec slugs
-Route::get('parent/{slug}', [App\Http\Controllers\ParentController::class, 'show'])->name('parent.show');
+Route::get('parent/{slug}', [ParentController::class, 'show'])->name('parent.show');
 Route::get('annonce/{slug}', [AnnouncementController::class, 'show'])->name('announcements.show');
 
 // Routes pour l'administration
