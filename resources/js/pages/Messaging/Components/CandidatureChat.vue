@@ -7,10 +7,18 @@
                     Candidature - {{ application.status === 'pending' ? 'En attente' : 'En négociation' }}
                 </div>
                 <div :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-600">
-                    Tarif proposé : <span class="text-primary font-semibold">{{ application.proposed_rate }}€/h</span>
-                    <span v-if="application.counter_rate" class="ml-2">
-                        → <span class="font-semibold text-blue-600">{{ application.counter_rate }}€/h</span>
-                    </span>
+                    <!-- Si accepté avec contre-offre, afficher le tarif accepté comme principal -->
+                    <template v-if="application.status === 'accepted' && application.counter_rate">
+                        Tarif accepté : <span class="font-semibold text-green-600">{{ application.counter_rate }}€/h</span>
+                        <span class="ml-2 text-xs text-gray-500">(Initial : {{ application.proposed_rate }}€/h)</span>
+                    </template>
+                    <!-- Sinon, affichage normal -->
+                    <template v-else>
+                        Tarif proposé : <span class="text-primary font-semibold">{{ application.proposed_rate }}€/h</span>
+                        <span v-if="application.counter_rate" class="ml-2">
+                            → <span class="font-semibold text-blue-600">{{ application.counter_rate }}€/h</span>
+                        </span>
+                    </template>
                 </div>
             </div>
         </div>

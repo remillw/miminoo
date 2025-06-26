@@ -406,11 +406,18 @@ class StripeService
                 ]);
                 
                 $user->update(['stripe_customer_id' => $customer->id]);
+                // Forcer le rechargement pour s'assurer que stripe_customer_id est bien mis à jour
+                $user->refresh();
                 
                 Log::info('Customer Stripe créé', [
                     'user_id' => $user->id,
                     'customer_id' => $customer->id
                 ]);
+            }
+
+            // Vérifier que le customer_id n'est pas vide
+            if (!$user->stripe_customer_id) {
+                throw new \Exception('Customer Stripe manquant après création');
             }
 
             $paymentIntentData = [
