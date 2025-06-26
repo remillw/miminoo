@@ -209,8 +209,35 @@ class Conversation extends Model
         parent::boot();
 
         static::created(function ($conversation) {
-            // Message système de bienvenue
-            $conversation->addSystemMessage('conversation_started');
+            // Ajouter le message de candidature comme premier message si une application existe
+            if ($conversation->application_id) {
+                // Charger l'application avec les relations nécessaires
+                $application = \App\Models\AdApplication::with('babysitter')->find($conversation->application_id);
+                
+                if ($application && $application->babysitter) {
+                    $babysitter = $application->babysitter;
+                    
+                    // Créer le message de candidature
+                    $motivationText = $application->motivation_note ? '"' . $application->motivation_note . '"' : '';
+                    $rateText = $application->proposed_rate ? " pour {$application->proposed_rate}€/h" : '';
+                    
+                    $candidatureMessage = "🙋‍♀️ Candidature de {$babysitter->firstname}";
+                    if ($motivationText) {
+                        $candidatureMessage .= "\n\n💬 Message : {$motivationText}";
+                    }
+                    if ($rateText) {
+                        $candidatureMessage .= "\n\n💰 Tarif proposé{$rateText}";
+                    }
+                    
+                    // Créer le message comme un message du babysitter
+                    $conversation->messages()->create([
+                        'sender_id' => $application->babysitter_id,
+                        'message' => $candidatureMessage,
+                        'type' => 'application',
+                        'read_at' => null // Non lu par défaut
+                    ]);
+                }
+            }
         });
     }
 }
