@@ -459,18 +459,25 @@ const submitForm = async () => {
 
         console.log('📤 Données envoyées:', formData);
 
-        await router.put(route('profil.update'), formData, {
-            preserveState: false,
-            onSuccess: () => {
-                showSuccess('Profil mis à jour avec succès !');
-                isEditing.value = false;
-                avatarPreview.value = ''; // Réinitialiser l'aperçu
+        await router.post(
+            route('profil.update'),
+            {
+                ...formData,
+                _method: 'PUT',
             },
-            onError: (errors) => {
-                console.error('❌ Erreurs de validation:', errors);
-                showError('Erreur lors de la mise à jour du profil');
+            {
+                preserveState: false,
+                onSuccess: () => {
+                    showSuccess('Profil mis à jour avec succès !');
+                    isEditing.value = false;
+                    avatarPreview.value = ''; // Réinitialiser l'aperçu
+                },
+                onError: (errors) => {
+                    console.error('❌ Erreurs de validation:', errors);
+                    showError('Erreur lors de la mise à jour du profil');
+                },
             },
-        });
+        );
     } catch (error) {
         console.error('❌ Erreur:', error);
         showError('Une erreur est survenue');
