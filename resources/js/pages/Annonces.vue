@@ -66,6 +66,9 @@ const props = defineProps<Props>();
 // Géolocalisation
 const { userPosition, isGeolocationEnabled, isLoading: geoLoading, requestGeolocation, getDistanceFromUser } = useGeolocation();
 
+// Formatage des dates
+const { formatDateRange, parseLocalDate, formatTime } = useDateFormat();
+
 // Filtres
 const searchQuery = ref(props.filters?.search || '');
 const tarif = ref(props.filters?.min_rate || 10);
@@ -167,38 +170,16 @@ const annonces = computed(() => {
         // Calculer les âges des enfants - utiliser la nouvelle colonne children
         const childrenAges = announcement.children.map((child) => `${child.age} ${child.unite}`);
 
-        // Formatage de la date et gestion multi-jours
-        const dateStart = new Date(announcement.date_start);
-        const dateEnd = new Date(announcement.date_end);
+        // Formatage de la date et gestion multi-jours avec correction du décalage horaire
+        const { dateDisplay, timeDisplay, isMultiDay } = formatDateRange(
+            announcement.date_start,
+            announcement.date_end,
+            announcement.estimated_duration,
+        );
 
-        const formatDate = (date: Date) => {
-            return date.toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-            });
-        };
-
-        const formatTime = (date: Date) => {
-            return date.toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-        };
-
-        // Détecter si c'est une mission multi-jours
-        const isMultiDay = dateStart.toDateString() !== dateEnd.toDateString();
-        const daysDiff = Math.ceil((dateEnd.getTime() - dateStart.getTime()) / (1000 * 60 * 60 * 24));
-
-        // Formatage adapté pour multi-jours
-        let dateDisplay, timeDisplay;
-        if (isMultiDay && daysDiff > 0) {
-            dateDisplay = `Du ${formatDate(dateStart)} au ${formatDate(dateEnd)}`;
-            timeDisplay = `${daysDiff + 1} jour${daysDiff > 0 ? 's' : ''} (${announcement.estimated_duration}h total)`;
-        } else {
-            dateDisplay = formatDate(dateStart);
-            timeDisplay = `${formatTime(dateStart)} - ${formatTime(dateEnd)}`;
-        }
+        // Parser les dates pour les utiliser dans les calculs
+        const dateStart = parseLocalDate(announcement.date_start);
+        const dateEnd = parseLocalDate(announcement.date_end);
 
         // Extraction de la ville depuis l'adresse
         const addressParts = announcement.address.address.split(',');

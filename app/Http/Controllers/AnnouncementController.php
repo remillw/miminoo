@@ -401,13 +401,9 @@ class AnnouncementController extends Controller
                 ]);
             }
 
-            // Notifier le babysitter (confirmation)
-            Log::info('📧 NOTIFICATION BABYSITTER...', [
-                'babysitter_id' => $user->id,
-                'babysitter_email' => $user->email
-            ]);
-            $user->notify(new NewApplication($application));
-            Log::info('✅ NOTIFICATION BABYSITTER ENVOYÉE');
+            // Note: Le babysitter ne doit PAS recevoir de notification "NewApplication" 
+            // car c'est LUI qui a fait la candidature. Une notification de confirmation
+            // sera générée automatiquement par le système plus tard si nécessaire.
 
         } catch (\Exception $e) {
             Log::error('❌ ERREUR ENVOI NOTIFICATIONS', [
@@ -495,9 +491,18 @@ class AnnouncementController extends Controller
 
             Log::info('Adresse créée/récupérée:', ['address_id' => $address->id]);
 
-            // Créer les dates complètes
-            $dateStart = $validated['date'] . ' ' . $validated['start_time'] . ':00';
-            $dateEnd = $validated['date'] . ' ' . $validated['end_time'] . ':00';
+            // Créer les dates complètes en gérant les missions de nuit (sur 2 jours)
+            $startDateTime = Carbon::parse($validated['date'] . ' ' . $validated['start_time'] . ':00');
+            $endDateTime = Carbon::parse($validated['date'] . ' ' . $validated['end_time'] . ':00');
+            
+            // Si l'heure de fin est plus petite que l'heure de début, 
+            // cela signifie que la garde se termine le lendemain
+            if ($endDateTime->format('H:i') <= $startDateTime->format('H:i')) {
+                $endDateTime->addDay();
+            }
+            
+            $dateStart = $startDateTime->toDateTimeString();
+            $dateEnd = $endDateTime->toDateTimeString();
 
             // Créer un titre automatique
             $childrenCount = count($validated['children']);

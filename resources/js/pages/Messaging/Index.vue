@@ -166,8 +166,8 @@
 
                     <!-- Zone de messages avec scroll - hauteur limitée -->
                     <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-50">
-                        <!-- Candidature avec chat intégré (seulement visible pour les babysitters) -->
-                        <div v-if="selectedConversation.type === 'application' && currentMode === 'babysitter'" class="flex h-full flex-col">
+                        <!-- Candidature avec chat intégré (visible pour parents ET babysitters) -->
+                        <div v-if="selectedConversation.type === 'application'" class="flex h-full flex-col">
                             <!-- En-tête candidature -->
                             <div class="bg-secondary flex-shrink-0 border-b border-orange-200 p-4">
                                 <CandidatureChat
@@ -187,7 +187,7 @@
                             </div>
                         </div>
 
-                        <!-- Conversation normale (pour toutes les autres situations) -->
+                        <!-- Conversation normale (pour les conversations non-application) -->
                         <div v-else class="flex h-full flex-col">
                             <div class="min-h-0 flex-1 overflow-y-auto">
                                 <ChatMessages :conversation="selectedConversation" :user-role="currentMode" ref="chatMessagesRef" />
@@ -369,11 +369,8 @@
                     </div>
                 </div>
 
-                <!-- Candidature mobile (seulement visible pour les babysitters) -->
-                <div
-                    v-if="selectedConversation.type === 'application' && currentMode === 'babysitter'"
-                    class="flex-shrink-0 border-b border-orange-200 bg-orange-50 p-4"
-                >
+                <!-- Candidature mobile (visible pour parents ET babysitters) -->
+                <div v-if="selectedConversation.type === 'application'" class="flex-shrink-0 border-b border-orange-200 bg-orange-50 p-4">
                     <CandidatureChat
                         :application="selectedConversation.application"
                         :user-role="currentMode"
