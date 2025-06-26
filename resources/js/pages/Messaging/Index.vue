@@ -746,18 +746,29 @@ function submitCounterOffer(applicationId, counterRate, counterMessage = null) {
         },
         {
             preserveState: true,
-            only: ['conversations', 'selectedConversation'],
             onSuccess: (response) => {
                 console.log('✅ Contre-offre envoyée avec succès:', response);
 
+                // Récupérer les données de l'application depuis la session flash
+                const flashData = response.props?.flash;
+                const applicationData = flashData?.application;
+
                 // Mettre à jour la candidature locale avec les données du serveur
-                if (selectedConversation.value && selectedConversation.value.application && response.props?.application) {
-                    Object.assign(selectedConversation.value.application, response.props.application);
+                if (selectedConversation.value && selectedConversation.value.application && applicationData) {
+                    console.log('🔄 Mise à jour avec données serveur:', applicationData);
+                    Object.assign(selectedConversation.value.application, applicationData);
                 } else if (selectedConversation.value && selectedConversation.value.application) {
                     // Fallback si pas de données serveur
+                    console.log('⚠️ Fallback - pas de données serveur');
                     selectedConversation.value.application.status = 'counter_offered';
                     selectedConversation.value.application.counter_rate = counterRate;
                     selectedConversation.value.application.counter_message = counterMessage;
+                }
+
+                // Mettre à jour également dans la liste des conversations
+                const convInList = props.conversations.find((c) => c.id === selectedConversation.value?.id);
+                if (convInList && convInList.application && applicationData) {
+                    Object.assign(convInList.application, applicationData);
                 }
 
                 // Afficher un message de succès
@@ -781,13 +792,17 @@ function respondToCounterOffer(applicationId, accept, finalRate = null) {
         },
         {
             preserveState: true,
-            only: ['conversations', 'selectedConversation'],
             onSuccess: (response) => {
                 console.log('✅ Réponse contre-offre envoyée avec succès:', response);
 
+                // Récupérer les données de l'application depuis la session flash
+                const flashData = response.props?.flash;
+                const applicationData = flashData?.application;
+
                 // Mettre à jour la candidature locale avec les données du serveur
-                if (selectedConversation.value && selectedConversation.value.application && response.props?.application) {
-                    Object.assign(selectedConversation.value.application, response.props.application);
+                if (selectedConversation.value && selectedConversation.value.application && applicationData) {
+                    console.log('🔄 Mise à jour avec données serveur:', applicationData);
+                    Object.assign(selectedConversation.value.application, applicationData);
 
                     if (accept) {
                         window.toast?.success('Contre-offre acceptée !');
@@ -796,6 +811,7 @@ function respondToCounterOffer(applicationId, accept, finalRate = null) {
                     }
                 } else if (selectedConversation.value && selectedConversation.value.application) {
                     // Fallback si pas de données serveur
+                    console.log('⚠️ Fallback - pas de données serveur');
                     if (accept) {
                         selectedConversation.value.application.status = 'accepted';
                         selectedConversation.value.application.final_rate = finalRate;
@@ -806,6 +822,12 @@ function respondToCounterOffer(applicationId, accept, finalRate = null) {
                         selectedConversation.value.application.counter_message = null;
                         window.toast?.info('Contre-offre refusée, retour au tarif initial');
                     }
+                }
+
+                // Mettre à jour également dans la liste des conversations
+                const convInList = props.conversations.find((c) => c.id === selectedConversation.value?.id);
+                if (convInList && convInList.application && applicationData) {
+                    Object.assign(convInList.application, applicationData);
                 }
             },
             onError: (errors) => {

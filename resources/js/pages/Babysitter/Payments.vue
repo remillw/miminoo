@@ -92,13 +92,15 @@ const isRefreshing = ref(false);
 const transferSettings = ref({
     frequency: 'manual',
     weekly_anchor: 'monday',
-    monthly_anchor: 1
+    monthly_anchor: 1,
 });
 
 const isProcessingPayout = ref(false);
 
 // Mode babysitter pour le layout
 const currentMode = ref<'babysitter' | 'parent'>('babysitter');
+
+// Gestion des erreurs simplifiée
 
 // Configuration du compte Stripe Connect (étape 1)
 const connectAccountStatus = computed(() => {
@@ -417,6 +419,14 @@ const startOnboarding = async () => {
             },
         });
 
+        // Vérifier le content-type de la réponse
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const htmlContent = await response.text();
+            console.error('Réponse non-JSON reçue:', htmlContent.substring(0, 200));
+            throw new Error(`Erreur serveur: la réponse n'est pas au format JSON (Status: ${response.status})`);
+        }
+
         const data = await response.json();
 
         if (response.ok && data.onboarding_url) {
@@ -425,7 +435,12 @@ const startOnboarding = async () => {
             throw new Error(data.error || "Erreur lors de la création du lien d'onboarding");
         }
     } catch (err) {
-        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
+        const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
+        error.value = errorMessage;
+
+        // L'erreur est déjà stockée dans error.value pour l'affichage
+
+        console.error("Erreur lors de la création du lien d'onboarding:", err);
     } finally {
         isLoading.value = false;
     }
@@ -476,13 +491,17 @@ const updateTransferSettings = () => {
 
 const triggerManualPayout = () => {
     if (!canTriggerPayout.value || isProcessingPayout.value) return;
-    
+
     isProcessingPayout.value = true;
-    router.post('/babysitter/paiements/manual-payout', {}, {
-        onFinish: () => {
-            isProcessingPayout.value = false;
-        }
-    });
+    router.post(
+        '/babysitter/paiements/manual-payout',
+        {},
+        {
+            onFinish: () => {
+                isProcessingPayout.value = false;
+            },
+        },
+    );
 };
 
 // Récupérer le statut d'onboarding intelligent
@@ -864,13 +883,11 @@ onMounted(() => {
                         <!-- Configuration de la fréquence -->
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Fréquence des virements
-                                </label>
-                                <select 
+                                <label class="mb-2 block text-sm font-medium text-gray-700"> Fréquence des virements </label>
+                                <select
                                     v-model="transferSettings.frequency"
                                     @change="updateTransferSettings"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="manual">Manuel</option>
                                     <option value="daily">Quotidien</option>
@@ -880,13 +897,11 @@ onMounted(() => {
                             </div>
 
                             <div v-if="transferSettings.frequency === 'weekly'">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Jour de la semaine
-                                </label>
-                                <select 
+                                <label class="mb-2 block text-sm font-medium text-gray-700"> Jour de la semaine </label>
+                                <select
                                     v-model="transferSettings.weekly_anchor"
                                     @change="updateTransferSettings"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="monday">Lundi</option>
                                     <option value="tuesday">Mardi</option>
@@ -897,34 +912,32 @@ onMounted(() => {
                             </div>
 
                             <div v-if="transferSettings.frequency === 'monthly'">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Jour du mois
-                                </label>
-                                <select 
+                                <label class="mb-2 block text-sm font-medium text-gray-700"> Jour du mois </label>
+                                <select
                                     v-model="transferSettings.monthly_anchor"
                                     @change="updateTransferSettings"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option v-for="day in 28" :key="day" :value="day">{{ day }}</option>
                                 </select>
                             </div>
 
                             <!-- Virement manuel -->
-                            <div v-if="transferSettings.frequency === 'manual'" class="pt-4 border-t">
+                            <div v-if="transferSettings.frequency === 'manual'" class="border-t pt-4">
                                 <Button
                                     @click="triggerManualPayout"
                                     :disabled="!canTriggerPayout || isProcessingPayout"
                                     size="lg"
                                     class="w-full"
-                                    :class="!canTriggerPayout || isProcessingPayout ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'"
+                                    :class="
+                                        !canTriggerPayout || isProcessingPayout ? 'cursor-not-allowed bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                                    "
                                 >
                                     <Wallet v-if="!isProcessingPayout" class="mr-2 h-4 w-4" />
                                     <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                     {{ isProcessingPayout ? 'Traitement en cours...' : 'Déclencher un virement (min. 25€)' }}
                                 </Button>
-                                <p v-if="!canTriggerPayout" class="text-sm text-red-600 mt-2 text-center">
-                                    Solde insuffisant (minimum 25€ requis)
-                                </p>
+                                <p v-if="!canTriggerPayout" class="mt-2 text-center text-sm text-red-600">Solde insuffisant (minimum 25€ requis)</p>
                             </div>
                         </div>
                     </div>
