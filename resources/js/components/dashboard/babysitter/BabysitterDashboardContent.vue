@@ -6,34 +6,37 @@
                 <h1 class="text-2xl font-bold text-gray-900">Bonjour, {{ user.firstname }}</h1>
                 <p class="text-gray-600">Bienvenue sur votre tableau de bord</p>
             </div>
-            <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+            <div
+                class="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md"
+            >
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1">
+                            <div
+                                class="mr-2 h-3 w-3 rounded-full transition-colors duration-200"
+                                :class="isAvailable ? 'bg-emerald-500' : 'bg-red-500'"
+                            ></div>
+                            <span
+                                class="text-sm font-medium transition-colors duration-200"
+                                :class="isAvailable ? 'text-emerald-700' : 'text-gray-600'"
+                            >
+                                {{ isAvailable ? 'Disponible' : 'Indisponible' }}
+                            </span>
+                        </div>
+                    </div>
 
-    
-    <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2">
-            <div class="flex items-center gap-1">
-                <div class="w-3 h-3 mr-2 rounded-full transition-colors duration-200"
-                     :class="isAvailable ? 'bg-emerald-500' : 'bg-red-500'">
+                    <button
+                        @click="toggleAvailability"
+                        :class="isAvailable ? 'bg-gradient-to-r from-emerald-500 to-green-500' : 'bg-gray-200'"
+                        class="relative inline-flex h-7 w-12 items-center rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
+                    >
+                        <span
+                            :class="isAvailable ? 'translate-x-6 bg-white' : 'translate-x-1 bg-white'"
+                            class="inline-block h-5 w-5 transform rounded-full shadow-md transition-all duration-300 ease-in-out"
+                        ></span>
+                    </button>
                 </div>
-                <span class="text-sm font-medium transition-colors duration-200"
-                      :class="isAvailable ? 'text-emerald-700' : 'text-gray-600'">
-                    {{ isAvailable ? 'Disponible' : 'Indisponible' }}
-                </span>
             </div>
-        </div>
-        
-        <button
-            @click="toggleAvailability"
-            :class="isAvailable ? 'bg-gradient-to-r from-emerald-500 to-green-500' : 'bg-gray-200'"
-            class="relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 ease-in-out shadow-lg hover:scale-105 active:scale-95"
-        >
-            <span
-                :class="isAvailable ? 'translate-x-6 bg-white' : 'translate-x-1 bg-white'"
-                class="inline-block h-5 w-5 transform rounded-full transition-all duration-300 ease-in-out shadow-md"
-            ></span>
-        </button>
-    </div>
-</div>
         </div>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -108,7 +111,7 @@
                             <div class="space-y-1">
                                 <h3 class="font-medium text-gray-900">{{ ad.title }}</h3>
                                 <p class="text-sm text-gray-600">{{ formatDate(ad.date) }}, {{ ad.time }}</p>
-                                <button @click="viewAdDetails(ad.id)" class="text-sm text-primary hover:text-orange-700">Voir les détails</button>
+                                <button @click="viewAdDetails(ad.id)" class="text-primary text-sm hover:text-orange-700">Voir les détails</button>
                             </div>
                             <div class="text-right">
                                 <span
@@ -151,9 +154,8 @@
                         <div
                             v-for="notification in notifications"
                             :key="notification.id"
-                            class="flex cursor-pointer items-start gap-3 rounded-lg p-3 hover:bg-gray-50"
+                            class="group flex cursor-pointer items-start gap-3 rounded-lg p-3 hover:bg-gray-50"
                             :class="{ 'bg-blue-50': !notification.read_at }"
-                            @click="markAsRead(notification.id)"
                         >
                             <div class="flex-shrink-0">
                                 <Star v-if="notification.type === 'review_request'" class="h-5 w-5 text-yellow-500" />
@@ -161,13 +163,23 @@
                                 <AlertTriangle v-else-if="notification.type === 'dispute_created'" class="h-5 w-5 text-red-500" />
                                 <Bell v-else class="h-5 w-5 text-blue-500" />
                             </div>
-                            <div class="min-w-0 flex-1">
+                            <div class="min-w-0 flex-1" @click="markAsRead(notification.id)">
                                 <p class="text-sm text-gray-900" :class="{ 'font-medium': !notification.read_at }">
                                     {{ notification.title }}
                                 </p>
                                 <p class="text-xs text-gray-500">{{ formatTimeAgo(notification.created_at) }}</p>
                             </div>
-                            <div v-if="!notification.read_at" class="h-2 w-2 rounded-full bg-blue-500"></div>
+                            <div class="flex items-center gap-2">
+                                <div v-if="!notification.read_at" class="h-2 w-2 rounded-full bg-blue-500"></div>
+                                <button
+                                    v-if="!notification.read_at"
+                                    @click.stop="markAsRead(notification.id)"
+                                    class="rounded p-1 text-xs text-gray-400 opacity-0 transition-all group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600 hover:opacity-100"
+                                    title="Marquer comme lu"
+                                >
+                                    ✓
+                                </button>
+                            </div>
                         </div>
                     </div>
 

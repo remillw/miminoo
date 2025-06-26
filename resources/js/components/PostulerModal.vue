@@ -28,14 +28,6 @@
 
             <!-- Corps avec scroll -->
             <div class="max-h-[50vh] space-y-6 overflow-y-auto px-6 py-4">
-                <!-- Message de succès -->
-                <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 p-3">
-                    <p class="flex items-center gap-2 text-sm text-green-700">
-                        <CheckCircle class="h-4 w-4" />
-                        {{ success }}
-                    </p>
-                </div>
-
                 <!-- Récapitulatif en cards compactes -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-secondary/50 hover:bg-secondary rounded-lg p-3 transition-all">
@@ -161,11 +153,10 @@
                         class="flex flex-1 items-center justify-center gap-2 rounded-lg border-gray-200 py-2 text-sm transition-all duration-200 hover:bg-gray-50"
                     >
                         <X class="h-4 w-4" />
-                        {{ success ? 'Fermer' : 'Annuler' }}
+                        Annuler
                     </Button>
 
                     <Button
-                        v-if="!success"
                         :disabled="!canSubmit || isLoading"
                         @click="submit"
                         class="from-primary hover:to-primary hover:from-primary flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r to-orange-400 py-2 text-sm text-white transition-all duration-200 disabled:opacity-50"
@@ -186,23 +177,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    AlertCircle,
-    Baby,
-    Calculator,
-    Calendar,
-    CheckCircle,
-    Clock,
-    Euro,
-    Info,
-    Loader,
-    MapPin,
-    MessageSquare,
-    Send,
-    User,
-    Users,
-    X,
-} from 'lucide-vue-next';
+import { useToast } from '@/composables/useToast';
+import { AlertCircle, Baby, Calculator, Calendar, Clock, Euro, Info, Loader, MapPin, MessageSquare, Send, User, Users, X } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
@@ -221,17 +197,16 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { showSuccess } = useToast();
+
 const message = ref('');
 const rate = ref(props.requestedRate);
 const duration = 4;
 const isLoading = ref(false);
 const error = ref('');
-const success = ref('');
 
 const isCounterProposal = computed(() => rate.value !== props.requestedRate);
 const effectiveRate = computed(() => rate.value);
-
-const total = computed(() => effectiveRate.value * duration);
 const canSubmit = computed(() => message.value.trim().length > 0 && rate.value > 0);
 
 const formattedDate = computed(() => {
@@ -244,9 +219,7 @@ const closeModal = () => {
     message.value = '';
     rate.value = props.requestedRate;
     error.value = '';
-    success.value = '';
     isLoading.value = false;
-
     props.onClose();
 };
 
@@ -257,63 +230,12 @@ const resetModalState = async () => {
         message.value = '';
         rate.value = props.requestedRate;
         error.value = '';
-        success.value = '';
         isLoading.value = false;
     }
 };
 
 // Watch pour s'assurer que la modal est bien réinitialisée à chaque ouverture
 watch(() => props.isOpen, resetModalState);
-
-// Fonction pour obtenir un message d'erreur convivial
-const getFriendlyErrorMessage = (status: number, serverError?: string) => {
-    switch (status) {
-        case 400:
-            if (serverError?.includes('déjà postulé')) {
-                return 'Vous avez déjà envoyé une candidature pour cette annonce. Vous pouvez consulter son statut dans votre espace babysitter.';
-            }
-            if (serverError?.includes('propre annonce')) {
-                return 'Vous ne pouvez pas postuler à votre propre annonce. Cette annonce vous appartient !';
-            }
-            if (serverError?.includes('plus disponible')) {
-                return "Cette annonce n'est plus disponible. Elle a peut-être été supprimée ou réservée par quelqu'un d'autre.";
-            }
-            if (serverError?.includes('déjà eu lieu')) {
-                return 'Cette annonce a déjà eu lieu ou commence très bientôt. Vous ne pouvez plus y postuler.';
-            }
-            return serverError || 'Les données envoyées ne sont pas valides. Veuillez vérifier votre message et votre tarif.';
-
-        case 401:
-            return 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
-
-        case 403:
-            if (serverError?.includes('babysitters')) {
-                return 'Seuls les comptes babysitter peuvent postuler aux annonces. Vérifiez que vous êtes connecté avec le bon compte.';
-            }
-            if (serverError?.includes('vérifié') || serverError?.includes('vérification')) {
-                return "Votre profil babysitter n'est pas encore vérifié. Complétez votre profil et demandez la vérification dans votre espace personnel avant de postuler.";
-            }
-            return serverError || "Vous n'avez pas l'autorisation d'effectuer cette action.";
-
-        case 404:
-            return "Cette annonce n'existe plus ou a été supprimée. Retournez à la liste des annonces pour en voir d'autres.";
-
-        case 422:
-            return 'Certaines informations ne sont pas valides :\n• Vérifiez que votre message fait moins de 1000 caractères\n• Vérifiez que votre tarif est entre 0€ et 999€';
-
-        case 429:
-            return 'Trop de tentatives. Attendez quelques minutes avant de réessayer.';
-
-        case 500:
-            return 'Une erreur technique est survenue sur nos serveurs. Notre équipe a été notifiée. Réessayez dans quelques minutes.';
-
-        case 503:
-            return 'Le service est temporairement indisponible pour maintenance. Réessayez dans quelques minutes.';
-
-        default:
-            return serverError || `Une erreur inattendue est survenue (Code: ${status}). Contactez le support si le problème persiste.`;
-    }
-};
 
 async function submit() {
     if (!canSubmit.value || isLoading.value) return;
@@ -322,113 +244,34 @@ async function submit() {
     error.value = '';
 
     try {
-        console.log('🚀 DÉBUT ENVOI CANDIDATURE');
-        console.log('📋 Détails de la candidature:', {
-            announcementId: props.announcementId,
-            message: message.value.trim(),
-            rate: rate.value,
-            isCounterProposal: isCounterProposal.value,
-            canSubmit: canSubmit.value,
-        });
-
-        const requestData = {
-            motivation_note: message.value.trim(),
-            proposed_rate: rate.value,
-        };
-
-        console.log('📡 Données à envoyer:', requestData);
-
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        console.log('🔐 CSRF Token:', csrfToken ? 'Présent' : 'Manquant');
-
-        const requestUrl = route('announcements.apply', { announcement: props.announcementId });
-        console.log('🌐 URL de la requête:', requestUrl);
-
-        const requestHeaders = {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken || '',
-            Accept: 'application/json',
-        };
-        console.log('📝 Headers de la requête:', requestHeaders);
-
-        console.log('⏳ Envoi de la requête fetch...');
-
-        const response = await fetch(requestUrl, {
+        const response = await fetch(route('announcements.apply', { announcement: props.announcementId }), {
             method: 'POST',
-            headers: requestHeaders,
-            body: JSON.stringify(requestData),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({
+                motivation_note: message.value.trim(),
+                proposed_rate: rate.value,
+            }),
         });
 
-        console.log('📡 Réponse reçue');
-        console.log('📊 Status de la réponse:', response.status);
-        console.log('✅ Réponse OK:', response.ok);
-        console.log('🔗 URL finale:', response.url);
-        console.log('📋 Headers de réponse:', Object.fromEntries(response.headers.entries()));
-
-        // Essayer de parser la réponse JSON
-        let data;
-        const responseText = await response.text();
-        console.log('📄 Réponse brute (texte):', responseText);
-
-        try {
-            data = JSON.parse(responseText);
-            console.log('📋 Données parsées:', data);
-        } catch (parseError) {
-            console.error('❌ Erreur parsing JSON:', parseError);
-            console.log("📄 Contenu de la réponse qui n'est pas JSON:", responseText);
-
-            // Si la réponse n'est pas JSON, c'est probablement une redirection ou une erreur serveur
-            if (response.status >= 300 && response.status < 400) {
-                error.value = 'Redirection inattendue. Vérifiez que vous êtes bien connecté.';
-            } else {
-                error.value = getFriendlyErrorMessage(response.status);
-            }
-            return;
-        }
+        const data = await response.json();
 
         if (response.ok) {
-            // Vérifier si la réponse contient une erreur malgré le status 200
-            if (data.error) {
-                console.error('❌ Erreur dans réponse 200:', data);
-                error.value = getFriendlyErrorMessage(response.status, data.error);
-            } else {
-                console.log('🎉 CANDIDATURE ENVOYÉE AVEC SUCCÈS');
-                console.log('💬 Message de succès:', data.message);
-                success.value = data.message || 'Candidature envoyée avec succès !';
-
-                // Optionnel: rediriger après un délai
-                setTimeout(() => {
-                    console.log('🔄 Fermeture automatique de la modal');
-                    closeModal();
-                }, 2000);
-            }
+            // Succès - afficher toast et fermer la modal
+            showSuccess(data.message || 'Candidature envoyée avec succès !');
+            closeModal();
         } else {
-            console.error('❌ Erreur serveur');
-            console.error('📊 Status:', response.status);
-            console.error("📋 Données d'erreur:", data);
-
-            // Utiliser le message d'erreur convivial
-            error.value = getFriendlyErrorMessage(response.status, data.error);
+            // Erreur - afficher le message du backend
+            error.value = data.error || 'Une erreur est survenue';
         }
-    } catch (err) {
-        console.error("❌ ERREUR CRITIQUE lors de l'envoi de la candidature:");
-        console.error("🔍 Type d'erreur:", err.constructor.name);
-        console.error("📄 Message d'erreur:", err.message);
-        console.error('📚 Stack trace:', err.stack);
-
-        // Gestion plus précise des erreurs réseau
-        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-            console.error('🌐 Erreur réseau: Failed to fetch');
-            error.value = 'Problème de connexion réseau. Vérifiez votre connexion internet et réessayez.';
-        } else if (err instanceof TypeError && err.message.includes('NetworkError')) {
-            console.error('🌐 Erreur réseau: NetworkError');
-            error.value = 'Erreur de réseau. Vérifiez votre connexion internet ou réessayez plus tard.';
-        } else {
-            console.error('🔧 Autre erreur technique');
-            error.value = 'Une erreur de communication est survenue. Vérifiez votre connexion et réessayez.';
-        }
+    } catch (err: unknown) {
+        // Erreur réseau
+        console.error('Erreur réseau:', err);
+        error.value = 'Problème de connexion. Vérifiez votre connexion internet et réessayez.';
     } finally {
-        console.log('🏁 Fin du processus de candidature');
         isLoading.value = false;
     }
 }

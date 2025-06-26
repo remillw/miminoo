@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import PostulerModal from '@/components/PostulerModal.vue';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface Child {
     nom: string;
@@ -15,6 +16,32 @@ interface Parent {
     lastname: string;
     avatar?: string;
     slug: string;
+    reviews: Review[];
+    review_stats: ReviewStats;
+    member_since: string;
+}
+
+interface Review {
+    id: number;
+    rating: number;
+    comment: string;
+    created_at: string;
+    reviewer: {
+        firstname: string;
+        lastname: string;
+        avatar?: string;
+    };
+}
+
+interface ReviewStats {
+    average_rating: number;
+    total_reviews: number;
+    rating_distribution: {
+        [key: number]: {
+            count: number;
+            percentage: number;
+        };
+    };
 }
 
 interface Address {
@@ -23,6 +50,16 @@ interface Address {
     country: string;
     latitude: number;
     longitude: number;
+}
+
+interface Duration {
+    is_multi_day: boolean;
+    total_hours: number;
+    days: number;
+    start_date: string;
+    end_date: string;
+    start_time: string;
+    end_time: string;
 }
 
 interface Announcement {
@@ -38,6 +75,7 @@ interface Announcement {
     children: Child[];
     created_at: string;
     slug: string;
+    duration: Duration;
     parent: Parent;
     address: Address;
 }
@@ -47,6 +85,9 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// État du modal
+const isModalOpen = ref(false);
 
 // Formater les dates
 const formatDate = (dateString: string) => {
@@ -77,12 +118,71 @@ const formatDateTime = (dateString: string) => {
 
 // Calculer la durée
 const duration = computed(() => {
+    if (props.announcement.duration.is_multi_day) {
+        return props.announcement.duration.total_hours;
+    }
     const start = new Date(props.announcement.date_start);
     const end = new Date(props.announcement.date_end);
     const diffMs = end.getTime() - start.getTime();
     const diffHours = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
     return diffHours;
 });
+
+// Formater la durée pour affichage
+const formatDuration = computed(() => {
+    const dur = props.announcement.duration;
+    if (dur.is_multi_day) {
+        return `${dur.days} jour${dur.days > 1 ? 's' : ''} (${dur.total_hours}h total)`;
+    } else {
+        return `${duration.value}h`;
+    }
+});
+
+// Formater les dates pour multi-jours
+const formatDateRange = computed(() => {
+    const dur = props.announcement.duration;
+    if (dur.is_multi_day) {
+        const startDate = new Date(dur.start_date);
+        const endDate = new Date(dur.end_date);
+        return `Du ${formatDate(startDate.toISOString())} au ${formatDate(endDate.toISOString())}`;
+    } else {
+        return formatDate(props.announcement.date_start);
+    }
+});
+
+// Formater les horaires
+const formatTimeRange = computed(() => {
+    const dur = props.announcement.duration;
+    if (dur.is_multi_day) {
+        return `De ${dur.start_time} à ${dur.end_time}`;
+    } else {
+        return `${formatTime(props.announcement.date_start)} - ${formatTime(props.announcement.date_end)}`;
+    }
+});
+
+// Fonctions pour les avis
+const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => i < rating);
+};
+
+const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMonths = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24 * 30));
+
+    if (diffInMonths < 1) return 'Ce mois-ci';
+    if (diffInMonths === 1) return 'Il y a 1 mois';
+    if (diffInMonths < 12) return `Il y a ${diffInMonths} mois`;
+
+    const diffInYears = Math.floor(diffInMonths / 12);
+    if (diffInYears === 1) return 'Il y a 1 an';
+    return `Il y a ${diffInYears} ans`;
+};
+
+const formatMemberSince = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+};
 
 // Obtenir la ville depuis l'adresse
 const getCity = (address: Address) => {
@@ -113,16 +213,26 @@ const getChildColor = (index: number) => {
 const isFuture = computed(() => {
     return new Date(props.announcement.date_start) > new Date();
 });
+
+// Calculer les horaires pour la modal
+const hoursForModal = computed(() => {
+    return `${formatTime(props.announcement.date_start)} - ${formatTime(props.announcement.date_end)}`;
+});
+
+// Obtenir la localisation pour la modal
+const locationForModal = computed(() => {
+    return `${getCity(props.announcement.address)}, ${props.announcement.address.postal_code}`;
+});
 </script>
 
 <template>
     <Head :title="`${announcement.title} - Annonce`" />
 
     <GlobalLayout>
-        <div class="bg-secondary min-h-screen p-4">
+        <div class="bg-secondary min-h-screen p-2 sm:p-4">
             <div class="mx-auto max-w-4xl">
                 <!-- Breadcrumb -->
-                <nav class="mb-6 flex items-center space-x-2 text-sm text-gray-600">
+                <nav class="mb-4 flex items-center space-x-2 px-2 text-sm text-gray-600 sm:mb-6 sm:px-0">
                     <a href="/announcements" class="hover:text-primary transition-colors">Annonces</a>
                     <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                         <path
@@ -131,53 +241,53 @@ const isFuture = computed(() => {
                             clip-rule="evenodd"
                         ></path>
                     </svg>
-                    <span class="text-gray-900">{{ announcement.title }}</span>
+                    <span class="truncate text-gray-900">{{ announcement.title }}</span>
                 </nav>
 
-                <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
                     <!-- Contenu principal -->
-                    <div class="space-y-6 lg:col-span-2">
-                        <!-- En-tête de l'annonce -->
-                        <div class="rounded-2xl bg-white p-6 shadow-sm">
-                            <div class="mb-4 flex items-start justify-between">
-                                <div class="flex-1">
-                                    <h1 class="mb-2 text-2xl font-bold text-gray-900">{{ announcement.title }}</h1>
-                                    <div class="flex items-center gap-4 text-sm text-gray-600">
+                    <div class="space-y-4 sm:space-y-6 lg:col-span-2">
+                        <!-- En-tête de l'annonce optimisé mobile -->
+                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
+                            <div class="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div class="min-w-0 flex-1">
+                                    <h1 class="mb-3 text-xl leading-tight font-bold text-gray-900 sm:text-2xl">{{ announcement.title }}</h1>
+                                    <div class="flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:gap-4">
                                         <div class="flex items-center gap-1">
-                                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                 <path
                                                     fill-rule="evenodd"
                                                     d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
                                                     clip-rule="evenodd"
                                                 ></path>
                                             </svg>
-                                            {{ formatDate(announcement.date_start) }}
+                                            <span class="break-words">{{ formatDateRange }}</span>
                                         </div>
                                         <div class="flex items-center gap-1">
-                                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                 <path
                                                     fill-rule="evenodd"
                                                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
                                                     clip-rule="evenodd"
                                                 ></path>
                                             </svg>
-                                            {{ formatTime(announcement.date_start) }} - {{ formatTime(announcement.date_end) }}
+                                            <span class="break-words">{{ formatTimeRange }}</span>
                                         </div>
                                         <div class="flex items-center gap-1">
-                                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                 <path
                                                     fill-rule="evenodd"
                                                     d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
                                                     clip-rule="evenodd"
                                                 ></path>
                                             </svg>
-                                            {{ getCity(announcement.address) }}
+                                            <span class="break-words">{{ getCity(announcement.address) }}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-right">
+                                <div class="flex-shrink-0 text-center sm:text-right">
                                     <div class="text-primary text-2xl font-bold">{{ announcement.hourly_rate }}€/h</div>
-                                    <div class="text-sm text-gray-600">{{ duration }}h • {{ announcement.estimated_total }}€ total</div>
+                                    <div class="text-sm text-gray-600">{{ formatDuration }} • {{ announcement.estimated_total }}€ total</div>
                                 </div>
                             </div>
 
@@ -196,41 +306,41 @@ const isFuture = computed(() => {
                         </div>
 
                         <!-- Enfants à garder -->
-                        <div class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <h2 class="mb-4 text-xl font-bold text-gray-900">Enfants à garder</h2>
-                            <div class="flex flex-wrap gap-3">
+                            <div class="flex flex-wrap gap-2 sm:gap-3">
                                 <div
                                     v-for="(child, index) in announcement.children"
                                     :key="index"
-                                    :class="['flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium', getChildColor(index)]"
+                                    :class="['flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium sm:px-4', getChildColor(index)]"
                                 >
-                                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                                     </svg>
-                                    {{ child.nom }} ({{ formatChildAge(child) }})
+                                    <span class="break-words">{{ child.nom }} ({{ formatChildAge(child) }})</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Description -->
-                        <div v-if="announcement.description" class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div v-if="announcement.description" class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <h2 class="mb-4 text-xl font-bold text-gray-900">Informations complémentaires</h2>
-                            <p class="leading-relaxed whitespace-pre-line text-gray-700">{{ announcement.description }}</p>
+                            <p class="text-sm leading-relaxed whitespace-pre-line text-gray-700 sm:text-base">{{ announcement.description }}</p>
                         </div>
 
                         <!-- Localisation -->
-                        <div class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <h2 class="mb-4 text-xl font-bold text-gray-900">Localisation</h2>
                             <div class="flex items-start gap-3">
-                                <svg class="mt-0.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         fill-rule="evenodd"
                                         d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
                                         clip-rule="evenodd"
                                     ></path>
                                 </svg>
-                                <div>
-                                    <p class="font-medium text-gray-900">{{ announcement.address.address }}</p>
+                                <div class="min-w-0">
+                                    <p class="font-medium break-words text-gray-900">{{ announcement.address.address }}</p>
                                     <p class="text-sm text-gray-600">{{ announcement.address.postal_code }}, {{ announcement.address.country }}</p>
                                 </div>
                             </div>
@@ -238,9 +348,9 @@ const isFuture = computed(() => {
                     </div>
 
                     <!-- Sidebar -->
-                    <div class="space-y-6">
+                    <div class="space-y-4 sm:space-y-6">
                         <!-- Profil du parent -->
-                        <div class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <h3 class="mb-4 text-lg font-bold text-gray-900">Parent</h3>
                             <div class="flex items-center space-x-3">
                                 <img
@@ -248,46 +358,153 @@ const isFuture = computed(() => {
                                     :alt="`${announcement.parent.firstname} ${announcement.parent.lastname}`"
                                     class="h-12 w-12 rounded-full object-cover"
                                 />
-                                <div class="flex-1">
+                                <div class="min-w-0 flex-1">
                                     <a
                                         :href="route('parent.show', { slug: announcement.parent.slug })"
-                                        class="hover:text-primary font-semibold text-gray-900 transition-colors"
+                                        class="hover:text-primary block truncate font-semibold text-gray-900 transition-colors"
                                     >
                                         {{ announcement.parent.firstname }} {{ announcement.parent.lastname }}
                                     </a>
-                                    <p class="text-sm text-gray-600">Parent vérifié</p>
+                                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                                        <div v-if="announcement.parent.review_stats.total_reviews > 0" class="flex items-center gap-1">
+                                            <div class="flex">
+                                                <svg
+                                                    v-for="(filled, index) in renderStars(announcement.parent.review_stats.average_rating)"
+                                                    :key="index"
+                                                    class="h-4 w-4"
+                                                    :class="filled ? 'text-yellow-400' : 'text-gray-300'"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path
+                                                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                                                    />
+                                                </svg>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-700">{{
+                                                announcement.parent.review_stats.average_rating
+                                            }}</span>
+                                            <span class="hidden text-sm text-gray-500 sm:inline"
+                                                >({{ announcement.parent.review_stats.total_reviews }} avis)</span
+                                            >
+                                        </div>
+                                        <p class="text-sm text-gray-600">
+                                            <span class="sm:hidden">{{ announcement.parent.review_stats.total_reviews }} avis • </span>
+                                            Membre depuis {{ formatMemberSince(announcement.parent.member_since) }}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Avis du parent -->
+                        <div v-if="announcement.parent.review_stats.total_reviews > 0" class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
+                            <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <h3 class="text-lg font-bold text-gray-900">Avis sur ce parent</h3>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <div class="flex">
+                                        <svg
+                                            v-for="(filled, index) in renderStars(announcement.parent.review_stats.average_rating)"
+                                            :key="index"
+                                            class="h-4 w-4"
+                                            :class="filled ? 'text-yellow-400' : 'text-gray-300'"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <span class="font-medium text-gray-900">{{ announcement.parent.review_stats.average_rating }}/5</span>
+                                    <span class="text-gray-500">•</span>
+                                    <span class="text-gray-600">{{ announcement.parent.review_stats.total_reviews }} avis</span>
+                                </div>
+                            </div>
+
+                            <!-- Liste des avis mobile-optimisée -->
+                            <div class="max-h-80 space-y-4 overflow-y-auto">
+                                <div
+                                    v-for="review in announcement.parent.reviews.slice(0, 3)"
+                                    :key="review.id"
+                                    class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0"
+                                >
+                                    <div class="flex gap-3">
+                                        <img
+                                            :src="review.reviewer.avatar || '/default-avatar.svg'"
+                                            :alt="review.reviewer.firstname"
+                                            class="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+                                        />
+                                        <div class="min-w-0 flex-1">
+                                            <div class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                                <div>
+                                                    <span class="text-sm font-medium text-gray-900">
+                                                        {{ review.reviewer.firstname }} {{ review.reviewer.lastname }}
+                                                    </span>
+                                                    <div class="mt-1 flex items-center gap-1">
+                                                        <div class="flex">
+                                                            <svg
+                                                                v-for="(filled, index) in renderStars(review.rating)"
+                                                                :key="index"
+                                                                class="h-3 w-3"
+                                                                :class="filled ? 'text-yellow-400' : 'text-gray-300'"
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path
+                                                                    d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                                                                />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <span class="text-xs text-gray-500 sm:text-right">
+                                                    {{ formatTimeAgo(review.created_at) }}
+                                                </span>
+                                            </div>
+                                            <p class="text-sm leading-relaxed text-gray-700">{{ review.comment }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lien vers tous les avis si plus de 3 -->
+                            <div v-if="announcement.parent.reviews.length > 3" class="mt-4 border-t border-gray-100 pt-4">
+                                <a
+                                    :href="route('parent.show', { slug: announcement.parent.slug })"
+                                    class="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+                                >
+                                    Voir tous les {{ announcement.parent.review_stats.total_reviews }} avis →
+                                </a>
+                            </div>
+                        </div>
+
                         <!-- Résumé de la mission -->
-                        <div class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <h3 class="mb-4 text-lg font-bold text-gray-900">Résumé</h3>
                             <div class="space-y-3">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Date</span>
-                                    <span class="font-medium text-gray-900">{{ formatDate(announcement.date_start) }}</span>
+                                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                                    <span class="text-sm text-gray-600 sm:text-base">Date</span>
+                                    <span class="text-sm font-medium text-gray-900 sm:text-base">{{ formatDateRange }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Horaires</span>
-                                    <span class="font-medium text-gray-900"
-                                        >{{ formatTime(announcement.date_start) }} - {{ formatTime(announcement.date_end) }}</span
-                                    >
+                                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                                    <span class="text-sm text-gray-600 sm:text-base">Horaires</span>
+                                    <span class="text-sm font-medium text-gray-900 sm:text-base">{{ formatTimeRange }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Durée</span>
-                                    <span class="font-medium text-gray-900">{{ duration }}h</span>
+                                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                                    <span class="text-sm text-gray-600 sm:text-base">Durée</span>
+                                    <span class="text-sm font-medium text-gray-900 sm:text-base">{{ formatDuration }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Enfants</span>
-                                    <span class="font-medium text-gray-900">{{ announcement.children.length }}</span>
+                                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                                    <span class="text-sm text-gray-600 sm:text-base">Enfants</span>
+                                    <span class="text-sm font-medium text-gray-900 sm:text-base">{{ announcement.children.length }}</span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Tarif horaire</span>
-                                    <span class="font-medium text-gray-900">{{ announcement.hourly_rate }}€/h</span>
+                                <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                                    <span class="text-sm text-gray-600 sm:text-base">Tarif horaire</span>
+                                    <span class="text-sm font-medium text-gray-900 sm:text-base">{{ announcement.hourly_rate }}€/h</span>
                                 </div>
                                 <hr class="my-3" />
-                                <div class="flex justify-between text-lg font-bold">
+                                <div class="flex flex-col gap-1 text-lg font-bold sm:flex-row sm:justify-between">
                                     <span class="text-gray-900">Total estimé</span>
                                     <span class="text-primary">{{ announcement.estimated_total }}€</span>
                                 </div>
@@ -295,17 +512,19 @@ const isFuture = computed(() => {
                         </div>
 
                         <!-- Bouton de candidature -->
-                        <div v-if="isFuture" class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div v-if="isFuture" class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <button
-                                class="bg-primary hover:bg-primary/90 mb-3 w-full rounded-lg px-4 py-3 font-semibold text-white transition-colors"
+                                @click="isModalOpen = true"
+                                class="mb-3 w-full transform cursor-pointer rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:from-orange-600 hover:to-orange-700 hover:shadow-lg active:scale-[0.98] sm:text-base"
+                                title="Cliquez pour postuler à cette annonce"
                             >
-                                Postuler à cette annonce
+                                ✋ Postuler à cette annonce
                             </button>
-                            <p class="text-center text-xs text-gray-500">Vous devez être connecté en tant que babysitter pour postuler</p>
+                            <p class="text-center text-xs text-gray-500">Cliquez pour envoyer votre candidature</p>
                         </div>
 
                         <!-- Annonce expirée -->
-                        <div v-else class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div v-else class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <div class="text-center">
                                 <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                                     <svg class="h-6 w-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -322,28 +541,28 @@ const isFuture = computed(() => {
                         </div>
 
                         <!-- Informations -->
-                        <div class="rounded-2xl bg-white p-6 shadow-sm">
+                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
                             <h3 class="mb-4 text-lg font-bold text-gray-900">Informations</h3>
                             <div class="space-y-3 text-sm">
                                 <div class="flex items-center gap-2 text-gray-600">
-                                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path
                                             fill-rule="evenodd"
                                             d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
                                             clip-rule="evenodd"
                                         ></path>
                                     </svg>
-                                    Publié le {{ formatDateTime(announcement.created_at) }}
+                                    <span class="break-words">Publié le {{ formatDateTime(announcement.created_at) }}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-gray-600">
-                                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path
                                             fill-rule="evenodd"
                                             d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
                                             clip-rule="evenodd"
                                         ></path>
                                     </svg>
-                                    Annonce #{{ announcement.id }}
+                                    <span>Annonce #{{ announcement.id }}</span>
                                 </div>
                             </div>
                         </div>
@@ -351,5 +570,20 @@ const isFuture = computed(() => {
                 </div>
             </div>
         </div>
+
+        <!-- Modal de candidature -->
+        <PostulerModal
+            :is-open="isModalOpen"
+            :on-close="() => (isModalOpen = false)"
+            :announcement-id="announcement.id"
+            :date="announcement.date_start"
+            :hours="hoursForModal"
+            :location="locationForModal"
+            :children-count="announcement.children.length"
+            :avatar-url="announcement.parent.avatar"
+            :family-name="`${announcement.parent.firstname} ${announcement.parent.lastname}`"
+            :requested-rate="announcement.hourly_rate"
+            :additional-info="announcement.description"
+        />
     </GlobalLayout>
 </template>

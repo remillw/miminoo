@@ -268,7 +268,7 @@ onMounted(() => {
                             <div class="space-y-1">
                                 <h3 class="font-medium text-gray-900">{{ ad.title }}</h3>
                                 <p class="text-sm text-gray-600">{{ formatDate(ad.date) }}, {{ ad.time }}</p>
-                                <button @click="viewAdDetails(ad.id)" class="text-sm text-primary hover:text-orange-700">Voir les détails</button>
+                                <button @click="viewAdDetails(ad.id)" class="text-primary text-sm hover:text-orange-700">Voir les détails</button>
                             </div>
                             <div class="text-right">
                                 <div class="mb-2">
@@ -348,9 +348,8 @@ onMounted(() => {
                         <div
                             v-for="notification in props.notifications"
                             :key="notification.id"
-                            class="flex cursor-pointer items-start gap-3 rounded-lg p-3 hover:bg-gray-50"
+                            class="group flex cursor-pointer items-start gap-3 rounded-lg p-3 hover:bg-gray-50"
                             :class="{ 'bg-blue-50': !notification.read_at }"
-                            @click="markAsRead(notification.id)"
                         >
                             <div class="flex-shrink-0">
                                 <MessageCircle v-if="notification.type === 'new_message'" class="h-5 w-5 text-blue-500" />
@@ -358,13 +357,23 @@ onMounted(() => {
                                 <Star v-else-if="notification.type === 'review_request'" class="h-5 w-5 text-yellow-500" />
                                 <Bell v-else class="h-5 w-5 text-gray-500" />
                             </div>
-                            <div class="min-w-0 flex-1">
+                            <div class="min-w-0 flex-1" @click="markAsRead(notification.id)">
                                 <p class="text-sm text-gray-900" :class="{ 'font-medium': !notification.read_at }">
                                     {{ notification.title }}
                                 </p>
                                 <p class="text-xs text-gray-500">{{ formatTimeAgo(notification.created_at) }}</p>
                             </div>
-                            <div v-if="!notification.read_at" class="h-2 w-2 rounded-full bg-blue-500"></div>
+                            <div class="flex items-center gap-2">
+                                <div v-if="!notification.read_at" class="h-2 w-2 rounded-full bg-blue-500"></div>
+                                <button
+                                    v-if="!notification.read_at"
+                                    @click.stop="markAsRead(notification.id)"
+                                    class="rounded p-1 text-xs text-gray-400 opacity-0 transition-all group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600 hover:opacity-100"
+                                    title="Marquer comme lu"
+                                >
+                                    ✓
+                                </button>
+                            </div>
                         </div>
                     </div>
 

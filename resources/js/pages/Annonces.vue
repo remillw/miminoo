@@ -21,6 +21,8 @@ interface Announcement {
         firstname: string;
         lastname: string;
         avatar?: string;
+        average_rating?: number | null;
+        total_reviews?: number;
     };
     address: {
         address: string;
@@ -165,7 +167,7 @@ const annonces = computed(() => {
         // Calculer les âges des enfants - utiliser la nouvelle colonne children
         const childrenAges = announcement.children.map((child) => `${child.age} ${child.unite}`);
 
-        // Formatage de la date
+        // Formatage de la date et gestion multi-jours
         const dateStart = new Date(announcement.date_start);
         const dateEnd = new Date(announcement.date_end);
 
@@ -183,6 +185,20 @@ const annonces = computed(() => {
                 minute: '2-digit',
             });
         };
+
+        // Détecter si c'est une mission multi-jours
+        const isMultiDay = dateStart.toDateString() !== dateEnd.toDateString();
+        const daysDiff = Math.ceil((dateEnd.getTime() - dateStart.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Formatage adapté pour multi-jours
+        let dateDisplay, timeDisplay;
+        if (isMultiDay && daysDiff > 0) {
+            dateDisplay = `Du ${formatDate(dateStart)} au ${formatDate(dateEnd)}`;
+            timeDisplay = `${daysDiff + 1} jour${daysDiff > 0 ? 's' : ''} (${announcement.estimated_duration}h total)`;
+        } else {
+            dateDisplay = formatDate(dateStart);
+            timeDisplay = `${formatTime(dateStart)} - ${formatTime(dateEnd)}`;
+        }
 
         // Extraction de la ville depuis l'adresse
         const addressParts = announcement.address.address.split(',');
@@ -208,11 +224,11 @@ const annonces = computed(() => {
             parentId: announcement.parent.id, // ID du parent pour vérifier la propriété
             avatar: announcement.parent.avatar || '/storage/default-avatar.png',
             name: `${announcement.parent.firstname} ${announcement.parent.lastname.charAt(0)}.`,
-            rating: 4.5, // Valeur par défaut, à implémenter plus tard
-            reviews: 0, // Valeur par défaut, à implémenter plus tard
-            date: formatDate(dateStart),
+            rating: announcement.parent.average_rating || null, // Vraie note du parent
+            reviews: announcement.parent.total_reviews || 0, // Nombre réel d'avis
+            date: dateDisplay, // Utilise le formatage adapté multi-jours
             rawDate: announcement.date_start, // Date ISO pour le modal
-            time: `${formatTime(dateStart)} - ${formatTime(dateEnd)}`,
+            time: timeDisplay, // Utilise le formatage adapté multi-jours
             startTime: formatTime(dateStart), // Heure de début pour calcul de durée
             endTime: formatTime(dateEnd), // Heure de fin pour calcul de durée
             postalCode: postalCode,
@@ -225,6 +241,7 @@ const annonces = computed(() => {
             distance: distance,
             latitude: announcement.address.latitude,
             longitude: announcement.address.longitude,
+            isMultiDay: isMultiDay, // Ajouter cette info pour la card
         };
     });
 });
@@ -263,7 +280,7 @@ onMounted(() => {
 
 <template>
     <GlobalLayout>
-        <div class="min-h-screen bg-secondary px-4 py-16">
+        <div class="bg-secondary min-h-screen px-4 py-16">
             <div class="mx-auto max-w-7xl">
                 <!-- Titre + Sous-titre -->
                 <h1 class="mb-2 text-center text-2xl font-bold md:text-3xl">Trouver votre prochain babysitting</h1>
@@ -274,7 +291,7 @@ onMounted(() => {
                 <!-- Géolocalisation -->
                 <div v-if="!isGeolocationEnabled" class="mb-6 flex justify-center">
                     <div class="flex items-center gap-4 rounded-xl bg-white p-4 shadow-md">
-                        <MapPin class="h-5 w-5 text-primary" />
+                        <MapPin class="text-primary h-5 w-5" />
                         <span class="text-gray-700">Activez la géolocalisation pour voir les annonces les plus proches</span>
                         <Button @click="enableGeolocation" :disabled="geoLoading" size="sm" class="bg-primary hover:bg-primary">
                             <Navigation class="mr-2 h-4 w-4" />
@@ -283,31 +300,34 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Barre de recherche + bouton filtre -->
-                <div class="mb-10 flex items-center justify-center gap-2">
+                <!-- Barre de recherche + bouton filtre optimisée mobile -->
+                <div class="mb-6 flex items-center justify-center gap-2 sm:mb-10">
                     <div class="relative flex w-full max-w-3xl">
                         <input
                             v-model="searchQuery"
                             type="text"
                             placeholder="Rechercher par lieu, nom des parents, mots-clé…"
-                            class="focus:ring-primary w-full rounded-l-xl border border-gray-300 bg-white py-4 pr-4 pl-12 text-base placeholder-gray-400 shadow-sm focus:ring-2 focus:outline-none"
+                            class="focus:ring-primary w-full rounded-l-xl border border-gray-300 bg-white py-3 pr-4 pl-12 text-sm placeholder-gray-400 shadow-sm focus:ring-2 focus:outline-none sm:py-4 sm:text-base"
                         />
-                        <Search class="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                        <Search class="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-gray-400 sm:h-5 sm:w-5" />
                         <button
                             @click="showFilters = !showFilters"
                             :aria-pressed="showFilters"
                             :class="[
-                                'flex items-center rounded-r-xl border border-l-0 border-gray-300 px-5 transition',
+                                'flex items-center rounded-r-xl border border-l-0 border-gray-300 px-4 transition sm:px-5',
                                 showFilters ? 'bg-primary border-primary' : 'bg-white hover:bg-gray-100',
                             ]"
                         >
-                            <Filter :class="['h-5 w-5', showFilters ? 'text-white' : 'text-gray-500']" />
+                            <Filter :class="['h-4 w-4 sm:h-5 sm:w-5', showFilters ? 'text-white' : 'text-gray-500']" />
                         </button>
                     </div>
                 </div>
 
-                <!-- Bloc filtres -->
-                <div v-if="showFilters" class="mx-auto grid max-w-6xl grid-cols-1 gap-6 rounded-2xl bg-white p-6 shadow-md md:grid-cols-4">
+                <!-- Bloc filtres optimisé mobile -->
+                <div
+                    v-if="showFilters"
+                    class="mx-auto mb-6 grid max-w-6xl grid-cols-1 gap-4 rounded-2xl bg-white p-4 shadow-md sm:p-6 md:grid-cols-4 md:gap-6"
+                >
                     <!-- Tarif -->
                     <div>
                         <h3 class="mb-6 text-lg font-semibold">Tarif horaire minimum</h3>
@@ -428,7 +448,7 @@ onMounted(() => {
                         <button
                             type="button"
                             @click="applyFilters"
-                            class="bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary"
+                            class="bg-primary hover:bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors"
                         >
                             Appliquer les filtres
                         </button>
@@ -442,14 +462,14 @@ onMounted(() => {
                     </p>
                 </div>
 
-                <!-- Liste des annonces -->
-                <div class="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <!-- Liste des annonces optimisée mobile -->
+                <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:mt-10 lg:grid-cols-3 xl:gap-8">
                     <CardAnnonce v-for="annonce in annonces" :key="annonce.id" v-bind="annonce" />
                 </div>
 
-                <!-- Message si aucune annonce -->
-                <div v-if="annonces.length === 0" class="mt-10 text-center">
-                    <div class="mx-auto max-w-md rounded-lg bg-white p-8 shadow-md">
+                <!-- Message si aucune annonce optimisé mobile -->
+                <div v-if="annonces.length === 0" class="mt-6 text-center sm:mt-10">
+                    <div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-md sm:p-8">
                         <div class="mb-4 text-6xl">👶</div>
                         <h3 class="mb-2 text-xl font-semibold text-gray-800">Aucune annonce trouvée</h3>
                         <p class="mb-4 text-gray-600">
@@ -463,7 +483,7 @@ onMounted(() => {
                             <button
                                 v-if="Object.keys(props.filters || {}).length > 0"
                                 @click="resetFilters"
-                                class="inline-block rounded-lg bg-primary px-6 py-2 font-semibold text-white transition-colors hover:bg-primary"
+                                class="bg-primary hover:bg-primary inline-block rounded-lg px-6 py-2 font-semibold text-white transition-colors"
                             >
                                 Réinitialiser les filtres
                             </button>
@@ -540,5 +560,20 @@ input[type='date']::-webkit-calendar-picker-indicator {
     width: 100%; /* étend la zone cliquable */
     height: 100%;
     cursor: pointer;
+}
+
+/* Classes utilitaires pour line-clamp */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 </style>

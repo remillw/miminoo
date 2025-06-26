@@ -215,27 +215,23 @@ class Conversation extends Model
                 $application = \App\Models\AdApplication::with('babysitter')->find($conversation->application_id);
                 
                 if ($application && $application->babysitter) {
-                    $babysitter = $application->babysitter;
+                    // Utiliser le vrai message de motivation de la babysitter
+                    $candidatureMessage = $application->motivation_note;
                     
-                    // Créer le message de candidature
-                    $motivationText = $application->motivation_note ? '"' . $application->motivation_note . '"' : '';
-                    $rateText = $application->proposed_rate ? " pour {$application->proposed_rate}€/h" : '';
-                    
-                    $candidatureMessage = "🙋‍♀️ Candidature de {$babysitter->firstname}";
-                    if ($motivationText) {
-                        $candidatureMessage .= "\n\n💬 Message : {$motivationText}";
-                    }
-                    if ($rateText) {
-                        $candidatureMessage .= "\n\n💰 Tarif proposé{$rateText}";
+                    // Ajouter le tarif proposé si différent du tarif demandé
+                    if ($application->proposed_rate) {
+                        $candidatureMessage .= "\n\nTarif proposé : {$application->proposed_rate}€/h";
                     }
                     
-                    // Créer le message comme un message du babysitter
-                    $conversation->messages()->create([
-                        'sender_id' => $application->babysitter_id,
-                        'message' => $candidatureMessage,
-                        'type' => 'application',
-                        'read_at' => null // Non lu par défaut
-                    ]);
+                    // Créer le message seulement s'il y a un message de motivation
+                    if ($candidatureMessage && trim($candidatureMessage)) {
+                        $conversation->messages()->create([
+                            'sender_id' => $application->babysitter_id,
+                            'message' => $candidatureMessage,
+                            'type' => 'user', // Type normal, pas système
+                            'read_at' => null // Non lu par défaut
+                        ]);
+                    }
                 }
             }
         });

@@ -169,6 +169,24 @@ class AnnouncementController extends Controller
 
         $announcements = $query->paginate(12);
 
+        // Transformer les données pour inclure les avis du parent
+        $announcements->getCollection()->transform(function ($announcement) {
+            // Récupérer les avis du parent
+            $parentReviews = \App\Models\Review::where('reviewed_id', $announcement->parent->id)
+                ->where('role', 'babysitter')
+                ->get();
+
+            // Calculer les statistiques
+            $averageRating = $parentReviews->avg('rating');
+            $totalReviews = $parentReviews->count();
+
+            // Ajouter les données d'avis à l'annonce
+            $announcement->parent->average_rating = $averageRating ? round($averageRating, 1) : null;
+            $announcement->parent->total_reviews = $totalReviews;
+
+            return $announcement;
+        });
+
         return Inertia::render('Annonces', [
             'announcements' => $announcements,
             'filters' => [
@@ -533,8 +551,8 @@ class AnnouncementController extends Controller
             abort(404);
         }
 
-        // Récupérer l'annonce avec ses relations
-        $announcement = Ad::with(['parent', 'address'])
+        // Récupérer l'annonce avec ses relations enrichies
+        $announcement = Ad::with(['parent.parentProfile', 'address'])
             ->where('status', 'active')
             ->findOrFail($adId);
 
@@ -544,6 +562,59 @@ class AnnouncementController extends Controller
             // Rediriger vers le bon slug
             return redirect()->route('announcements.show', ['slug' => $expectedSlug]);
         }
+
+        // Récupérer les avis du parent (en tant que parent, pas babysitter)
+        $parentReviews = \App\Models\Review::where('reviewed_id', $announcement->parent->id)
+            ->where('reviewer_type', 'babysitter') // Avis donnés par des babysitters
+            ->with(['reviewer'])
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'created_at' => $review->created_at,
+                    'reviewer' => [
+                        'firstname' => $review->reviewer->firstname,
+                        'lastname' => substr($review->reviewer->lastname, 0, 1) . '.',
+                        'avatar' => $review->reviewer->avatar,
+                    ]
+                ];
+            });
+
+        // Calculer les statistiques des avis
+        $reviewStats = [
+            'average_rating' => round($parentReviews->avg('rating') ?? 0, 1),
+            'total_reviews' => $parentReviews->count(),
+            'rating_distribution' => []
+        ];
+
+        // Distribution des notes (1-5 étoiles)
+        for ($i = 1; $i <= 5; $i++) {
+            $count = $parentReviews->where('rating', $i)->count();
+            $reviewStats['rating_distribution'][$i] = [
+                'count' => $count,
+                'percentage' => $parentReviews->count() > 0 ? round(($count / $parentReviews->count()) * 100) : 0
+            ];
+        }
+
+        // Détecter si c'est une mission multi-jours
+        $startDate = \Carbon\Carbon::parse($announcement->date_start);
+        $endDate = \Carbon\Carbon::parse($announcement->date_end);
+        $isMultiDay = !$startDate->isSameDay($endDate);
+        
+        // Calculer la durée en jours et heures pour multi-jours
+        $duration = [
+            'is_multi_day' => $isMultiDay,
+            'total_hours' => $announcement->estimated_duration,
+            'days' => $isMultiDay ? $startDate->diffInDays($endDate) + 1 : 1,
+            'start_date' => $startDate->format('Y-m-d'),
+            'end_date' => $endDate->format('Y-m-d'),
+            'start_time' => $startDate->format('H:i'),
+            'end_time' => $endDate->format('H:i')
+        ];
 
         return Inertia::render('AnnouncementDetail', [
             'announcement' => [
@@ -559,12 +630,16 @@ class AnnouncementController extends Controller
                 'children' => $announcement->children,
                 'created_at' => $announcement->created_at,
                 'slug' => $expectedSlug,
+                'duration' => $duration,
                 'parent' => [
                     'id' => $announcement->parent->id,
                     'firstname' => $announcement->parent->firstname,
                     'lastname' => $announcement->parent->lastname,
                     'avatar' => $announcement->parent->avatar,
                     'slug' => $this->createParentSlug($announcement->parent),
+                    'reviews' => $parentReviews,
+                    'review_stats' => $reviewStats,
+                    'member_since' => $announcement->parent->created_at,
                 ],
                 'address' => [
                     'address' => $announcement->address->address,

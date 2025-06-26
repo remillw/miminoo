@@ -295,7 +295,11 @@ class DashboardController extends Controller
             $notification->markAsRead();
         }
         
-        return response()->json(['success' => true]);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        
+        return back()->with('success', 'Notification marquée comme lue');
     }
     
     public function markAllNotificationsAsRead(Request $request)
@@ -303,7 +307,11 @@ class DashboardController extends Controller
         $user = Auth::user();
         $user->unreadNotifications->markAsRead();
         
-        return response()->json(['success' => true]);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        
+        return back()->with('success', 'Toutes les notifications ont été marquées comme lues');
     }
     
     private function getNotificationType($notificationType)
