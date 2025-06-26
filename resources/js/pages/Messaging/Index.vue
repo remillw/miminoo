@@ -101,10 +101,10 @@
                                         </span>
                                         <!-- Badge statut conversation -->
                                         <span
-                                            v-else-if="conversation.status === 'payment_required'"
-                                            class="flex-shrink-0 rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
+                                            v-else-if="conversation.status === 'active'"
+                                            class="flex-shrink-0 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
                                         >
-                                            Paiement requis
+                                            Confirmée
                                         </span>
                                     </div>
                                     <div class="ml-2 flex flex-shrink-0 items-center gap-2">
@@ -204,7 +204,7 @@
                             @message-confirmed="onMessageConfirmed"
                             @message-failed="onMessageFailed"
                             @typing="onTyping"
-                            :disabled="selectedConversation.status === 'payment_required' || selectedConversation.status === 'archived'"
+                            :disabled="selectedConversation.status === 'archived'"
                             :placeholder="getInputPlaceholder()"
                             :conversation-id="selectedConversation.id"
                             :current-user-id="page?.props?.auth?.user?.id"
@@ -673,10 +673,6 @@ function getApplicationBadgeIcon(status) {
 
 function getInputPlaceholder() {
     if (!selectedConversation.value) return 'Écrivez votre message...';
-
-    if (selectedConversation.value.status === 'payment_required') {
-        return 'Effectuez le paiement pour débloquer la conversation';
-    }
 
     if (selectedConversation.value.status === 'archived') {
         return 'Cette conversation est archivée';
