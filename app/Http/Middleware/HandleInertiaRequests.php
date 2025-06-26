@@ -41,6 +41,28 @@ class HandleInertiaRequests extends Middleware
 
         $user = $request->user();
         
+        // Récupérer les notifications pour toutes les pages
+        $unreadNotifications = [];
+        $unreadNotificationsCount = 0;
+        
+        if ($user) {
+            $unreadNotifications = $user->unreadNotifications()
+                ->latest()
+                ->take(5)
+                ->get()
+                ->map(function ($notification) {
+                    return [
+                        'id' => $notification->id,
+                        'type' => $this->getNotificationType($notification->type),
+                        'title' => $notification->data['title'] ?? $notification->data['message'] ?? 'Notification',
+                        'message' => $notification->data['message'] ?? '',
+                        'created_at' => $notification->created_at,
+                        'read_at' => $notification->read_at
+                    ];
+                });
+            $unreadNotificationsCount = $user->unreadNotifications()->count();
+        }
+        
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -60,6 +82,26 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Notifications globales disponibles sur toutes les pages
+            'unreadNotifications' => $unreadNotifications,
+            'unreadNotificationsCount' => $unreadNotificationsCount,
         ];
+    }
+
+    /**
+     * Mapper les types de notifications
+     */
+    private function getNotificationType($notificationType)
+    {
+        $typeMap = [
+            'App\\Notifications\\ReviewRequestNotification' => 'review_request',
+            'App\\Notifications\\FundsReleasedNotification' => 'funds_released',
+            'App\\Notifications\\DisputeCreatedNotification' => 'dispute_created',
+            'App\\Notifications\\NewApplication' => 'new_application',
+            'App\\Notifications\\NewMessage' => 'new_message',
+            // Ajoutez d'autres types selon vos besoins
+        ];
+        
+        return $typeMap[$notificationType] ?? 'general';
     }
 }

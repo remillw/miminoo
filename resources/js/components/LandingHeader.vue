@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Link, usePage, router } from '@inertiajs/vue3';
-import { Bell, Menu, MessageSquare, AlertTriangle, DollarSign, Star } from 'lucide-vue-next';
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { AlertTriangle, Bell, DollarSign, Menu, MessageSquare, Star } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
 interface User {
@@ -24,22 +24,20 @@ interface Notification {
     read_at?: string;
 }
 
-interface Props {
-    unreadNotifications?: Notification[];
-    unreadNotificationsCount?: number;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-    unreadNotifications: () => [],
-    unreadNotificationsCount: 0,
-});
+// Plus besoin de props pour les notifications, on utilise les props globales
 
 const page = usePage<{
     auth: {
         user?: User;
     };
+    unreadNotifications?: Notification[];
+    unreadNotificationsCount?: number;
 }>();
 const user = computed(() => page.props.auth?.user);
+
+// Récupérer les notifications depuis les props globales
+const globalUnreadNotifications = computed(() => page.props.unreadNotifications || []);
+const globalUnreadNotificationsCount = computed(() => page.props.unreadNotificationsCount || 0);
 
 // Computed pour déterminer le rôle de l'utilisateur
 const userRoles = computed(() => {
@@ -57,36 +55,30 @@ const primaryButton = computed(() => {
         return {
             text: 'Trouver un babysitting',
             href: route('announcements.index'),
-            title: 'Voir les annonces disponibles'
+            title: 'Voir les annonces disponibles',
         };
     }
     // Pour les parents ou utilisateurs avec les deux rôles (par défaut parent)
     return {
         text: 'Créer une annonce',
         href: route('announcements.create'),
-        title: 'Publier une nouvelle annonce'
+        title: 'Publier une nouvelle annonce',
     };
 });
 
 // État pour les notifications
 const showNotifications = ref(false);
-const unreadNotifications = ref([...props.unreadNotifications]);
-const unreadNotificationsCount = ref(props.unreadNotificationsCount);
+const unreadNotifications = ref([...globalUnreadNotifications.value]);
+const unreadNotificationsCount = ref(globalUnreadNotificationsCount.value);
 
-// Watcher pour mettre à jour les refs quand les props changent
-watch(
-    () => props.unreadNotifications,
-    (newNotifications) => {
-        unreadNotifications.value = [...newNotifications];
-    },
-);
+// Watcher pour mettre à jour les refs quand les props globales changent
+watch(globalUnreadNotifications, (newNotifications) => {
+    unreadNotifications.value = [...newNotifications];
+});
 
-watch(
-    () => props.unreadNotificationsCount,
-    (newCount) => {
-        unreadNotificationsCount.value = newCount;
-    },
-);
+watch(globalUnreadNotificationsCount, (newCount) => {
+    unreadNotificationsCount.value = newCount;
+});
 
 const navLinks = [
     { name: 'Accueil', href: '/' },
@@ -208,16 +200,12 @@ const formatDate = (dateString: string) => {
 </script>
 
 <template>
-    <header class="sticky top-0 py-5 z-30 w-full bg-white/90 shadow-sm">
+    <header class="sticky top-0 z-30 w-full bg-white/90 py-5 shadow-sm">
         <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
             <!-- Logo -->
-            <div class="flex flex-col items-center md:items-start text-center md:text-left">
+            <div class="flex flex-col items-center text-center md:items-start md:text-left">
                 <Link href="/" class="inline-block">
-                    <img
-                        src="/storage/trouve-ta-babysitter-logo.svg"
-                        alt="Trouve ta Babysitter logo"
-                        class="h-15 w-auto"
-                    />
+                    <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter logo" class="h-15 w-auto" />
                 </Link>
             </div>
 
@@ -225,14 +213,11 @@ const formatDate = (dateString: string) => {
             <div class="hidden items-center gap-6 md:flex">
                 <template v-if="user">
                     <template v-for="link in authNavLinks" :key="link.name">
-                        <Link
-                            :href="link.href"
-                            class="hover:text-primary text-base font-medium text-gray-700 transition-colors"
-                        >
+                        <Link :href="link.href" class="hover:text-primary text-base font-medium text-gray-700 transition-colors">
                             {{ link.name }}
                         </Link>
                     </template>
-                    
+
                     <!-- Messagerie - icône seule -->
                     <Link
                         :href="route('messaging.index')"
@@ -244,8 +229,8 @@ const formatDate = (dateString: string) => {
 
                     <!-- Notifications - icône seule avec dropdown -->
                     <div class="notifications-dropdown relative">
-                        <button 
-                            @click="toggleNotifications" 
+                        <button
+                            @click="toggleNotifications"
                             class="relative rounded-full p-2 transition-colors hover:bg-gray-100"
                             title="Notifications"
                         >
@@ -266,9 +251,9 @@ const formatDate = (dateString: string) => {
                             <div class="border-b border-gray-200 p-4">
                                 <div class="flex items-center justify-between">
                                     <h3 class="font-semibold text-gray-900">Notifications</h3>
-                                    <button 
-                                        v-if="unreadNotificationsCount > 0" 
-                                        @click="markAllAsRead" 
+                                    <button
+                                        v-if="unreadNotificationsCount > 0"
+                                        @click="markAllAsRead"
                                         class="text-primary hover:text-primary/80 text-sm"
                                     >
                                         Tout marquer comme lu
@@ -277,9 +262,7 @@ const formatDate = (dateString: string) => {
                             </div>
 
                             <div class="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-h-80 overflow-y-auto">
-                                <div v-if="unreadNotifications.length === 0" class="p-4 text-center text-gray-500">
-                                    Aucune notification
-                                </div>
+                                <div v-if="unreadNotifications.length === 0" class="p-4 text-center text-gray-500">Aucune notification</div>
                                 <div v-else>
                                     <div
                                         v-for="notification in unreadNotifications"
@@ -333,12 +316,8 @@ const formatDate = (dateString: string) => {
                             {{ link.name }}
                         </Link>
                     </template>
-                    <Link href="/login" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> 
-                        Connexion 
-                    </Link>
-                    <Link href="/register" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> 
-                        Inscription 
-                    </Link>
+                    <Link href="/login" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> Connexion </Link>
+                    <Link href="/register" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> Inscription </Link>
                 </template>
                 <Button as-child class="bg-primary hover:bg-primary ml-2 font-semibold text-white" :title="primaryButton.title">
                     <Link :href="primaryButton.href">{{ primaryButton.text }}</Link>
@@ -357,21 +336,14 @@ const formatDate = (dateString: string) => {
                         <SheetHeader class="border-b p-4">
                             <SheetTitle>
                                 <Link href="/" class="inline-block">
-                                    <img
-                                        src="/storage/trouve-ta-babysitter-logo.svg"
-                                        alt="Trouve ta Babysitter logo"
-                                        class="h-15 w-auto"
-                                    />
+                                    <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter logo" class="h-15 w-auto" />
                                 </Link>
                             </SheetTitle>
                         </SheetHeader>
                         <div class="flex flex-col gap-2 p-4">
                             <template v-if="user">
                                 <template v-for="link in authNavLinks" :key="link.name">
-                                    <Link
-                                        :href="link.href"
-                                        class="hover:text-primary py-2 text-base font-medium text-gray-700 transition-colors"
-                                    >
+                                    <Link :href="link.href" class="hover:text-primary py-2 text-base font-medium text-gray-700 transition-colors">
                                         {{ link.name }}
                                     </Link>
                                 </template>
@@ -382,10 +354,7 @@ const formatDate = (dateString: string) => {
                                     <MessageSquare class="h-5 w-5" />
                                     Messagerie
                                 </Link>
-                                <Link
-                                    :href="route('dashboard')"
-                                    class="flex items-center gap-2 py-2"
-                                >
+                                <Link :href="route('dashboard')" class="flex items-center gap-2 py-2">
                                     <img
                                         :src="user.avatar || '/storage/default-avatar.png'"
                                         :alt="`${user.firstname} ${user.lastname}`"

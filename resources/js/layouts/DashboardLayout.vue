@@ -9,8 +9,6 @@ import { computed } from 'vue';
 interface Props {
     role?: string;
     currentMode?: 'parent' | 'babysitter';
-    unreadNotifications?: any[];
-    unreadNotificationsCount?: number;
 }
 
 const props = defineProps<Props>();
@@ -22,7 +20,7 @@ const SidebarComponent = computed(() => {
     if (props.currentMode) {
         return props.currentMode === 'parent' ? ParentSidebar : BabysitterSidebar;
     }
-    
+
     // Fallback sur le rôle simple (pour la rétrocompatibilité)
     const userRole = props.role || (page.props.auth as any)?.user?.role?.name;
     return userRole === 'parent' ? ParentSidebar : BabysitterSidebar;
@@ -30,19 +28,16 @@ const SidebarComponent = computed(() => {
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-secondary">
-        <LandingHeader 
-            :unreadNotifications="props.unreadNotifications || []"
-            :unreadNotificationsCount="props.unreadNotificationsCount || 0"
-        />
+    <div class="bg-secondary flex min-h-screen flex-col">
+        <LandingHeader />
 
         <div class="flex flex-1">
             <component :is="SidebarComponent" />
 
             <!-- Main content avec padding pour mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
-                <div class="py-6 px-4 sm:px-6 lg:px-8">
-                    <div class="max-w-7xl mx-auto">
+                <div class="px-4 py-6 sm:px-6 lg:px-8">
+                    <div class="mx-auto max-w-7xl">
                         <slot />
                     </div>
                 </div>

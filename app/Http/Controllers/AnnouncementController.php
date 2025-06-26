@@ -195,7 +195,7 @@ class AnnouncementController extends Controller
                 'age_range' => $request->age_range,
                 'date' => $request->date,
                 'location' => $request->location,
-            ]
+            ],
         ]);
     }
 
@@ -855,4 +855,6 @@ class AnnouncementController extends Controller
         $slug = trim($firstName . '-' . $lastName . '-' . $user->id, '-');
         return preg_replace('/-+/', '-', $slug);
     }
+
+
 } 

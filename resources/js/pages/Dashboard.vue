@@ -86,10 +86,7 @@ const currentContent = computed(() => {
     <div class="flex min-h-screen flex-col bg-[#fcf8f6]">
         <Head title="Dashboard" />
 
-        <LandingHeader
-            :unreadNotifications="props.unreadNotifications || []"
-            :unreadNotificationsCount="props.unreadNotificationsCount || 0"
-        />
+        <LandingHeader />
 
         <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
         <div v-if="hasMultipleRoles" class="border-b bg-white px-6 py-3">

@@ -131,11 +131,6 @@
             </div>
         </div>
 
-        <!-- Message de motivation (masqué pour les babysitters) -->
-        <div v-if="application.motivation_note && currentMode === 'parent'" class="rounded-lg bg-gray-50 p-3">
-            <p :class="mobile ? 'text-xs' : 'text-sm'" class="text-gray-700 italic">"{{ application.motivation_note }}"</p>
-        </div>
-
         <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
         <div v-if="currentMode === 'babysitter' && canCancelApplication && !showCounterOffer" class="mt-4 flex justify-center">
             <button
@@ -145,18 +140,6 @@
             >
                 <X class="h-4 w-4" />
                 Annuler ma candidature
-            </button>
-        </div>
-
-        <!-- Actions supplémentaires pour parent (selon le mode actuel) -->
-        <div v-if="currentMode === 'parent' && canParentCancelReservation && !showCounterOffer" class="mt-4 flex justify-center">
-            <button
-                @click="showParentCancelModal = true"
-                class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:border-red-300 hover:bg-red-100"
-                :title="getParentCancelTooltipText()"
-            >
-                <X class="h-4 w-4" />
-                Annuler la réservation
             </button>
         </div>
 

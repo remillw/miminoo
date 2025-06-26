@@ -55,22 +55,6 @@ class DashboardController extends Controller
             $dashboardData = $this->getBabysitterDashboardData($user);
         }
         
-        // Notifications non lues pour le header
-        $unreadNotifications = $user->unreadNotifications()
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(function ($notification) {
-                return [
-                    'id' => $notification->id,
-                    'type' => $this->getNotificationType($notification->type),
-                    'title' => $notification->data['title'] ?? $notification->data['message'] ?? 'Notification',
-                    'message' => $notification->data['message'] ?? '',
-                    'created_at' => $notification->created_at,
-                    'read_at' => $notification->read_at
-                ];
-            });
-        
         return Inertia::render('Dashboard', array_merge([
             'user' => $user->load('address'),
             'userRoles' => $userRoles,
@@ -79,8 +63,6 @@ class DashboardController extends Controller
             'requestedMode' => $requestedMode,
             'parentProfile' => $parentProfile,
             'babysitterProfile' => $babysitterProfile,
-            'unreadNotifications' => $unreadNotifications,
-            'unreadNotificationsCount' => $user->unreadNotifications()->count(),
         ], $dashboardData));
     }
     

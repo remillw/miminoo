@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CardAnnonce from '@/components/CardAnnonce.vue';
 import { Button } from '@/components/ui/button';
+import { useDateFormat } from '@/composables/useDateFormat';
 import { useGeolocation } from '@/composables/useGeolocation';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { router } from '@inertiajs/vue3';
