@@ -20,7 +20,8 @@ class CheckBabysitterVerification
             'user_id' => $request->user()?->id,
             'required_action' => $requiredAction,
             'url' => $request->fullUrl(),
-            'method' => $request->method()
+            'method' => $request->method(),
+            'expects_json' => $request->expectsJson()
         ]);
 
         $user = $request->user();
@@ -33,6 +34,10 @@ class CheckBabysitterVerification
                 'user_roles' => $user?->roles?->pluck('name'),
                 'has_babysitter_role' => $user ? $user->hasRole('babysitter') : false
             ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Accès non autorisé.'], 403);
+            }
             return redirect()->route('dashboard')->with('error', 'Accès non autorisé.');
         }
 
@@ -50,6 +55,10 @@ class CheckBabysitterVerification
             Log::warning('❌ MIDDLEWARE: Profil babysitter introuvable', [
                 'user_id' => $user->id
             ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Profil babysitter introuvable.'], 404);
+            }
             return redirect()->route('dashboard')->with('error', 'Profil babysitter introuvable.');
         }
 
@@ -64,7 +73,12 @@ class CheckBabysitterVerification
                         'expected' => 'verified',
                         'action' => 'payments'
                     ]);
-                    return redirect()->route('dashboard')->with('error', 'Votre profil doit être vérifié pour accéder aux paiements. Veuillez compléter votre profil et attendre la vérification.');
+                    
+                    $errorMessage = 'Votre profil doit être vérifié pour accéder aux paiements. Veuillez compléter votre profil et attendre la vérification.';
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => $errorMessage], 403);
+                    }
+                    return redirect()->route('dashboard')->with('error', $errorMessage);
                 }
                 break;
                 
@@ -77,7 +91,12 @@ class CheckBabysitterVerification
                         'expected' => 'verified',
                         'action' => 'apply'
                     ]);
-                    return redirect()->route('announcements.index')->with('error', 'Votre profil doit être vérifié pour postuler aux annonces. Veuillez compléter votre profil et attendre la vérification.');
+                    
+                    $errorMessage = 'Votre profil doit être vérifié pour postuler aux annonces. Veuillez compléter votre profil et attendre la vérification.';
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => $errorMessage], 403);
+                    }
+                    return redirect()->route('announcements.index')->with('error', $errorMessage);
                 }
                 break;
                 
@@ -90,7 +109,12 @@ class CheckBabysitterVerification
                         'expected' => 'verified',
                         'action' => 'verified_only'
                     ]);
-                    return redirect()->route('dashboard')->with('warning', 'Cette fonctionnalité est réservée aux babysitters vérifiées.');
+                    
+                    $errorMessage = 'Cette fonctionnalité est réservée aux babysitters vérifiées.';
+                    if ($request->expectsJson()) {
+                        return response()->json(['error' => $errorMessage], 403);
+                    }
+                    return redirect()->route('dashboard')->with('warning', $errorMessage);
                 }
                 break;
         }
