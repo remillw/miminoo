@@ -10,9 +10,15 @@
                     />
                 </a>
                 <div>
-                    <a :href="getProfileUrl()" target="_blank" class="hover:text-primary transition-colors">
-                        <h3 class="font-medium text-gray-900">{{ conversation.other_user.name }}</h3>
-                    </a>
+                    <div class="flex items-center gap-2">
+                        <a :href="getProfileUrl()" target="_blank" class="hover:text-primary transition-colors">
+                            <h3 class="font-medium text-gray-900">{{ conversation.other_user.name }}</h3>
+                        </a>
+                        <!-- Affichage du tarif négocié -->
+                        <span v-if="getCurrentRate()" class="bg-primary rounded-full px-2 py-1 text-xs font-medium text-white">
+                            {{ getCurrentRate() }}€/h
+                        </span>
+                    </div>
                     <p class="text-sm text-gray-500">
                         {{ getConversationStatus() }}
                     </p>
@@ -24,7 +30,7 @@
                 <!-- Lien vers profil -->
                 <button
                     @click="openProfileUrl()"
-                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
+                    class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
                     :title="userRole === 'parent' ? 'Voir le profil de la babysitter' : 'Voir le profil du parent'"
                 >
                     <User class="h-4 w-4" />
@@ -34,7 +40,7 @@
                 <!-- Lien vers annonce -->
                 <button
                     @click="openAdUrl()"
-                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
+                    class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
                     :title="userRole === 'parent' ? 'Voir votre annonce' : 'Voir l\'annonce du parent'"
                 >
                     <FileText class="h-4 w-4" />
@@ -67,7 +73,7 @@
                     <button
                         v-if="canCancelReservation"
                         @click="showCancelModal = true"
-                        class="rounded border border-red-300 px-3 py-1 text-sm text-red-700 transition-colors hover:bg-red-50 cursor-pointer"
+                        class="cursor-pointer rounded border border-red-300 px-3 py-1 text-sm text-red-700 transition-colors hover:bg-red-50"
                     >
                         Annuler
                     </button>
@@ -75,7 +81,7 @@
                     <button
                         v-if="canStartService"
                         @click="startService"
-                        class="rounded bg-green-600 px-3 py-1 text-sm text-white transition-colors hover:bg-green-700 cursor-pointer"
+                        class="cursor-pointer rounded bg-green-600 px-3 py-1 text-sm text-white transition-colors hover:bg-green-700"
                     >
                         Commencer
                     </button>
@@ -83,7 +89,7 @@
                     <button
                         v-if="canCompleteService"
                         @click="completeService"
-                        class="rounded bg-blue-600 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-700 cursor-pointer"
+                        class="cursor-pointer rounded bg-blue-600 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-700"
                     >
                         Terminer
                     </button>
@@ -132,12 +138,26 @@ const canCompleteService = computed(() => {
 });
 
 // Méthodes
+function getCurrentRate() {
+    // Récupérer le tarif depuis l'application dans la conversation
+    const application = props.conversation?.application;
+    if (!application) return null;
+
+    // Si il y a une contre-offre acceptée, utiliser celle-ci
+    if (application.counter_rate && application.status === 'accepted') {
+        return application.counter_rate;
+    }
+
+    // Sinon utiliser le tarif proposé initial
+    return application.proposed_rate;
+}
+
 function getProfileUrl() {
     if (!props.conversation?.other_user?.id) {
-        console.error('❌ Pas d\'other_user.id disponible');
+        console.error("❌ Pas d'other_user.id disponible");
         return '#';
     }
-    
+
     try {
         let url;
         if (props.userRole === 'parent') {
@@ -149,7 +169,7 @@ function getProfileUrl() {
             const slug = createParentSlug(props.conversation.other_user);
             url = route('parent.show', { slug });
         }
-        
+
         return url;
     } catch (error) {
         console.error('❌ Erreur ouverture profil:', error);
@@ -159,10 +179,10 @@ function getProfileUrl() {
 
 function getAdUrl() {
     if (!props.conversation?.ad?.id) {
-        console.error('❌ Pas d\'ad.id disponible');
+        console.error("❌ Pas d'ad.id disponible");
         return '#';
     }
-    
+
     const slug = createAdSlug(props.conversation.ad);
     return `/annonce/${slug}`;
 }
@@ -172,18 +192,16 @@ function createBabysitterSlug(user) {
         console.error('❌ User invalide pour babysitter slug:', user);
         return 'babysitter-inconnu';
     }
-    
+
     // Reproduire exactement l'algorithme PHP : strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->firstname))
-    const firstName = user.firstname ? 
-        user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'babysitter';
-    const lastName = user.lastname ? 
-        user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
-    
+    const firstName = user.firstname ? user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'babysitter';
+    const lastName = user.lastname ? user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
+
     // trim($firstName . '-' . $lastName . '-' . $user->id, '-')
     const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
     // preg_replace('/-+/', '-', $slug)
     const finalSlug = slug.replace(/-+/g, '-');
-    
+
     return finalSlug;
 }
 
@@ -192,18 +210,16 @@ function createParentSlug(user) {
         console.error('❌ User invalide pour parent slug:', user);
         return 'parent-inconnu';
     }
-    
+
     // Reproduire exactement l'algorithme PHP : strtolower(preg_replace('/[^a-z0-9]/i', '-', $user->firstname))
-    const firstName = user.firstname ? 
-        user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'parent';
-    const lastName = user.lastname ? 
-        user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
-    
+    const firstName = user.firstname ? user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'parent';
+    const lastName = user.lastname ? user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
+
     // trim($firstName . '-' . $lastName . '-' . $user->id, '-')
     const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
     // preg_replace('/-+/', '-', $slug)
     const finalSlug = slug.replace(/-+/g, '-');
-    
+
     return finalSlug;
 }
 
@@ -223,16 +239,15 @@ function createAdSlug(ad) {
             console.error('❌ Erreur parsing date:', ad.date_start);
         }
     }
-    
+
     // PHP: strtolower(preg_replace('/[^a-z0-9]/i', '-', $ad->title))
-    const title = ad.title ? 
-        ad.title.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'annonce';
+    const title = ad.title ? ad.title.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'annonce';
 
     // PHP: trim($date . '-' . $title . '-' . $ad->id, '-')
     const slug = (date + '-' + title + '-' + ad.id).replace(/^-+|-+$/g, '');
     // PHP: preg_replace('/-+/', '-', $slug)
     const finalSlug = slug.replace(/-+/g, '-');
-    
+
     return finalSlug;
 }
 
@@ -427,10 +442,10 @@ function handleCancellationSuccess(reservation) {
 
 function openProfileUrl() {
     if (!props.conversation?.other_user?.id) {
-        console.error('❌ Pas d\'other_user.id disponible');
+        console.error("❌ Pas d'other_user.id disponible");
         return;
     }
-    
+
     try {
         let url;
         if (props.userRole === 'parent') {
@@ -442,7 +457,7 @@ function openProfileUrl() {
             const slug = createParentSlug(props.conversation.other_user);
             url = route('parent.show', { slug });
         }
-        
+
         window.open(url, '_blank');
     } catch (error) {
         console.error('❌ Erreur ouverture profil:', error);
@@ -451,14 +466,14 @@ function openProfileUrl() {
 
 function openAdUrl() {
     if (!props.conversation?.ad?.id) {
-        console.error('❌ Pas d\'ad.id disponible');
+        console.error("❌ Pas d'ad.id disponible");
         return;
     }
-    
+
     try {
         const slug = createAdSlug(props.conversation.ad);
         const url = route('announcements.show', { slug });
-        
+
         window.open(url, '_blank');
     } catch (error) {
         console.error('❌ Erreur ouverture annonce:', error);

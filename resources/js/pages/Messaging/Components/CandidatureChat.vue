@@ -65,7 +65,9 @@
             <!-- Actions pour babysitter (selon le mode actuel) -->
             <template v-if="currentMode === 'babysitter' && application.status === 'counter_offered' && application.counter_rate">
                 <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
-                    Contre-offre reçue : <span class="font-semibold">{{ application.counter_rate }}€/h</span>
+                    💰 Contre-offre reçue : <span class="font-semibold">{{ application.counter_rate }}€/h</span> <br /><span class="text-xs"
+                        >(Votre proposition : {{ application.proposed_rate }}€/h)</span
+                    >
                 </div>
 
                 <div :class="mobile ? 'flex gap-2' : 'contents'">
@@ -89,10 +91,34 @@
                 </div>
             </template>
 
+            <!-- Statut en attente pour babysitter -->
+            <template v-if="currentMode === 'babysitter' && application.status === 'pending'">
+                <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-yellow-50 px-3 py-2 text-sm text-yellow-700">
+                    ⏳ Candidature en attente - Tarif proposé : <span class="font-semibold">{{ application.proposed_rate }}€/h</span> <br /><span
+                        class="text-xs font-normal"
+                        >En attente de la réponse du parent</span
+                    >
+                </div>
+            </template>
+
             <!-- Statut accepté pour babysitter -->
             <template v-if="currentMode === 'babysitter' && application.status === 'accepted'">
                 <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
                     ✅ Candidature acceptée au tarif de <span class="font-semibold">{{ currentRate }}€/h</span>
+                    <template v-if="application.counter_rate && application.counter_rate !== application.proposed_rate">
+                        <br /><span class="text-xs">(Tarif initial : {{ application.proposed_rate }}€/h)</span>
+                    </template>
+                    <br /><span class="text-xs font-normal">En attente du paiement par le parent</span>
+                </div>
+            </template>
+
+            <!-- Statut en attente de paiement côté babysitter -->
+            <template v-if="currentMode === 'babysitter' && application.conversation?.status === 'active'">
+                <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                    💳 Paiement effectué - Réservation confirmée au tarif de <span class="font-semibold">{{ currentRate }}€/h</span> <br /><span
+                        class="text-xs font-normal"
+                        >La garde peut commencer !</span
+                    >
                 </div>
             </template>
         </div>
@@ -219,10 +245,12 @@ const otherUser = computed(() => {
 });
 
 const currentRate = computed(() => {
-    // Afficher le tarif de contre-offre seulement si elle est acceptée
-    return props.application.status === 'accepted' && props.application.counter_rate
-        ? props.application.counter_rate
-        : props.application.proposed_rate;
+    // Si il y a une contre-offre ET qu'elle est acceptée, utiliser la contre-offre
+    if (props.application.counter_rate && props.application.status === 'accepted') {
+        return props.application.counter_rate;
+    }
+    // Sinon utiliser le tarif proposé initial
+    return props.application.proposed_rate;
 });
 
 const canCancelApplication = computed(() => {
