@@ -198,12 +198,12 @@ const switchMode = (mode: 'parent' | 'babysitter') => {
 // Formatage de la date de naissance pour l'input date (format YYYY-MM-DD)
 const formatDateForInput = (dateString: string | null | undefined) => {
     if (!dateString) return '';
-    
+
     try {
         // Si c'est déjà un objet date
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '';
-        
+
         // Retourner au format YYYY-MM-DD pour l'input date
         return date.toISOString().split('T')[0];
     } catch (error) {
@@ -440,14 +440,14 @@ const submitForm = async () => {
     try {
         // Préparer les données à envoyer
         const formData = { ...form.value };
-        
+
         // Si les données sociales sont verrouillées, ne pas envoyer les champs protégés
         if (props.user.social_data_locked) {
             delete (formData as any).firstname;
             delete (formData as any).lastname;
             delete (formData as any).email;
         }
-        
+
         // Ajouter les données d'adresse
         Object.assign(formData, addressData.value);
 
@@ -574,36 +574,40 @@ const requestVerification = async () => {
     console.log('📋 Statut actuel avant demande:', verificationStatus.value);
 
     try {
-        router.post('/babysitaxioster/request-verification', {}, {
-            onSuccess: (response: any) => {
-                console.log('✅ Réponse serveur:', response);
-                showSuccess('Demande de vérification envoyée avec succès !');
+        router.post(
+            route('babysitter.request-verification'),
+            {},
+            {
+                onSuccess: (response: any) => {
+                    console.log('✅ Réponse serveur:', response);
+                    showSuccess('Demande de vérification envoyée avec succès !');
 
-                // Force la mise à jour du statut localement IMMÉDIATEMENT
-                if (babysitterProfile.value) {
-                    babysitterProfile.value.verification_status = 'pending';
-                }
+                    // Force la mise à jour du statut localement IMMÉDIATEMENT
+                    if (babysitterProfile.value) {
+                        babysitterProfile.value.verification_status = 'pending';
+                    }
 
-                console.log('📋 Statut forcé à pending localement');
+                    console.log('📋 Statut forcé à pending localement');
 
-                // Rafraîchir la page après un court délai pour synchroniser avec le serveur
-                setTimeout(() => {
-                    router.reload();
-                }, 1500);
+                    // Rafraîchir la page après un court délai pour synchroniser avec le serveur
+                    setTimeout(() => {
+                        router.reload();
+                    }, 1500);
+                },
+                onError: (errors: any) => {
+                    console.error('❌ Erreur demande vérification:', errors);
+
+                    if (errors.message) {
+                        showError(errors.message);
+                    } else {
+                        showError("Une erreur est survenue lors de l'envoi de la demande");
+                    }
+                },
             },
-            onError: (errors: any) => {
-                console.error('❌ Erreur demande vérification:', errors);
-
-                if (errors.message) {
-                    showError(errors.message);
-                } else {
-                    showError("Une erreur est survenue lors de l'envoi de la demande");
-                }
-            }
-        });
+        );
     } catch (error: any) {
         console.error('❌ Erreur inattendue:', error);
-        showError("Une erreur inattendue est survenue");
+        showError('Une erreur inattendue est survenue');
     } finally {
         isRequestingVerification.value = false;
         console.log('🏁 Demande de vérification - Fin');
@@ -619,28 +623,28 @@ const handleAvatarChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
     if (target.files && target.files[0]) {
         const file = target.files[0];
-        
+
         // Vérifications
         const maxSize = 5 * 1024 * 1024; // 5MB
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        
+
         if (!allowedTypes.includes(file.type)) {
-            showError('Format d\'image non supporté. Utilisez JPG, PNG ou WebP.');
+            showError("Format d'image non supporté. Utilisez JPG, PNG ou WebP.");
             return;
         }
-        
+
         if (file.size > maxSize) {
-            showError('L\'image est trop volumineuse (max 5MB).');
+            showError("L'image est trop volumineuse (max 5MB).");
             return;
         }
-        
+
         // Convertir en base64
         const reader = new FileReader();
         reader.onload = (e) => {
             if (e.target?.result) {
                 // Mettre à jour l'aperçu
                 avatarPreview.value = e.target.result as string;
-                
+
                 // Stocker pour l'envoi
                 form.value.avatar = e.target.result as string;
             }
@@ -664,12 +668,12 @@ const closeVerificationBanner = () => {
 // Computed pour calculer le pourcentage de progression du profil babysitter
 const babysitterProfileCompletion = computed(() => {
     if (currentMode.value !== 'babysitter' || !props.hasBabysitterRole) return 0;
-    
+
     try {
         // Utiliser les données du profil babysitter existant
         const profile = babysitterProfile.value;
         if (!profile) return 0;
-        
+
         let totalFields = 0;
         let completedFields = 0;
 
@@ -731,7 +735,7 @@ console.log('🔍 Données utilisateur Profil:', {
     provider: props.user.provider,
     is_social_account: props.user.is_social_account,
     social_data_locked: props.user.social_data_locked,
-    isGoogleOnlyUser: isGoogleOnlyUser.value
+    isGoogleOnlyUser: isGoogleOnlyUser.value,
 });
 </script>
 
@@ -789,8 +793,8 @@ console.log('🔍 Données utilisateur Profil:', {
                             >
                                 <X class="h-4 w-4" />
                             </button>
-                            
-                            <p class="text-blue-800 pr-8">
+
+                            <p class="pr-8 text-blue-800">
                                 <template v-if="verificationStatus === 'pending'">
                                     Votre demande de vérification est en cours d'examen par nos modérateurs. Vous recevrez un email dès que votre
                                     compte sera validé ou si des modifications sont nécessaires.
@@ -859,7 +863,11 @@ console.log('🔍 Données utilisateur Profil:', {
                         <div
                             :class="[
                                 'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300',
-                                babysitterProfileCompletion >= 80 ? 'bg-green-100' : babysitterProfileCompletion >= 50 ? 'bg-yellow-100' : 'bg-red-100',
+                                babysitterProfileCompletion >= 80
+                                    ? 'bg-green-100'
+                                    : babysitterProfileCompletion >= 50
+                                      ? 'bg-yellow-100'
+                                      : 'bg-red-100',
                             ]"
                         >
                             <svg v-if="babysitterProfileCompletion >= 80" class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -869,7 +877,12 @@ console.log('🔍 Données utilisateur Profil:', {
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            <svg v-else-if="babysitterProfileCompletion >= 50" class="h-5 w-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg
+                                v-else-if="babysitterProfileCompletion >= 50"
+                                class="h-5 w-5 text-yellow-600"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                            >
                                 <path
                                     fill-rule="evenodd"
                                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
@@ -889,15 +902,20 @@ console.log('🔍 Données utilisateur Profil:', {
                             <p
                                 :class="[
                                     'text-sm font-medium',
-                                    babysitterProfileCompletion >= 80 ? 'text-green-700' : babysitterProfileCompletion >= 50 ? 'text-yellow-700' : 'text-red-700',
+                                    babysitterProfileCompletion >= 80
+                                        ? 'text-green-700'
+                                        : babysitterProfileCompletion >= 50
+                                          ? 'text-yellow-700'
+                                          : 'text-red-700',
                                 ]"
                             >
-                                <span v-if="babysitterProfileCompletion < 50">Continuez de remplir votre profil pour augmenter vos chances d'être contacté.</span>
+                                <span v-if="babysitterProfileCompletion < 50"
+                                    >Continuez de remplir votre profil pour augmenter vos chances d'être contacté.</span
+                                >
                                 <span v-else-if="babysitterProfileCompletion < 80">⭐ Votre profil est bien avancé, continuez !</span>
                                 <span v-else>🎉 Excellent ! Votre profil est complet.</span>
                             </p>
                         </div>
-                        
                     </div>
 
                     <div class="space-y-3">
@@ -935,7 +953,7 @@ console.log('🔍 Données utilisateur Profil:', {
 
             <!-- Header Card -->
             <Card class="mb-6 py-0">
-                <CardHeader class="py-5 rounded-t-xl bg-gradient-to-b from-primary/40 to-secondary/10">
+                <CardHeader class="from-primary/40 to-secondary/10 rounded-t-xl bg-gradient-to-b py-5">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-6">
                             <div class="relative">
@@ -951,13 +969,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                 >
                                     <Camera class="h-4 w-4 text-gray-500" />
                                 </div>
-                                <input
-                                    ref="avatarInput"
-                                    type="file"
-                                    accept="image/*"
-                                    @change="handleAvatarChange"
-                                    class="hidden"
-                                />
+                                <input ref="avatarInput" type="file" accept="image/*" @change="handleAvatarChange" class="hidden" />
                             </div>
                             <div>
                                 <h2 class="text-2xl font-semibold text-gray-900">{{ fullName }}</h2>
@@ -991,27 +1003,13 @@ console.log('🔍 Données utilisateur Profil:', {
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div class="space-y-2">
                                 <Label for="firstname">Prénom</Label>
-                                <Input 
-                                    id="firstname" 
-                                    v-model="form.firstname" 
-                                    :disabled="!isEditing || isGoogleOnlyUser" 
-                                    required 
-                                />
-                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
-                                    ✓ Géré par Google
-                                </p>
+                                <Input id="firstname" v-model="form.firstname" :disabled="!isEditing || isGoogleOnlyUser" required />
+                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">✓ Géré par Google</p>
                             </div>
                             <div class="space-y-2">
                                 <Label for="lastname">Nom</Label>
-                                <Input 
-                                    id="lastname" 
-                                    v-model="form.lastname" 
-                                    :disabled="!isEditing || isGoogleOnlyUser" 
-                                    required 
-                                />
-                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
-                                    ✓ Géré par Google
-                                </p>
+                                <Input id="lastname" v-model="form.lastname" :disabled="!isEditing || isGoogleOnlyUser" required />
+                                <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">✓ Géré par Google</p>
                             </div>
                         </div>
 
@@ -1020,18 +1018,16 @@ console.log('🔍 Données utilisateur Profil:', {
                             <Label for="email">Email</Label>
                             <div class="relative">
                                 <Mail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <Input 
-                                    id="email" 
-                                    type="email" 
-                                    v-model="form.email" 
-                                    :disabled="!isEditing || isGoogleOnlyUser" 
-                                    class="pl-10" 
-                                    required 
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    v-model="form.email"
+                                    :disabled="!isEditing || isGoogleOnlyUser"
+                                    class="pl-10"
+                                    required
                                 />
                             </div>
-                            <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">
-                                ✓ Géré par Google
-                            </p>
+                            <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">✓ Géré par Google</p>
                         </div>
 
                         <!-- Message informatif pour les utilisateurs Google -->
@@ -1039,7 +1035,11 @@ console.log('🔍 Données utilisateur Profil:', {
                             <div class="flex items-center space-x-3">
                                 <div class="flex-shrink-0">
                                     <svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clip-rule="evenodd"
+                                        />
                                     </svg>
                                 </div>
                                 <div class="flex-1">
@@ -1204,7 +1204,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                 <div v-else-if="(user as any).stripe_account_status === 'pending'" class="space-y-4">
                                     <div class="rounded-lg border border-orange-200 bg-orange-50 p-4">
                                         <div class="flex items-center">
-                                            <Clock class="mr-2 h-5 w-5 text-primary" />
+                                            <Clock class="text-primary mr-2 h-5 w-5" />
                                             <span class="text-sm font-medium text-orange-800">Configuration en cours</span>
                                         </div>
                                         <p class="mt-1 text-sm text-orange-700">
