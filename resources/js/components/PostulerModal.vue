@@ -28,6 +28,14 @@
 
             <!-- Corps avec scroll -->
             <div class="max-h-[50vh] space-y-6 overflow-y-auto px-6 py-4">
+                <!-- Message de succès -->
+                <div v-if="success" class="rounded-lg border border-green-200 bg-green-50 p-3">
+                    <p class="flex items-center gap-2 text-sm text-green-700">
+                        <CheckCircle class="h-4 w-4" />
+                        {{ success }}
+                    </p>
+                </div>
+
                 <!-- Récapitulatif en cards compactes -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-secondary/50 hover:bg-secondary rounded-lg p-3 transition-all">
@@ -69,14 +77,12 @@
                     <p class="text-sm leading-relaxed text-blue-700">{{ props.additionalInfo }}</p>
                 </div>
 
-                <!-- Message de présentation compact avec validation -->
+                <!-- Message de présentation compact -->
                 <div class="space-y-2">
                     <Label for="message" class="flex items-center gap-2 text-sm font-medium text-gray-700">
                         <MessageSquare class="h-4 w-4" />
                         Votre message pour la famille
-                        <span class="text-red-500">*</span>
                     </Label>
-                    <div class="relative">
                     <Textarea
                         id="message"
                         v-model="message"
@@ -84,51 +90,17 @@
                         :maxlength="500"
                         rows="3"
                         :disabled="isLoading"
-                            :class="[
-                                'resize-none rounded-lg text-sm transition-all focus:ring-orange-100',
-                                messageError || fieldErrors.motivation_note 
-                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-100' 
-                                    : 'border-gray-200 focus:border-orange-300'
-                            ]"
-                        />
-                        <!-- Indicateur d'erreur visuel -->
-                        <div v-if="messageError || fieldErrors.motivation_note" 
-                             class="absolute right-3 top-3">
-                            <AlertCircle class="h-4 w-4 text-red-500" />
-                        </div>
-                    </div>
-                    
-                    <!-- Compteur de caractères et erreurs -->
-                    <div class="flex items-center justify-between text-xs">
-                        <div>
-                            <!-- Erreur de validation en temps réel -->
-                            <span v-if="messageError" class="text-red-600 flex items-center gap-1">
-                                <AlertCircle class="h-3 w-3" />
-                                {{ messageError }}
-                            </span>
-                            <!-- Erreur du backend -->
-                            <span v-else-if="fieldErrors.motivation_note" class="text-red-600 flex items-center gap-1">
-                                <AlertCircle class="h-3 w-3" />
-                                {{ fieldErrors.motivation_note }}
-                            </span>
-                            <!-- Message d'aide -->
-                            <span v-else class="text-gray-500">
-                                Minimum 10 caractères pour une présentation efficace
-                            </span>
-                        </div>
-                        <span :class="message.length > 450 ? 'text-orange-600 font-medium' : 'text-gray-400'">
-                            {{ message.length }}/500
-                        </span>
-                    </div>
+                        class="resize-none rounded-lg border-gray-200 text-sm transition-all focus:border-orange-300 focus:ring-orange-100"
+                    />
+                    <p class="text-right text-xs text-gray-400">{{ message.length }}/500 caractères</p>
                 </div>
 
-                <!-- Tarif horaire compact avec validation -->
+                <!-- Tarif horaire compact -->
                 <div class="space-y-2">
                     <Label for="rate" class="flex items-center justify-between text-sm font-medium text-gray-700">
                         <span class="flex items-center gap-2">
                             <Euro class="h-4 w-4" />
                             Votre tarif horaire
-                            <span class="text-red-500">*</span>
                         </span>
                         <span class="text-xs font-normal text-gray-500">Demandé : {{ props.requestedRate }}€/h</span>
                     </Label>
@@ -139,28 +111,11 @@
                             v-model.number="rate"
                             type="number"
                             min="0"
-                            max="999.99"
                             step="0.5"
                             :disabled="isLoading"
-                            :class="[
-                                'rounded-lg pr-10 pl-8 transition-all focus:ring-orange-100',
-                                rateError || fieldErrors.proposed_rate 
-                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-100' 
-                                    : 'border-gray-200 focus:border-orange-300'
-                            ]"
+                            class="rounded-lg border-gray-200 pr-10 pl-8 transition-all focus:border-orange-300 focus:ring-orange-100"
                         />
                         <span class="absolute inset-y-0 right-3 flex items-center text-sm text-gray-500">/h</span>
-                        <!-- Indicateur d'erreur visuel -->
-                        <div v-if="rateError || fieldErrors.proposed_rate" 
-                             class="absolute right-8 top-1/2 -translate-y-1/2">
-                            <AlertCircle class="h-4 w-4 text-red-500" />
-                        </div>
-                    </div>
-                    
-                    <!-- Erreurs de validation pour le tarif -->
-                    <div v-if="rateError || fieldErrors.proposed_rate" class="text-xs text-red-600 flex items-center gap-1">
-                        <AlertCircle class="h-3 w-3" />
-                        {{ rateError || fieldErrors.proposed_rate }}
                     </div>
                 </div>
 
@@ -180,14 +135,8 @@
                             <div class="flex items-center gap-2 text-sm font-medium text-gray-900">
                                 <Calculator class="h-4 w-4" />
                                 Estimation totale
-                                <span v-if="spansNextDay" class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                                    🌙 Garde de nuit
-                                </span>
                             </div>
-                            <div class="mt-1 text-xs text-gray-500">
-                                {{ effectiveRate }}€/h × {{ duration.toFixed(1) }}h
-                                <span v-if="spansNextDay" class="text-orange-600">(sur 2 jours)</span>
-                            </div>
+                            <div class="mt-1 text-xs text-gray-500">{{ effectiveRate }}€/h × {{ duration }}h</div>
                         </div>
                         <div class="text-lg font-semibold text-gray-900">{{ (effectiveRate * duration).toFixed(2) }}€</div>
                     </div>
@@ -196,15 +145,14 @@
 
             <!-- Pied de pop-up compact -->
             <div class="border-t bg-gradient-to-br from-gray-50 to-white px-6 py-4">
-                <!-- Message d'erreur général -->
+                <!-- Message d'erreur juste au-dessus des boutons -->
                 <div v-if="error" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3">
                     <p class="flex items-start gap-2 text-sm text-red-700">
-                        <AlertCircle class="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
                         <span class="leading-relaxed">{{ error }}</span>
                     </p>
                 </div>
 
-                <!-- Boutons d'action -->
                 <div class="flex gap-2">
                     <Button
                         variant="outline"
@@ -213,22 +161,18 @@
                         class="flex flex-1 items-center justify-center gap-2 rounded-lg border-gray-200 py-2 text-sm transition-all duration-200 hover:bg-gray-50"
                     >
                         <X class="h-4 w-4" />
-                        Annuler
+                        {{ success ? 'Fermer' : 'Annuler' }}
                     </Button>
 
                     <Button
+                        v-if="!success"
                         :disabled="!canSubmit || isLoading"
                         @click="submit"
-                        :class="[
-                            'flex flex-1 items-center justify-center gap-2 rounded-lg border-0 py-2 text-sm text-white transition-all duration-200',
-                            canSubmit && !isLoading
-                                ? 'from-primary hover:to-primary bg-gradient-to-r to-orange-400 hover:from-primary shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
-                                : 'bg-gray-300 cursor-not-allowed'
-                        ]"
+                        class="from-primary hover:to-primary hover:from-primary flex flex-1 items-center justify-center gap-2 rounded-lg border-0 bg-gradient-to-r to-orange-400 py-2 text-sm text-white transition-all duration-200 disabled:opacity-50"
                     >
                         <Loader v-if="isLoading" class="h-4 w-4 animate-spin" />
                         <Send v-else class="h-4 w-4" />
-                        {{ isLoading ? 'Envoi en cours...' : 'Envoyer ma candidature' }}
+                        {{ isLoading ? 'Envoi...' : 'Envoyer ma candidature' }}
                     </Button>
                 </div>
             </div>
@@ -247,6 +191,7 @@ import {
     Baby,
     Calculator,
     Calendar,
+    CheckCircle,
     Clock,
     Euro,
     Info,
@@ -260,7 +205,6 @@ import {
 } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
-import { useToast } from '@/composables/useToast';
 
 interface Props {
     isOpen: boolean;
@@ -274,130 +218,21 @@ interface Props {
     familyName: string;
     requestedRate: number;
     additionalInfo?: string | null;
-    startTime?: string;
-    endTime?: string;
 }
 
 const props = defineProps<Props>();
 const message = ref('');
 const rate = ref(props.requestedRate);
-
-// Composable pour les toasts
-const { showSuccess, showError } = useToast();
-
-// Calcul dynamique de la durée basé sur les heures de l'annonce
-const duration = computed(() => {
-    // Si on a les heures de début et fin en props
-    if (props.startTime && props.endTime) {
-        const [startHour, startMin] = props.startTime.split(':').map(Number);
-        const [endHour, endMin] = props.endTime.split(':').map(Number);
-        
-        const startMinutes = startHour * 60 + startMin;
-        let endMinutes = endHour * 60 + endMin;
-        
-        // Si l'heure de fin est plus petite que l'heure de début, 
-        // cela signifie que ça se termine le lendemain
-        if (endMinutes <= startMinutes) {
-            endMinutes += 24 * 60; // Ajouter 24 heures
-        }
-        
-        const durationInMinutes = endMinutes - startMinutes;
-        const durationInHours = durationInMinutes / 60;
-        
-        return Math.min(24, Math.max(0, durationInHours));
-    }
-    
-    // Fallback: essayer de parser depuis la prop hours (format "14:00 - 18:00")
-    if (props.hours && props.hours.includes(' - ')) {
-        try {
-            const [startTime, endTime] = props.hours.split(' - ');
-            const [startHour, startMin] = startTime.split(':').map(Number);
-            const [endHour, endMin] = endTime.split(':').map(Number);
-            
-            const startMinutes = startHour * 60 + startMin;
-            let endMinutes = endHour * 60 + endMin;
-            
-            if (endMinutes <= startMinutes) {
-                endMinutes += 24 * 60;
-            }
-            
-            const durationInMinutes = endMinutes - startMinutes;
-            const durationInHours = durationInMinutes / 60;
-            
-            return Math.min(24, Math.max(0, durationInHours));
-        } catch (error) {
-            console.warn('Erreur lors du parsing des heures:', props.hours);
-        }
-    }
-    
-    // Dernier fallback
-    return 4;
-});
-
-// Vérifier si l'annonce s'étend sur deux jours
-const spansNextDay = computed(() => {
-    if (props.startTime && props.endTime) {
-        const [startHour, startMin] = props.startTime.split(':').map(Number);
-        const [endHour, endMin] = props.endTime.split(':').map(Number);
-        const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
-        return endMinutes <= startMinutes;
-    }
-    
-    if (props.hours && props.hours.includes(' - ')) {
-        try {
-            const [startTime, endTime] = props.hours.split(' - ');
-            const [startHour, startMin] = startTime.split(':').map(Number);
-            const [endHour, endMin] = endTime.split(':').map(Number);
-            const startMinutes = startHour * 60 + startMin;
-            const endMinutes = endHour * 60 + endMin;
-            return endMinutes <= startMinutes;
-        } catch (error) {
-            return false;
-        }
-    }
-    
-    return false;
-});
-
+const duration = 4;
 const isLoading = ref(false);
 const error = ref('');
-const fieldErrors = ref<Record<string, string>>({});
+const success = ref('');
 
 const isCounterProposal = computed(() => rate.value !== props.requestedRate);
 const effectiveRate = computed(() => rate.value);
 
-const total = computed(() => effectiveRate.value * duration.value);
-
-// Validation en temps réel
-const messageError = computed(() => {
-    if (message.value.length > 500) {
-        return 'Le message ne peut pas dépasser 500 caractères.';
-    }
-    if (message.value.trim().length > 0 && message.value.trim().length < 10) {
-        return 'Le message doit contenir au moins 10 caractères significatifs.';
-    }
-    return '';
-});
-
-const rateError = computed(() => {
-    if (!rate.value || rate.value <= 0) {
-        return 'Le tarif doit être supérieur à 0€.';
-    }
-    if (rate.value > 999.99) {
-        return 'Le tarif ne peut pas dépasser 999,99€.';
-    }
-    return '';
-});
-
-// Mise à jour de canSubmit avec validation améliorée
-const canSubmit = computed(() => {
-    return message.value.trim().length >= 10 && 
-           rate.value > 0 && 
-           rate.value <= 999.99 && 
-           !messageError.value && 
-           !rateError.value;
-});
+const total = computed(() => effectiveRate.value * duration);
+const canSubmit = computed(() => message.value.trim().length > 0 && rate.value > 0);
 
 const formattedDate = computed(() => {
     const d = new Date(props.date);
@@ -408,7 +243,8 @@ const closeModal = () => {
     // Reset complet des données
     message.value = '';
     rate.value = props.requestedRate;
-    clearErrors();
+    error.value = '';
+    success.value = '';
     isLoading.value = false;
 
     props.onClose();
@@ -420,7 +256,8 @@ const resetModalState = async () => {
         await nextTick();
         message.value = '';
         rate.value = props.requestedRate;
-        clearErrors();
+        error.value = '';
+        success.value = '';
         isLoading.value = false;
     }
 };
@@ -428,58 +265,171 @@ const resetModalState = async () => {
 // Watch pour s'assurer que la modal est bien réinitialisée à chaque ouverture
 watch(() => props.isOpen, resetModalState);
 
-// Fonction pour réinitialiser les erreurs
-const clearErrors = () => {
-    error.value = '';
-    fieldErrors.value = {};
+// Fonction pour obtenir un message d'erreur convivial
+const getFriendlyErrorMessage = (status: number, serverError?: string) => {
+    switch (status) {
+        case 400:
+            if (serverError?.includes('déjà postulé')) {
+                return 'Vous avez déjà envoyé une candidature pour cette annonce. Vous pouvez consulter son statut dans votre espace babysitter.';
+            }
+            if (serverError?.includes('propre annonce')) {
+                return 'Vous ne pouvez pas postuler à votre propre annonce. Cette annonce vous appartient !';
+            }
+            if (serverError?.includes('plus disponible')) {
+                return "Cette annonce n'est plus disponible. Elle a peut-être été supprimée ou réservée par quelqu'un d'autre.";
+            }
+            if (serverError?.includes('déjà eu lieu')) {
+                return 'Cette annonce a déjà eu lieu ou commence très bientôt. Vous ne pouvez plus y postuler.';
+            }
+            return serverError || 'Les données envoyées ne sont pas valides. Veuillez vérifier votre message et votre tarif.';
+
+        case 401:
+            return 'Votre session a expiré. Veuillez vous reconnecter et réessayer.';
+
+        case 403:
+            if (serverError?.includes('babysitters')) {
+                return 'Seuls les comptes babysitter peuvent postuler aux annonces. Vérifiez que vous êtes connecté avec le bon compte.';
+            }
+            if (serverError?.includes('vérifié') || serverError?.includes('vérification')) {
+                return "Votre profil babysitter n'est pas encore vérifié. Complétez votre profil et demandez la vérification dans votre espace personnel avant de postuler.";
+            }
+            return serverError || "Vous n'avez pas l'autorisation d'effectuer cette action.";
+
+        case 404:
+            return "Cette annonce n'existe plus ou a été supprimée. Retournez à la liste des annonces pour en voir d'autres.";
+
+        case 422:
+            return 'Certaines informations ne sont pas valides :\n• Vérifiez que votre message fait moins de 1000 caractères\n• Vérifiez que votre tarif est entre 0€ et 999€';
+
+        case 429:
+            return 'Trop de tentatives. Attendez quelques minutes avant de réessayer.';
+
+        case 500:
+            return 'Une erreur technique est survenue sur nos serveurs. Notre équipe a été notifiée. Réessayez dans quelques minutes.';
+
+        case 503:
+            return 'Le service est temporairement indisponible pour maintenance. Réessayez dans quelques minutes.';
+
+        default:
+            return serverError || `Une erreur inattendue est survenue (Code: ${status}). Contactez le support si le problème persiste.`;
+    }
 };
 
 async function submit() {
     if (!canSubmit.value || isLoading.value) return;
 
     isLoading.value = true;
-    clearErrors();
+    error.value = '';
 
-    // Utiliser Inertia pour une meilleure gestion des sessions Laravel
-    const { router } = await import('@inertiajs/vue3');
-    
-    router.post(route('announcements.apply', { announcement: props.announcementId }), {
-        motivation_note: message.value.trim(),
-        proposed_rate: rate.value,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-        onSuccess: (page) => {
-            // Fermer la modal immédiatement
-            closeModal();
-            
-            // Afficher le toast de succès
-            showSuccess(
-                '🎉 Candidature envoyée !', 
-                'Votre candidature a été transmise à la famille.'
-            );
-        },
-        onError: (errors) => {
-            // Traiter les erreurs de validation
-            if (errors.motivation_note) {
-                fieldErrors.value.motivation_note = Array.isArray(errors.motivation_note) 
-                    ? errors.motivation_note[0] 
-                    : errors.motivation_note;
+    try {
+        console.log('🚀 DÉBUT ENVOI CANDIDATURE');
+        console.log('📋 Détails de la candidature:', {
+            announcementId: props.announcementId,
+            message: message.value.trim(),
+            rate: rate.value,
+            isCounterProposal: isCounterProposal.value,
+            canSubmit: canSubmit.value,
+        });
+
+        const requestData = {
+            motivation_note: message.value.trim(),
+            proposed_rate: rate.value,
+        };
+
+        console.log('📡 Données à envoyer:', requestData);
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        console.log('🔐 CSRF Token:', csrfToken ? 'Présent' : 'Manquant');
+
+        const requestUrl = route('announcements.apply', { announcement: props.announcementId });
+        console.log('🌐 URL de la requête:', requestUrl);
+
+        const requestHeaders = {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken || '',
+            Accept: 'application/json',
+        };
+        console.log('📝 Headers de la requête:', requestHeaders);
+
+        console.log('⏳ Envoi de la requête fetch...');
+
+        const response = await fetch(requestUrl, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: JSON.stringify(requestData),
+        });
+
+        console.log('📡 Réponse reçue');
+        console.log('📊 Status de la réponse:', response.status);
+        console.log('✅ Réponse OK:', response.ok);
+        console.log('🔗 URL finale:', response.url);
+        console.log('📋 Headers de réponse:', Object.fromEntries(response.headers.entries()));
+
+        // Essayer de parser la réponse JSON
+        let data;
+        const responseText = await response.text();
+        console.log('📄 Réponse brute (texte):', responseText);
+
+        try {
+            data = JSON.parse(responseText);
+            console.log('📋 Données parsées:', data);
+        } catch (parseError) {
+            console.error('❌ Erreur parsing JSON:', parseError);
+            console.log("📄 Contenu de la réponse qui n'est pas JSON:", responseText);
+
+            // Si la réponse n'est pas JSON, c'est probablement une redirection ou une erreur serveur
+            if (response.status >= 300 && response.status < 400) {
+                error.value = 'Redirection inattendue. Vérifiez que vous êtes bien connecté.';
+            } else {
+                error.value = getFriendlyErrorMessage(response.status);
             }
-            if (errors.proposed_rate) {
-                fieldErrors.value.proposed_rate = Array.isArray(errors.proposed_rate) 
-                    ? errors.proposed_rate[0] 
-                    : errors.proposed_rate;
-            }
-            
-            // Message d'erreur générique si pas d'erreurs spécifiques
-            if (!errors.motivation_note && !errors.proposed_rate) {
-                error.value = 'Une erreur est survenue lors de l\'envoi de votre candidature.';
-            }
-        },
-        onFinish: () => {
-            isLoading.value = false;
+            return;
         }
-    });
+
+        if (response.ok) {
+            // Vérifier si la réponse contient une erreur malgré le status 200
+            if (data.error) {
+                console.error('❌ Erreur dans réponse 200:', data);
+                error.value = getFriendlyErrorMessage(response.status, data.error);
+            } else {
+                console.log('🎉 CANDIDATURE ENVOYÉE AVEC SUCCÈS');
+                console.log('💬 Message de succès:', data.message);
+                success.value = data.message || 'Candidature envoyée avec succès !';
+
+                // Optionnel: rediriger après un délai
+                setTimeout(() => {
+                    console.log('🔄 Fermeture automatique de la modal');
+                    closeModal();
+                }, 2000);
+            }
+        } else {
+            console.error('❌ Erreur serveur');
+            console.error('📊 Status:', response.status);
+            console.error("📋 Données d'erreur:", data);
+
+            // Utiliser le message d'erreur convivial
+            error.value = getFriendlyErrorMessage(response.status, data.error);
+        }
+    } catch (err) {
+        console.error("❌ ERREUR CRITIQUE lors de l'envoi de la candidature:");
+        console.error("🔍 Type d'erreur:", err.constructor.name);
+        console.error("📄 Message d'erreur:", err.message);
+        console.error('📚 Stack trace:', err.stack);
+
+        // Gestion plus précise des erreurs réseau
+        if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+            console.error('🌐 Erreur réseau: Failed to fetch');
+            error.value = 'Problème de connexion réseau. Vérifiez votre connexion internet et réessayez.';
+        } else if (err instanceof TypeError && err.message.includes('NetworkError')) {
+            console.error('🌐 Erreur réseau: NetworkError');
+            error.value = 'Erreur de réseau. Vérifiez votre connexion internet ou réessayez plus tard.';
+        } else {
+            console.error('🔧 Autre erreur technique');
+            error.value = 'Une erreur de communication est survenue. Vérifiez votre connexion et réessayez.';
+        }
+    } finally {
+        console.log('🏁 Fin du processus de candidature');
+        isLoading.value = false;
+    }
 }
 </script>

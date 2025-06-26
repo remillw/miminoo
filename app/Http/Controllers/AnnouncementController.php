@@ -6,7 +6,6 @@ use App\Models\Ad;
 use App\Models\AdApplication;
 use App\Models\Address;
 use App\Models\User;
-use App\Http\Requests\StoreAnnouncementRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -187,16 +186,42 @@ class AnnouncementController extends Controller
      */
     public function apply(Request $request, Ad $announcement)
     {
+        Log::info('🚀 DÉBUT DE POSTULATION', [
+            'user_id' => $request->user()?->id,
+            'announcement_id' => $announcement->id,
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'user_agent' => $request->userAgent(),
+            'ip' => $request->ip()
+        ]);
+
         $user = $request->user();
 
-        Log::info('🚀 Début candidature:', [
-            'user_id' => $user->id,
+        // Log des informations utilisateur
+        Log::info('👤 INFORMATIONS UTILISATEUR', [
+            'user_id' => $user?->id,
+            'user_email' => $user?->email,
+            'user_roles' => $user?->roles?->pluck('name'),
+            'babysitter_profile_exists' => $user?->babysitterProfile ? true : false,
+            'babysitter_verification_status' => $user?->babysitterProfile?->verification_status
+        ]);
+
+        // Log des informations sur l'annonce
+        Log::info('📋 INFORMATIONS ANNONCE', [
             'announcement_id' => $announcement->id,
-            'data' => $request->all()
+            'announcement_status' => $announcement->status,
+            'announcement_parent_id' => $announcement->parent_id,
+            'announcement_date_start' => $announcement->date_start,
+            'announcement_created_at' => $announcement->created_at,
+            'now' => now()
         ]);
 
         // Vérifier si l'annonce est encore active et dans le futur
         if ($announcement->status !== 'active') {
+            Log::warning('❌ ANNONCE NON ACTIVE', [
+                'announcement_status' => $announcement->status,
+                'expected' => 'active'
+            ]);
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Cette annonce n\'est plus disponible.'], 400);
             }
@@ -204,6 +229,11 @@ class AnnouncementController extends Controller
         }
 
         if ($announcement->date_start <= now()) {
+            Log::warning('❌ ANNONCE DÉJÀ PASSÉE', [
+                'announcement_date_start' => $announcement->date_start,
+                'now' => now(),
+                'difference_minutes' => now()->diffInMinutes($announcement->date_start, false)
+            ]);
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Cette annonce a déjà eu lieu ou commence très bientôt.'], 400);
             }
@@ -212,9 +242,9 @@ class AnnouncementController extends Controller
 
         // Vérifier si l'utilisateur est un babysitter
         if (!$user->hasRole('babysitter')) {
-            Log::warning('❌ Utilisateur non babysitter tentant de postuler:', [
-                'user_id' => $user->id,
-                'roles' => $user->roles->pluck('name')
+            Log::warning('❌ UTILISATEUR PAS BABYSITTER', [
+                'user_roles' => $user->roles->pluck('name'),
+                'expected_role' => 'babysitter'
             ]);
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Seuls les babysitters peuvent postuler aux annonces.'], 403);
@@ -224,6 +254,10 @@ class AnnouncementController extends Controller
 
         // Vérifier que l'utilisateur ne postule pas à sa propre annonce
         if ($announcement->parent_id === $user->id) {
+            Log::warning('❌ POSTULATION À SA PROPRE ANNONCE', [
+                'user_id' => $user->id,
+                'announcement_parent_id' => $announcement->parent_id
+            ]);
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Vous ne pouvez pas postuler à votre propre annonce.'], 400);
             }
@@ -232,10 +266,10 @@ class AnnouncementController extends Controller
 
         // Vérifier si le profil est vérifié
         if (!$user->babysitterProfile || $user->babysitterProfile->verification_status !== 'verified') {
-            Log::warning('❌ Profil babysitter non vérifié:', [
-                'user_id' => $user->id,
-                'has_profile' => !!$user->babysitterProfile,
-                'verification_status' => $user->babysitterProfile?->verification_status
+            Log::warning('❌ PROFIL NON VÉRIFIÉ', [
+                'babysitter_profile_exists' => $user->babysitterProfile ? true : false,
+                'verification_status' => $user->babysitterProfile?->verification_status,
+                'expected_status' => 'verified'
             ]);
             $errorMessage = 'Votre compte n\'est pas vérifié. Vous devez compléter votre profil et demander la vérification avant de pouvoir postuler aux annonces.';
             
@@ -246,12 +280,25 @@ class AnnouncementController extends Controller
         }
 
         // Vérifier si l'utilisateur n'a pas déjà postulé
-        if ($announcement->applications()->where('babysitter_id', $user->id)->exists()) {
+        $existingApplication = $announcement->applications()->where('babysitter_id', $user->id)->first();
+        if ($existingApplication) {
+            Log::warning('❌ DÉJÀ POSTULÉ', [
+                'existing_application_id' => $existingApplication->id,
+                'existing_application_status' => $existingApplication->status,
+                'existing_application_created_at' => $existingApplication->created_at
+            ]);
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Vous avez déjà postulé à cette annonce.'], 400);
             }
             return back()->with('error', 'Vous avez déjà postulé à cette annonce.');
         }
+
+        // Log des données reçues
+        Log::info('📝 DONNÉES REÇUES', [
+            'request_data' => $request->all(),
+            'content_type' => $request->header('Content-Type'),
+            'expects_json' => $request->expectsJson()
+        ]);
 
         // Valider les données avec messages personnalisés
         try {
@@ -264,7 +311,15 @@ class AnnouncementController extends Controller
                 'proposed_rate.min' => 'Le tarif proposé ne peut pas être négatif.',
                 'proposed_rate.max' => 'Le tarif proposé ne peut pas dépasser 999,99€.',
             ]);
+
+            Log::info('✅ DONNÉES VALIDÉES', [
+                'validated_data' => $validated
+            ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('❌ ERREUR VALIDATION', [
+                'errors' => $e->errors(),
+                'input_data' => $request->all()
+            ]);
             if ($request->expectsJson()) {
                 $errors = collect($e->errors())->flatten()->implode(' ');
                 return response()->json(['error' => $errors], 422);
@@ -273,43 +328,79 @@ class AnnouncementController extends Controller
         }
 
         // Créer la candidature
-        Log::info('📝 Création de la candidature:', [
-            'announcement_id' => $announcement->id,
-            'babysitter_id' => $user->id,
-            'validated_data' => $validated
-        ]);
+        try {
+            Log::info('💾 CRÉATION CANDIDATURE EN COURS...', [
+                'babysitter_id' => $user->id,
+                'announcement_id' => $announcement->id,
+                'motivation_note' => $validated['motivation_note'] ?? null,
+                'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate
+            ]);
 
-        $application = $announcement->applications()->create([
-            'babysitter_id' => $user->id,
-            'status' => 'pending',
-            'motivation_note' => $validated['motivation_note'] ?? null,
-            'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate,
-        ]);
+            $application = $announcement->applications()->create([
+                'babysitter_id' => $user->id,
+                'status' => 'pending',
+                'motivation_note' => $validated['motivation_note'] ?? null,
+                'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate,
+            ]);
 
-        Log::info('✅ Candidature créée avec succès:', [
-            'application_id' => $application->id,
-            'announcement_id' => $announcement->id,
-            'babysitter_id' => $user->id
-        ]);
+            Log::info('✅ CANDIDATURE CRÉÉE AVEC SUCCÈS', [
+                'application_id' => $application->id,
+                'application_status' => $application->status,
+                'created_at' => $application->created_at
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ ERREUR CRÉATION CANDIDATURE', [
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Erreur lors de la création de la candidature: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Erreur lors de la création de la candidature.');
+        }
 
         // Envoyer les notifications
         try {
+            Log::info('📧 ENVOI NOTIFICATIONS EN COURS...', [
+                'application_id' => $application->id
+            ]);
+
             // Notifier le parent
             $parent = $announcement->parent;
             if ($parent) {
+                Log::info('📧 NOTIFICATION PARENT...', [
+                    'parent_id' => $parent->id,
+                    'parent_email' => $parent->email
+                ]);
                 $parent->notify(new NewApplication($application));
+                Log::info('✅ NOTIFICATION PARENT ENVOYÉE');
+            } else {
+                Log::warning('⚠️ PARENT INTROUVABLE POUR NOTIFICATION', [
+                    'announcement_parent_id' => $announcement->parent_id
+                ]);
             }
 
             // Notifier le babysitter (confirmation)
+            Log::info('📧 NOTIFICATION BABYSITTER...', [
+                'babysitter_id' => $user->id,
+                'babysitter_email' => $user->email
+            ]);
             $user->notify(new NewApplication($application));
+            Log::info('✅ NOTIFICATION BABYSITTER ENVOYÉE');
+
         } catch (\Exception $e) {
-            Log::error('Erreur envoi notification candidature:', [
+            Log::error('❌ ERREUR ENVOI NOTIFICATIONS', [
                 'application_id' => $application->id,
-                'error' => $e->getMessage()
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine()
             ]);
         }
 
-        Log::info('🎉 Candidature terminée avec succès:', [
+        Log::info('🎉 POSTULATION TERMINÉE AVEC SUCCÈS', [
             'application_id' => $application->id,
             'user_id' => $user->id,
             'announcement_id' => $announcement->id
@@ -336,20 +427,45 @@ class AnnouncementController extends Controller
     }
 
     /**
-     * Store a new announcement.
+     * Store a newly created announcement.
      */
-    public function store(StoreAnnouncementRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        try {
-            // Récupérer les données validées
-            $validated = $request->validated();
+        // Debug: Log des données reçues
+        Log::info('Données reçues pour création annonce:', $request->all());
 
-            Log::info('📝 Création d\'annonce - Données validées reçues:', [
-                'user_id' => Auth::id(),
-                'data_keys' => array_keys($validated)
+        try {
+            $validated = $request->validate([
+                // Étape 1: Date et horaires
+                'date' => 'required|date|after_or_equal:today',
+                'start_time' => 'required|string',
+                'end_time' => 'required|string',
+                
+                // Étape 2: Enfants
+                'children' => 'required|array|min:1',
+                'children.*.nom' => 'required|string|max:255',
+                'children.*.age' => 'required|string|max:3',
+                'children.*.unite' => 'required|in:ans,mois',
+                
+                // Étape 3: Lieu
+                'address' => 'required|string|max:500',
+                'postal_code' => 'required|string|max:10',
+                'country' => 'required|string|max:100',
+                'latitude' => 'required|numeric|between:-90,90',
+                'longitude' => 'required|numeric|between:-180,180',
+                
+                // Étape 4: Détails (optionnel)
+                'additional_info' => 'nullable|string|max:2000',
+                
+                // Étape 5: Tarif
+                'hourly_rate' => 'required|numeric|min:0|max:999.99',
+                'estimated_duration' => 'nullable|numeric|min:0',
+                'estimated_total' => 'nullable|numeric|min:0',
             ]);
 
-            // Créer ou récupérer l'adresse
+            Log::info('Données validées:', $validated);
+
+            // Créer ou récupérer l'adresse avec firstOrCreate
             $address = Address::firstOrCreate([
                 'address' => $validated['address'],
                 'postal_code' => $validated['postal_code'],
@@ -359,34 +475,16 @@ class AnnouncementController extends Controller
                 'longitude' => $validated['longitude'],
             ]);
 
-            Log::info('📍 Adresse créée/récupérée:', ['address_id' => $address->id]);
+            Log::info('Adresse créée/récupérée:', ['address_id' => $address->id]);
 
-            // Créer les dates complètes en gérant les gardes de nuit
+            // Créer les dates complètes
             $dateStart = $validated['date'] . ' ' . $validated['start_time'] . ':00';
-            
-            // Pour la date de fin, vérifier si c'est une garde de nuit
-            $startTime = $validated['start_time'];
-            $endTime = $validated['end_time'];
-            
-            // Convertir en minutes pour comparaison
-            [$startHour, $startMin] = explode(':', $startTime);
-            [$endHour, $endMin] = explode(':', $endTime);
-            $startMinutes = (int)$startHour * 60 + (int)$startMin;
-            $endMinutes = (int)$endHour * 60 + (int)$endMin;
-            
-            // Si l'heure de fin est plus petite que l'heure de début, c'est le lendemain
-            if ($endMinutes <= $startMinutes) {
-                // Ajouter un jour à la date de fin
-                $endDate = Carbon::parse($validated['date'])->addDay()->format('Y-m-d');
-                $dateEnd = $endDate . ' ' . $validated['end_time'] . ':00';
-            } else {
-                $dateEnd = $validated['date'] . ' ' . $validated['end_time'] . ':00';
-            }
+            $dateEnd = $validated['date'] . ' ' . $validated['end_time'] . ':00';
 
             // Créer un titre automatique
             $childrenCount = count($validated['children']);
             $title = "Garde de {$childrenCount} enfant" . ($childrenCount > 1 ? 's' : '') . 
-                    " le " . Carbon::parse($validated['date'])->format('d/m/Y');
+                    " le " . \Carbon\Carbon::parse($validated['date'])->format('d/m/Y');
 
             // Créer l'annonce
             $announcement = Ad::create([
@@ -403,35 +501,21 @@ class AnnouncementController extends Controller
                 'additional_info' => $validated['additional_info'] ?? null
             ]);
 
-            Log::info('✅ Annonce créée avec succès:', [
-                'ad_id' => $announcement->id,
-                'title' => $title,
-                'parent_id' => Auth::id()
-            ]);
+            Log::info('Annonce créée avec succès:', ['ad_id' => $announcement->id]);
 
-            // Réponse avec message de succès structuré
             return redirect()
                 ->route('announcements.index')
-                ->with('success', [
-                    'title' => 'Annonce publiée !',
-                    'message' => 'Votre annonce a été créée avec succès et est maintenant visible par toutes les babysitters.',
-                    'type' => 'success'
-                ]);
+                ->with('success', 'Annonce créée avec succès !');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Erreur de validation:', ['errors' => $e->errors()]);
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('❌ Erreur lors de la création de l\'annonce:', [
-                'user_id' => Auth::id(),
+            Log::error('Erreur lors de la création de l\'annonce:', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
-            return back()
-                ->withInput()
-                ->with('error', [
-                    'title' => 'Erreur lors de la création',
-                    'message' => 'Une erreur technique est survenue. Veuillez réessayer dans quelques instants.',
-                    'type' => 'error'
-                ]);
+            return back()->with('error', 'Une erreur est survenue lors de la création de l\'annonce.');
         }
     }
 
