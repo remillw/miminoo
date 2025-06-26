@@ -136,12 +136,28 @@ class StripeService
      */
     private function extractCityFromAddress($address)
     {
-        // Simple extraction - peut être améliorée
-        $parts = explode(',', $address);
-        if (count($parts) >= 2) {
-            return trim($parts[count($parts) - 2]);
+        // Tentative d'extraction de la ville depuis une adresse complète.
+        // L'adresse peut se présenter sous la forme "12 rue Exemple, 75001 Paris" ou
+        // "12 rue Exemple, 75001 Paris, France". On cherche donc la partie qui
+        // suit le code postal.
+
+        // Nettoyer et séparer les différentes parties de l'adresse
+        $parts = array_map('trim', explode(',', (string) $address));
+
+        // Examiner d'abord la dernière partie
+        $candidate = end($parts) ?: '';
+        if (preg_match('/\d{4,5}\s*(.+)/', $candidate, $matches)) {
+            return trim($matches[1]);
         }
-        return '';
+
+        // Si la dernière partie est un pays (ex: "France"), tenter avec l'avant-dernière
+        $candidate = prev($parts) ?: $candidate;
+        if (preg_match('/\d{4,5}\s*(.+)/', $candidate, $matches)) {
+            return trim($matches[1]);
+        }
+
+        // À défaut, retourner simplement cette partie nettoyée
+        return $candidate;
     }
 
     /**
