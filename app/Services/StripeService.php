@@ -394,8 +394,10 @@ class StripeService
                 throw new \Exception('Utilisateur requis pour créer un PaymentIntent');
             }
             
-            // Créer un customer Stripe si l'utilisateur n'en a pas
-            if (!$user->stripe_customer_id) {
+            // Récupérer ou créer un customer Stripe
+            $customerId = $user->stripe_customer_id;
+            
+            if (!$customerId) {
                 $customer = $this->stripe->customers->create([
                     'email' => $user->email,
                     'name' => $user->firstname . ' ' . $user->lastname,
@@ -405,25 +407,19 @@ class StripeService
                     ]
                 ]);
                 
-                $user->update(['stripe_customer_id' => $customer->id]);
-                // Forcer le rechargement pour s'assurer que stripe_customer_id est bien mis à jour
-                $user->refresh();
+                $customerId = $customer->id;
+                $user->update(['stripe_customer_id' => $customerId]);
                 
                 Log::info('Customer Stripe créé', [
                     'user_id' => $user->id,
-                    'customer_id' => $customer->id
+                    'customer_id' => $customerId
                 ]);
-            }
-
-            // Vérifier que le customer_id n'est pas vide
-            if (!$user->stripe_customer_id) {
-                throw new \Exception('Customer Stripe manquant après création');
             }
 
             $paymentIntentData = [
                 'amount' => $amount, // Montant déjà en centimes depuis le contrôleur
                 'currency' => $currency,
-                'customer' => $user->stripe_customer_id, // Ajouter le customer
+                'customer' => $customerId, // Utiliser directement la variable
                 'automatic_payment_methods' => [
                     'enabled' => true,
                 ],
@@ -448,7 +444,7 @@ class StripeService
                 'payment_intent_id' => $paymentIntent->id,
                 'amount' => $amount,
                 'application_fee' => $applicationFee,
-                'customer_id' => $user->stripe_customer_id,
+                'customer_id' => $customerId,
                 'destination' => $babysitter?->stripe_account_id
             ]);
 

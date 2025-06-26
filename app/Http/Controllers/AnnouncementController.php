@@ -570,7 +570,7 @@ class AnnouncementController extends Controller
 
         // Récupérer les avis du parent (en tant que parent, pas babysitter)
         $parentReviews = \App\Models\Review::where('reviewed_id', $announcement->parent->id)
-            ->where('reviewer_type', 'babysitter') // Avis donnés par des babysitters
+            ->where('role', 'babysitter') // Avis donnés par des babysitters
             ->with(['reviewer'])
             ->latest()
             ->take(10)
