@@ -80,7 +80,7 @@ export function useDateFormat() {
 
         if (isMultiDayValue && daysDiff > 0) {
             dateDisplay = `Du ${formatDate(dateStart)} au ${formatDate(dateEnd)}`;
-            timeDisplay = `${daysDiff} jour${daysDiff > 1 ? 's' : ''} (${estimatedDuration || 0}h total)`;
+            timeDisplay = `${formatTime(dateStart)} - ${formatTime(dateEnd)}`;
         } else {
             dateDisplay = formatDate(dateStart);
             timeDisplay = `${formatTime(dateStart)} - ${formatTime(dateEnd)}`;
