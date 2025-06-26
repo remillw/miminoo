@@ -87,7 +87,7 @@ class BabysitterController extends Controller
 
         if (!$profile) {
             Log::error('❌ Profil babysitter non trouvé', ['user_id' => $user->id]);
-            return response()->json(['message' => 'Profil babysitter non trouvé'], 404);
+            return back()->with('error', 'Profil babysitter non trouvé');
         }
 
         // Vérification du statut - empêcher les demandes multiples
@@ -96,7 +96,7 @@ class BabysitterController extends Controller
                 'user_id' => $user->id,
                 'current_status' => $profile->verification_status
             ]);
-            return response()->json(['message' => 'Une demande de vérification est déjà en cours'], 400);
+            return back()->with('error', 'Une demande de vérification est déjà en cours');
         }
 
         if ($profile->verification_status === 'verified') {
@@ -104,39 +104,49 @@ class BabysitterController extends Controller
                 'user_id' => $user->id,
                 'current_status' => $profile->verification_status
             ]);
-            return response()->json(['message' => 'Votre profil est déjà vérifié'], 400);
+            return back()->with('info', 'Votre profil est déjà vérifié');
         }
 
-        // Notifier tous les administrateurs
-        $admins = User::whereHas('roles', function($query) {
-            $query->where('name', 'admin');
-        })->get();
+        try {
+            // Notifier tous les administrateurs
+            $admins = User::whereHas('roles', function($query) {
+                $query->where('name', 'admin');
+            })->get();
 
-        Log::info('📧 Notification des administrateurs', ['admin_count' => $admins->count()]);
+            Log::info('📧 Notification des administrateurs', ['admin_count' => $admins->count()]);
 
-        foreach ($admins as $admin) {
-            $admin->notify(new BabysitterVerificationRequested($user));
+            foreach ($admins as $admin) {
+                $admin->notify(new BabysitterVerificationRequested($user));
+            }
+
+            // Notifier le babysitter que sa demande a été envoyée
+            $user->notify(new BabysitterVerificationSubmitted());
+            
+            Log::info('📧 Notification de confirmation envoyée au babysitter', [
+                'user_id' => $user->id,
+                'email' => $user->email
+            ]);
+
+            // Mettre à jour le statut du profil
+            $profile->update(['verification_status' => 'pending']);
+
+            Log::info('✅ Statut mis à jour vers pending', [
+                'user_id' => $user->id,
+                'new_status' => 'pending'
+            ]);
+
+            return back()->with('success', 'Votre demande de vérification a été envoyée avec succès');
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la demande de vérification', [
+                'user_id' => $user->id,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine()
+            ]);
+
+            return back()->with('error', 'Une erreur est survenue lors de l\'envoi de la demande de vérification');
         }
-
-        // Notifier le babysitter que sa demande a été envoyée
-        $user->notify(new BabysitterVerificationSubmitted());
-        
-        Log::info('📧 Notification de confirmation envoyée au babysitter', [
-            'user_id' => $user->id,
-            'email' => $user->email
-        ]);
-
-        // Mettre à jour le statut du profil
-        $profile->update(['verification_status' => 'pending']);
-
-        Log::info('✅ Statut mis à jour vers pending', [
-            'user_id' => $user->id,
-            'new_status' => 'pending'
-        ]);
-
-        return response()->json([
-            'message' => 'Votre demande de vérification a été envoyée avec succès'
-        ]);
     }
 
     private function isProfileComplete($profile)
