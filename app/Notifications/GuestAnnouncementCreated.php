@@ -45,10 +45,9 @@ class GuestAnnouncementCreated extends Notification implements ShouldQueue
             ->line('📍 **Lieu :** ' . $this->ad->address->postal_code)
             ->line('')
             ->line('Vous recevrez une notification par email dès qu\'une babysitter postulera à votre annonce.')
-            ->action('Voir mes candidatures', route('guest.announcement.show', ['token' => $this->ad->guest_token]))
-            ->line('')
             ->line('**💡 Conseil :** Créez un compte pour gérer toutes vos annonces en un seul endroit et accéder à plus de fonctionnalités.')
             ->action('Créer mon compte', route('register'))
+            ->action('Voir toutes les annonces', route('announcements.index'))
             ->line('Merci d\'utiliser TrouvetaBabysitter !');
     }
 

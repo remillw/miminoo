@@ -28,17 +28,22 @@ class NotifyBabysittersNewAnnouncement implements ShouldQueue
     public function handle(): void
     {
         try {
-            Log::info('Job notification babysitters démarré', ['ad_id' => $this->ad->id]);
+            Log::error('🟢 DEBUG: Job notification babysitters démarré', ['ad_id' => $this->ad->id]);
             
             // S'assurer que l'adresse est chargée
             $this->ad->load('address');
             
+            Log::error('🟢 DEBUG: Adresse chargée, lancement service', [
+                'ad_id' => $this->ad->id, 
+                'address' => $this->ad->address->address ?? 'N/A'
+            ]);
+            
             $notificationService = new AnnouncementNotificationService();
             $notificationService->notifyBabysittersInRadius($this->ad);
             
-            Log::info('Job notification babysitters terminé', ['ad_id' => $this->ad->id]);
+            Log::error('🟢 DEBUG: Job notification babysitters terminé', ['ad_id' => $this->ad->id]);
         } catch (\Exception $e) {
-            Log::error('Erreur dans job notification babysitters', [
+            Log::error('❌ Erreur dans job notification babysitters', [
                 'ad_id' => $this->ad->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
