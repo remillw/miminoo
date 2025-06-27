@@ -178,9 +178,6 @@ class AnnouncementController extends Controller
 
         $announcements = $query->paginate(12);
 
-        // Log temporaire pour débugger les annonces passées
-        Log::info('Filtre annonces - Maintenant: ' . Carbon::now() . ', Nombre d\'annonces trouvées: ' . $announcements->total());
-        
         // Transformer les données pour inclure les avis du parent
         $announcements->getCollection()->transform(function ($announcement) {
             if ($announcement->isGuest()) {

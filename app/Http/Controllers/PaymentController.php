@@ -96,7 +96,7 @@ class PaymentController extends Controller
 
         // Récupérer les réservations du parent
         $reservations = Reservation::where('parent_id', $user->id)
-            ->with(['babysitter', 'announcement'])
+            ->with(['babysitter', 'ad'])
             ->orderBy('created_at', 'desc')
             ->get();
 

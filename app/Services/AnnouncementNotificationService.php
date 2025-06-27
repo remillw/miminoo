@@ -26,13 +26,13 @@ class AnnouncementNotificationService
                 'ad_longitude' => $adLongitude
             ]);
 
-            // Récupérer tous les babysitters vérifiés et disponibles avec leurs adresses
+            // Récupérer tous les babysitters vérifiés ET disponibles avec leurs adresses
             $babysitters = User::whereHas('roles', function($query) {
                     $query->where('name', 'babysitter');
                 })
                 ->whereHas('babysitterProfile', function($query) {
                     $query->where('verification_status', 'verified')
-                          ->where('is_available', true);
+                          ->where('is_available', true); // Filtre: seulement les babysitters disponibles
                 })
                 ->whereNotNull('address_id')
                 ->with(['address', 'babysitterProfile'])
@@ -67,19 +67,36 @@ class AnnouncementNotificationService
                 // Si dans le rayon, envoyer la notification
                 if ($distance <= $maxRadius) {
                     try {
+                        Log::info('Envoi notification babysitter', [
+                            'babysitter_id' => $babysitter->id,
+                            'babysitter_email' => $babysitter->email,
+                            'distance' => round($distance, 1),
+                            'max_radius' => $maxRadius
+                        ]);
+                        
                         $babysitter->notify(new NewAnnouncementInRadius($ad, $distance));
                         $notifiedCount++;
 
-                        Log::debug('Notification envoyée', [
+                        Log::info('Notification envoyée avec succès', [
                             'babysitter_id' => $babysitter->id,
-                            'distance' => round($distance, 1)
+                            'babysitter_email' => $babysitter->email
                         ]);
                     } catch (\Exception $e) {
                         Log::error('Erreur envoi notification babysitter', [
                             'babysitter_id' => $babysitter->id,
-                            'error' => $e->getMessage()
+                            'babysitter_email' => $babysitter->email,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
                         ]);
                     }
+                } else {
+                    Log::debug('Babysitter hors rayon', [
+                        'babysitter_id' => $babysitter->id,
+                        'distance' => round($distance, 1),
+                        'max_radius' => $maxRadius,
+                        'babysitter_city' => $babysitter->address->address ?? 'N/A',
+                        'ad_city' => $ad->address->address ?? 'N/A'
+                    ]);
                 }
             }
 
