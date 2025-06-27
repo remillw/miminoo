@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\ParentProfile;
 use App\Models\BabysitterProfile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -137,6 +138,9 @@ class RegisteredUserController extends Controller
             $status = in_array('babysitter', $request->roles) ? 'pending' : 'approved';
             $user->update(['status' => $status]);
 
+            // Associer les annonces guests existantes avec cet email
+            $this->associateGuestAnnouncements($user);
+
             // Supprimer la session
             session()->forget('newly_registered_user_id');
 
@@ -151,6 +155,46 @@ class RegisteredUserController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->route('role.selection')->with('error', 'Erreur lors de la configuration des rôles.');
+        }
+    }
+
+    /**
+     * Associer les annonces guests existantes à l'utilisateur nouvellement inscrit
+     */
+    private function associateGuestAnnouncements(User $user): void
+    {
+        try {
+            // Récupérer toutes les annonces guests non expirées avec cet email
+            $guestAds = \App\Models\Ad::where('is_guest', true)
+                ->where('guest_email', $user->email)
+                ->where('guest_expires_at', '>', now())
+                ->get();
+
+            $associatedCount = 0;
+            
+            foreach ($guestAds as $ad) {
+                // Associer l'annonce à l'utilisateur
+                $success = $ad->associateToUser($user);
+                if ($success) {
+                    $associatedCount++;
+                }
+            }
+
+            if ($associatedCount > 0) {
+                Log::info('Annonces guests associées', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'associated_count' => $associatedCount
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'association des annonces guests', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+            // Ne pas faire échouer l'inscription si l'association échoue
         }
     }
 }

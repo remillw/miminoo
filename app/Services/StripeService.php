@@ -132,6 +132,82 @@ class StripeService
     }
 
     /**
+     * Mettre à jour un compte Connect existant avec les dernières données utilisateur
+     */
+    public function updateConnectAccountData(User $user)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                return;
+            }
+
+            $updateData = [];
+            $individual = [];
+            
+            // Mise à jour des informations personnelles
+            if ($user->firstname) {
+                $individual['first_name'] = $user->firstname;
+            }
+            
+            if ($user->lastname) {
+                $individual['last_name'] = $user->lastname;
+            }
+            
+            if ($user->email) {
+                $individual['email'] = $user->email;
+            }
+            
+            // Date de naissance
+            if ($user->date_of_birth) {
+                $dob = \Carbon\Carbon::parse($user->date_of_birth);
+                $individual['dob'] = [
+                    'day' => $dob->day,
+                    'month' => $dob->month,
+                    'year' => $dob->year,
+                ];
+            }
+            
+            // Adresse si disponible
+            if ($user->address) {
+                $individual['address'] = [
+                    'line1' => $user->address->address ?? '',
+                    'city' => $this->extractCityFromAddress($user->address->address ?? ''),
+                    'postal_code' => $user->address->postal_code ?? '',
+                    'country' => 'FR',
+                ];
+            }
+
+            if (!empty($individual)) {
+                $updateData['individual'] = $individual;
+            }
+
+            // Mise à jour du profil business si nécessaire
+            $updateData['business_profile'] = [
+                'mcc' => '8299',
+                'product_description' => 'Services de garde d\'enfants et babysitting',
+            ];
+
+            // Effectuer la mise à jour
+            if (!empty($updateData)) {
+                $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+                
+                Log::info('Compte Stripe Connect mis à jour avec les données utilisateur', [
+                    'user_id' => $user->id,
+                    'account_id' => $user->stripe_account_id,
+                    'updated_fields' => array_keys($individual)
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::warning('Impossible de mettre à jour le compte Connect', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            // Ne pas faire échouer le processus si la mise à jour échoue
+        }
+    }
+
+    /**
      * Extraire la ville d'une adresse complète
      */
     private function extractCityFromAddress($address)
@@ -169,18 +245,21 @@ class StripeService
             // S'assurer que le compte existe
             if (!$user->stripe_account_id) {
                 $this->createConnectAccount($user);
+            } else {
+                // Mettre à jour le compte existant avec les dernières données utilisateur
+                $this->updateConnectAccountData($user);
             }
 
-            // Créer un AccountLink pour l'onboarding
+            // Créer un AccountLink pour l'onboarding avec vérification d'identité forcée
             $accountLink = $this->stripe->accountLinks->create([
                 'account' => $user->stripe_account_id,
                 'refresh_url' => route('babysitter.stripe.onboarding.refresh'),
                 'return_url' => route('babysitter.stripe.onboarding.success'),
                 'type' => 'account_onboarding',
-                'collect' => 'eventually_due', // Collecter seulement ce qui est nécessaire
+                'collect' => 'currently_due', // Forcer la collecte immédiate incluant vérification d'identité
             ]);
 
-            Log::info('Lien d\'onboarding créé', [
+            Log::info('Lien d\'onboarding créé avec vérification d\'identité forcée', [
                 'user_id' => $user->id,
                 'account_id' => $user->stripe_account_id,
                 'url' => $accountLink->url

@@ -2,44 +2,74 @@
 
 namespace App\Notifications;
 
-use App\Models\Announcement;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use App\Models\Ad;
 
 class NewAnnouncementInRadius extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    protected $announcement;
+    public function __construct(
+        public Ad $ad,
+        public float $distance
+    ) {}
 
-    public function __construct(Announcement $announcement)
+    public function via(object $notifiable): array
     {
-        $this->announcement = $announcement;
+        return ['mail'];
     }
 
-    public function via($notifiable): array
+    public function toMail(object $notifiable): MailMessage
     {
-        return ['mail', 'database'];
-    }
+        $parentName = $this->ad->isGuest() ? $this->ad->getOwnerName() : 
+                     $this->ad->parent->firstname . ' ' . $this->ad->parent->lastname;
+        
+        $childrenCount = count($this->ad->children);
+        $childrenText = $childrenCount . ' enfant' . ($childrenCount > 1 ? 's' : '');
+        
+        $date = $this->ad->date_start->format('d/m/Y');
+        $time = $this->ad->date_start->format('H:i') . ' - ' . $this->ad->date_end->format('H:i');
+        
+        $city = '';
+        if ($this->ad->address) {
+            $addressParts = explode(',', $this->ad->address->address);
+            $city = trim(end($addressParts));
+        }
 
-    public function toMail($notifiable): MailMessage
-    {
         return (new MailMessage)
-            ->subject('Nouvelle annonce dans votre rayon')
-            ->view('emails.new-announcement-in-radius', [
-                'notifiable' => $notifiable,
-                'announcement' => $this->announcement
-            ]);
+            ->subject('Nouvelle annonce dans votre secteur - ' . config('app.name'))
+            ->greeting('Bonjour ' . $notifiable->firstname . ' !')
+            ->line("Une nouvelle annonce vient d'être publiée dans votre secteur d'intervention.")
+            ->line("**Détails de la mission :**")
+            ->line("👤 Parent : {$parentName}")
+            ->line("👶 Enfants : {$childrenText}")
+            ->line("📅 Date : {$date}")
+            ->line("🕐 Horaires : {$time}")
+            ->line("📍 Lieu : {$city} (à " . round($this->distance, 1) . " km de vous)")
+            ->line("💰 Tarif : {$this->ad->hourly_rate}€/heure")
+            ->action('Voir l\'annonce', route('announcements.show', $this->createAdSlug()))
+            ->line('Postulez rapidement pour ne pas manquer cette opportunité !');
     }
 
-    public function toArray($notifiable): array
+    public function toArray(object $notifiable): array
     {
         return [
-            'announcement_id' => $this->announcement->id,
-            'title' => $this->announcement->title,
-            'message' => 'Nouvelle annonce dans votre rayon'
+            'ad_id' => $this->ad->id,
+            'distance' => $this->distance,
+            'message' => 'Nouvelle annonce dans votre secteur'
         ];
+    }
+
+    private function createAdSlug(): string
+    {
+        $date = $this->ad->date_start->format('Y-m-d');
+        $title = $this->ad->title ? 
+            strtolower(preg_replace('/[^a-z0-9]/i', '-', $this->ad->title)) : 'annonce';
+        
+        $slug = trim($date . '-' . $title . '-' . $this->ad->id, '-');
+        return preg_replace('/-+/', '-', $slug);
     }
 } 

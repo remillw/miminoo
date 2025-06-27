@@ -71,13 +71,15 @@ Route::post('/api/set-user-location', function(\Illuminate\Http\Request $request
 
 Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
+// Routes publiques pour création d'annonce (avec ou sans connexion)
+Route::get('annonces/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+Route::post('annonces', [AnnouncementController::class, 'store'])->name('announcements.store');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('profil', [ProfileController::class, 'show'])->name('profil');
     Route::put('profil', [ProfileController::class, 'update'])->name('profil.update');
     
-    // Routes pour les annonces avec /annonces
-    Route::get('annonces/create', [AnnouncementController::class, 'create'])->name('announcements.create');
-    Route::post('annonces', [AnnouncementController::class, 'store'])->name('announcements.store');
+    // Routes pour les annonces authentifiées
     Route::get('mes-annonces', [AnnouncementController::class, 'myAnnouncements'])->name('announcements.my');
     Route::get('mes-annonces-et-reservations', [AnnouncementController::class, 'myAnnouncementsAndReservations'])->name('parent.announcements-reservations');
     Route::post('annonces/{announcement}/apply', [AnnouncementController::class, 'apply'])
@@ -198,6 +200,8 @@ Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('ba
 // Routes publiques avec slugs
 Route::get('parent/{slug}', [ParentController::class, 'show'])->name('parent.show');
 Route::get('annonce/{slug}', [AnnouncementController::class, 'show'])->name('announcements.show');
+
+
 
 // Routes pour l'administration
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {

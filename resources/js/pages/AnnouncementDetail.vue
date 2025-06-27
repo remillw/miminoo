@@ -132,7 +132,10 @@ const duration = computed(() => {
 const formatDuration = computed(() => {
     const dur = props.announcement.duration;
     if (dur.is_multi_day) {
-        return `${dur.days} jour${dur.days > 1 ? 's' : ''} (${dur.total_hours}h total)`;
+        // Arrondir les jours et heures pour un affichage propre
+        const days = Math.round(dur.days);
+        const hours = Math.round(dur.total_hours * 10) / 10; // 1 décimale max
+        return `${days} jour${days > 1 ? 's' : ''} (${hours}h total)`;
     } else {
         return `${duration.value}h`;
     }
@@ -188,6 +191,11 @@ const formatMemberSince = (dateString: string) => {
 const getCity = (address: Address) => {
     const parts = address.address.split(',');
     return parts[parts.length - 1]?.trim() || '';
+};
+
+// Formater la localisation (code postal + ville)
+const formatLocation = (address: Address) => {
+    return `${address.postal_code} ${getCity(address)}`;
 };
 
 // Formater l'âge des enfants
@@ -281,7 +289,7 @@ const locationForModal = computed(() => {
                                                     clip-rule="evenodd"
                                                 ></path>
                                             </svg>
-                                            <span class="break-words">{{ getCity(announcement.address) }}</span>
+                                            <span class="break-words">{{ formatLocation(announcement.address) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -340,8 +348,8 @@ const locationForModal = computed(() => {
                                     ></path>
                                 </svg>
                                 <div class="min-w-0">
-                                    <p class="font-medium break-words text-gray-900">{{ announcement.address.address }}</p>
-                                    <p class="text-sm text-gray-600">{{ announcement.address.postal_code }}, {{ announcement.address.country }}</p>
+                                    <p class="font-medium break-words text-gray-900">{{ formatLocation(announcement.address) }}</p>
+                                    <p class="text-sm text-gray-600">{{ announcement.address.country }}</p>
                                 </div>
                             </div>
                         </div>

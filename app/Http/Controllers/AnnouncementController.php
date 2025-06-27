@@ -16,6 +16,7 @@ use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use App\Notifications\NewApplication;
 use App\Models\Reservation;
+use App\Jobs\NotifyBabysittersNewAnnouncement;
 
 class AnnouncementController extends Controller
 {
@@ -26,7 +27,15 @@ class AnnouncementController extends Controller
     {
         $query = Ad::with(['parent', 'address'])
             ->where('status', 'active')
-            ->where('date_start', '>=', now());
+            ->where('date_start', '>=', now())
+            ->where(function($q) {
+                // Inclure les annonces normales ET les annonces guests non expirées
+                $q->whereNotNull('parent_id')
+                  ->orWhere(function($q2) {
+                      $q2->where('is_guest', true)
+                         ->where('guest_expires_at', '>', now());
+                  });
+            });
 
         // Filtre par tarif minimum
         if ($request->filled('min_rate')) {
@@ -171,18 +180,31 @@ class AnnouncementController extends Controller
 
         // Transformer les données pour inclure les avis du parent
         $announcements->getCollection()->transform(function ($announcement) {
-            // Récupérer les avis du parent
-            $parentReviews = \App\Models\Review::where('reviewed_id', $announcement->parent->id)
-                ->where('role', 'babysitter')
-                ->get();
+            if ($announcement->isGuest()) {
+                // Pour les annonces guests, créer un objet parent fictif
+                $guestFirstname = $announcement->guest_firstname ?: 'Parent';
+                $announcement->parent = (object) [
+                    'id' => 0,
+                    'firstname' => $guestFirstname,
+                    'lastname' => 'invité',
+                    'avatar' => null,
+                    'average_rating' => null,
+                    'total_reviews' => 0,
+                ];
+            } else {
+                // Récupérer les avis du parent pour les annonces normales
+                $parentReviews = \App\Models\Review::where('reviewed_id', $announcement->parent->id)
+                    ->where('role', 'babysitter')
+                    ->get();
 
-            // Calculer les statistiques
-            $averageRating = $parentReviews->avg('rating');
-            $totalReviews = $parentReviews->count();
+                // Calculer les statistiques
+                $averageRating = $parentReviews->avg('rating');
+                $totalReviews = $parentReviews->count();
 
-            // Ajouter les données d'avis à l'annonce
-            $announcement->parent->average_rating = $averageRating ? round($averageRating, 1) : null;
-            $announcement->parent->total_reviews = $totalReviews;
+                // Ajouter les données d'avis à l'annonce
+                $announcement->parent->average_rating = $averageRating ? round($averageRating, 1) : null;
+                $announcement->parent->total_reviews = $totalReviews;
+            }
 
             return $announcement;
         });
@@ -270,8 +292,8 @@ class AnnouncementController extends Controller
             return back()->with('error', 'Seuls les babysitters peuvent postuler aux annonces.');
         }
 
-        // Vérifier que l'utilisateur ne postule pas à sa propre annonce
-        if ($announcement->parent_id === $user->id) {
+        // Vérifier que l'utilisateur ne postule pas à sa propre annonce (seulement pour les annonces normales)
+        if (!$announcement->isGuest() && $announcement->parent_id === $user->id) {
             Log::warning('❌ POSTULATION À SA PROPRE ANNONCE', [
                 'user_id' => $user->id,
                 'announcement_parent_id' => $announcement->parent_id
@@ -383,22 +405,35 @@ class AnnouncementController extends Controller
         // Envoyer les notifications
         try {
             Log::info('📧 ENVOI NOTIFICATIONS EN COURS...', [
-                'application_id' => $application->id
+                'application_id' => $application->id,
+                'is_guest_announcement' => $announcement->isGuest()
             ]);
 
-            // Notifier le parent
-            $parent = $announcement->parent;
-            if ($parent) {
-                Log::info('📧 NOTIFICATION PARENT...', [
-                    'parent_id' => $parent->id,
-                    'parent_email' => $parent->email
+            if ($announcement->isGuest()) {
+                // Pour les annonces guests, envoyer un email directement
+                Log::info('📧 NOTIFICATION EMAIL GUEST...', [
+                    'guest_email' => $announcement->guest_email
                 ]);
-                $parent->notify(new NewApplication($application));
-                Log::info('✅ NOTIFICATION PARENT ENVOYÉE');
+                
+                \Illuminate\Support\Facades\Notification::route('mail', $announcement->guest_email)
+                    ->notify(new NewApplication($application));
+                    
+                Log::info('✅ NOTIFICATION EMAIL GUEST ENVOYÉE');
             } else {
-                Log::warning('⚠️ PARENT INTROUVABLE POUR NOTIFICATION', [
-                    'announcement_parent_id' => $announcement->parent_id
-                ]);
+                // Notifier le parent connecté
+                $parent = $announcement->parent;
+                if ($parent) {
+                    Log::info('📧 NOTIFICATION PARENT...', [
+                        'parent_id' => $parent->id,
+                        'parent_email' => $parent->email
+                    ]);
+                    $parent->notify(new NewApplication($application));
+                    Log::info('✅ NOTIFICATION PARENT ENVOYÉE');
+                } else {
+                    Log::warning('⚠️ PARENT INTROUVABLE POUR NOTIFICATION', [
+                        'announcement_parent_id' => $announcement->parent_id
+                    ]);
+                }
             }
 
             // Note: Le babysitter ne doit PAS recevoir de notification "NewApplication" 
@@ -435,8 +470,10 @@ class AnnouncementController extends Controller
         
         return Inertia::render('CreateAnnouncement', [
             'user' => $user,
-            'role' => $user->role ?? 'parent',
+            'role' => $user?->role ?? 'parent',
             'googlePlacesApiKey' => config('services.google.places_api_key'),
+            'isGuest' => is_null($user),
+            'userEmail' => $user?->email,
         ]);
     }
 
@@ -449,7 +486,10 @@ class AnnouncementController extends Controller
         Log::info('Données reçues pour création annonce:', $request->all());
 
         try {
-            $validated = $request->validate([
+            $isGuest = !Auth::check();
+            
+            // Validation de base pour tous
+            $validationRules = [
                 // Étape 1: Date et horaires
                 'date' => 'required|date|after_or_equal:today',
                 'start_time' => 'required|string',
@@ -475,7 +515,15 @@ class AnnouncementController extends Controller
                 'hourly_rate' => 'required|numeric|min:0|max:999.99',
                 'estimated_duration' => 'nullable|numeric|min:0',
                 'estimated_total' => 'nullable|numeric|min:0',
-            ]);
+            ];
+            
+            // Ajouter validation email et prénom pour les guests
+            if ($isGuest) {
+                $validationRules['email'] = 'required|email';
+                $validationRules['guest_firstname'] = 'required|string|min:2|max:50|regex:/^[a-zA-ZÀ-ÿ\s\'-]+$/';
+            }
+            
+            $validated = $request->validate($validationRules);
 
             Log::info('Données validées:', $validated);
 
@@ -509,9 +557,8 @@ class AnnouncementController extends Controller
             $title = "Garde de {$childrenCount} enfant" . ($childrenCount > 1 ? 's' : '') . 
                     " le " . \Carbon\Carbon::parse($validated['date'])->format('d/m/Y');
 
-            // Créer l'annonce
-            $announcement = Ad::create([
-                'parent_id' => Auth::id(),
+            // Créer l'annonce selon le type d'utilisateur
+            $announcementData = [
                 'title' => $title,
                 'address_id' => $address->id,
                 'date_start' => $dateStart,
@@ -522,13 +569,59 @@ class AnnouncementController extends Controller
                 'estimated_duration' => $validated['estimated_duration'] ?? 0,
                 'estimated_total' => $validated['estimated_total'] ?? 0,
                 'additional_info' => $validated['additional_info'] ?? null
+            ];
+            
+            if ($isGuest) {
+                // Annonce guest
+                $announcementData['is_guest'] = true;
+                $announcementData['guest_email'] = $validated['email'];
+                $announcementData['guest_firstname'] = $validated['guest_firstname'];
+                $announcementData['guest_token'] = Ad::generateGuestToken();
+                $announcementData['guest_expires_at'] = now()->addDays(30);
+                $announcementData['parent_id'] = null;
+            } else {
+                // Annonce utilisateur connecté
+                $announcementData['parent_id'] = Auth::id();
+                $announcementData['is_guest'] = false;
+            }
+            
+            $announcement = Ad::create($announcementData);
+
+            Log::info('Annonce créée avec succès:', [
+                'ad_id' => $announcement->id, 
+                'is_guest' => $isGuest,
+                'email' => $isGuest ? $validated['email'] : Auth::user()->email
             ]);
 
-            Log::info('Annonce créée avec succès:', ['ad_id' => $announcement->id]);
+            // Charger l'adresse pour les notifications
+            $announcement->load('address');
 
-            return redirect()
-                ->route('announcements.index')
-                ->with('success', 'Annonce créée avec succès !');
+            // Lancer le job de notification des babysitters en arrière-plan
+            try {
+                NotifyBabysittersNewAnnouncement::dispatch($announcement);
+                Log::info('Job notification babysitters dispatché', ['ad_id' => $announcement->id]);
+            } catch (\Exception $e) {
+                Log::error('Erreur dispatch job notification babysitters:', [
+                    'ad_id' => $announcement->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Ne pas faire échouer la création d'annonce si le dispatch échoue
+            }
+
+            // Redirection selon le type d'utilisateur
+            if ($isGuest) {
+                // Envoyer email de confirmation pour guest
+                \Illuminate\Support\Facades\Notification::route('mail', $announcement->guest_email)
+                    ->notify(new \App\Notifications\GuestAnnouncementCreated($announcement));
+                
+                return redirect()
+                    ->route('announcements.index')
+                    ->with('success', 'Votre annonce a été créée avec succès ! Vérifiez votre email pour les instructions.');
+            } else {
+                return redirect()
+                    ->route('announcements.index')
+                    ->with('success', 'Annonce créée avec succès !');
+            }
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Erreur de validation:', ['errors' => $e->errors()]);

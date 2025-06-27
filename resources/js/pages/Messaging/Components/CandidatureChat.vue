@@ -25,8 +25,8 @@
 
         <!-- Actions principales -->
         <div :class="mobile ? 'space-y-2' : 'flex items-center gap-3'">
-            <!-- Actions pour parents UNIQUEMENT (selon le mode actuel) -->
-            <template v-if="currentMode === 'parent' && application.status !== 'declined' && application.status !== 'expired'">
+            <!-- Actions pour parents - Avant paiement -->
+            <template v-if="currentMode === 'parent' && !isReservationPaid && application.status !== 'declined' && application.status !== 'expired'">
                 <button
                     @click="handleReserveDirectly"
                     :class="mobile ? 'w-full justify-center' : ''"
@@ -58,6 +58,29 @@
                     >
                         <X class="h-4 w-4" />
                         Refuser
+                    </button>
+                </div>
+            </template>
+
+            <!-- Actions pour parents - Après paiement (réservation confirmée) -->
+            <template v-if="currentMode === 'parent' && isReservationPaid">
+                <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+                    ✅ Réservation confirmée au tarif de <span class="font-semibold">{{ currentRate }}€/h</span> <br /><span
+                        class="text-xs font-normal"
+                        >Paiement effectué - Service réservé</span
+                    >
+                </div>
+
+                <!-- Bouton d'annulation pour parent avec conditions -->
+                <div :class="mobile ? 'w-full' : ''">
+                    <button
+                        @click="showParentCancelModal = true"
+                        :class="mobile ? 'w-full' : ''"
+                        class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:border-red-300 hover:bg-red-100"
+                        :title="getParentCancelTooltipText()"
+                    >
+                        <X class="h-4 w-4" />
+                        Annuler la réservation
                     </button>
                 </div>
             </template>
@@ -125,7 +148,13 @@
 
         <!-- Formulaire contre-offre parent UNIQUEMENT (selon le mode actuel) -->
         <div
-            v-if="showCounterOffer && currentMode === 'parent' && application.status !== 'declined' && application.status !== 'expired'"
+            v-if="
+                showCounterOffer &&
+                currentMode === 'parent' &&
+                !isReservationPaid &&
+                application.status !== 'declined' &&
+                application.status !== 'expired'
+            "
             class="bg-secondary rounded-lg border border-orange-200 p-4"
         >
             <h4 :class="mobile ? 'text-sm' : ''" class="mb-3 font-medium text-gray-900">Faire une contre-proposition :</h4>
@@ -251,6 +280,11 @@ const currentRate = computed(() => {
     }
     // Sinon utiliser le tarif proposé initial
     return props.application.proposed_rate;
+});
+
+const isReservationPaid = computed(() => {
+    // Vérifier si la réservation est effectivement payée
+    return props.application.conversation?.status === 'active';
 });
 
 const canCancelApplication = computed(() => {
