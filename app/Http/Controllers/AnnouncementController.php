@@ -25,9 +25,9 @@ class AnnouncementController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Ad::with(['parent', 'address'])
+        $query = Ad::with(['address'])
             ->where('status', 'active')
-            ->where('date_start', '>', now()) // Exclure les annonces dont la date de début est déjà passée
+            ->where('date_start', '>', Carbon::now()) // Exclure les annonces dont la date/heure de début est déjà passée
             ->where(function($q) {
                 // Inclure les annonces normales ET les annonces guests non expirées
                 $q->whereNotNull('parent_id')
@@ -178,6 +178,9 @@ class AnnouncementController extends Controller
 
         $announcements = $query->paginate(12);
 
+        // Log temporaire pour débugger les annonces passées
+        Log::info('Filtre annonces - Maintenant: ' . Carbon::now() . ', Nombre d\'annonces trouvées: ' . $announcements->total());
+        
         // Transformer les données pour inclure les avis du parent
         $announcements->getCollection()->transform(function ($announcement) {
             if ($announcement->isGuest()) {
@@ -192,18 +195,36 @@ class AnnouncementController extends Controller
                     'total_reviews' => 0,
                 ];
             } else {
-                // Récupérer les avis du parent pour les annonces normales
-                $parentReviews = \App\Models\Review::where('reviewed_id', $announcement->parent->id)
-                    ->where('role', 'babysitter')
-                    ->get();
+                // Charger le parent pour les annonces normales s'il n'est pas déjà chargé
+                if (!$announcement->relationLoaded('parent') && $announcement->parent_id) {
+                    $announcement->load('parent');
+                }
+                
+                // Vérifier que le parent existe avant de récupérer les avis
+                if ($announcement->parent) {
+                    // Récupérer les avis du parent pour les annonces normales
+                    $parentReviews = \App\Models\Review::where('reviewed_id', $announcement->parent->id)
+                        ->where('role', 'babysitter')
+                        ->get();
 
-                // Calculer les statistiques
-                $averageRating = $parentReviews->avg('rating');
-                $totalReviews = $parentReviews->count();
+                    // Calculer les statistiques
+                    $averageRating = $parentReviews->avg('rating');
+                    $totalReviews = $parentReviews->count();
 
-                // Ajouter les données d'avis à l'annonce
-                $announcement->parent->average_rating = $averageRating ? round($averageRating, 1) : null;
-                $announcement->parent->total_reviews = $totalReviews;
+                    // Ajouter les données d'avis à l'annonce
+                    $announcement->parent->average_rating = $averageRating ? round($averageRating, 1) : null;
+                    $announcement->parent->total_reviews = $totalReviews;
+                } else {
+                    // Si le parent n'existe pas, créer un objet parent par défaut
+                    $announcement->parent = (object) [
+                        'id' => 0,
+                        'firstname' => 'Parent',
+                        'lastname' => 'supprimé',
+                        'avatar' => null,
+                        'average_rating' => null,
+                        'total_reviews' => 0,
+                    ];
+                }
             }
 
             return $announcement;

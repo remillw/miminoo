@@ -167,7 +167,14 @@ const enableGeolocation = async () => {
 
 // Transformer les annonces backend pour le composant CardAnnonce
 const annonces = computed(() => {
-    return props.announcements.data.map((announcement) => {
+    // Filtrer d'abord les annonces passées côté frontend pour plus de sécurité
+    const filteredAnnouncements = props.announcements.data.filter((announcement) => {
+        const startDate = new Date(announcement.date_start);
+        const now = new Date();
+        return startDate > now; // Exclure les annonces dont la date/heure de début est déjà passée
+    });
+
+    return filteredAnnouncements.map((announcement) => {
         // Calculer les âges des enfants - utiliser la nouvelle colonne children
         const childrenAges = announcement.children.map((child) => `${child.age} ${child.unite}`);
 
@@ -203,11 +210,11 @@ const annonces = computed(() => {
 
         return {
             id: announcement.id,
-            parentId: announcement.parent.id, // ID du parent pour vérifier la propriété
-            avatar: announcement.parent.avatar || '/storage/default-avatar.png',
-            name: `${announcement.parent.firstname} ${announcement.parent.lastname.charAt(0)}.`,
-            rating: announcement.parent.average_rating || null, // Vraie note du parent
-            reviews: announcement.parent.total_reviews || 0, // Nombre réel d'avis
+            parentId: announcement.parent?.id || 0, // ID du parent pour vérifier la propriété
+            avatar: announcement.parent?.avatar || '/storage/default-avatar.png',
+            name: announcement.parent ? `${announcement.parent.firstname} ${announcement.parent.lastname.charAt(0)}.` : 'Parent invité',
+            rating: announcement.parent?.average_rating || null, // Vraie note du parent
+            reviews: announcement.parent?.total_reviews || 0, // Nombre réel d'avis
             date: dateDisplay, // Utilise le formatage adapté multi-jours
             rawDate: announcement.date_start, // Date ISO pour le modal
             time: timeDisplay, // Utilise le formatage adapté multi-jours
