@@ -237,128 +237,231 @@ const locationForModal = computed(() => {
     <Head :title="`${announcement.title} - Annonce`" />
 
     <GlobalLayout>
-        <div class="bg-secondary min-h-screen p-2 sm:p-4">
-            <div class="mx-auto max-w-4xl">
-                <!-- Breadcrumb -->
-                <nav class="mb-4 flex items-center space-x-2 px-2 text-sm text-gray-600 sm:mb-6 sm:px-0">
-                    <a href="/announcements" class="hover:text-primary transition-colors">Annonces</a>
-                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            fill-rule="evenodd"
-                            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                            clip-rule="evenodd"
-                        ></path>
-                    </svg>
-                    <span class="truncate text-gray-900">{{ announcement.title }}</span>
-                </nav>
+        <!-- Hero section avec dégradé -->
+        <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50">
+            <!-- Header avec image de fond -->
+            <div class="relative bg-gradient-to-r from-orange-500 to-orange-600 pt-6 pb-8">
+                <div class="absolute inset-0 bg-black/10"></div>
+                <div class="relative mx-auto max-w-4xl px-4">
+                    <!-- Breadcrumb amélioré -->
+                    <nav class="mb-6 flex items-center space-x-2 text-sm text-orange-100">
+                        <a href="/annonces" class="flex items-center gap-1 transition-colors hover:text-white">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Annonces
+                        </a>
+                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                fill-rule="evenodd"
+                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                clip-rule="evenodd"
+                            ></path>
+                        </svg>
+                        <span class="truncate font-medium text-white">{{ announcement.title }}</span>
+                    </nav>
 
-                <div class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-                    <!-- Contenu principal -->
-                    <div class="space-y-4 sm:space-y-6 lg:col-span-2">
-                        <!-- En-tête de l'annonce optimisé mobile -->
-                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-                            <div class="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                <div class="min-w-0 flex-1">
-                                    <h1 class="mb-3 text-xl leading-tight font-bold text-gray-900 sm:text-2xl">{{ announcement.title }}</h1>
-                                    <div class="flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:gap-4">
-                                        <div class="flex items-center gap-1">
-                                            <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    fill-rule="evenodd"
-                                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                                                    clip-rule="evenodd"
-                                                ></path>
-                                            </svg>
-                                            <span class="break-words">{{ formatDateRange }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    fill-rule="evenodd"
-                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                                    clip-rule="evenodd"
-                                                ></path>
-                                            </svg>
-                                            <span class="break-words">{{ formatTimeRange }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                <path
-                                                    fill-rule="evenodd"
-                                                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                                    clip-rule="evenodd"
-                                                ></path>
-                                            </svg>
-                                            <span class="break-words">{{ formatLocation(announcement.address) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex-shrink-0 text-center sm:text-right">
-                                    <div class="text-primary text-2xl font-bold">{{ announcement.hourly_rate }}€/h</div>
-                                    <div class="text-sm text-gray-600">{{ formatDuration }} • {{ announcement.estimated_total }}€ total</div>
-                                </div>
+                    <!-- En-tête héroïque -->
+                    <div class="text-center text-white">
+                        <h1 class="mb-4 text-3xl leading-tight font-bold md:text-4xl">{{ announcement.title }}</h1>
+                        <div class="flex flex-wrap justify-center gap-6 text-sm text-orange-100">
+                            <div class="flex items-center gap-2">
+                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                        clip-rule="evenodd"
+                                    ></path>
+                                </svg>
+                                <span>{{ formatDateRange }}</span>
                             </div>
-
-                            <!-- Statut -->
-                            <div
-                                v-if="isFuture"
-                                class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800"
-                            >
-                                <div class="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
-                                Disponible
+                            <div class="flex items-center gap-2">
+                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                        clip-rule="evenodd"
+                                    ></path>
+                                </svg>
+                                <span>{{ formatTimeRange }}</span>
                             </div>
-                            <div v-else class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
-                                <div class="mr-2 h-2 w-2 rounded-full bg-gray-500"></div>
-                                Passée
-                            </div>
-                        </div>
-
-                        <!-- Enfants à garder -->
-                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-                            <h2 class="mb-4 text-xl font-bold text-gray-900">Enfants à garder</h2>
-                            <div class="flex flex-wrap gap-2 sm:gap-3">
-                                <div
-                                    v-for="(child, index) in announcement.children"
-                                    :key="index"
-                                    :class="['flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium sm:px-4', getChildColor(index)]"
-                                >
-                                    <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    <span class="break-words">{{ child.nom }} ({{ formatChildAge(child) }})</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Description -->
-                        <div v-if="announcement.description" class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-                            <h2 class="mb-4 text-xl font-bold text-gray-900">Informations complémentaires</h2>
-                            <p class="text-sm leading-relaxed whitespace-pre-line text-gray-700 sm:text-base">{{ announcement.description }}</p>
-                        </div>
-
-                        <!-- Localisation -->
-                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-                            <h2 class="mb-4 text-xl font-bold text-gray-900">Localisation</h2>
-                            <div class="flex items-start gap-3">
-                                <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="flex items-center gap-2">
+                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         fill-rule="evenodd"
                                         d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
                                         clip-rule="evenodd"
                                     ></path>
                                 </svg>
-                                <div class="min-w-0">
-                                    <p class="font-medium break-words text-gray-900">{{ formatLocation(announcement.address) }}</p>
-                                    <p class="text-sm text-gray-600">{{ announcement.address.country }}</p>
+                                <span>{{ formatLocation(announcement.address) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Prix en évidence -->
+                        <div class="mt-6 inline-block rounded-full bg-white/20 px-6 py-3 backdrop-blur-sm">
+                            <div class="text-3xl font-bold text-white">{{ announcement.hourly_rate }}€<span class="text-lg">/heure</span></div>
+                            <div class="text-orange-100">{{ formatDuration }} • {{ announcement.estimated_total }}€ total</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenu principal -->
+            <div class="relative z-10 mx-auto -mt-4 max-w-4xl px-4">
+                <!-- Carte des informations principales -->
+                <div class="mb-6 rounded-3xl border border-gray-100 bg-white p-6 shadow-xl">
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+                        <!-- Date -->
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+                                <svg class="h-6 w-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                        clip-rule="evenodd"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-500">Date</p>
+                                <p class="text-lg leading-tight font-bold text-gray-900">{{ formatDateRange }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Heure -->
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                                <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                        clip-rule="evenodd"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-500">Horaires</p>
+                                <p class="text-lg leading-tight font-bold text-gray-900">{{ formatTimeRange }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Lieu -->
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                                <svg class="h-6 w-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                                        clip-rule="evenodd"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-500">Lieu</p>
+                                <p class="text-lg leading-tight font-bold text-gray-900">{{ formatLocation(announcement.address) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+                    <!-- Contenu principal -->
+                    <div class="space-y-6 lg:col-span-2">
+                        <!-- Statut avec icône -->
+                        <div class="flex justify-center">
+                            <div
+                                v-if="isFuture"
+                                class="inline-flex items-center rounded-full bg-green-500 px-4 py-2 text-sm font-medium text-white shadow-lg"
+                            >
+                                <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clip-rule="evenodd"
+                                    ></path>
+                                </svg>
+                                Disponible pour candidatures
+                            </div>
+                            <div v-else class="inline-flex items-center rounded-full bg-gray-500 px-4 py-2 text-sm font-medium text-white shadow-lg">
+                                <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                        clip-rule="evenodd"
+                                    ></path>
+                                </svg>
+                                Mission terminée
+                            </div>
+                        </div>
+
+                        <!-- Enfants à garder -->
+                        <div class="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl">
+                            <div class="mb-6 flex items-center gap-3">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                                    <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                    </svg>
                                 </div>
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-900">Enfants à garder</h2>
+                                    <p class="text-sm text-gray-600">
+                                        {{ announcement.children.length }} enfant{{ announcement.children.length > 1 ? 's' : '' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div
+                                    v-for="(child, index) in announcement.children"
+                                    :key="index"
+                                    :class="[
+                                        'flex items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-3 transition-all hover:border-solid',
+                                        getChildColor(index),
+                                    ]"
+                                >
+                                    <div class="flex-shrink-0 rounded-full bg-white/50 p-2">
+                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                                clip-rule="evenodd"
+                                            ></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold">{{ child.nom }}</p>
+                                        <p class="text-sm opacity-80">{{ formatChildAge(child) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div v-if="announcement.description" class="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl">
+                            <div class="mb-6 flex items-center gap-3">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                                    <svg class="h-6 w-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                            clip-rule="evenodd"
+                                        ></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-900">Informations complémentaires</h2>
+                                    <p class="text-sm text-gray-600">Détails fournis par le parent</p>
+                                </div>
+                            </div>
+                            <div class="rounded-2xl bg-gray-50 p-4">
+                                <p class="leading-relaxed whitespace-pre-line text-gray-700">{{ announcement.description }}</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Sidebar -->
-                    <div class="space-y-4 sm:space-y-6">
+                    <div class="space-y-6">
                         <!-- Profil du parent -->
-                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
+                        <div class="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl">
                             <h3 class="mb-4 text-lg font-bold text-gray-900">Parent</h3>
                             <div class="flex items-center space-x-3">
                                 <img
@@ -406,7 +509,10 @@ const locationForModal = computed(() => {
                         </div>
 
                         <!-- Avis du parent -->
-                        <div v-if="announcement.parent.review_stats.total_reviews > 0" class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
+                        <div
+                            v-if="announcement.parent.review_stats.total_reviews > 0"
+                            class="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl"
+                        >
                             <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <h3 class="text-lg font-bold text-gray-900">Avis sur ce parent</h3>
                                 <div class="flex items-center gap-2 text-sm">
@@ -488,8 +594,19 @@ const locationForModal = computed(() => {
                         </div>
 
                         <!-- Résumé de la mission -->
-                        <div class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-                            <h3 class="mb-4 text-lg font-bold text-gray-900">Résumé</h3>
+                        <div class="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl">
+                            <div class="mb-6 flex items-center gap-3">
+                                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                                    <svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                            clip-rule="evenodd"
+                                        ></path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-bold text-gray-900">Résumé de la mission</h3>
+                            </div>
                             <div class="space-y-3">
                                 <div class="flex flex-col gap-1 sm:flex-row sm:justify-between">
                                     <span class="text-sm text-gray-600 sm:text-base">Date</span>

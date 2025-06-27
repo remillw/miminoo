@@ -54,7 +54,6 @@
                         </div>
                     </div>
 
-                    <!-- Solde et configuration des virements (si compte actif) -->
                     <div v-if="isBabysitterMode(props) && props.accountStatus === 'active'" class="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
                         <!-- Solde disponible -->
                         <div class="rounded-lg bg-white p-6 shadow">
