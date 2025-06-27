@@ -27,7 +27,7 @@ class AnnouncementController extends Controller
     {
         $query = Ad::with(['parent', 'address'])
             ->where('status', 'active')
-            ->where('date_start', '>=', now())
+            ->where('date_start', '>', now()) // Exclure les annonces dont la date de début est déjà passée
             ->where(function($q) {
                 // Inclure les annonces normales ET les annonces guests non expirées
                 $q->whereNotNull('parent_id')

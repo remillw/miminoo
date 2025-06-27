@@ -5,11 +5,11 @@
                 <!-- En-tête -->
                 <div class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-900">
-                        {{ mode === 'babysitter' ? 'Mes paiements' : 'Paiements & Factures' }}
+                        {{ props.mode === 'babysitter' ? 'Mes paiements' : 'Paiements & Factures' }}
                     </h1>
                     <p class="mt-2 text-gray-600">
                         {{
-                            mode === 'babysitter'
+                            props.mode === 'babysitter'
                                 ? 'Gérez vos virements et consultez vos gains'
                                 : 'Consultez vos dépenses et téléchargez vos factures'
                         }}
@@ -17,7 +17,7 @@
                 </div>
 
                 <!-- Mode Babysitter -->
-                <div v-if="mode === 'babysitter' && isBabysitterMode(props)">
+                <div v-if="isBabysitterMode(props)">
                     <!-- Statut du compte -->
                     <div class="mb-8">
                         <div class="rounded-lg bg-white p-6 shadow">
@@ -185,7 +185,7 @@
                 </div>
 
                 <!-- Mode Parent -->
-                <div v-else>
+                <div v-if="isParentMode(props)">
                     <!-- Cartes statistiques -->
                     <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
                         <div class="rounded-lg bg-white p-6 shadow">
@@ -329,26 +329,13 @@ const transferSettings = ref({
 
 const isProcessingPayout = ref(false);
 
-// Computed pour le mode actuel depuis localStorage ou props
-const mode = computed(() => {
-    // Essayer de récupérer le mode depuis localStorage d'abord
-    if (typeof window !== 'undefined') {
-        const storedMode = localStorage.getItem('userMode');
-        if (storedMode === 'parent' || storedMode === 'babysitter') {
-            return storedMode;
-        }
-    }
-    // Fallback sur props.mode
-    return props.mode;
-});
-
-// Type guards
+// Type guards - basés uniquement sur les props du serveur
 const isBabysitterMode = (props: Props): props is BabysitterProps => {
-    return mode.value === 'babysitter' && props.mode === 'babysitter';
+    return props.mode === 'babysitter';
 };
 
 const isParentMode = (props: Props): props is ParentProps => {
-    return mode.value === 'parent' || props.mode === 'parent';
+    return props.mode === 'parent';
 };
 
 // Computed properties

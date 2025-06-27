@@ -235,7 +235,7 @@ const progressPercentage = computed(() => {
 
 // Initialiser les enfants depuis le profil
 const initializeChildren = () => {
-    if (props.user.parentProfile?.children_ages && props.user.parentProfile.children_ages.length > 0) {
+    if (props.user?.parentProfile?.children_ages && props.user.parentProfile.children_ages.length > 0) {
         form.value.children = [...props.user.parentProfile.children_ages].map((child) => ({
             ...child,
             age: String(child.age), // S'assurer que l'âge est une string

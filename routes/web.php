@@ -249,7 +249,7 @@ Route::middleware(['auth'])->group(function () {
 
 // Routes spécifiques pour les parents (compatibilité)
 Route::middleware(['auth'])->prefix('parent')->group(function () {
-    Route::get('/paiements', [PaymentController::class, 'index'])->name('parent.payments');
+    // Route supprimée car dupliquée - utiliser /paiements directement
 });
 
 Route::middleware(['auth'])->prefix('parametres')->group(function () {

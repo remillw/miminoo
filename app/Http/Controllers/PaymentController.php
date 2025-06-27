@@ -25,12 +25,14 @@ class PaymentController extends Controller
     {
         $user = $request->user();
 
-        // Déterminer le mode selon les rôles de l'utilisateur
-        $currentMode = 'parent'; // Par défaut
-        if ($user->hasRole('babysitter')) {
-            $currentMode = 'babysitter';
+        // Forcer le mode parent sauf si explicitement babysitter via URL
+        $requestedMode = $request->input('mode', 'parent');
+        
+        // Si l'utilisateur demande le mode babysitter ET a le rôle babysitter
+        if ($requestedMode === 'babysitter' && $user->hasRole('babysitter')) {
             return $this->babysitterPayments($request);
         } else {
+            // Par défaut, mode parent
             return $this->parentPayments($request);
         }
     }
