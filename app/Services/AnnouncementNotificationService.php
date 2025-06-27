@@ -67,7 +67,7 @@ class AnnouncementNotificationService
                 // Si dans le rayon, envoyer la notification
                 if ($distance <= $maxRadius) {
                     try {
-                        Log::info('Envoi notification babysitter', [
+                        Log::warning('Envoi notification babysitter', [
                             'babysitter_id' => $babysitter->id,
                             'babysitter_email' => $babysitter->email,
                             'distance' => round($distance, 1),
@@ -77,7 +77,7 @@ class AnnouncementNotificationService
                         $babysitter->notify(new NewAnnouncementInRadius($ad, $distance));
                         $notifiedCount++;
 
-                        Log::info('Notification envoyée avec succès', [
+                        Log::warning('Notification envoyée avec succès', [
                             'babysitter_id' => $babysitter->id,
                             'babysitter_email' => $babysitter->email
                         ]);

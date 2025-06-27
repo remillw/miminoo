@@ -94,8 +94,9 @@ class PaymentController extends Controller
     {
         $user = $request->user();
 
-        // Récupérer les réservations du parent
+        // Récupérer uniquement les réservations payées du parent
         $reservations = Reservation::where('parent_id', $user->id)
+            ->whereIn('status', ['completed', 'service_completed', 'payment_processing'])
             ->with(['babysitter', 'ad'])
             ->orderBy('created_at', 'desc')
             ->get();
