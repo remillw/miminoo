@@ -38,7 +38,7 @@ const goToAnnouncements = () => {
 };
 
 const goToDashboard = () => {
-    router.visit('/dashboard');
+    router.visit('/tableau-de-bord');
 };
 
 onMounted(() => {

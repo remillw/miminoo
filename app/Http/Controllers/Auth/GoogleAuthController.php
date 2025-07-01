@@ -103,7 +103,7 @@ class GoogleAuthController extends Controller
                 ]);
                 
                 Auth::login($existingUser);
-                return redirect()->intended('/dashboard')->with('success', 'Connexion réussie avec Google !');
+                return redirect()->intended('/tableau-de-bord')->with('success', 'Connexion réussie avec Google !');
             }
 
             // Nouvel utilisateur - créer le compte et demander les rôles
@@ -146,7 +146,7 @@ class GoogleAuthController extends Controller
         $existingUserId = session('existing_user_id');
         
         if (!$googleUserData) {
-            return redirect('/login')->with('error', 'Session Google expirée. Veuillez recommencer.');
+            return redirect('/connexion')->with('error', 'Session Google expirée. Veuillez recommencer.');
         }
 
         try {
@@ -155,7 +155,7 @@ class GoogleAuthController extends Controller
                 $user = User::find($existingUserId);
                 
                 if (!$user) {
-                    return redirect('/login')->with('error', 'Utilisateur introuvable.');
+                    return redirect('/connexion')->with('error', 'Utilisateur introuvable.');
                 }
 
                 // Assigner les rôles via la table pivot
@@ -178,10 +178,10 @@ class GoogleAuthController extends Controller
                 Auth::login($user);
 
                 if ($user->status === 'pending') {
-                    return redirect('/dashboard')->with('info', 'Votre email est vérifié ! Votre profil babysitter est en attente d\'approbation.');
+                    return redirect('/tableau-de-bord')->with('info', 'Votre email est vérifié ! Votre profil babysitter est en attente d\'approbation.');
                 }
 
-                return redirect('/dashboard')->with('success', 'Profils configurés avec succès !');
+                return redirect('/tableau-de-bord')->with('success', 'Profils configurés avec succès !');
             } else {
                 // Nouvel utilisateur
                 return $this->createUserWithRoles($googleUserData, $request->roles);
@@ -193,7 +193,7 @@ class GoogleAuthController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return redirect('/login')->with('error', 'Erreur lors de la finalisation du compte.');
+            return redirect('/connexion')->with('error', 'Erreur lors de la finalisation du compte.');
         }
     }
 
@@ -247,9 +247,10 @@ class GoogleAuthController extends Controller
 
         // Redirection selon le statut
         if ($user->status === 'pending') {
-            return redirect('/dashboard')->with('info', 'Votre profil babysitter est en attente d\'approbation. Votre email est déjà vérifié !');
+            return redirect('/tableau-de-bord')->with('info', 'Votre profil babysitter est en attente d\'approbation. Votre email est déjà vérifié !');
         }
 
-        return redirect('/dashboard')->with('success', 'Compte créé avec succès !');
+        return redirect('/tableau-de-bord')->with('success', 'Compte créé avec succès !');
     }
 }
+    

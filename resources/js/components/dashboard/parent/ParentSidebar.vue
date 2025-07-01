@@ -7,7 +7,7 @@ const showFullMenu = ref(false);
 
 // Définition des liens du menu
 const links = [
-    { icon: Home, label: 'Tableau de bord', href: '/dashboard' },
+    { icon: Home, label: 'Tableau de bord', href: '/tableau-de-bord' },
     { icon: PlusCircle, label: 'Créer une annonce', href: '/creer-une-annonce' },
     { icon: Calendar, label: 'Mes gardes', href: '/mes-annonces-et-reservations' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
@@ -18,7 +18,7 @@ const links = [
 
 // Liens principaux pour la navigation mobile (4 plus importants)
 const mobileLinks = [
-    { icon: Home, label: 'Accueil', href: '/dashboard' },
+    { icon: Home, label: 'Accueil', href: '/tableau-de-bord' },
     { icon: Calendar, label: 'Résa', href: '/reservations' },
     { icon: MessageCircle, label: 'Messages', href: '/messagerie' },
     { icon: User, label: 'Profil', href: '/profil' },
@@ -32,8 +32,8 @@ const isCurrentRoute = (href: string) => {
     const page = usePage();
     const currentUrl = page.url;
 
-    if (href === '/dashboard') {
-        return currentUrl === '/dashboard' || currentUrl === '/';
+    if (href === '/tableau-de-bord') {
+        return currentUrl === '/tableau-de-bord' || currentUrl === '/';
     }
 
     return currentUrl.startsWith(href);

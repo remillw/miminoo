@@ -237,11 +237,37 @@ Route::get('annonce/{slug}', [AnnouncementController::class, 'show'])->name('ann
 // Routes pour l'administration
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
-    Route::get('/babysitter-moderation', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'index'])->name('babysitter-moderation.index');
-    Route::post('/babysitter-moderation/{babysitter}/verify', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'verify'])->name('babysitter-moderation.verify');
+    
+    // Modération des babysitters
+    Route::get('/moderation-babysitters', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'index'])->name('babysitter-moderation.index');
+    Route::post('/moderation-babysitters/{babysitter}/verify', [App\Http\Controllers\Admin\BabysitterModerationController::class, 'verify'])->name('babysitter-moderation.verify');
+    
+    // Gestion des parents
+    Route::get('/parents', [App\Http\Controllers\Admin\AdminController::class, 'parents'])->name('parents');
+    
+    // Gestion des babysitters
+    Route::get('/babysitters', [App\Http\Controllers\Admin\AdminController::class, 'babysitters'])->name('babysitters');
+    
+    // Gestion des annonces
+    Route::get('/annonces', [App\Http\Controllers\Admin\AdminController::class, 'announcements'])->name('announcements');
+    Route::get('/annonces/{id}/modifier', [App\Http\Controllers\Admin\AdminController::class, 'editAnnouncement'])->name('announcements.edit');
+    Route::put('/annonces/{id}', [App\Http\Controllers\Admin\AdminController::class, 'updateAnnouncement'])->name('announcements.update');
+    Route::delete('/annonces/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroyAnnouncement'])->name('announcements.destroy');
+    
+    // Gestion des avis
+    Route::get('/avis', [App\Http\Controllers\Admin\AdminController::class, 'reviews'])->name('reviews');
+    Route::delete('/avis/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroyReview'])->name('reviews.destroy');
+    
+    // Gestion des utilisateurs
+    Route::get('/utilisateurs/creer', [App\Http\Controllers\Admin\AdminController::class, 'createUser'])->name('users.create');
+    Route::post('/utilisateurs', [App\Http\Controllers\Admin\AdminController::class, 'storeUser'])->name('users.store');
+    Route::get('/utilisateurs/{id}', [App\Http\Controllers\Admin\AdminController::class, 'showUser'])->name('users.show');
+    Route::get('/utilisateurs/{id}/modifier', [App\Http\Controllers\Admin\AdminController::class, 'editUser'])->name('users.edit');
+    Route::put('/utilisateurs/{id}', [App\Http\Controllers\Admin\AdminController::class, 'updateUser'])->name('users.update');
+    Route::delete('/utilisateurs/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroyUser'])->name('users.destroy');
     
     // Routes pour la gestion des comptes Stripe Connect
-    Route::get('/stripe-connect', [App\Http\Controllers\Admin\StripeConnectController::class, 'index'])->name('stripe-connect.index');
+    Route::get('/comptes-stripe', [App\Http\Controllers\Admin\StripeConnectController::class, 'index'])->name('stripe-connect.index');
     Route::get('/stripe-connect/{user}', [App\Http\Controllers\Admin\StripeConnectController::class, 'show'])->name('stripe-connect.show');
     Route::delete('/stripe-connect/{user}', [App\Http\Controllers\Admin\StripeConnectController::class, 'delete'])->name('stripe-connect.delete');
     Route::post('/stripe-connect/{user}/reject', [App\Http\Controllers\Admin\StripeConnectController::class, 'reject'])->name('stripe-connect.reject');

@@ -46,6 +46,11 @@ const { currentMode, initializeMode, setMode } = useUserMode();
 
 // Initialiser le mode au montage du composant
 onMounted(() => {
+    console.log('🔄 Dashboard mounted with roles:', {
+        hasParentRole: props.hasParentRole,
+        hasBabysitterRole: props.hasBabysitterRole,
+        requestedMode: props.requestedMode
+    });
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
 });
 

@@ -6,7 +6,7 @@ import { computed, ref } from 'vue';
 const showFullMenu = ref(false);
 
 const links = [
-    { icon: Home, label: 'Tableau de bord', href: '/dashboard' },
+    { icon: Home, label: 'Tableau de bord', href: '/tableau-de-bord' },
     { icon: Briefcase, label: 'Offres disponibles', href: '/annonces' },
     { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
@@ -18,7 +18,7 @@ const links = [
 
 // Liens principaux pour la navigation mobile (4 plus importants)
 const mobileLinks = [
-    { icon: Home, label: 'Accueil', href: '/dashboard' },
+    { icon: Home, label: 'Accueil', href: '/tableau-de-bord' },
     { icon: Calendar, label: 'Résa', href: '/reservations' },
     { icon: MessageCircle, label: 'Messages', href: '/messagerie' },
     { icon: User, label: 'Profil', href: '/profil' },
@@ -32,8 +32,8 @@ const isCurrentRoute = (href: string) => {
     const page = usePage();
     const currentUrl = page.url;
 
-    if (href === '/dashboard') {
-        return currentUrl === '/dashboard' || currentUrl === '/';
+    if (href === '/tableau-de-bord') {
+        return currentUrl === '/tableau-de-bord' || currentUrl === '/';
     }
 
     return currentUrl.startsWith(href);
