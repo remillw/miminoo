@@ -204,12 +204,12 @@
                             @message-confirmed="onMessageConfirmed"
                             @message-failed="onMessageFailed"
                             @typing="onTyping"
-                            :disabled="selectedConversation.status === 'archived'"
-                            :placeholder="getInputPlaceholder()"
+                            :disabled="isChatDisabled"
+                            :placeholder="chatPlaceholder"
                             :conversation-id="selectedConversation.id"
-                            :current-user-id="page?.props?.auth?.user?.id"
+                            :current-user-id="$page?.props?.auth?.user?.id"
                             :conversation-status="selectedConversation.status"
-                            :is-payment-completed="selectedConversation.status === 'active' || selectedConversation.deposit_paid"
+                            :is-payment-completed="selectedConversation.status === 'active'"
                         />
                     </div>
                 </div>
@@ -397,10 +397,10 @@
                         @message-confirmed="onMessageConfirmed"
                         @message-failed="onMessageFailed"
                         @typing="onTyping"
-                        :disabled="selectedConversation.status === 'payment_required' || selectedConversation.status === 'archived'"
-                        :placeholder="getInputPlaceholder()"
+                        :disabled="isChatDisabled"
+                        :placeholder="chatPlaceholder"
                         :conversation-id="selectedConversation.id"
-                        :current-user-id="page?.props?.auth?.user?.id"
+                        :current-user-id="$page?.props?.auth?.user?.id"
                         :mobile="true"
                         :conversation-status="selectedConversation.status"
                         :is-payment-completed="selectedConversation.status === 'active' || selectedConversation.deposit_paid"
@@ -511,6 +511,35 @@ const conversations = computed(() => {
 // Computed pour vérifier si l'utilisateur a plusieurs rôles
 const hasMultipleRoles = computed(() => {
     return props.hasParentRole && props.hasBabysitterRole;
+});
+
+// Logique temporelle pour désactiver les actions et la saisie
+const missionStarted = computed(() => {
+    if (!selectedConversation.value?.ad?.date_start) return false;
+    const startDate = new Date(selectedConversation.value.ad.date_start);
+    const now = new Date();
+    return now >= startDate;
+});
+
+const missionEnded = computed(() => {
+    if (!selectedConversation.value?.ad?.date_end) return false;
+    const endDate = new Date(selectedConversation.value.ad.date_end);
+    const now = new Date();
+    return now >= endDate;
+});
+
+const isChatDisabled = computed(() => {
+    return missionEnded.value || selectedConversation.value?.status === 'archived';
+});
+
+const chatPlaceholder = computed(() => {
+    if (missionEnded.value) {
+        return 'La mission est terminée. Vous ne pouvez plus envoyer de messages.';
+    }
+    if (selectedConversation.value?.status === 'archived') {
+        return 'Cette conversation est archivée';
+    }
+    return 'Écrivez votre message...';
 });
 
 // Fonction pour changer de mode

@@ -23,15 +23,24 @@
             </div>
         </div>
 
+        <!-- Message d'information temporelle -->
+        <div v-if="!canPerformActions" class="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+            <div class="flex items-center gap-2">
+                <Clock class="h-4 w-4" />
+                {{ actionDisabledReason }}
+            </div>
+        </div>
+
         <!-- Actions principales -->
         <div :class="mobile ? 'space-y-2' : 'flex items-center gap-3'">
             <!-- Actions pour parents - Avant paiement -->
             <template v-if="currentMode === 'parent' && !isReservationPaid && application.status !== 'declined' && application.status !== 'expired'">
                 <button
                     @click="handleReserveDirectly"
-                    :class="mobile ? 'w-full justify-center' : ''"
-                    class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
-                    :title="`Réserver cette candidature au tarif de ${currentRate}€/h`"
+                    :disabled="!canPerformActions"
+                    :class="[mobile ? 'w-full justify-center' : '', !canPerformActions ? 'cursor-not-allowed opacity-50' : 'hover:bg-green-700']"
+                    class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors"
+                    :title="canPerformActions ? `Réserver cette candidature au tarif de ${currentRate}€/h` : actionDisabledReason"
                 >
                     <Check class="h-4 w-4" />
                     Réserver {{ currentRate }}€/h
@@ -41,9 +50,10 @@
                     <button
                         v-if="!showCounterOffer"
                         @click="showCounterOffer = true"
-                        :class="mobile ? 'flex-1' : ''"
-                        class="hover:bg-secondary flex items-center justify-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors"
-                        title="Proposer un tarif différent de celui proposé par le babysitter"
+                        :disabled="!canPerformActions"
+                        :class="[mobile ? 'flex-1' : '', !canPerformActions ? 'cursor-not-allowed opacity-50' : 'hover:bg-secondary']"
+                        class="flex items-center justify-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors"
+                        :title="canPerformActions ? 'Proposer un tarif différent de celui proposé par le babysitter' : actionDisabledReason"
                     >
                         <Euro class="h-4 w-4" />
                         <span v-if="!mobile">Contre-offre</span>
@@ -52,9 +62,10 @@
 
                     <button
                         @click="handleDecline"
-                        :class="mobile ? 'flex-1' : ''"
-                        class="hover:bg-primary-opacity flex items-center justify-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors"
-                        title="Refuser définitivement cette candidature"
+                        :disabled="!canPerformActions"
+                        :class="[mobile ? 'flex-1' : '', !canPerformActions ? 'cursor-not-allowed opacity-50' : 'hover:bg-primary-opacity']"
+                        class="flex items-center justify-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 transition-colors"
+                        :title="canPerformActions ? 'Refuser définitivement cette candidature' : actionDisabledReason"
                     >
                         <X class="h-4 w-4" />
                         Refuser
@@ -96,18 +107,20 @@
                 <div :class="mobile ? 'flex gap-2' : 'contents'">
                     <button
                         @click="$emit('respond-counter', application.id, true, application.counter_rate)"
-                        :class="mobile ? 'flex-1' : ''"
-                        class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
-                        :title="`Accepter la contre-offre de ${application.counter_rate}€/h`"
+                        :disabled="!canPerformActions"
+                        :class="[mobile ? 'flex-1' : '', !canPerformActions ? 'cursor-not-allowed opacity-50' : 'hover:bg-green-700']"
+                        class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors"
+                        :title="canPerformActions ? `Accepter la contre-offre de ${application.counter_rate}€/h` : actionDisabledReason"
                     >
                         Accepter
                     </button>
 
                     <button
                         @click="$emit('respond-counter', application.id, false)"
-                        :class="mobile ? 'flex-1' : ''"
-                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                        title="Refuser la contre-offre et revenir au tarif initial"
+                        :disabled="!canPerformActions"
+                        :class="[mobile ? 'flex-1' : '', !canPerformActions ? 'cursor-not-allowed opacity-50' : 'hover:bg-gray-50']"
+                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors"
+                        :title="canPerformActions ? 'Refuser la contre-offre et revenir au tarif initial' : actionDisabledReason"
                     >
                         Refuser
                     </button>
@@ -143,6 +156,19 @@
                         >La garde peut commencer !</span
                     >
                 </div>
+            </template>
+
+            <!-- Bouton d'archivage quand la mission est terminée -->
+            <template v-if="missionEnded">
+                <button
+                    @click="handleArchiveConversation"
+                    :class="mobile ? 'w-full justify-center' : ''"
+                    class="flex items-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700"
+                    title="Archiver cette conversation"
+                >
+                    <X class="h-4 w-4" />
+                    Archiver la conversation
+                </button>
             </template>
         </div>
 
@@ -238,7 +264,7 @@
 import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
 import { router } from '@inertiajs/vue3';
-import { Check, Euro, X } from 'lucide-vue-next';
+import { Check, Clock, Euro, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
 import CancelConfirmationModal from './CancelConfirmationModal.vue';
@@ -305,6 +331,44 @@ const canParentCancelReservation = computed(() => {
     const conversationStatus = props.application.conversation?.status;
 
     return allowedStatuses.includes(props.application.status) || conversationStatus === 'active';
+});
+
+// Logique temporelle pour désactiver les actions
+const missionStarted = computed(() => {
+    if (!props.application.ad?.date_start) return false;
+    const startDate = new Date(props.application.ad.date_start);
+    const now = new Date();
+    return now >= startDate;
+});
+
+const missionEnded = computed(() => {
+    if (!props.application.ad?.date_end) return false;
+    const endDate = new Date(props.application.ad.date_end);
+    const now = new Date();
+    return now >= endDate;
+});
+
+const canPerformActions = computed(() => {
+    // Avant le début : toutes les actions possibles
+    if (!missionStarted.value) return true;
+
+    // Pendant la mission : seulement archiver possible
+    if (missionStarted.value && !missionEnded.value) return false;
+
+    // Après la mission : seulement archiver possible
+    if (missionEnded.value) return false;
+
+    return true;
+});
+
+const actionDisabledReason = computed(() => {
+    if (missionEnded.value) {
+        return 'La mission est terminée. Vous pouvez seulement archiver cette conversation.';
+    }
+    if (missionStarted.value) {
+        return 'La mission a commencé. Vous pouvez seulement envoyer des messages.';
+    }
+    return '';
 });
 
 // Méthodes
@@ -438,6 +502,29 @@ function getParentCancelTooltipText() {
         return 'Annuler ma réservation en cours de négociation';
     } else {
         return 'Annuler ma réservation en attente de réponse';
+    }
+}
+
+function handleArchiveConversation() {
+    if (confirm('Archiver cette conversation ? Elle ne sera plus visible dans votre messagerie.')) {
+        const conversationId = props.application.conversation?.id;
+        if (conversationId) {
+            router.patch(
+                route('conversations.archive', conversationId),
+                {},
+                {
+                    preserveState: true,
+                    onSuccess: () => {
+                        toast.success('Conversation archivée avec succès');
+                        router.get(route('messaging.index'));
+                    },
+                    onError: (errors) => {
+                        console.error('❌ Erreur archivage conversation:', errors);
+                        toast.error("Erreur lors de l'archivage de la conversation");
+                    },
+                },
+            );
+        }
     }
 }
 </script>

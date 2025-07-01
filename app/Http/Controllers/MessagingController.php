@@ -153,6 +153,12 @@ class MessagingController extends Controller
                             'status' => $application->status,
                             'viewed_at' => $application->viewed_at,
                             'created_at' => $application->created_at,
+                            'ad' => $conversation->ad ? [
+                                'id' => $conversation->ad->id,
+                                'title' => $conversation->ad->title,
+                                'date_start' => $conversation->ad->date_start,
+                                'date_end' => $conversation->ad->date_end,
+                            ] : null,
                         ];
 
                         // Ajouter les infos user selon le rôle

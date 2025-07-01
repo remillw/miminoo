@@ -15,13 +15,13 @@ class AnnouncementNotificationService
      */
     public function notifyBabysittersInRadius(Ad $ad): void
     {
-        Log::error('🟢 DEBUG: Service de notification démarré', ['ad_id' => $ad->id]);
+
         try {
             // Récupérer les coordonnées de l'annonce
             $adLatitude = $ad->address->latitude;
             $adLongitude = $ad->address->longitude;
 
-            Log::error('🟢 DEBUG: Recherche babysitters dans le rayon pour annonce', [
+            Log::info('Recherche babysitters dans le rayon pour annonce', [
                 'ad_id' => $ad->id,
                 'ad_latitude' => $adLatitude,
                 'ad_longitude' => $adLongitude
@@ -38,7 +38,7 @@ class AnnouncementNotificationService
                 ->with(['address', 'babysitterProfile'])
                 ->get();
 
-            Log::error('🟢 DEBUG: Babysitters trouvés', ['count' => $babysitters->count()]);
+            Log::info('Babysitters trouvés', ['count' => $babysitters->count()]);
 
             $notifiedCount = 0;
 
@@ -67,7 +67,7 @@ class AnnouncementNotificationService
                 // Si dans le rayon, envoyer la notification
                 if ($distance <= $maxRadius) {
                     try {
-                        Log::error('🟢 DEBUG: Envoi notification babysitter', [
+                        Log::info('Envoi notification babysitter', [
                             'babysitter_id' => $babysitter->id,
                             'babysitter_email' => $babysitter->email,
                             'distance' => round($distance, 1),
@@ -77,7 +77,7 @@ class AnnouncementNotificationService
                         $babysitter->notify(new NewAnnouncementInRadius($ad, $distance));
                         $notifiedCount++;
 
-                        Log::error('🟢 DEBUG: Notification envoyée avec succès', [
+                        Log::info('Notification envoyée avec succès', [
                             'babysitter_id' => $babysitter->id,
                             'babysitter_email' => $babysitter->email
                         ]);
@@ -100,7 +100,7 @@ class AnnouncementNotificationService
                 }
             }
 
-            Log::error('🟢 DEBUG: Notifications annonce envoyées', [
+            Log::info('Notifications annonce envoyées', [
                 'ad_id' => $ad->id,
                 'total_babysitters' => $babysitters->count(),
                 'notified_count' => $notifiedCount
