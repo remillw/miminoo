@@ -150,6 +150,22 @@ Route::get('comment-ca-marche', function () {
     return Inertia::render('comment-ca-marche');
 })->name('comment-ca-marche');  
 
+Route::get('contact', function () {
+    return Inertia::render('Contact');
+})->name('contact');
+
+Route::get('mentions-legales', function () {
+    return Inertia::render('mentions-legales');
+})->name('mentions-legales');
+
+Route::get('politique-de-confidentialite', function () {
+    return Inertia::render('politique-de-confidentialite');
+})->name('politique-de-confidentialite');
+
+Route::get('faq', function () {
+    return Inertia::render('Faq');
+})->name('faq');
+
 // Routes pour les babysitters - DOIT être AVANT babysitter/{slug}
 Route::middleware(['auth', 'role:babysitter'])->group(function () {
     // Route pour la page unifiée babysitting

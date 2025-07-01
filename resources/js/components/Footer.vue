@@ -42,7 +42,8 @@ import { Link } from '@inertiajs/vue3'
         <ul class="space-y-2">
           <li><Link href="/faq" class="hover:text-primary">FAQ</Link></li>
           <li><Link href="/blog" class="hover:text-primary">Blog</Link></li>
-          <li><Link href="/conditions" class="hover:text-primary">Conditions d’utilisation</Link></li>
+          <li><Link href="/contact" class="hover:text-primary">Contact</Link></li>
+          <li><Link href="/conditions" class="hover:text-primary">Conditions d'utilisation</Link></li>
           <li><Link href="/confidentialite" class="hover:text-primary">Politique de confidentialité</Link></li>
         </ul>
       </div>
