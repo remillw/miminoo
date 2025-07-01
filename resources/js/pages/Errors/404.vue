@@ -38,7 +38,7 @@
                         </div>
                         <p class="text-sm text-gray-600 mb-3">Découvrez toutes nos annonces de babysitting</p>
                         <Link 
-                            :href="route('dashboard')" 
+                            :href="route('home')" 
                             class="text-primary hover:text-orange-700 text-sm font-medium transition-colors duration-200"
                         >
                             Aller à l'accueil →
@@ -67,7 +67,7 @@
             <!-- Actions principales -->
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link 
-                    :href="route('dashboard')"
+                    :href="route('home')"
                     class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-primary hover:to-primary transition-all duration-200 transform hover:scale-105"
                 >
                     <Home class="w-5 h-5" />
@@ -119,7 +119,7 @@ const goBack = () => {
     if (window.history.length > 1) {
         window.history.back();
     } else {
-        window.location.href = route('dashboard');
+        window.location.href = route('home');
     }
 };
 </script>

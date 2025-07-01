@@ -958,7 +958,7 @@ initializeChildren();
                             <div class="space-y-2">
                                 <Label for="date">Date</Label>
                                 <Datepicker v-model="form.date" placeholder="Sélectionner une date" locale="fr-FR" />
-                                <p class="text-xs text-gray-500">📅 Cliquez pour ouvrir le calendrier et sélectionner une date</p>
+                           
                             </div>
 
                             <!-- Horaires avec mode de saisie -->

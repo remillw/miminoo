@@ -104,7 +104,7 @@
                     <!-- Bouton créer une annonce -->
                     <div class="mb-6">
                         <a
-                            href="/annonces/create"
+                            href="/creer-une-annonce"
                             class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                         >
                             <Plus class="h-4 w-4" />
@@ -201,7 +201,7 @@
                         <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune annonce</h3>
                         <p class="mb-4 text-gray-600">Créez votre première annonce pour trouver une babysitter</p>
                         <a
-                            href="/annonces/create"
+                            href="/creer-une-annonce"
                             class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                         >
                             <Plus class="h-4 w-4" />

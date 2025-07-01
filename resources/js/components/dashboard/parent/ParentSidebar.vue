@@ -8,7 +8,7 @@ const showFullMenu = ref(false);
 // Définition des liens du menu
 const links = [
     { icon: Home, label: 'Tableau de bord', href: '/dashboard' },
-    { icon: PlusCircle, label: 'Créer une annonce', href: '/annonces/create' },
+    { icon: PlusCircle, label: 'Créer une annonce', href: '/creer-une-annonce' },
     { icon: Calendar, label: 'Mes gardes', href: '/mes-annonces-et-reservations' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
     { icon: User, label: 'Mon profil', href: '/profil' },
@@ -56,7 +56,7 @@ const isCurrentRoute = (href: string) => {
             </Link>
         </nav>
         <div class="border-t p-4">
-            <Link :href="route('logout')" method="post" as="button" class="hover:text-primary flex items-center gap-2 text-gray-500">
+            <Link :href="route('deconnexion')" method="post" as="button" class="hover:text-primary flex items-center gap-2 text-gray-500">
                 <LogOut class="h-5 w-5" /> Déconnexion
             </Link>
         </div>

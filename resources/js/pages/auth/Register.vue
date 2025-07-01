@@ -142,7 +142,7 @@ const onSubmit = () => {
     inertiaForm.accepted = accepted.value;
 
     // Soumettre avec Inertia
-    inertiaForm.post(route('register'), {
+    inertiaForm.post(route('inscription'), {
         onSuccess: () => {
             showSuccess(
                 '🎉 Bienvenue !',
@@ -202,11 +202,8 @@ const onSubmit = () => {
     <div class="flex flex-col justify-between bg-secondary">
         <Head title="Inscription" />
 
-        <div class="py-10 pt-10 text-center">
-            <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter logo" class="mx-auto h-10" />
-        </div>
 
-        <div class="mx-auto mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
+        <div class="mx-auto my-20 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
             <h2 class="mb-1 text-center text-2xl font-bold">Inscription</h2>
             <p class="mb-6 text-center text-gray-500">Vous pourrez choisir votre rôle (Parent ou Babysitter) à la prochaine étape.</p>
 
@@ -381,9 +378,9 @@ const onSubmit = () => {
                         />
                         <label class="text-gray-700">
                             J'accepte les
-                            <a href="#" class="text-primary underline">conditions générales d'utilisation</a>
+                            <a href="/conditions-generales-d-utilisation" class="text-primary underline">conditions générales d'utilisation</a>
                             et la
-                            <a href="#" class="text-primary underline">politique de confidentialité</a>
+                            <a href="/politique-de-confidentialite" class="text-primary underline">politique de confidentialité</a>
                         </label>
                     </div>
                     <p v-if="errors.accepted" class="mt-1 text-sm text-red-500">{{ errors.accepted }}</p>
@@ -401,7 +398,7 @@ const onSubmit = () => {
 
                 <div class="text-center text-sm">
                     Déjà inscrit ?
-                    <TextLink :href="route('login')" class="text-primary">Se connecter</TextLink>
+                    <TextLink :href="route('connexion')" class="text-primary">Se connecter</TextLink>
                 </div>
             </form>
         </div>

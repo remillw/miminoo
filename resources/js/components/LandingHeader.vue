@@ -61,7 +61,7 @@ const primaryButton = computed(() => {
     // Pour les parents ou utilisateurs avec les deux rôles (par défaut parent)
     return {
         text: 'Créer une annonce',
-        href: route('announcements.create'),
+        href: route('creer.une.annonce'),
         title: 'Publier une nouvelle annonce',
     };
 });
@@ -316,8 +316,8 @@ const formatDate = (dateString: string) => {
                             {{ link.name }}
                         </Link>
                     </template>
-                    <Link href="/login" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> Connexion </Link>
-                    <Link href="/register" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> Inscription </Link>
+                    <Link href="/connexion" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> Connexion </Link>
+                    <Link href="/inscription" class="hover:text-primary text-base font-medium text-gray-700 transition-colors"> Inscription </Link>
                 </template>
                 <Button as-child class="bg-primary hover:bg-primary ml-2 font-semibold text-white" :title="primaryButton.title">
                     <Link :href="primaryButton.href">{{ primaryButton.text }}</Link>
@@ -369,10 +369,10 @@ const formatDate = (dateString: string) => {
                                         {{ link.name }}
                                     </Link>
                                 </template>
-                                <Link href="/login" class="hover:text-primary py-2 text-base font-medium text-gray-700 transition-colors">
+                                <Link href="/connexion" class="hover:text-primary py-2 text-base font-medium text-gray-700 transition-colors">
                                     Connexion
                                 </Link>
-                                <Link href="/register" class="hover:text-primary py-2 text-base font-medium text-gray-700 transition-colors">
+                                <Link href="/inscription" class="hover:text-primary py-2 text-base font-medium text-gray-700 transition-colors">
                                     Inscription
                                 </Link>
                             </template>

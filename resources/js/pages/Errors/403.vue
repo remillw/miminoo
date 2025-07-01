@@ -28,7 +28,7 @@
             <!-- Actions principales -->
             <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link 
-                    :href="route('dashboard')"
+                    :href="route('home')"
                     class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-orange-400 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:from-primary hover:to-primary transition-all duration-200 transform hover:scale-105"
                 >
                     <Home class="w-5 h-5" />
@@ -36,7 +36,7 @@
                 </Link>
                 
                 <Link 
-                    :href="route('login')"
+                    :href="route('connexion')"
                     class="inline-flex items-center justify-center gap-2 bg-white text-gray-700 px-8 py-3 rounded-lg font-medium shadow-md border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
                 >
                     <LogIn class="w-5 h-5" />

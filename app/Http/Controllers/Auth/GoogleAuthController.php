@@ -131,7 +131,7 @@ class GoogleAuthController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return redirect('/login')->with('error', 'Erreur lors de la connexion avec Google.');
+            return redirect('/connexion')->with('error', 'Erreur lors de la connexion avec Google.');
         }
     }
 

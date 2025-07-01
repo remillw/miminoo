@@ -227,7 +227,7 @@ onMounted(() => {
                         <Calendar class="mx-auto mb-3 h-12 w-12 text-gray-300" />
                         <p class="mb-3">Aucune garde prévue</p>
                         <a
-                            href="/annonces/create"
+                            href="/creer-une-annonce"
                             class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                         >
                             <Plus class="h-4 w-4" />
@@ -290,7 +290,7 @@ onMounted(() => {
                         <FileText class="mx-auto mb-3 h-12 w-12 text-gray-300" />
                         <p class="mb-3">Aucune annonce récente</p>
                         <a
-                            href="/annonces/create"
+                            href="/creer-une-annonce"
                             class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
                         >
                             <Plus class="h-4 w-4" />

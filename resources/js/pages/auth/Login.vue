@@ -29,7 +29,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post(route('login'), {
+    form.post(route('connexion'), {
         onFinish: () => form.reset('password'),
     });
 };
@@ -40,13 +40,8 @@ const submit = () => {
     <div class="flex flex-col justify-between bg-secondary">
         <Head title="Connexion" />
 
-        <!-- Logo -->
-        <div class="py-10 pt-10 text-center">
-            <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter logo" class="mx-auto h-10 w-auto" />
-        </div>
-
-        <!-- Form container -->
-        <div class="mx-auto mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
+            <!-- Form container -->
+        <div class="mx-auto my-20 mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
             <h2 class="mb-1 text-center text-2xl font-bold">Connexion</h2>
             <p class="mb-6 text-center text-gray-500">Bienvenue sur la plateforme de babysitting</p>
 
@@ -152,7 +147,7 @@ const submit = () => {
 
                 <div class="text-center text-sm">
                     Pas encore de compte ?
-                    <TextLink :href="route('register')" class="text-primary">S'inscrire</TextLink>
+                    <TextLink :href="route('inscription')" class="text-primary">S'inscrire</TextLink>
                 </div>
             </form>
         </div>

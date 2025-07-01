@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Mail, ArrowLeft } from 'lucide-vue-next';
+import GlobalLayout from '@/layouts/GlobalLayout.vue';
 
 const form = useForm({
   email: '',
@@ -17,17 +18,12 @@ const submit = () => {
 </script>
 
 <template>
+    <GlobalLayout>
   <div class="bg-secondary flex flex-col justify-between">
     <Head title="Mot de passe oublié" />
 
-    <!-- Logo -->
-    <div class="pt-10 text-center py-10">
-  <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter" class="mx-auto h-10 w-auto " />
-</div>
-
-
     <!-- Form Card -->
-    <div class="mx-auto w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
+    <div class="mx-auto my-20 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
       <h2 class="mb-1 text-center text-2xl font-bold">Mot de passe oublié</h2>
       <p class="mb-6 text-center text-gray-500">Entrez votre email pour réinitialiser votre mot de passe</p>
 
@@ -58,8 +54,9 @@ const submit = () => {
 
       <div class="mt-6 flex justify-center items-center text-sm">
         <ArrowLeft class="h-4 w-4 mr-1 text-primary" />
-        <TextLink :href="route('login')" class="text-primary">Retour à la connexion</TextLink>
+        <TextLink :href="route('connexion')" class="text-primary">Retour à la connexion</TextLink>
       </div>
     </div>
   </div>
+</GlobalLayout>
 </template>

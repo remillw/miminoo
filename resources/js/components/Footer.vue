@@ -31,7 +31,7 @@ import { Link } from '@inertiajs/vue3'
         <ul class="space-y-2">
           <li><Link href="/a-propos" class="hover:text-primary">À propos</Link></li>
           <li><Link href="/comment-ca-marche" class="hover:text-primary">Comment ça marche</Link></li>
-          <li><Link href="/creer-annonce" class="hover:text-primary">Créer une annonce</Link></li>
+          <li><Link href="/creer-une-annonce" class="hover:text-primary">Créer une annonce</Link></li>
           <li><Link href="/devenir-babysitter" class="hover:text-primary">Devenir babysitter</Link></li>
         </ul>
       </div>
@@ -42,17 +42,18 @@ import { Link } from '@inertiajs/vue3'
         <ul class="space-y-2">
           <li><Link href="/faq" class="hover:text-primary">FAQ</Link></li>
           <li><Link href="/blog" class="hover:text-primary">Blog</Link></li>
-          <li><Link href="/contact" class="hover:text-primary">Contact</Link></li>
-          <li><Link href="/conditions" class="hover:text-primary">Conditions d'utilisation</Link></li>
-          <li><Link href="/confidentialite" class="hover:text-primary">Politique de confidentialité</Link></li>
+          <li><Link href="/mentions-legales" class="hover:text-primary">Mentions légales</Link></li>
+          <li><Link href="/conditions-generales-d-utilisation" class="hover:text-primary">Conditions d'utilisation</Link></li>
+          <li><Link href="/politique-de-confidentialite" class="hover:text-primary">Politique de confidentialité</Link></li>
         </ul>
       </div>
 
       <!-- Colonne 4 : Contact -->
       <div class="flex flex-col items-center md:items-start text-center md:text-left">
   <ul class="space-y-2 mb-7">
-    <li><Link href="/login" class="hover:text-primary">Connexion</Link></li>
-    <li><Link href="/register" class="hover:text-primary">Inscription</Link></li>
+    <li><Link href="/connexion" class="hover:text-primary">Connexion</Link></li>
+    <li><Link href="/inscription" class="hover:text-primary">Inscription</Link></li>
+    <li><Link href="/contact" class="hover:text-primary">Contact</Link></li>
   </ul>
   <h4 class="mb-3 font-bold text-black">Contact</h4>
   <a

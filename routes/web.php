@@ -69,10 +69,10 @@ Route::post('/api/set-user-location', function(\Illuminate\Http\Request $request
     return response()->json(['success' => true]);
 });
 
-Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('tableau-de-bord', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 // Routes publiques pour création d'annonce (avec ou sans connexion)
-Route::get('annonces/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+Route::get('creer-une-annonce', [AnnouncementController::class, 'create'])->name('creer.une.annonce');
 Route::post('annonces', [AnnouncementController::class, 'store'])->name('announcements.store');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -121,15 +121,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
     
     // Routes pour les avis
-    Route::get('reviews', [App\Http\Controllers\ReviewController::class, 'index'])->name('reviews.index');
-    Route::get('reviews/create/{reservation}', [App\Http\Controllers\ReviewController::class, 'create'])->name('reviews.create');
-    Route::post('reviews/{reservation}', [App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
+    Route::get('avis', [App\Http\Controllers\ReviewController::class, 'index'])->name('reviews.index');
+    Route::get('avis/creer/{reservation}', [App\Http\Controllers\ReviewController::class, 'create'])->name('reviews.create');
+    Route::post('avis/{reservation}', [App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
     
     // Routes pour les réclamations
-    Route::get('disputes', [App\Http\Controllers\DisputeController::class, 'index'])->name('disputes.index');
-    Route::get('disputes/create/{reservation}', [App\Http\Controllers\DisputeController::class, 'create'])->name('disputes.create');
-    Route::post('disputes/{reservation}', [App\Http\Controllers\DisputeController::class, 'store'])->name('disputes.store');
-    Route::get('disputes/{dispute}', [App\Http\Controllers\DisputeController::class, 'show'])->name('disputes.show');
+    Route::get('reclamations', [App\Http\Controllers\DisputeController::class, 'index'])->name('disputes.index');
+    Route::get('reclamations/creer/{reservation}', [App\Http\Controllers\DisputeController::class, 'create'])->name('disputes.create');
+    Route::post('reclamations/{reservation}', [App\Http\Controllers\DisputeController::class, 'store'])->name('disputes.store');
+    Route::get('reclamations/{dispute}', [App\Http\Controllers\DisputeController::class, 'show'])->name('disputes.show');
     
     // Routes API pour Stripe
     Route::get('api/stripe/payment-methods', [StripeController::class, 'getPaymentMethods']);
@@ -155,16 +155,31 @@ Route::get('contact', function () {
 })->name('contact');
 
 Route::get('mentions-legales', function () {
-    return Inertia::render('mentions-legales');
+    return Inertia::render('MentionsLegales');
 })->name('mentions-legales');
 
 Route::get('politique-de-confidentialite', function () {
-    return Inertia::render('politique-de-confidentialite');
+    return Inertia::render('PolitiqueConfidentialité');
 })->name('politique-de-confidentialite');
+
+Route::get('conditions-generales-d-utilisation', function () {
+    return Inertia::render('CGU');
+})->name('conditions-generales-d-utilisation');
 
 Route::get('faq', function () {
     return Inertia::render('Faq');
 })->name('faq');
+
+Route::get('devenir-babysitter', function () {
+    return Inertia::render('devenir-babysitter');
+})->name('devenir-babysitter');
+
+Route::get('waitlist', function () {
+    return Inertia::render('waitlist');
+})->name('waitlist');
+
+
+
 
 // Routes pour les babysitters - DOIT être AVANT babysitter/{slug}
 Route::middleware(['auth', 'role:babysitter'])->group(function () {

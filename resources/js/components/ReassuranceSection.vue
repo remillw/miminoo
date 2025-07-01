@@ -15,10 +15,10 @@
             Rejoignez des milliers de parents qui nous font confiance pour trouver des babysitters qualifiées et attentionnées.
           </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-            <a href="#" class="rounded-full bg-white text-primary font-semibold px-6 py-3 shadow-md hover:bg-orange-100 transition">
+            <a href="/creer-une-annonce" class="rounded-full bg-white text-primary font-semibold px-6 py-3 shadow-md hover:bg-orange-100 transition">
               Trouver une babysitter
             </a>
-            <a href="#" class="rounded-full border border-white font-semibold text-white px-6 py-3 hover:bg-white/10 transition">
+            <a href="/devenir-babysitter" class="rounded-full border border-white font-semibold text-white px-6 py-3 hover:bg-white/10 transition">
               Devenir babysitter
             </a>
           </div>

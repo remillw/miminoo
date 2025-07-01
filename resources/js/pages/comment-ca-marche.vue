@@ -18,11 +18,13 @@ import ReassuranceSection from '../components/ReassuranceSection.vue';
 
                 <div class="relative flex flex-col items-center justify-center gap-4 sm:flex-row">
                     <div class="relative order-1">
-                        <button
-                            class="bg-primary transform rounded-lg px-8 py-3 text-lg font-medium text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-primary hover:shadow-xl"
-                        >
-                            Créer une annonce
-                        </button>
+                        <a
+  href="/creer-une-annonce"
+  class="inline-block bg-primary transform rounded-lg px-8 py-3 text-lg font-medium text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-primary hover:shadow-xl"
+>
+  Créer une annonce
+</a>
+
 
                         <div class="absolute -top-3 -right-3 z-10">
                             <div class="relative">
@@ -35,11 +37,13 @@ import ReassuranceSection from '../components/ReassuranceSection.vue';
                         </div>
                     </div>
 
-                    <button
-                        class="border-primary text-primary hover:bg-primary order-2 rounded-lg border px-8 py-3 text-lg font-medium transition-colors hover:text-white"
-                    >
-                        Voir les annonces en cours
-                    </button>
+                    <a
+  href="/annonces"
+  class="inline-block border-primary text-primary hover:bg-primary order-2 rounded-lg border px-8 py-3 text-lg font-medium transition-colors hover:text-white"
+>
+  Voir les annonces en cours
+</a>
+
                 </div>
             </div>
         </div>

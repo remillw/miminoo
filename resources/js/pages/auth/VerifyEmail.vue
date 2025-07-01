@@ -17,7 +17,7 @@ const submit = () => {
 
 <template>
   <div class="bg-secondary flex flex-col justify-between">
-    <Head title="Vérification de l’e-mail" />
+    <Head title="Vérification de l'e-mail" />
 
     <!-- Logo -->
     <div class="pt-10 text-center py-10">
@@ -28,7 +28,7 @@ const submit = () => {
     <div class="mx-auto w-full max-w-md rounded-3xl bg-white p-8 shadow-md mb-10 text-center">
       <h2 class="mb-1 text-2xl font-bold">Vérifie ton adresse e-mail</h2>
       <p class="mb-6 text-gray-500">
-        Nous venons de t’envoyer un lien de confirmation.<br>
+        Nous venons de t'envoyer un lien de confirmation.<br>
         Clique dessus pour activer ton compte.
       </p>
 
@@ -49,10 +49,10 @@ const submit = () => {
           :disabled="form.processing"
         >
           <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-          <span v-else>Renvoyer l’e-mail de vérification</span>
+          <span v-else>Renvoyer l'e-mail de vérification</span>
         </Button>
 
-        <TextLink :href="route('logout')" method="post" as="button" class="text-sm text-gray-500 hover:underline">
+        <TextLink :href="route('deconnexion')" method="post" as="button" class="text-sm text-gray-500 hover:underline">
           Se déconnecter
         </TextLink>
       </form>

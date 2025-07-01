@@ -242,7 +242,7 @@ const completeRegistration = () => {
 
                 <!-- Retour à la connexion -->
                 <div class="border-t pt-4 text-center">
-                    <a href="/login" class="text-sm text-gray-500 transition-colors hover:text-gray-700"> ← Retour à la connexion </a>
+                    <a href="/connexion" class="text-sm text-gray-500 transition-colors hover:text-gray-700"> ← Retour à la connexion </a>
                 </div>
             </CardContent>
         </Card>

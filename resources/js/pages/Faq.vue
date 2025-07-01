@@ -328,7 +328,7 @@ function toggleFaq(index: number) {
 
 <template>
   <GlobalLayout>
-    <section class="min-h-[70vh] bg-white py-16 px-4">
+    <section class="min-h-[70vh] bg-secondary py-16 px-4">
       <div class="max-w-3xl mx-auto text-center mb-10">
         <h1 class="text-4xl md:text-5xl font-bold mb-4 text-gray-900">Foire aux questions</h1>
         <p class="text-gray-600 mb-6">Retrouvez ici les réponses aux questions les plus fréquentes sur Trouve ta Babysitter.</p>
@@ -336,7 +336,7 @@ function toggleFaq(index: number) {
           v-model="search"
           type="text"
           placeholder="Rechercher une question..."
-          class="w-full md:w-2/3 mx-auto rounded-xl border border-gray-200 px-5 py-3 text-base focus:ring-2 focus:ring-primary focus:outline-none transition mb-6 shadow-sm"
+          class="w-full md:w-2/3 mx-auto rounded-xl border border-gray-200 bg-white px-5 py-3 text-base focus:ring-2 focus:ring-primary focus:outline-none transition mb-6 shadow-sm"
         />
         <div class="flex flex-wrap justify-center gap-3 mb-8">
           <button
@@ -366,7 +366,7 @@ function toggleFaq(index: number) {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-          <div v-show="openIndex === idx" class="px-6 pb-5 pt-2 text-gray-700 text-left leading-relaxed bg-gray-50 rounded-b-xl">
+          <div v-show="openIndex === idx" class="px-6 pb-5 pt-2 text-gray-700 text-left leading-relaxed bg-white mt-2 rounded-xl">
             {{ faq.answer }}
           </div>
         </div>
