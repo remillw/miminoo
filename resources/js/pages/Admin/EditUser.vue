@@ -5,8 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Toast from '@/components/ui/Toast.vue';
-import { toast } from '@/components/ui/toast';
+import { useToast } from '@/composables/useToast';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Users, TrendingUp, ShieldAlert, FileText, Star, CreditCard, UserCheck, ArrowLeft } from 'lucide-vue-next';
 
@@ -39,6 +38,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { showSuccess, showError } = useToast();
 
 const form = useForm({
     firstname: props.user.firstname,
@@ -55,13 +55,13 @@ const form = useForm({
 const submit = () => {
     form.put(`/admin/utilisateurs/${props.user.id}`, {
         onSuccess: () => {
-            toast.success(
+            showSuccess(
                 'Utilisateur modifié',
                 'Les informations de l\'utilisateur ont été mises à jour avec succès.'
             );
         },
         onError: () => {
-            toast.error(
+            showError(
                 'Erreur',
                 'Une erreur est survenue lors de la modification de l\'utilisateur.'
             );
@@ -301,8 +301,5 @@ const statusOptions = [
                 </Card>
             </main>
         </div>
-        
-        <!-- Toast notifications -->
-        <Toast />
     </div>
 </template> 

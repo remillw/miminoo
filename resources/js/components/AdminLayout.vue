@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Badge } from '@/components/ui/badge';
-import Toast from '@/components/ui/Toast.vue';
 import { 
     TrendingUp, 
     Users, 
@@ -123,8 +122,5 @@ const getNavItemClass = (section: string) => {
                 <slot />
             </main>
         </div>
-        
-        <!-- Toast notifications -->
-        <Toast />
     </div>
 </template> 
