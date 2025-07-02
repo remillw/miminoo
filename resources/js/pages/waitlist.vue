@@ -6,27 +6,78 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 
 const email = ref('');
 const role = ref('parent');
 const submitted = ref(false);
+const isLoading = ref(false);
+const error = ref('');
 
-function submitForm() {
-  submitted.value = true;
-  // Ici tu peux ajouter l'appel API ou l'action d'inscription à la waitlist
+// URL de votre Google Apps Script Web App (à remplacer par la vraie URL)
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyo2SCYpMzPsTnXb_qgIMFwddJa37Yfn8HIaDR5etp-5Ob-xV7uwDfQoe2HrfmHFYVsoA/exec';
+
+async function submitForm() {
+  if (!email.value || !email.value.includes('@')) {
+    error.value = 'Veuillez entrer une adresse email valide';
+    return;
+  }
+
+  isLoading.value = true;
+  error.value = '';
+
+  try {
+    // Données à envoyer vers Google Sheets
+    const formData = {
+      email: email.value,
+      role: role.value,
+      timestamp: new Date().toISOString(),
+      source: 'waitlist'
+    };
+
+    // Envoi vers Google Sheets
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Important pour les requêtes vers Google Apps Script
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData)
+    });
+
+    // Avec no-cors, on ne peut pas vérifier le statut de la réponse
+    // On assume que ça a fonctionné si aucune erreur n'est lancée
+    submitted.value = true;
+    
+    // Analytics optionnel (si vous utilisez Google Analytics)
+    if (typeof (window as any).gtag !== 'undefined') {
+      (window as any).gtag('event', 'waitlist_signup', {
+        'event_category': 'engagement',
+        'event_label': role.value
+      });
+    }
+
+  } catch (err) {
+    console.error('Erreur lors de l\'envoi:', err);
+    error.value = 'Une erreur est survenue. Veuillez réessayer.';
+  } finally {
+    isLoading.value = false;
+  }
 }
 
-function toggleRole() {
-  role.value = role.value === 'parent' ? 'babysitter' : 'parent';
-}
-
-function handleSwitchChange(checked: boolean) {
-  role.value = checked ? 'babysitter' : 'parent';
+// Fonction pour définir le rôle
+function setRole(newRole: 'parent' | 'babysitter') {
+  role.value = newRole;
 }
 
 function openEmailClient() {
   window.open('mailto:contact@trouvebabysitter.com?subject=Inscription%20liste%20d\'attente', '_blank');
+}
+
+// Réinitialiser les erreurs quand l'utilisateur tape
+function clearError() {
+  if (error.value) {
+    error.value = '';
+  }
 }
 </script>
 
@@ -61,70 +112,84 @@ function openEmailClient() {
                   required
                   placeholder="votre.email@exemple.com"
                   class="h-12 text-lg border-2 focus:ring-4 focus:ring-primary/20"
-                  :disabled="submitted"
+                  :disabled="submitted || isLoading"
+                  @input="clearError"
                 />
-              </div>
-
-              <!-- Switch Role -->
-              <div class="space-y-4">
-                <Label class="text-gray-700 font-medium">Je suis un(e)</Label>
-                <div class="flex items-center justify-center space-x-4 p-4 bg-gray-50 rounded-xl">
-                  <div class="flex items-center space-x-3">
-                    <Icon 
-                      icon="lucide:users" 
-                      class="w-5 h-5 transition-colors duration-200"
-                      :class="role === 'parent' ? 'text-primary' : 'text-gray-400'"
-                    />
-                    <span 
-                      class="font-medium transition-colors duration-200"
-                      :class="role === 'parent' ? 'text-primary' : 'text-gray-500'"
-                    >
-                      Parent
-                    </span>
-                  </div>
-                  
-                  <Switch 
-                    :checked="role === 'babysitter'"
-                    @update:checked="handleSwitchChange"
-                    :disabled="submitted"
-                    class="mx-4"
-                  />
-                  
-                  <div class="flex items-center space-x-3">
-                    <Icon 
-                      icon="lucide:heart" 
-                      class="w-5 h-5 transition-colors duration-200"
-                      :class="role === 'babysitter' ? 'text-primary' : 'text-gray-400'"
-                    />
-                    <span 
-                      class="font-medium transition-colors duration-200"
-                      :class="role === 'babysitter' ? 'text-primary' : 'text-gray-500'"
-                    >
-                      Babysitter
-                    </span>
-                  </div>
+                <!-- Message d'erreur -->
+                <div v-if="error" class="text-red-500 text-sm flex items-center">
+                  <Icon icon="lucide:alert-circle" class="w-4 h-4 mr-1" />
+                  {{ error }}
                 </div>
               </div>
+
+              <!-- Sélection de rôle avec boutons -->
+              <div class="space-y-4">
+                <Label class="text-gray-700 font-medium">Je suis un(e)</Label>
+                <div class="grid grid-cols-2 gap-3">
+                  <!-- Bouton Parent -->
+                  <button
+                    type="button"
+                    @click="setRole('parent')"
+                    :disabled="submitted || isLoading"
+                    class="flex items-center justify-center space-x-3 p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md"
+                    :class="role === 'parent' 
+                      ? 'border-primary bg-primary text-white shadow-lg' 
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-primary/30'"
+                  >
+                    <Icon 
+                      icon="lucide:users" 
+                      class="w-5 h-5"
+                      :class="role === 'parent' ? 'text-white' : 'text-primary'"
+                    />
+                    <span class="font-medium">Parent</span>
+                  </button>
+
+                  <!-- Bouton Babysitter -->
+                  <button
+                    type="button"
+                    @click="setRole('babysitter')"
+                    :disabled="submitted || isLoading"
+                    class="flex items-center justify-center space-x-3 p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md"
+                    :class="role === 'babysitter' 
+                      ? 'border-primary bg-primary text-white shadow-lg' 
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-primary/30'"
+                  >
+                    <Icon 
+                      icon="lucide:heart" 
+                      class="w-5 h-5"
+                      :class="role === 'babysitter' ? 'text-white' : 'text-primary'"
+                    />
+                    <span class="font-medium">Babysitter</span>
+                  </button>
+
+                  
+                </div>
+              </div>
+              <p class="text-gray-500 text-sm">Pas d'inquiétude, ce choix n'est pas définitif. <br> Vous pourrez même avoir les 2 rôles (parent et babysitter)</p>
 
               <!-- Bouton Submit -->
               <Button
                 type="submit"
                 size="lg"
                 class="w-full h-14 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                :disabled="submitted"
-                @click="openEmailClient"
+                :disabled="submitted || isLoading"
               >
                 <Icon 
-                  v-if="!submitted" 
-                  icon="lucide:user-plus" 
+                  v-if="isLoading" 
+                  icon="lucide:loader-2" 
+                  class="w-5 h-5 mr-2 animate-spin" 
+                />
+                <Icon 
+                  v-else-if="submitted" 
+                  icon="lucide:check-circle" 
                   class="w-5 h-5 mr-2" 
                 />
                 <Icon 
                   v-else 
-                  icon="lucide:check-circle" 
+                  icon="lucide:user-plus" 
                   class="w-5 h-5 mr-2" 
                 />
-                {{ submitted ? 'Merci !' : "S'inscrire à la liste d'attente" }}
+                {{ isLoading ? 'Inscription...' : submitted ? 'Merci !' : "S'inscrire à la liste d'attente" }}
               </Button>
               <p class="text-gray-500 text-sm">Vous recevrez un email lorsque la plateforme sera disponible.</p>
             </form>
