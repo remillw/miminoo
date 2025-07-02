@@ -18,8 +18,13 @@ use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    return Inertia::render('waitlist');
 })->name('home');
+
+
+Route::get('accueil', function () {
+    return Inertia::render('Welcome');
+})->name('Welcome');
 
 // Routes pour l'authentification Google uniquement
 Route::prefix('auth')->group(function () {
@@ -174,9 +179,10 @@ Route::get('devenir-babysitter', function () {
     return Inertia::render('devenir-babysitter');
 })->name('devenir-babysitter');
 
-Route::get('waitlist', function () {
-    return Inertia::render('waitlist');
-})->name('waitlist');
+
+Route::get('a-propos', function () {        
+    return Inertia::render('a-propos');
+})->name('a-propos');
 
 
 
