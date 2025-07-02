@@ -2,9 +2,10 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DataTable from '@/components/DataTable.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { Users, TrendingUp, ShieldAlert, FileText, Star, CreditCard, UserCheck, ArrowLeft, Mail, Phone, MapPin, Calendar, Edit } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface Address {
     id: number;
@@ -85,6 +86,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// État pour la navigation entre les sections
+const activeSection = ref<'ads' | 'applications' | 'reviews'>('ads');
+
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
         day: '2-digit',
@@ -136,6 +140,26 @@ const getStatusText = (status: string) => {
 const getRatingStars = (rating: number) => {
     return '★'.repeat(rating) + '☆'.repeat(5 - rating);
 };
+
+// Configuration des colonnes pour les différentes tables
+const adsColumns = [
+    { key: 'title', label: 'Titre', sortable: true },
+    { key: 'status', label: 'Statut', sortable: true, slot: 'status' },
+    { key: 'created_at', label: 'Date de création', sortable: true, slot: 'date' },
+];
+
+const applicationsColumns = [
+    { key: 'ad.title', label: 'Annonce', sortable: true },
+    { key: 'status', label: 'Statut', sortable: true, slot: 'status' },
+    { key: 'created_at', label: 'Date de candidature', sortable: true, slot: 'date' },
+];
+
+const reviewsColumns = [
+    { key: 'rating', label: 'Note', sortable: true, slot: 'rating' },
+    { key: 'comment', label: 'Commentaire', sortable: false },
+    { key: 'created_at', label: 'Date', sortable: true, slot: 'date' },
+    { key: 'reviewer', label: 'Évaluation', sortable: false, slot: 'participants' },
+];
 </script>
 
 <template>
@@ -307,97 +331,112 @@ const getRatingStars = (rating: number) => {
                         </CardContent>
                     </Card>
 
-                    <!-- Onglets pour les activités -->
-                    <Tabs default-value="ads" class="w-full">
-                        <TabsList class="grid w-full grid-cols-3">
-                            <TabsTrigger value="ads">Annonces ({{ user.ads?.length || 0 }})</TabsTrigger>
-                            <TabsTrigger value="applications">Candidatures ({{ user.applications?.length || 0 }})</TabsTrigger>
-                            <TabsTrigger value="reviews">Avis ({{ user.reviews?.length || 0 }})</TabsTrigger>
-                        </TabsList>
-                        
-                        <TabsContent value="ads" class="space-y-4">
-                            <Card v-if="user.ads && user.ads.length > 0">
-                                <CardHeader>
-                                    <CardTitle>Annonces créées</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div class="space-y-3">
-                                        <div 
-                                            v-for="ad in user.ads" 
-                                            :key="ad.id"
-                                            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                                        >
-                                            <div>
-                                                <p class="font-medium">{{ ad.title }}</p>
-                                                <p class="text-sm text-gray-500">{{ formatDate(ad.created_at) }}</p>
-                                            </div>
-                                            <Badge :class="getStatusClass(ad.status)">
-                                                {{ getStatusText(ad.status) }}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <p v-else class="text-center text-gray-500 py-8">Aucune annonce trouvée</p>
-                        </TabsContent>
-                        
-                        <TabsContent value="applications" class="space-y-4">
-                            <Card v-if="user.applications && user.applications.length > 0">
-                                <CardHeader>
-                                    <CardTitle>Candidatures envoyées</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div class="space-y-3">
-                                        <div 
-                                            v-for="application in user.applications" 
-                                            :key="application.id"
-                                            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                                        >
-                                            <div>
-                                                <p class="font-medium">{{ application.ad.title }}</p>
-                                                <p class="text-sm text-gray-500">{{ formatDate(application.created_at) }}</p>
-                                            </div>
-                                            <Badge :class="getStatusClass(application.status)">
-                                                {{ getStatusText(application.status) }}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <p v-else class="text-center text-gray-500 py-8">Aucune candidature trouvée</p>
-                        </TabsContent>
-                        
-                        <TabsContent value="reviews" class="space-y-4">
-                            <Card v-if="user.reviews && user.reviews.length > 0">
-                                <CardHeader>
-                                    <CardTitle>Avis donnés et reçus</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div class="space-y-4">
-                                        <div 
-                                            v-for="review in user.reviews" 
-                                            :key="review.id"
-                                            class="p-4 bg-gray-50 rounded-lg"
-                                        >
-                                            <div class="flex items-center justify-between mb-2">
-                                                <div class="flex items-center space-x-2">
-                                                    <span class="text-lg">{{ getRatingStars(review.rating) }}</span>
-                                                    <Badge variant="outline">{{ review.rating }}/5</Badge>
-                                                </div>
-                                                <span class="text-sm text-gray-500">{{ formatDate(review.created_at) }}</span>
-                                            </div>
-                                            <p class="text-sm mb-2">{{ review.comment }}</p>
-                                            <div class="text-xs text-gray-500">
-                                                <span v-if="review.reviewer">Par {{ review.reviewer.firstname }} {{ review.reviewer.lastname }}</span>
-                                                <span v-if="review.reviewed">Pour {{ review.reviewed.firstname }} {{ review.reviewed.lastname }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <p v-else class="text-center text-gray-500 py-8">Aucun avis trouvé</p>
-                        </TabsContent>
-                    </Tabs>
+                    <!-- Navigation entre les sections -->
+                    <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+                        <Button
+                            @click="activeSection = 'ads'"
+                            :variant="activeSection === 'ads' ? 'default' : 'ghost'"
+                            size="sm"
+                        >
+                            Annonces ({{ user.ads?.length || 0 }})
+                        </Button>
+                        <Button
+                            @click="activeSection = 'applications'"
+                            :variant="activeSection === 'applications' ? 'default' : 'ghost'"
+                            size="sm"
+                        >
+                            Candidatures ({{ user.applications?.length || 0 }})
+                        </Button>
+                        <Button
+                            @click="activeSection = 'reviews'"
+                            :variant="activeSection === 'reviews' ? 'default' : 'ghost'"
+                            size="sm"
+                        >
+                            Avis ({{ user.reviews?.length || 0 }})
+                        </Button>
+                    </div>
+
+                    <!-- Section Annonces -->
+                    <div v-if="activeSection === 'ads'">
+                        <DataTable
+                            v-if="user.ads && user.ads.length > 0"
+                            :data="user.ads"
+                            :columns="adsColumns"
+                            search-placeholder="Rechercher une annonce..."
+                            empty-message="Aucune annonce trouvée"
+                        >
+                            <template #status="{ value }">
+                                <Badge :class="getStatusClass(value)">
+                                    {{ getStatusText(value) }}
+                                </Badge>
+                            </template>
+                            <template #date="{ value }">
+                                {{ formatDate(value) }}
+                            </template>
+                        </DataTable>
+                        <Card v-else>
+                            <CardContent class="py-8 text-center text-gray-500">
+                                Aucune annonce trouvée
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <!-- Section Candidatures -->
+                    <div v-if="activeSection === 'applications'">
+                        <DataTable
+                            v-if="user.applications && user.applications.length > 0"
+                            :data="user.applications"
+                            :columns="applicationsColumns"
+                            search-placeholder="Rechercher une candidature..."
+                            empty-message="Aucune candidature trouvée"
+                        >
+                            <template #status="{ value }">
+                                <Badge :class="getStatusClass(value)">
+                                    {{ getStatusText(value) }}
+                                </Badge>
+                            </template>
+                            <template #date="{ value }">
+                                {{ formatDate(value) }}
+                            </template>
+                        </DataTable>
+                        <Card v-else>
+                            <CardContent class="py-8 text-center text-gray-500">
+                                Aucune candidature trouvée
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <!-- Section Avis -->
+                    <div v-if="activeSection === 'reviews'">
+                        <DataTable
+                            v-if="user.reviews && user.reviews.length > 0"
+                            :data="user.reviews"
+                            :columns="reviewsColumns"
+                            search-placeholder="Rechercher un avis..."
+                            empty-message="Aucun avis trouvé"
+                        >
+                            <template #rating="{ value }">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-lg">{{ getRatingStars(value) }}</span>
+                                    <Badge variant="outline">{{ value }}/5</Badge>
+                                </div>
+                            </template>
+                            <template #participants="{ item }">
+                                <div class="text-xs text-gray-500">
+                                    <div v-if="item.reviewer">Par {{ item.reviewer.firstname }} {{ item.reviewer.lastname }}</div>
+                                    <div v-if="item.reviewed">Pour {{ item.reviewed.firstname }} {{ item.reviewed.lastname }}</div>
+                                </div>
+                            </template>
+                            <template #date="{ value }">
+                                {{ formatDate(value) }}
+                            </template>
+                        </DataTable>
+                        <Card v-else>
+                            <CardContent class="py-8 text-center text-gray-500">
+                                Aucun avis trouvé
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </main>
         </div>
