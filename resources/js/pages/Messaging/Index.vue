@@ -1,7 +1,5 @@
 <template>
     <DashboardLayout :currentMode="currentMode" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
-
-
         <!-- Version Desktop (inchangée) -->
         <div class="hidden h-[calc(100vh-200px)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm lg:flex">
             <!-- Sidebar conversations/candidatures -->
@@ -72,6 +70,13 @@
                                             class="flex-shrink-0 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
                                         >
                                             Confirmée
+                                        </span>
+                                        <!-- Badge annulée -->
+                                        <span
+                                            v-else-if="conversation.status === 'cancelled' || conversation.reservation?.status?.includes('cancelled')"
+                                            class="flex-shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
+                                        >
+                                            Annulée
                                         </span>
                                     </div>
                                     <div class="ml-2 flex flex-shrink-0 items-center gap-2">
@@ -257,6 +262,13 @@
                                         >
                                             {{ conversation.application?.status === 'pending' ? 'Candidature' : 'Négociation' }}
                                         </span>
+                                        <!-- Badge annulée mobile -->
+                                        <span
+                                            v-else-if="conversation.status === 'cancelled' || conversation.reservation?.status?.includes('cancelled')"
+                                            class="flex-shrink-0 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700"
+                                        >
+                                            Annulée
+                                        </span>
                                     </div>
                                     <div class="ml-2 flex flex-shrink-0 items-center gap-2">
                                         <!-- Badge non lu -->
@@ -379,11 +391,10 @@
 </template>
 
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
-import { ArrowLeft, Baby, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search, Users } from 'lucide-vue-next';
+import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import CandidatureChat from './Components/CandidatureChat.vue';
 import ChatInput from './Components/ChatInput.vue';

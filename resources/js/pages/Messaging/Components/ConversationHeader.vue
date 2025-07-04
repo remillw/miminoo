@@ -109,6 +109,7 @@
 </template>
 
 <script setup>
+import { router } from '@inertiajs/vue3';
 import { Calendar, CheckCircle, Clock, CreditCard, FileText, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import CancelReservationModal from './CancelReservationModal.vue';
@@ -435,9 +436,21 @@ async function completeService() {
     }
 }
 
-function handleCancellationSuccess(reservation) {
+function handleCancellationSuccess(result) {
     showCancelModal.value = false;
-    emit('reservation-updated', reservation);
+
+    if (result.type === 'announcement_cancelled') {
+        // Annonce complète annulée - rediriger vers tableau de bord ou page d'annonces
+        router.visit(route('parent.announcements-reservations'), {
+            preserveState: false,
+            onSuccess: () => {
+                // Message de succès sera géré par la page de destination
+            },
+        });
+    } else {
+        // Juste cette réservation annulée
+        emit('reservation-updated', result.reservation || result);
+    }
 }
 
 function openProfileUrl() {

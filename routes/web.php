@@ -93,6 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('annonces/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
     Route::put('annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('annonces/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    Route::post('annonces/{announcement}/cancel', [AnnouncementController::class, 'cancel'])->name('announcements.cancel');
     
 
     

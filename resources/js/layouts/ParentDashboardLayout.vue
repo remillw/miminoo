@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import ParentDashboardContent from '@/components/dashboard/parent/ParentDashboardContent.vue';
 import ParentSidebar from '@/components/dashboard/parent/ParentSidebar.vue';
-import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
+import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
 </script>
 
@@ -22,6 +21,6 @@ import LandingHeader from '@/components/LandingHeader.vue';
             </main>
         </div>
 
-        <DashboardFooter />
+        <Footer />
     </div>
 </template>

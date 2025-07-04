@@ -15,7 +15,7 @@ class Ad extends Model
         'date_start', 'date_end', 'hourly_rate', 'estimated_duration', 
         'estimated_total', 'children', 'additional_info',
         'status', 'is_boosted', 'guest_email', 'guest_firstname', 'guest_token', 
-        'guest_expires_at', 'is_guest'
+        'guest_expires_at', 'is_guest', 'cancelled_at', 'cancellation_reason', 'cancellation_note'
     ];
 
     protected $casts = [
@@ -28,6 +28,7 @@ class Ad extends Model
         'is_boosted' => 'boolean',
         'is_guest' => 'boolean',
         'guest_expires_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function parent(): BelongsTo

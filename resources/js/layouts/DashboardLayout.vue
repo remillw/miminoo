@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
+import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { usePage } from '@inertiajs/vue3';
@@ -40,6 +40,6 @@ const hasBabysitterRole = computed(() => props.hasBabysitterRole ?? userRoles.va
             </main>
         </div>
 
-        <DashboardFooter />
+        <Footer />
     </div>
 </template>

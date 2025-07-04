@@ -17,6 +17,10 @@ use Carbon\Carbon;
 use App\Notifications\NewApplication;
 use App\Models\Reservation;
 use App\Jobs\NotifyBabysittersNewAnnouncement;
+use Illuminate\Support\Facades\DB;
+use App\Services\StripeService;
+use App\Notifications\ReservationCancelled;
+use App\Notifications\AnnouncementCancelled;
 
 class AnnouncementController extends Controller
 {
@@ -1023,5 +1027,158 @@ class AnnouncementController extends Controller
         return preg_replace('/-+/', '-', $slug);
     }
 
+    /**
+     * Cancel an entire announcement
+     */
+    public function cancel(Request $request, Ad $announcement)
+    {
+        $user = Auth::user();
 
+        Log::info('=== ANNULATION ANNONCE COMPLÈTE ===', [
+            'user_id' => $user->id,
+            'announcement_id' => $announcement->id,
+            'current_status' => $announcement->status
+        ]);
+
+        // Vérifier que l'utilisateur peut annuler cette annonce
+        if ($announcement->parent_id !== $user->id) {
+            abort(403);
+        }
+
+        // Vérifier que l'annonce peut être annulée
+        if ($announcement->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Cette annonce ne peut plus être annulée'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|in:found_other_solution,no_longer_needed,date_changed,budget_issues,other',
+            'note' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // 1. Marquer l'annonce comme annulée
+            $announcement->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancellation_reason' => $validated['reason'],
+                'cancellation_note' => $validated['note']
+            ]);
+
+            // 2. Récupérer toutes les candidatures actives
+            $applications = $announcement->applications()
+                ->with(['babysitter', 'conversation.reservation'])
+                ->whereIn('status', ['pending', 'accepted', 'counter_offered'])
+                ->get();
+
+            $refundedReservations = [];
+            $archivedApplications = [];
+
+            // 3. Traiter chaque candidature
+            foreach ($applications as $application) {
+                // Archiver la candidature
+                $application->update(['status' => 'archived']);
+                $archivedApplications[] = $application->id;
+
+                // Archiver la conversation
+                if ($application->conversation) {
+                    $application->conversation->update(['status' => 'archived']);
+
+                    // Si il y a une réservation payée, gérer le remboursement
+                    if ($application->conversation->reservation && 
+                        $application->conversation->reservation->status === 'paid') {
+                        
+                        $reservation = $application->conversation->reservation;
+                        
+                        // Annuler la réservation et gérer le remboursement
+                        $canCancelFree = $reservation->can_be_cancelled_free;
+                        $reservation->cancelByParent('parent_cancelled_announcement', $validated['note']);
+                        
+                        // Remboursement automatique selon les conditions
+                        $refundAmount = $reservation->getRefundAmount();
+                        if ($refundAmount > 0) {
+                            // Tentative de remboursement Stripe
+                            try {
+                                app(StripeService::class)->createRefund(
+                                    $reservation->payment_intent_id,
+                                    $refundAmount * 100, // Stripe utilise les centimes
+                                    'Annulation de l\'annonce par le parent'
+                                );
+                                
+                                $reservation->update([
+                                    'refund_amount' => $refundAmount,
+                                    'refunded_at' => now()
+                                ]);
+                                
+                                $refundedReservations[] = [
+                                    'reservation_id' => $reservation->id,
+                                    'babysitter_id' => $reservation->babysitter_id,
+                                    'refund_amount' => $refundAmount
+                                ];
+                                
+                            } catch (\Exception $e) {
+                                Log::error('Erreur remboursement lors annulation annonce', [
+                                    'reservation_id' => $reservation->id,
+                                    'error' => $e->getMessage()
+                                ]);
+                                // Ne pas faire échouer l'annulation pour un problème de remboursement
+                            }
+                        }
+
+                        // Envoyer notification à la babysitter
+                        $reservation->babysitter->notify(new \App\Notifications\ReservationCancelled(
+                            $reservation,
+                            'parent',
+                            'parent_cancelled_announcement',
+                            "L'annonce complète a été annulée par le parent. Raison : " . $validated['note']
+                        ));
+                    }
+                }
+
+                // Envoyer notification générale à la babysitter sur l'annulation de l'annonce
+                $application->babysitter->notify(new \App\Notifications\AnnouncementCancelled(
+                    $announcement,
+                    $validated['reason'],
+                    $validated['note']
+                ));
+            }
+
+            DB::commit();
+
+            Log::info('Annonce annulée avec succès', [
+                'announcement_id' => $announcement->id,
+                'applications_archived' => count($archivedApplications),
+                'reservations_refunded' => count($refundedReservations)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Annonce annulée avec succès',
+                'announcement' => [
+                    'id' => $announcement->id,
+                    'status' => $announcement->status,
+                    'cancelled_at' => $announcement->cancelled_at->toISOString(),
+                    'applications_archived' => count($archivedApplications),
+                    'reservations_refunded' => count($refundedReservations)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Erreur lors de l\'annulation de l\'annonce', [
+                'announcement_id' => $announcement->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de l\'annulation de l\'annonce'
+            ], 500);
+        }
+    }
 } 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import BabysitterDashboardContent from '@/components/dashboard/babysitter/BabysitterDashboardContent.vue';
 import ParentDashboardContent from '@/components/dashboard/parent/ParentDashboardContent.vue';
-import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
+import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { useUserMode } from '@/composables/useUserMode';
@@ -74,6 +74,6 @@ const currentContent = computed(() => {
             </main>
         </div>
 
-        <DashboardFooter />
+        <Footer />
     </div>
 </template>

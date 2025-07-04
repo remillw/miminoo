@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import BabysitterDashboardContent from '@/components/dashboard/babysitter/BabysitterDashboardContent.vue';
 import BabysitterSidebar from '@/components/dashboard/babysitter/BabysitterSidebar.vue';
-import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
+import Footer from '@/components/Footer.vue';
+
 import LandingHeader from '@/components/LandingHeader.vue';
 </script>
 
@@ -22,6 +23,6 @@ import LandingHeader from '@/components/LandingHeader.vue';
             </main>
         </div>
 
-        <DashboardFooter />
+        <Footer />
     </div>
 </template>
