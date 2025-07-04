@@ -6,7 +6,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { useToast } from '@/composables/useToast';
 import type { Column } from '@/types/datatable';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-vue-next';
+import { Edit, Eye, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface Address {
@@ -39,7 +39,11 @@ interface User {
 }
 
 interface Props {
-    babysitters: User[];
+    babysitters: {
+        data: User[];
+        meta: any;
+        links: any;
+    };
     filters: {
         search?: string;
         status?: string;
@@ -88,7 +92,7 @@ const columns: Column<User>[] = [
         label: 'Tarif',
         sortable: true,
         width: '100px',
-        render: (value, item) => item.babysitter_profile?.hourly_rate ? `${item.babysitter_profile.hourly_rate}€/h` : 'Non renseigné',
+        render: (value, item) => (item.babysitter_profile?.hourly_rate ? `${item.babysitter_profile.hourly_rate}€/h` : 'Non renseigné'),
     },
     {
         key: 'babysitter_profile.verification_status',
@@ -143,26 +147,23 @@ const deleteBabysitter = (babysitter: User) => {
 
 const confirmDelete = () => {
     if (!babysitterToDelete.value) return;
-    
+
     isDeleting.value = true;
     router.delete(`/admin/utilisateurs/${babysitterToDelete.value.id}`, {
         onSuccess: () => {
             showSuccess(
                 'Babysitter supprimée',
-                `La babysitter ${babysitterToDelete.value?.firstname} ${babysitterToDelete.value?.lastname} a été supprimée avec succès.`
+                `La babysitter ${babysitterToDelete.value?.firstname} ${babysitterToDelete.value?.lastname} a été supprimée avec succès.`,
             );
             showDeleteModal.value = false;
             babysitterToDelete.value = null;
         },
         onError: () => {
-            showError(
-                'Erreur',
-                'Une erreur est survenue lors de la suppression de la babysitter.'
-            );
+            showError('Erreur', 'Une erreur est survenue lors de la suppression de la babysitter.');
         },
         onFinish: () => {
             isDeleting.value = false;
-        }
+        },
     });
 };
 
@@ -206,16 +207,16 @@ const formatDate = (dateString: string) => {
 
     <AdminLayout title="Gestion des Babysitters">
         <!-- Header Section -->
-        <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="mb-6 md:flex md:items-center md:justify-between">
             <div class="min-w-0 flex-1">
-                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                    Gestion des Babysitters
-                </h2>
+                <h2 class="text-2xl leading-7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Gestion des Babysitters</h2>
                 <p class="mt-1 text-sm text-gray-500">
-                    {{ babysitters.length }} babysitter{{ babysitters.length !== 1 ? 's' : '' }} enregistrée{{ babysitters.length !== 1 ? 's' : '' }}
+                    {{ babysitters.meta?.total || 0 }} babysitter{{ (babysitters.meta?.total || 0) !== 1 ? 's' : '' }} enregistrée{{
+                        (babysitters.meta?.total || 0) !== 1 ? 's' : ''
+                    }}
                 </p>
             </div>
-            <div class="mt-4 flex md:ml-4 md:mt-0">
+            <div class="mt-4 flex md:mt-0 md:ml-4">
                 <Button as-child>
                     <Link href="/admin/utilisateurs/creer">
                         <Plus class="mr-2 h-4 w-4" />
@@ -226,26 +227,28 @@ const formatDate = (dateString: string) => {
         </div>
 
         <!-- DataTable -->
-        <DataTable
-            :data="babysitters"
-            :columns="columns"
-            search-placeholder="Rechercher une babysitter..."
+        <DataTable 
+            :data="babysitters.data" 
+            :columns="columns" 
+            :pagination="babysitters.meta"
+            :links="babysitters.links"
+            search-placeholder="Rechercher une babysitter..." 
             empty-message="Aucune babysitter trouvée"
         >
             <!-- Colonne babysitter -->
             <template #babysitter="{ item }">
                 <div class="flex items-center space-x-3">
-                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span class="text-sm font-medium text-gray-600">
-                            {{ item.firstname.charAt(0) }}{{ item.lastname.charAt(0) }}
-                        </span>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                        <span class="text-sm font-medium text-gray-600"> {{ item.firstname.charAt(0) }}{{ item.lastname.charAt(0) }} </span>
                     </div>
                     <div>
-                        <div class="font-medium text-gray-900">
-                            {{ item.firstname }} {{ item.lastname }}
-                        </div>
+                        <div class="font-medium text-gray-900">{{ item.firstname }} {{ item.lastname }}</div>
                         <div class="text-sm text-gray-500">
-                            {{ item.babysitter_profile?.experience_years ? `${item.babysitter_profile.experience_years} ans d'expérience` : 'Expérience non renseignée' }}
+                            {{
+                                item.babysitter_profile?.experience_years
+                                    ? `${item.babysitter_profile.experience_years} ans d'expérience`
+                                    : 'Expérience non renseignée'
+                            }}
                         </div>
                     </div>
                 </div>
@@ -253,7 +256,12 @@ const formatDate = (dateString: string) => {
 
             <!-- Colonne vérification -->
             <template #verification="{ item }">
-                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getVerificationClass(item.babysitter_profile?.verification_status || 'pending')]">
+                <span
+                    :class="[
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                        getVerificationClass(item.babysitter_profile?.verification_status || 'pending'),
+                    ]"
+                >
                     {{ getVerificationText(item.babysitter_profile?.verification_status || 'pending') }}
                 </span>
             </template>
@@ -284,7 +292,10 @@ const formatDate = (dateString: string) => {
             confirm-text="Supprimer"
             :loading="isDeleting"
             @confirm="confirmDelete"
-            @cancel="babysitterToDelete = null; showDeleteModal = false"
+            @cancel="
+                babysitterToDelete = null;
+                showDeleteModal = false;
+            "
         />
     </AdminLayout>
-</template> 
+</template>

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MessagingController;
 use App\Http\Controllers\BabysitterController;
@@ -156,9 +157,8 @@ Route::get('comment-ca-marche', function () {
     return Inertia::render('comment-ca-marche');
 })->name('comment-ca-marche');  
 
-Route::get('contact', function () {
-    return Inertia::render('Contact');
-})->name('contact');
+Route::get('contact', [ContactController::class, 'index'])->name('contact');
+Route::post('contact', [ContactController::class, 'store'])->name('contact.store');
 
 Route::get('mentions-legales', function () {
     return Inertia::render('MentionsLegales');
@@ -264,6 +264,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Gestion des avis
     Route::get('/avis', [App\Http\Controllers\Admin\AdminController::class, 'reviews'])->name('reviews');
     Route::delete('/avis/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroyReview'])->name('reviews.destroy');
+    
+    // Gestion des contacts
+    Route::get('/contacts', [ContactController::class, 'adminIndex'])->name('contacts.index');
+    Route::get('/contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
+    Route::put('/contacts/{contact}', [ContactController::class, 'update'])->name('contacts.update');
+    Route::delete('/contacts/{contact}', [ContactController::class, 'destroy'])->name('contacts.destroy');
     
     // Gestion des utilisateurs
     Route::get('/utilisateurs/creer', [App\Http\Controllers\Admin\AdminController::class, 'createUser'])->name('users.create');

@@ -822,16 +822,31 @@ class AnnouncementController extends Controller
     /**
      * Show the form for editing the specified announcement.
      */
-    public function edit(Ad $announcement): Response
+    public function edit(Ad $announcement)
     {
         // Vérifier que l'utilisateur peut modifier cette annonce
         if ($announcement->parent_id !== Auth::id()) {
             abort(403);
         }
 
+        // Vérifier que l'annonce peut être modifiée
+        $hasAcceptedApplications = $announcement->applications()
+            ->whereIn('status', ['accepted', 'counter_accepted'])
+            ->exists();
+        
+        if ($hasAcceptedApplications) {
+            return redirect()->route('parent.announcements-reservations')
+                ->with('error', 'Cette annonce ne peut plus être modifiée car elle a des candidatures acceptées.');
+        }
+
+        if (new \Carbon\Carbon($announcement->date_start) < now()) {
+            return redirect()->route('parent.announcements-reservations')
+                ->with('error', 'Cette annonce ne peut plus être modifiée car la date est passée.');
+        }
+
         $announcement->load(['address']);
 
-        return Inertia::render('Announcements/Edit', [
+        return Inertia::render('EditAnnouncement', [
             'announcement' => $announcement
         ]);
     }
@@ -846,18 +861,31 @@ class AnnouncementController extends Controller
             abort(403);
         }
 
+        // Vérifier que l'annonce peut être modifiée
+        $hasAcceptedApplications = $announcement->applications()
+            ->whereIn('status', ['accepted', 'counter_accepted'])
+            ->exists();
+        
+        if ($hasAcceptedApplications) {
+            return redirect()->route('parent.announcements-reservations')
+                ->with('error', 'Cette annonce ne peut plus être modifiée car elle a des candidatures acceptées.');
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string|max:2000',
+            'additional_info' => 'nullable|string|max:2000',
             'date_start' => 'required|date|after_or_equal:today',
             'date_end' => 'required|date|after:date_start',
-            'status' => ['required', Rule::in(['active', 'awaiting_payment', 'booked', 'completed', 'cancelled'])],
+            'hourly_rate' => 'required|numeric|min:10|max:50',
+            'children' => 'required|array|min:1',
+            'children.*.nom' => 'required|string|max:255',
+            'children.*.age_range' => 'required|string',
         ]);
 
         $announcement->update($validated);
 
         return redirect()
-            ->route('announcements.show', $announcement)
+            ->route('parent.announcements-reservations')
             ->with('success', 'Annonce mise à jour avec succès !');
     }
 

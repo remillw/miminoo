@@ -6,7 +6,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { useToast } from '@/composables/useToast';
 import type { Column } from '@/types/datatable';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-vue-next';
+import { Edit, Eye, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface Address {
@@ -36,7 +36,11 @@ interface User {
 }
 
 interface Props {
-    parents: User[];
+    parents: {
+        data: User[];
+        meta: any;
+        links: any;
+    };
     filters: {
         search?: string;
     };
@@ -133,26 +137,23 @@ const deleteParent = (parent: User) => {
 
 const confirmDelete = () => {
     if (!parentToDelete.value) return;
-    
+
     isDeleting.value = true;
     router.delete(`/admin/utilisateurs/${parentToDelete.value.id}`, {
         onSuccess: () => {
             showSuccess(
                 'Parent supprimé',
-                `Le parent ${parentToDelete.value?.firstname} ${parentToDelete.value?.lastname} a été supprimé avec succès.`
+                `Le parent ${parentToDelete.value?.firstname} ${parentToDelete.value?.lastname} a été supprimé avec succès.`,
             );
             showDeleteModal.value = false;
             parentToDelete.value = null;
         },
         onError: () => {
-            showError(
-                'Erreur',
-                'Une erreur est survenue lors de la suppression du parent.'
-            );
+            showError('Erreur', 'Une erreur est survenue lors de la suppression du parent.');
         },
         onFinish: () => {
             isDeleting.value = false;
-        }
+        },
     });
 };
 
@@ -196,16 +197,14 @@ const formatDate = (dateString: string) => {
 
     <AdminLayout title="Gestion des Parents">
         <!-- Header Section -->
-        <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="mb-6 md:flex md:items-center md:justify-between">
             <div class="min-w-0 flex-1">
-                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                    Gestion des Parents
-                </h2>
+                <h2 class="text-2xl leading-7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Gestion des Parents</h2>
                 <p class="mt-1 text-sm text-gray-500">
-                    {{ parents.length }} parent{{ parents.length !== 1 ? 's' : '' }} enregistré{{ parents.length !== 1 ? 's' : '' }}
+                    {{ parents.meta?.total || 0 }} parent{{ (parents.meta?.total || 0) !== 1 ? 's' : '' }} enregistré{{ (parents.meta?.total || 0) !== 1 ? 's' : '' }}
                 </p>
             </div>
-            <div class="mt-4 flex md:ml-4 md:mt-0">
+            <div class="mt-4 flex md:mt-0 md:ml-4">
                 <Button as-child>
                     <Link href="/admin/utilisateurs/creer">
                         <Plus class="mr-2 h-4 w-4" />
@@ -216,27 +215,23 @@ const formatDate = (dateString: string) => {
         </div>
 
         <!-- DataTable -->
-        <DataTable
-            :data="parents"
-            :columns="columns"
-            search-placeholder="Rechercher un parent..."
+        <DataTable 
+            :data="parents.data" 
+            :columns="columns" 
+            :pagination="parents.meta"
+            :links="parents.links"
+            search-placeholder="Rechercher un parent..." 
             empty-message="Aucun parent trouvé"
         >
             <!-- Colonne parent -->
             <template #parent="{ item }">
                 <div class="flex items-center space-x-3">
-                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span class="text-sm font-medium text-gray-600">
-                            {{ item.firstname.charAt(0) }}{{ item.lastname.charAt(0) }}
-                        </span>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                        <span class="text-sm font-medium text-gray-600"> {{ item.firstname.charAt(0) }}{{ item.lastname.charAt(0) }} </span>
                     </div>
                     <div>
-                        <div class="font-medium text-gray-900">
-                            {{ item.firstname }} {{ item.lastname }}
-                        </div>
-                        <div class="text-sm text-gray-500">
-                            Membre depuis {{ formatDate(item.created_at) }}
-                        </div>
+                        <div class="font-medium text-gray-900">{{ item.firstname }} {{ item.lastname }}</div>
+                        <div class="text-sm text-gray-500">Membre depuis {{ formatDate(item.created_at) }}</div>
                     </div>
                 </div>
             </template>
@@ -274,7 +269,10 @@ const formatDate = (dateString: string) => {
             confirm-text="Supprimer"
             :loading="isDeleting"
             @confirm="confirmDelete"
-            @cancel="parentToDelete = null; showDeleteModal = false"
+            @cancel="
+                parentToDelete = null;
+                showDeleteModal = false;
+            "
         />
     </AdminLayout>
-</template> 
+</template>

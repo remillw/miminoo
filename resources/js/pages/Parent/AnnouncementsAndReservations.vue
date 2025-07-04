@@ -152,6 +152,25 @@
                                     </div>
                                 </div>
 
+                                <!-- Actions de l'annonce -->
+                                <div class="mb-4 flex items-center gap-3">
+                                    <button
+                                        v-if="canEditAnnouncement(announcement)"
+                                        @click="editAnnouncement(announcement.id)"
+                                        class="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50"
+                                    >
+                                        <Edit2 class="h-4 w-4" />
+                                        Modifier
+                                    </button>
+                                    <button
+                                        @click="viewAnnouncement(announcement)"
+                                        class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <Eye class="h-4 w-4" />
+                                        Voir l'annonce
+                                    </button>
+                                </div>
+
                                 <!-- Candidatures -->
                                 <div v-if="announcement.applications.length > 0" class="border-t border-gray-200 pt-4">
                                     <h4 class="mb-3 text-sm font-medium text-gray-900">
@@ -319,7 +338,7 @@
 <script setup lang="ts">
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router, usePage } from '@inertiajs/vue3';
-import { Calendar, CheckCircle, CreditCard, FileText, MapPin, MessageCircle, Plus, Search, Star, X } from 'lucide-vue-next';
+import { Calendar, CheckCircle, CreditCard, Edit2, Eye, FileText, MapPin, MessageCircle, Plus, Search, Star, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface Announcement {
@@ -520,5 +539,26 @@ const leaveReview = (reservationId: number) => {
 
 const proceedToPayment = (reservationId: number) => {
     router.visit(`/reservations/${reservationId}/payment`);
+};
+
+// Nouvelles fonctions pour l'édition d'annonces
+const canEditAnnouncement = (announcement: Announcement) => {
+    // Une annonce peut être modifiée si :
+    // - Elle est active
+    // - Elle n'a pas de candidatures acceptées/confirmées
+    // - La date n'est pas passée
+    const hasAcceptedApplications = announcement.applications.some((app) => ['accepted', 'counter_accepted'].includes(app.status));
+    const isPastDate = new Date(announcement.date_start) < new Date();
+
+    return announcement.status === 'active' && !hasAcceptedApplications && !isPastDate;
+};
+
+const editAnnouncement = (announcementId: number) => {
+    router.visit(`/annonces/${announcementId}/modifier`);
+};
+
+const viewAnnouncement = (announcement: Announcement) => {
+    // Ouvrir l'annonce dans un nouvel onglet
+    window.open(`/annonce/${announcement.id}`, '_blank');
 };
 </script>

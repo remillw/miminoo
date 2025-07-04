@@ -12,17 +12,43 @@ const phone = ref('')
 const subject = ref('')
 const openFaq = ref<number|null>(null)
 
-function submitForm() {
+async function submitForm() {
   loading.value = true
-  setTimeout(() => {
-    submitted.value = true
+  
+  try {
+    const response = await fetch('/contact', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+      },
+      body: JSON.stringify({
+        name: name.value,
+        email: email.value,
+        phone: phone.value,
+        subject: subject.value,
+        message: message.value
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      submitted.value = true
+      name.value = ''
+      email.value = ''
+      message.value = ''
+      phone.value = ''
+      subject.value = ''
+    } else {
+      alert(data.message || 'Une erreur est survenue')
+    }
+  } catch (error) {
+    console.error('Erreur:', error)
+    alert('Une erreur est survenue lors de l\'envoi du message')
+  } finally {
     loading.value = false
-    name.value = ''
-    email.value = ''
-    message.value = ''
-    phone.value = ''
-    subject.value = ''
-  }, 1200)
+  }
 }
 
 function resetForm() {

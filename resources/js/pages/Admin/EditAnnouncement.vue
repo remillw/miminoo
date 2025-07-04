@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Users, TrendingUp, ShieldAlert, FileText, Star, CreditCard, UserCheck, ArrowLeft } from 'lucide-vue-next';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowLeft, CreditCard, FileText, ShieldAlert, Star, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
 
 interface Address {
     id: number;
@@ -43,15 +43,24 @@ interface Props {
 const props = defineProps<Props>();
 const { showSuccess, showError } = useToast();
 
+// Extraire la date et les heures des données
+const extractDate = (dateTime: string) => {
+    return dateTime ? dateTime.split('T')[0] : '';
+};
+
+const extractTime = (dateTime: string) => {
+    return dateTime ? dateTime.split('T')[1]?.substring(0, 5) : '';
+};
+
 const form = useForm({
     title: props.announcement.title,
-    description: props.announcement.description,
+    additional_info: props.announcement.description || '', // description -> additional_info
     status: props.announcement.status,
     hourly_rate: props.announcement.hourly_rate,
-    date_start: props.announcement.date_start,
-    date_end: props.announcement.date_end,
-    time_start: props.announcement.time_start,
-    time_end: props.announcement.time_end,
+    date_start: extractDate(props.announcement.date_start),
+    date_end: extractDate(props.announcement.date_end),
+    time_start: extractTime(props.announcement.date_start),
+    time_end: extractTime(props.announcement.date_end),
     address: props.announcement.address.address,
     postal_code: props.announcement.address.postal_code,
     country: props.announcement.address.country,
@@ -60,17 +69,11 @@ const form = useForm({
 const submit = () => {
     form.put(`/admin/annonces/${props.announcement.id}`, {
         onSuccess: () => {
-            showSuccess(
-                'Annonce modifiée',
-                'L\'annonce a été mise à jour avec succès.'
-            );
+            showSuccess('Annonce modifiée', "L'annonce a été mise à jour avec succès.");
         },
         onError: () => {
-            showError(
-                'Erreur',
-                'Une erreur est survenue lors de la modification de l\'annonce.'
-            );
-        }
+            showError('Erreur', "Une erreur est survenue lors de la modification de l'annonce.");
+        },
     });
 };
 
@@ -116,7 +119,10 @@ const statusOptions = [
                             <UserCheck class="h-4 w-4" />
                             <span>Babysitters</span>
                         </Link>
-                        <Link href="/admin/moderation-babysitters" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
+                        <Link
+                            href="/admin/moderation-babysitters"
+                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
+                        >
                             <ShieldAlert class="h-4 w-4" />
                             <span>Modération</span>
                         </Link>
@@ -141,36 +147,30 @@ const statusOptions = [
                     <CardHeader>
                         <CardTitle>Modifier l'annonce</CardTitle>
                         <CardDescription>
-                            Modifiez les informations de l'annonce "{{ announcement.title }}" créée par {{ announcement.parent.firstname }} {{ announcement.parent.lastname }}.
+                            Modifiez les informations de l'annonce "{{ announcement.title }}" créée par {{ announcement.parent.firstname }}
+                            {{ announcement.parent.lastname }}.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form @submit.prevent="submit" class="space-y-6">
                             <div>
                                 <Label for="title">Titre *</Label>
-                                <Input
-                                    id="title"
-                                    v-model="form.title"
-                                    type="text"
-                                    required
-                                    :class="{ 'border-red-500': form.errors.title }"
-                                />
+                                <Input id="title" v-model="form.title" type="text" required :class="{ 'border-red-500': form.errors.title }" />
                                 <p v-if="form.errors.title" class="mt-1 text-sm text-red-500">
                                     {{ form.errors.title }}
                                 </p>
                             </div>
 
                             <div>
-                                <Label for="description">Description *</Label>
+                                <Label for="additional_info">Informations complémentaires</Label>
                                 <Textarea
-                                    id="description"
-                                    v-model="form.description"
+                                    id="additional_info"
+                                    v-model="form.additional_info"
                                     rows="4"
-                                    required
-                                    :class="{ 'border-red-500': form.errors.description }"
+                                    :class="{ 'border-red-500': form.errors.additional_info }"
                                 />
-                                <p v-if="form.errors.description" class="mt-1 text-sm text-red-500">
-                                    {{ form.errors.description }}
+                                <p v-if="form.errors.additional_info" class="mt-1 text-sm text-red-500">
+                                    {{ form.errors.additional_info }}
                                 </p>
                             </div>
 
@@ -182,11 +182,7 @@ const statusOptions = [
                                             <SelectValue placeholder="Sélectionner un statut" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem 
-                                                v-for="option in statusOptions" 
-                                                :key="option.value" 
-                                                :value="option.value"
-                                            >
+                                            <SelectItem v-for="option in statusOptions" :key="option.value" :value="option.value">
                                                 {{ option.label }}
                                             </SelectItem>
                                         </SelectContent>
@@ -214,12 +210,11 @@ const statusOptions = [
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label for="date_start">Date de début *</Label>
+                                    <Label for="date_start">Date de début</Label>
                                     <Input
                                         id="date_start"
                                         v-model="form.date_start"
                                         type="date"
-                                        required
                                         :class="{ 'border-red-500': form.errors.date_start }"
                                     />
                                     <p v-if="form.errors.date_start" class="mt-1 text-sm text-red-500">
@@ -227,14 +222,8 @@ const statusOptions = [
                                     </p>
                                 </div>
                                 <div>
-                                    <Label for="date_end">Date de fin *</Label>
-                                    <Input
-                                        id="date_end"
-                                        v-model="form.date_end"
-                                        type="date"
-                                        required
-                                        :class="{ 'border-red-500': form.errors.date_end }"
-                                    />
+                                    <Label for="date_end">Date de fin</Label>
+                                    <Input id="date_end" v-model="form.date_end" type="date" :class="{ 'border-red-500': form.errors.date_end }" />
                                     <p v-if="form.errors.date_end" class="mt-1 text-sm text-red-500">
                                         {{ form.errors.date_end }}
                                     </p>
@@ -243,12 +232,11 @@ const statusOptions = [
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label for="time_start">Heure de début *</Label>
+                                    <Label for="time_start">Heure de début</Label>
                                     <Input
                                         id="time_start"
                                         v-model="form.time_start"
                                         type="time"
-                                        required
                                         :class="{ 'border-red-500': form.errors.time_start }"
                                     />
                                     <p v-if="form.errors.time_start" class="mt-1 text-sm text-red-500">
@@ -256,14 +244,8 @@ const statusOptions = [
                                     </p>
                                 </div>
                                 <div>
-                                    <Label for="time_end">Heure de fin *</Label>
-                                    <Input
-                                        id="time_end"
-                                        v-model="form.time_end"
-                                        type="time"
-                                        required
-                                        :class="{ 'border-red-500': form.errors.time_end }"
-                                    />
+                                    <Label for="time_end">Heure de fin</Label>
+                                    <Input id="time_end" v-model="form.time_end" type="time" :class="{ 'border-red-500': form.errors.time_end }" />
                                     <p v-if="form.errors.time_end" class="mt-1 text-sm text-red-500">
                                         {{ form.errors.time_end }}
                                     </p>
@@ -271,8 +253,8 @@ const statusOptions = [
                             </div>
 
                             <div class="border-t pt-6">
-                                <h3 class="text-lg font-medium mb-4">Adresse</h3>
-                                
+                                <h3 class="mb-4 text-lg font-medium">Adresse</h3>
+
                                 <div>
                                     <Label for="address">Adresse *</Label>
                                     <Input
@@ -287,7 +269,7 @@ const statusOptions = [
                                     </p>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div class="mt-4 grid grid-cols-2 gap-4">
                                     <div>
                                         <Label for="postal_code">Code postal *</Label>
                                         <Input
@@ -322,7 +304,7 @@ const statusOptions = [
                                     <Link href="/admin/annonces">Annuler</Link>
                                 </Button>
                                 <Button type="submit" :disabled="form.processing">
-                                    {{ form.processing ? 'Modification...' : 'Modifier l\'annonce' }}
+                                    {{ form.processing ? 'Modification...' : "Modifier l'annonce" }}
                                 </Button>
                             </div>
                         </form>
@@ -331,4 +313,4 @@ const statusOptions = [
             </main>
         </div>
     </div>
-</template> 
+</template>
