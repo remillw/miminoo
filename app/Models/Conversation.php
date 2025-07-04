@@ -64,6 +64,11 @@ class Conversation extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    public function reservation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Reservation::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {

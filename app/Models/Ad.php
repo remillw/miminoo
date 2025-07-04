@@ -45,6 +45,11 @@ class Ad extends Model
         return $this->hasMany(AdApplication::class);
     }
 
+    public function reservations(): HasMany
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
     /**
      * Méthodes pour les annonces guests
      */

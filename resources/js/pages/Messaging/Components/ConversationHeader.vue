@@ -126,6 +126,11 @@ const showCancelModal = ref(false);
 
 // Computed
 const canCancelReservation = computed(() => {
+    console.log('🔍 Vérification canCancelReservation:', {
+        hasReservation: !!props.reservation,
+        reservationData: props.reservation,
+        canBeCancelled: props.reservation?.can_be_cancelled,
+    });
     return props.reservation && props.reservation.can_be_cancelled;
 });
 
