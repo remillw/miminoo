@@ -249,7 +249,7 @@
     </DashboardLayout>
 </template>
 
-<script setup>
+<script setup>  
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Briefcase, Calendar, MessageCircle, Search, Star } from 'lucide-vue-next';

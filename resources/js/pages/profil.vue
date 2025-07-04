@@ -749,42 +749,10 @@ console.log('🔍 Données utilisateur Profil:', {
 <template>
     <DashboardLayout :currentMode="currentMode" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="mx-auto max-w-4xl">
-            <!-- Titre avec switch de rôle -->
+            <!-- Titre -->
             <div class="mb-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800">Mon profil</h1>
-                        <p class="text-gray-500">Gérez vos informations personnelles</p>
-                    </div>
-                    <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
-                    <div v-if="hasMultipleRoles" class="flex items-center gap-4">
-                        <span class="text-sm font-medium text-gray-700">Mode :</span>
-                        <div class="flex rounded-lg border bg-gray-50 p-1">
-                            <Button
-                                @click="switchMode('parent')"
-                                :variant="currentMode === 'parent' ? 'default' : 'ghost'"
-                                size="sm"
-                                class="flex items-center gap-2"
-                                :class="currentMode === 'parent' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'"
-                            >
-                                <Users class="h-4 w-4" />
-                                Parent
-                            </Button>
-                            <Button
-                                @click="switchMode('babysitter')"
-                                :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
-                                size="sm"
-                                class="flex items-center gap-2"
-                                :class="
-                                    currentMode === 'babysitter' ? 'bg-primary text-white hover:bg-orange-500' : 'text-gray-600 hover:bg-gray-100'
-                                "
-                            >
-                                <Baby class="h-4 w-4" />
-                                Babysitter
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                <h1 class="text-3xl font-bold text-gray-900">Mon profil</h1>
+                <p class="mt-2 text-gray-600">Gérez vos informations personnelles</p>
             </div>
 
             <!-- ENCADRÉ VÉRIFICATION EN HAUT -->
