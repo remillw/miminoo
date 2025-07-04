@@ -1,5 +1,5 @@
 <template>
-    <DashboardLayout>
+    <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="min-h-screen bg-gray-50 py-8">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <!-- En-tête -->
@@ -291,7 +291,7 @@
 
 <script setup lang="ts">
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { Calendar, Clock, CreditCard } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
@@ -319,6 +319,15 @@ interface ParentProps {
 type Props = BabysitterProps | ParentProps;
 
 const props = defineProps<Props>();
+
+const page = usePage();
+
+// Récupérer les informations utilisateur depuis les props globales
+const user = computed(() => (page.props.auth as any)?.user);
+const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name) || []);
+
+const hasParentRole = computed(() => userRoles.value.includes('parent'));
+const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
 // États réactifs pour le mode babysitter
 const transferSettings = ref({

@@ -1,30 +1,26 @@
 <script setup lang="ts">
-import BabysitterSidebar from '@/components/dashboard/babysitter/BabysitterSidebar.vue';
-import ParentSidebar from '@/components/dashboard/parent/ParentSidebar.vue';
 import DashboardFooter from '@/components/dashboard/shared/DashboardFooter.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
+import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface Props {
     role?: string;
     currentMode?: 'parent' | 'babysitter';
+    hasParentRole?: boolean;
+    hasBabysitterRole?: boolean;
 }
 
 const props = defineProps<Props>();
 const page = usePage();
 
-// Sidebar dynamique selon le mode ou le rôle
-const SidebarComponent = computed(() => {
-    // Priorité au currentMode si fourni
-    if (props.currentMode) {
-        return props.currentMode === 'parent' ? ParentSidebar : BabysitterSidebar;
-    }
+// Récupérer les informations utilisateur depuis les props globales
+const user = computed(() => (page.props.auth as any)?.user);
+const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name) || []);
 
-    // Fallback sur le rôle simple (pour la rétrocompatibilité)
-    const userRole = props.role || (page.props.auth as any)?.user?.role?.name;
-    return userRole === 'parent' ? ParentSidebar : BabysitterSidebar;
-});
+const hasParentRole = computed(() => props.hasParentRole ?? userRoles.value.includes('parent'));
+const hasBabysitterRole = computed(() => props.hasBabysitterRole ?? userRoles.value.includes('babysitter'));
 </script>
 
 <template>
@@ -32,7 +28,7 @@ const SidebarComponent = computed(() => {
         <LandingHeader />
 
         <div class="flex flex-1">
-            <component :is="SidebarComponent" />
+            <UnifiedSidebar :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="props.currentMode" />
 
             <!-- Main content avec padding pour mobile -->
             <main class="flex-1 pb-20 lg:pb-0">

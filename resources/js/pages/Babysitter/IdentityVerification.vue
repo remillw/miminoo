@@ -1,5 +1,5 @@
 <template>
-    <DashboardLayout>
+    <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <template #header>
             <div class="flex items-center justify-between">
                 <h2 class="text-xl leading-tight font-semibold text-gray-800">Vérification d'identité</h2>
@@ -257,7 +257,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { AlertCircle, CheckCircle, Clock, CreditCard, Info, Lock, Shield, UserCheck, XCircle } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 // Déclaration du type Stripe globalement
 declare global {
@@ -294,6 +294,13 @@ interface Props {
 
 const props = defineProps<Props>();
 const page = usePage();
+
+// Récupérer les informations utilisateur depuis les props globales
+const user = computed(() => (page.props.auth as any)?.user);
+const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name) || []);
+
+const hasParentRole = computed(() => userRoles.value.includes('parent'));
+const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
 // État local
 const isLoading = ref(false);

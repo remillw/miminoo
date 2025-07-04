@@ -2,15 +2,24 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { AlertCircle, ArrowLeft, CheckCircle, ExternalLink, FileText, Info, Shield } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
     verificationStatus: String,
     needsVerification: Boolean,
     accountDetails: Object,
 });
+
+const page = usePage();
+
+// Récupérer les informations utilisateur depuis les props globales
+const user = computed(() => (page.props.auth as any)?.user);
+const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name) || []);
+
+const hasParentRole = computed(() => userRoles.value.includes('parent'));
+const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
 const isLoading = ref(false);
 const isRefreshing = ref(false);
@@ -138,7 +147,7 @@ onMounted(() => {
 <template>
     <Head title="Vérification d'identité" />
 
-    <DashboardLayout :current-mode="'babysitter'">
+    <DashboardLayout :current-mode="'babysitter'" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="mx-auto max-w-4xl space-y-6 p-6">
             <!-- En-tête -->
             <div class="flex items-center justify-between">
@@ -221,7 +230,7 @@ onMounted(() => {
                             </div>
                             <div v-if="accountDetails.requirements.eventually_due?.length > 0">
                                 <span class="font-medium text-orange-700">Éventuellement requis :</span>
-                                <ul class="mt-1 list-inside list-disc text-primary">
+                                <ul class="text-primary mt-1 list-inside list-disc">
                                     <li v-for="req in accountDetails.requirements.eventually_due" :key="req">
                                         {{ req }}
                                     </li>

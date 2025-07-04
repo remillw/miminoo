@@ -1,7 +1,7 @@
 <template>
     <Head title="Mes candidatures et réservations" />
 
-    <DashboardLayout>
+    <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             <!-- En-tête -->
             <div class="mb-8">
@@ -251,9 +251,18 @@
 
 <script setup>
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Briefcase, Calendar, MessageCircle, Search, Star } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+
+const page = usePage();
+
+// Récupérer les informations utilisateur depuis les props globales
+const user = computed(() => (page.props.auth as any)?.user);
+const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name) || []);
+
+const hasParentRole = computed(() => userRoles.value.includes('parent'));
+const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
 // Props
 const props = defineProps({

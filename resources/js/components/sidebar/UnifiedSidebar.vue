@@ -1,0 +1,209 @@
+<script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { useUserMode } from '@/composables/useUserMode';
+import { Link, usePage } from '@inertiajs/vue3';
+import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+
+interface Props {
+    hasParentRole: boolean;
+    hasBabysitterRole: boolean;
+    requestedMode?: 'parent' | 'babysitter';
+}
+
+const props = defineProps<Props>();
+
+const showFullMenu = ref(false);
+const { currentMode, initializeMode, setMode } = useUserMode();
+
+// Initialiser le mode au montage
+onMounted(() => {
+    initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
+});
+
+// Computed pour vérifier si l'utilisateur a plusieurs rôles
+const hasMultipleRoles = computed(() => {
+    return props.hasParentRole && props.hasBabysitterRole;
+});
+
+// Configuration des liens selon le mode
+const parentLinks = [
+    { icon: Home, label: 'Tableau de bord', href: '/tableau-de-bord' },
+    { icon: PlusCircle, label: 'Créer une annonce', href: '/creer-une-annonce' },
+    { icon: Calendar, label: 'Mes gardes', href: '/mes-annonces-et-reservations' },
+    { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
+    { icon: User, label: 'Mon profil', href: '/profil' },
+    { icon: CreditCard, label: 'Paiements | Factures', href: '/paiements' },
+    { icon: Settings, label: 'Paramètres', href: '/parametres' },
+];
+
+const babysitterLinks = [
+    { icon: Home, label: 'Tableau de bord', href: '/tableau-de-bord' },
+    { icon: Briefcase, label: 'Offres disponibles', href: '/annonces' },
+    { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
+    { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
+    { icon: CreditCard, label: 'Paiements', href: '/babysitter/paiements' },
+    { icon: User, label: 'Mon profil', href: '/profil' },
+    { icon: Settings, label: 'Paramètres', href: '/parametres' },
+];
+
+// Liens selon le mode actuel
+const links = computed(() => {
+    return currentMode.value === 'parent' ? parentLinks : babysitterLinks;
+});
+
+// Liens principaux pour la navigation mobile (4 plus importants)
+const mobileLinks = computed(() => [
+    { icon: Home, label: 'Accueil', href: '/tableau-de-bord' },
+    {
+        icon: Calendar,
+        label: 'Résa',
+        href: currentMode.value === 'parent' ? '/mes-annonces-et-reservations' : '/babysitting',
+    },
+    { icon: MessageCircle, label: 'Messages', href: '/messagerie' },
+    { icon: User, label: 'Profil', href: '/profil' },
+]);
+
+// Récupération de l'URL courante
+const currentUrl = computed(() => usePage().url);
+
+// Fonction pour vérifier si la route est active
+const isCurrentRoute = (href: string) => {
+    const page = usePage();
+    const currentUrl = page.url;
+
+    if (href === '/tableau-de-bord') {
+        return currentUrl === '/tableau-de-bord' || currentUrl === '/';
+    }
+
+    return currentUrl.startsWith(href);
+};
+
+// Fonction pour changer de mode avec redirection vers la même page
+const switchMode = (mode: 'parent' | 'babysitter') => {
+    if (mode === currentMode.value) return;
+
+    // Mettre à jour le localStorage
+    setMode(mode);
+
+    // Rediriger vers la même page avec le nouveau mode
+    const currentPath = window.location.pathname;
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', mode);
+
+    // Utiliser router.get avec le nouveau mode
+    window.location.href = `${currentPath}?mode=${mode}`;
+};
+</script>
+
+<template>
+    <div>
+        <!-- Switch de rôle si l'utilisateur a plusieurs rôles (desktop et mobile) -->
+        <div v-if="hasMultipleRoles" class="mb-6 rounded-lg border bg-white p-4 shadow-sm lg:mx-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-medium text-gray-700">Mode :</span>
+                    <div class="flex rounded-lg border bg-gray-50 p-1">
+                        <Button
+                            @click="switchMode('parent')"
+                            :variant="currentMode === 'parent' ? 'default' : 'ghost'"
+                            size="sm"
+                            class="flex items-center gap-2"
+                            :class="currentMode === 'parent' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
+                        >
+                            <Users class="h-4 w-4" />
+                            Parent
+                        </Button>
+                        <Button
+                            @click="switchMode('babysitter')"
+                            :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
+                            size="sm"
+                            class="flex items-center gap-2"
+                            :class="currentMode === 'babysitter' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
+                        >
+                            <Baby class="h-4 w-4" />
+                            Babysitter
+                        </Button>
+                    </div>
+                </div>
+
+                <div class="text-sm text-gray-500">
+                    <span class="capitalize">{{ currentMode }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Sidebar -->
+        <aside class="hidden min-h-screen w-64 flex-col border-r bg-white pt-10 lg:flex">
+            <nav class="flex flex-1 flex-col gap-1 px-4">
+                <Link
+                    v-for="link in links"
+                    :key="link.label"
+                    :href="link.href"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2 font-medium transition"
+                    :class="[currentUrl === link.href ? 'text-primary bg-orange-100' : 'hover:bg-secondary text-gray-700']"
+                >
+                    <component :is="link.icon" class="h-5 w-5" />
+                    {{ link.label }}
+                </Link>
+            </nav>
+            <div class="border-t p-4">
+                <Link :href="route('deconnexion')" method="post" as="button" class="hover:text-primary flex items-center gap-2 text-gray-500">
+                    <LogOut class="h-5 w-5" /> Déconnexion
+                </Link>
+            </div>
+        </aside>
+
+        <!-- Mobile Bottom Navigation -->
+        <div class="fixed right-0 bottom-0 left-0 z-50 border-t border-gray-200 bg-white lg:hidden">
+            <div class="grid grid-cols-4 gap-1 px-2 py-2">
+                <Link
+                    v-for="item in mobileLinks"
+                    :key="item.label"
+                    :href="item.href"
+                    :class="[
+                        isCurrentRoute(item.href) ? 'bg-blue-50 text-blue-600' : 'text-gray-600',
+                        'flex flex-col items-center justify-center rounded-lg px-1 py-2 transition-colors',
+                    ]"
+                >
+                    <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-600' : 'text-gray-400', 'mb-1 h-5 w-5']" />
+                    <span class="text-xs font-medium">{{ item.label }}</span>
+                </Link>
+            </div>
+
+            <!-- Menu complet accessible via un bouton -->
+            <div class="absolute top-0 right-4 -translate-y-full transform">
+                <button @click="showFullMenu = !showFullMenu" class="rounded-t-lg bg-blue-600 p-2 text-white shadow-lg">
+                    <Menu class="h-5 w-5" />
+                </button>
+            </div>
+
+            <!-- Menu complet en overlay -->
+            <div v-if="showFullMenu" class="absolute right-0 bottom-full left-0 max-h-96 overflow-y-auto border-t border-gray-200 bg-white shadow-lg">
+                <div class="p-4">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">Menu complet</h3>
+                        <button @click="showFullMenu = false" class="text-gray-400 hover:text-gray-600">
+                            <X class="h-5 w-5" />
+                        </button>
+                    </div>
+                    <nav class="space-y-2">
+                        <Link
+                            v-for="item in links"
+                            :key="item.label"
+                            :href="item.href"
+                            @click="showFullMenu = false"
+                            :class="[
+                                isCurrentRoute(item.href) ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50',
+                                'group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                            ]"
+                        >
+                            <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-500' : 'text-gray-400', 'mr-3 h-5 w-5']" />
+                            {{ item.label }}
+                        </Link>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

@@ -1,5 +1,5 @@
 <template>
-    <DashboardLayout>
+    <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="min-h-screen bg-gray-50 py-8">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <!-- En-tête -->
@@ -318,9 +318,9 @@
 
 <script setup lang="ts">
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { Calendar, CheckCircle, CreditCard, FileText, MapPin, MessageCircle, Plus, Search, Star, X } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface Announcement {
     id: number;
@@ -392,6 +392,15 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const page = usePage();
+
+// Récupérer les informations utilisateur depuis les props globales
+const user = computed(() => (page.props.auth as any)?.user);
+const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name) || []);
+
+const hasParentRole = computed(() => userRoles.value.includes('parent'));
+const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
 // État local
 const activeTab = ref<'announcements' | 'reservations'>('announcements');

@@ -1,5 +1,5 @@
 <template>
-    <DashboardLayout :currentMode="currentMode">
+    <DashboardLayout :currentMode="currentMode" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="max-w-4xl mx-auto space-y-6">
             <!-- Debug temporaire -->
         

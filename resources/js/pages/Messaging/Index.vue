@@ -1,39 +1,6 @@
 <template>
-    <DashboardLayout :currentMode="currentMode">
-        <!-- Switch de rôle si l'utilisateur a plusieurs rôles -->
-        <div v-if="hasMultipleRoles" class="mb-6 rounded-lg border bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <span class="text-sm font-medium text-gray-700">Mode de messagerie :</span>
-                    <div class="flex rounded-lg border bg-gray-50 p-1">
-                        <Button
-                            @click="switchMode('parent')"
-                            :variant="currentMode === 'parent' ? 'default' : 'ghost'"
-                            size="sm"
-                            class="flex items-center gap-2"
-                            :class="currentMode === 'parent' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
-                        >
-                            <Users class="h-4 w-4" />
-                            Parent
-                        </Button>
-                        <Button
-                            @click="switchMode('babysitter')"
-                            :variant="currentMode === 'babysitter' ? 'default' : 'ghost'"
-                            size="sm"
-                            class="flex items-center gap-2"
-                            :class="currentMode === 'babysitter' ? 'bg-primary hover:bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'"
-                        >
-                            <Baby class="h-4 w-4" />
-                            Babysitter
-                        </Button>
-                    </div>
-                </div>
+    <DashboardLayout :currentMode="currentMode" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
 
-                <div class="text-sm text-gray-500">
-                    <span class="capitalize">{{ currentMode }}</span> - Conversations
-                </div>
-            </div>
-        </div>
 
         <!-- Version Desktop (inchangée) -->
         <div class="hidden h-[calc(100vh-200px)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm lg:flex">

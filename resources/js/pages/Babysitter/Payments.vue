@@ -690,7 +690,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <DashboardLayout :currentMode="currentMode">
+    <DashboardLayout :currentMode="currentMode" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <Head title="Gestion des paiements" />
 
         <div class="space-y-6">

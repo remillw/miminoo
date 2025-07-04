@@ -35,10 +35,23 @@ class AnnouncementNotificationService
                           ->where('is_available', true); // Filtre: seulement les babysitters disponibles
                 })
                 ->whereNotNull('address_id')
+                ->where('email_notifications', true) // Filtre: seulement ceux qui ont activé les notifications email
                 ->with(['address', 'babysitterProfile'])
                 ->get();
 
-            Log::info('Babysitters trouvés', ['count' => $babysitters->count()]);
+            Log::info('Babysitters trouvés avec notifications email activées', [
+                'count' => $babysitters->count(),
+                'filter_email_notifications' => true,
+                'total_babysitters_before_email_filter' => User::whereHas('roles', function($query) {
+                        $query->where('name', 'babysitter');
+                    })
+                    ->whereHas('babysitterProfile', function($query) {
+                        $query->where('verification_status', 'verified')
+                              ->where('is_available', true);
+                    })
+                    ->whereNotNull('address_id')
+                    ->count()
+            ]);
 
             $notifiedCount = 0;
 

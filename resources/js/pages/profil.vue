@@ -747,7 +747,7 @@ console.log('🔍 Données utilisateur Profil:', {
 </script>
 
 <template>
-    <DashboardLayout :currentMode="currentMode">
+    <DashboardLayout :currentMode="currentMode" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="mx-auto max-w-4xl">
             <!-- Titre avec switch de rôle -->
             <div class="mb-6">
