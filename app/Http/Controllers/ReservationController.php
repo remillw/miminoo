@@ -150,7 +150,7 @@ class ReservationController extends Controller
         try {
             $paymentIntent = null;
 
-            if ($validated['payment_method_id']) {
+            if (isset($validated['payment_method_id']) && !empty($validated['payment_method_id'])) {
                 // Paiement avec un moyen de paiement sauvegardé
                 $paymentIntent = $this->stripeService->createPaymentIntentWithSavedMethod(
                     $reservation->total_deposit * 100,
@@ -184,8 +184,9 @@ class ReservationController extends Controller
 
                 // Marquer comme payée
                 $reservation->markAsPaid($paymentIntent->id);
-            } else {
+            } elseif (isset($validated['payment_intent_id']) && !empty($validated['payment_intent_id'])) {
                 // Paiement avec nouveau moyen de paiement (via Stripe Elements)
+                // Le PaymentIntent a déjà été confirmé côté client, on le récupère juste
                 $paymentIntent = $this->stripeService->retrievePaymentIntent($validated['payment_intent_id']);
 
                 if ($paymentIntent->status !== 'succeeded') {
@@ -200,13 +201,31 @@ class ReservationController extends Controller
                     ], 400);
                 }
 
+                // Vérifier que le PaymentIntent correspond bien à cette réservation
+                if ($reservation->stripe_payment_intent_id !== $validated['payment_intent_id']) {
+                    Log::error('PaymentIntent ne correspond pas à la réservation', [
+                        'reservation_payment_intent' => $reservation->stripe_payment_intent_id,
+                        'provided_payment_intent' => $validated['payment_intent_id']
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'PaymentIntent invalide pour cette réservation'
+                    ], 400);
+                }
+
                 // Sauvegarder le moyen de paiement si demandé
-                if ($validated['save_payment_method'] && $paymentIntent->payment_method) {
+                if (isset($validated['save_payment_method']) && $validated['save_payment_method'] && $paymentIntent->payment_method) {
                     $this->stripeService->savePaymentMethod($paymentIntent->payment_method, $user);
                 }
 
                 // Marquer la réservation comme payée
                 $reservation->markAsPaid($validated['payment_intent_id']);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Aucun moyen de paiement fourni'
+                ], 400);
             }
 
             // Ajouter un message système dans la conversation

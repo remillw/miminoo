@@ -99,26 +99,6 @@ const isActive = (href: string) => {
     const urlPath = new URL(href, window.location.origin).pathname;
     return currentPath.value.includes(urlPath);
 };
-
-// Fonction pour les routes avec fallback
-const getRouteUrl = (routeName: string, params = {}) => {
-    try {
-        return route(routeName, params);
-    } catch {
-        // Fallback URLs si Ziggy échoue
-        const fallbacks: Record<string, string> = {
-            dashboard: '/tableau-de-bord',
-            'creer.une.annonce': '/creer-une-annonce',
-            'parent.announcements-reservations': '/mes-annonces-et-reservations',
-            'messaging.index': '/messagerie',
-            profil: '/profil',
-            'babysitter.paiements': '/babysitter/paiements',
-            'babysitting.index': '/babysitting',
-            logout: '/logout',
-        };
-        return fallbacks[routeName] || '#';
-    }
-};
 </script>
 
 <template>
@@ -185,7 +165,7 @@ const getRouteUrl = (routeName: string, params = {}) => {
             <!-- Footer -->
             <div class="border-t p-4">
                 <Link
-                    :href="getRouteUrl('logout')"
+                    :href="route('deconnexion')"
                     method="post"
                     class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700"
                 >

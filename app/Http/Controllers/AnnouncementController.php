@@ -337,6 +337,53 @@ class AnnouncementController extends Controller
             return back()->with('error', $errorMessage);
         }
 
+        // Vérifier si le compte Stripe Connect est configuré et actif
+        if (!$user->stripe_account_id) {
+            Log::warning('❌ COMPTE STRIPE NON CONFIGURÉ', [
+                'user_id' => $user->id,
+                'stripe_account_id' => null
+            ]);
+            $errorMessage = 'Merci de vous rendre dans "Paiements" pour finaliser votre profil de paiement avant de pouvoir postuler aux annonces.';
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $errorMessage, 'redirect' => route('babysitter.payments')], 403);
+            }
+            return back()->with('error', $errorMessage);
+        }
+
+        // Vérifier si le compte Stripe est prêt pour recevoir des paiements
+        try {
+            $stripeService = app(\App\Services\StripeService::class);
+            $accountDetails = $stripeService->getAccountDetails($user);
+            
+            if (!$accountDetails || !$accountDetails['charges_enabled'] || !$accountDetails['payouts_enabled']) {
+                Log::warning('❌ COMPTE STRIPE NON OPÉRATIONNEL', [
+                    'user_id' => $user->id,
+                    'stripe_account_id' => $user->stripe_account_id,
+                    'charges_enabled' => $accountDetails['charges_enabled'] ?? false,
+                    'payouts_enabled' => $accountDetails['payouts_enabled'] ?? false
+                ]);
+                $errorMessage = 'Votre compte de paiement n\'est pas encore opérationnel. Merci de finaliser votre configuration dans "Paiements".';
+                
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => $errorMessage, 'redirect' => route('babysitter.payments')], 403);
+                }
+                return back()->with('error', $errorMessage);
+            }
+        } catch (\Exception $e) {
+            Log::error('❌ ERREUR VÉRIFICATION STRIPE', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'error' => $e->getMessage()
+            ]);
+            $errorMessage = 'Impossible de vérifier votre compte de paiement. Merci de vous rendre dans "Paiements" pour vérifier votre configuration.';
+            
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $errorMessage, 'redirect' => route('babysitter.payments')], 403);
+            }
+            return back()->with('error', $errorMessage);
+        }
+
         // Vérifier si l'utilisateur n'a pas déjà postulé
         $existingApplication = $announcement->applications()->where('babysitter_id', $user->id)->first();
         if ($existingApplication) {

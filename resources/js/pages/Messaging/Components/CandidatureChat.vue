@@ -161,9 +161,9 @@
             <!-- Bouton d'archivage quand la mission est terminée -->
             <template v-if="missionEnded">
                 <button
-                    @click="handleArchiveConversation"
+                    @click="showArchiveModal = true"
                     :class="mobile ? 'w-full justify-center' : ''"
-                    class="flex items-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700"
+                    class="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
                     title="Archiver cette conversation"
                 >
                     <X class="h-4 w-4" />
@@ -257,6 +257,13 @@
             @close="showReservationModal = false"
             @success="handleReservationSuccess"
         />
+
+        <!-- Modal d'archivage moderne -->
+        <ArchiveConfirmationModal
+            v-model:open="showArchiveModal"
+            @confirm="handleArchiveConversation"
+            @cancel="showArchiveModal = false"
+        />
     </div>
 </template>
 
@@ -269,6 +276,7 @@ import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
 import CancelConfirmationModal from './CancelConfirmationModal.vue';
 import ReservationModal from './ReservationModal.vue';
+import ArchiveConfirmationModal from '@/components/ui/archive-confirmation-modal.vue';
 
 const props = defineProps({
     application: Object,
@@ -290,6 +298,7 @@ const counterOfferRate = ref('');
 const showReservationModal = ref(false);
 const showBabysitterCancelModal = ref(false);
 const showParentCancelModal = ref(false);
+const showArchiveModal = ref(false);
 
 // Toast
 const { toast } = useToast();
@@ -506,25 +515,25 @@ function getParentCancelTooltipText() {
 }
 
 function handleArchiveConversation() {
-    if (confirm('Archiver cette conversation ? Elle ne sera plus visible dans votre messagerie.')) {
-        const conversationId = props.application.conversation?.id;
-        if (conversationId) {
-            router.patch(
-                route('conversations.archive', conversationId),
-                {},
-                {
-                    preserveState: true,
-                    onSuccess: () => {
-                        toast.success('Conversation archivée avec succès');
-                        router.get(route('messaging.index'));
-                    },
-                    onError: (errors) => {
-                        console.error('❌ Erreur archivage conversation:', errors);
-                        toast.error("Erreur lors de l'archivage de la conversation");
-                    },
+    const conversationId = props.application.conversation?.id;
+    if (conversationId) {
+        router.patch(
+            route('conversations.archive', conversationId),
+            {},
+            {
+                preserveState: true,
+                onSuccess: () => {
+                    showArchiveModal.value = false;
+                    toast.success('Conversation archivée avec succès');
+                    router.get(route('messaging.index'));
                 },
-            );
-        }
+                onError: (errors) => {
+                    console.error('❌ Erreur archivage conversation:', errors);
+                    toast.error("Erreur lors de l'archivage de la conversation");
+                    showArchiveModal.value = false;
+                },
+            },
+        );
     }
 }
 </script>

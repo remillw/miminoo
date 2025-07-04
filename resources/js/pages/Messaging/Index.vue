@@ -707,25 +707,8 @@ function archiveConversation(applicationId) {
         return;
     }
 
-    if (confirm('Êtes-vous sûr de vouloir archiver cette conversation ? Elle ne sera plus visible dans votre messagerie.')) {
-        router.patch(
-            route('conversations.archive', selectedConversation.value.id),
-            {},
-            {
-                preserveState: true,
-                onSuccess: () => {
-                    console.log('✅ Conversation archivée avec succès');
-                    // Réinitialiser la conversation sélectionnée
-                    selectedConversation.value = null;
-                    // Recharger les conversations
-                    router.get(route('messaging.index'));
-                },
-                onError: (errors) => {
-                    console.error('❌ Erreur archivage conversation:', errors);
-                },
-            },
-        );
-    }
+    // Utiliser le nouveau modal d'archivage via l'événement émis par le composant enfant
+    // Cette fonction sera remplacée par la gestion du modal dans CandidatureChat.vue
 }
 
 function submitCounterOffer(applicationId, counterRate, counterMessage = null) {
