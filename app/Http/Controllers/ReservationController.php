@@ -327,12 +327,25 @@ class ReservationController extends Controller
             // Gérer le remboursement si nécessaire
             $refundAmount = $reservation->getRefundAmount();
             if ($refundAmount > 0 && $reservation->stripe_payment_intent_id) {
-                // TODO: Implémenter le remboursement Stripe
-                Log::info('Remboursement à effectuer', [
-                    'reservation_id' => $reservation->id,
-                    'refund_amount' => $refundAmount,
-                    'payment_intent_id' => $reservation->stripe_payment_intent_id
-                ]);
+                try {
+                    $refund = $this->stripeService->createRefund(
+                        $reservation->stripe_payment_intent_id,
+                        $refundAmount * 100 // Stripe attend des centimes
+                    );
+                    
+                    Log::info('Remboursement Stripe effectué', [
+                        'reservation_id' => $reservation->id,
+                        'refund_amount' => $refundAmount,
+                        'refund_id' => $refund->id
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Erreur lors du remboursement Stripe', [
+                        'reservation_id' => $reservation->id,
+                        'refund_amount' => $refundAmount,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Ne pas faire échouer l'annulation si le remboursement échoue
+                }
             }
 
             // Ajouter un message système dans la conversation
@@ -346,6 +359,17 @@ class ReservationController extends Controller
                     'refund_amount' => $refundAmount
                 ]);
             }
+
+            // Envoyer les notifications aux deux parties
+            $otherUser = $isParent ? $reservation->babysitter : $reservation->parent;
+            $cancelledBy = $isParent ? 'parent' : 'babysitter';
+            
+            $otherUser->notify(new \App\Notifications\ReservationCancelled(
+                $reservation,
+                $cancelledBy,
+                $validated['reason'],
+                $validated['note']
+            ));
 
             DB::commit();
 

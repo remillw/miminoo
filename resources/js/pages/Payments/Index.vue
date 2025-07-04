@@ -356,7 +356,8 @@ const canTriggerPayout = computed(() => {
 
 // Méthodes pour le formatage
 const formatAmount = (amount: number) => {
-    return (amount / 100).toFixed(2);
+    // Ne pas diviser par 100 - les montants sont déjà en euros dans l'application
+    return Number(amount).toFixed(2);
 };
 
 const formatDate = (date: string | Date) => {

@@ -47,12 +47,12 @@
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Date :</span>
-                                <span class="font-medium">{{ formatDate(reservation?.ad?.date_start) }}</span>
+                                <span class="font-medium">{{ formatDate(reservation?.service_start_at) }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Heure :</span>
                                 <span class="font-medium"
-                                    >{{ formatTime(reservation?.ad?.time_start) }} - {{ formatTime(reservation?.ad?.time_end) }}</span
+                                    >{{ formatTime(reservation?.service_start_at) }} - {{ formatTime(reservation?.service_end_at) }}</span
                                 >
                             </div>
                             <div class="flex justify-between">
@@ -138,9 +138,12 @@ function formatDate(dateString) {
     });
 }
 
-function formatTime(timeString) {
-    if (!timeString) return '';
-    return timeString.substring(0, 5); // HH:MM
+function formatTime(dateTimeString) {
+    if (!dateTimeString) return '';
+    return new Date(dateTimeString).toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 async function confirmCancellation() {

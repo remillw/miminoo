@@ -336,6 +336,7 @@ const identityVerificationStatus = computed(() => {
 const totalAvailable = computed(() => {
     if (!props.accountBalance?.available) return 0;
     return props.accountBalance.available.reduce((sum, balance) => {
+        // Les montants Stripe sont en centimes, donc on divise par 100
         return balance.currency === 'eur' ? sum + balance.amount / 100 : sum;
     }, 0);
 });
@@ -343,6 +344,7 @@ const totalAvailable = computed(() => {
 const totalPending = computed(() => {
     if (!props.accountBalance?.pending) return 0;
     return props.accountBalance.pending.reduce((sum, balance) => {
+        // Les montants Stripe sont en centimes, donc on divise par 100
         return balance.currency === 'eur' ? sum + balance.amount / 100 : sum;
     }, 0);
 });
@@ -356,23 +358,25 @@ const canTriggerPayout = computed(() => {
 // Calculer la prochaine date de disponibilité des fonds
 const nextAvailableDate = computed(() => {
     if (!props.reservations || props.reservations.length === 0) return null;
-    
+
     // Trouver la prochaine réservation terminée dont les fonds seront libérés
     const now = new Date();
     const nextRelease = props.reservations
-        .filter(r => r.status === 'paid' && r.service_end_at)
-        .map(r => new Date(r.service_end_at))
-        .map(endDate => new Date(endDate.getTime() + 24 * 60 * 60 * 1000)) // +24h
-        .filter(releaseDate => releaseDate > now)
+        .filter((r) => r.status === 'paid' && r.service_end_at)
+        .map((r) => new Date(r.service_end_at))
+        .map((endDate) => new Date(endDate.getTime() + 24 * 60 * 60 * 1000)) // +24h
+        .filter((releaseDate) => releaseDate > now)
         .sort((a, b) => a.getTime() - b.getTime())[0];
-    
-    return nextRelease ? nextRelease.toLocaleDateString('fr-FR', { 
-        weekday: 'short', 
-        day: 'numeric', 
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
-    }) : null;
+
+    return nextRelease
+        ? nextRelease.toLocaleDateString('fr-FR', {
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+          })
+        : null;
 });
 
 // Séparer les requirements entre configuration du compte et vérification d'identité
@@ -885,9 +889,7 @@ onMounted(() => {
                                     <div class="flex-1">
                                         <p class="text-sm text-orange-700">En cours</p>
                                         <p class="text-2xl font-bold text-orange-900">{{ formatCurrency(totalPending) }}</p>
-                                        <p v-if="nextAvailableDate" class="text-xs text-orange-600 mt-1">
-                                            Disponible le {{ nextAvailableDate }}
-                                        </p>
+                                        <p v-if="nextAvailableDate" class="mt-1 text-xs text-orange-600">Disponible le {{ nextAvailableDate }}</p>
                                     </div>
                                     <Clock class="h-8 w-8 text-orange-600" />
                                 </div>

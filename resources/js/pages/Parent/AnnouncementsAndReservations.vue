@@ -407,7 +407,8 @@ const activeTab = ref<'announcements' | 'reservations'>('announcements');
 
 // Méthodes de formatage
 const formatAmount = (amount: number) => {
-    return (amount / 100).toFixed(2);
+    // Les montants sont déjà en euros dans l'application, pas en centimes
+    return Number(amount).toFixed(2);
 };
 
 const formatDate = (date: string) => {
