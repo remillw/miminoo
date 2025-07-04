@@ -257,9 +257,8 @@ import { ref, computed } from 'vue';
 
 const page = usePage();
 
-// Récupérer les informations utilisateur depuis les props globales
-const user = computed(() => (page.props.auth as any)?.user);
-const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name) || []);
+const user = computed(() => page.props.auth?.user);
+const userRoles = computed(() => user.value?.roles?.map(role => role.name) || []);
 
 const hasParentRole = computed(() => userRoles.value.includes('parent'));
 const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
