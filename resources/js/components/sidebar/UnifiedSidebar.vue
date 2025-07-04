@@ -19,6 +19,7 @@ import {
     X,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Props {
     hasParentRole: boolean;
@@ -105,17 +106,40 @@ const handleLinkClick = () => {
     showFullMenu.value = false;
 };
 
-// Route helper
-const route = (name: string, params: any = {}) => {
-    return window.route ? window.route(name, params) : '#';
-};
+// Route helper - utilise directement l'import de ziggy-js
 
 // Check if current route matches
 const isCurrentRoute = (routeName: string, mode?: string) => {
     const page = usePage();
-    const currentRouteName = page.url.split('?')[0];
-    const targetRoute = route(routeName, mode ? { mode } : {});
-    return currentRouteName === targetRoute || page.url.includes(routeName);
+    const currentPath = page.url.split('?')[0];
+
+    // Vérification simple basée sur le nom de route
+    if (routeName === 'dashboard') {
+        return currentPath.includes('/dashboard') || currentPath === '/';
+    }
+    if (routeName === 'profil') {
+        return currentPath.includes('/profil');
+    }
+    if (routeName === 'messages.index') {
+        return currentPath.includes('/messagerie');
+    }
+    if (routeName === 'settings') {
+        return currentPath.includes('/parametres');
+    }
+    if (routeName === 'announcements.create') {
+        return currentPath.includes('/creer-une-annonce');
+    }
+    if (routeName === 'babysitting.index') {
+        return currentPath.includes('/babysitting');
+    }
+    if (routeName === 'payments.index' || routeName === 'babysitter.payments') {
+        return currentPath.includes('/paiements');
+    }
+    if (routeName === 'parent.announcements-and-reservations') {
+        return currentPath.includes('/mes-annonces-et-reservations');
+    }
+
+    return false;
 };
 </script>
 
