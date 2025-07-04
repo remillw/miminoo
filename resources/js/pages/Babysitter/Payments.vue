@@ -72,11 +72,25 @@ interface BabysitterProfile {
     verification_notes?: string;
 }
 
+interface BabysitterReservation {
+    id: number;
+    status: string;
+    service_start_at: string;
+    service_end_at: string;
+    babysitter_amount: number;
+    ad: {
+        title: string;
+        date_start: string;
+        date_end: string;
+    };
+}
+
 interface Props {
     accountStatus: string;
     accountDetails: AccountDetails | null;
     accountBalance: AccountBalance | null;
     recentTransactions: Transaction[];
+    reservations: BabysitterReservation[];
     stripeAccountId: string;
     babysitterProfile: BabysitterProfile | null;
 }
@@ -337,6 +351,28 @@ const totalPending = computed(() => {
 const canTriggerPayout = computed(() => {
     const balance = props.accountBalance?.available?.[0]?.amount || 0;
     return balance >= 2500; // 25€ en centimes
+});
+
+// Calculer la prochaine date de disponibilité des fonds
+const nextAvailableDate = computed(() => {
+    if (!props.reservations || props.reservations.length === 0) return null;
+    
+    // Trouver la prochaine réservation terminée dont les fonds seront libérés
+    const now = new Date();
+    const nextRelease = props.reservations
+        .filter(r => r.status === 'paid' && r.service_end_at)
+        .map(r => new Date(r.service_end_at))
+        .map(endDate => new Date(endDate.getTime() + 24 * 60 * 60 * 1000)) // +24h
+        .filter(releaseDate => releaseDate > now)
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+    
+    return nextRelease ? nextRelease.toLocaleDateString('fr-FR', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+    }) : null;
 });
 
 // Séparer les requirements entre configuration du compte et vérification d'identité
@@ -846,9 +882,12 @@ onMounted(() => {
 
                             <div class="rounded-lg border border-orange-200 bg-orange-50 p-4">
                                 <div class="flex items-center justify-between">
-                                    <div>
+                                    <div class="flex-1">
                                         <p class="text-sm text-orange-700">En cours</p>
                                         <p class="text-2xl font-bold text-orange-900">{{ formatCurrency(totalPending) }}</p>
+                                        <p v-if="nextAvailableDate" class="text-xs text-orange-600 mt-1">
+                                            Disponible le {{ nextAvailableDate }}
+                                        </p>
                                     </div>
                                     <Clock class="h-8 w-8 text-orange-600" />
                                 </div>

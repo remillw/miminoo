@@ -269,7 +269,7 @@
                                     </button>
 
                                     <button
-                                        v-if="reservation.can_be_cancelled"
+                                        v-if="reservation.can_be_cancelled && reservation.status === 'paid'"
                                         @click="cancelReservation(reservation.id)"
                                         class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
                                     >
@@ -494,7 +494,18 @@ const viewMessaging = () => {
 };
 
 const cancelReservation = (reservationId: number) => {
-    if (confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
+    const reservation = props.reservations.find((r: Reservation) => r.id === reservationId);
+    if (!reservation) return;
+
+    // Vérifier si c'est une annulation tardive (moins de 24h)
+    const hoursUntilService = new Date(reservation.service_start_at).getTime() - new Date().getTime();
+    const isLateCancel = hoursUntilService < 24 * 60 * 60 * 1000;
+
+    const confirmMessage = isLateCancel
+        ? 'ATTENTION : Vous annulez moins de 24h avant le service. Votre acompte sera définitivement perdu. Êtes-vous sûr ?'
+        : "Êtes-vous sûr de vouloir annuler cette réservation ? Des frais peuvent s'appliquer.";
+
+    if (confirm(confirmMessage)) {
         router.post(`/reservations/${reservationId}/cancel`, {
             reason: 'parent_unavailable',
             note: '',

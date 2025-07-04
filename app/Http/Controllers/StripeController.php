@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Models\User;
+use App\Models\Reservation;
 
 class StripeController extends Controller
 {
@@ -526,12 +527,34 @@ class StripeController extends Controller
             $recentTransactions = [];
         }
 
+        // Récupérer les réservations de la babysitter pour calculer les prochaines dates de libération
+        $reservations = Reservation::where('babysitter_id', $user->id)
+            ->whereIn('status', ['paid', 'active', 'completed'])
+            ->with(['ad:id,title,date_start,date_end'])
+            ->orderBy('service_start_at', 'desc')
+            ->get()
+            ->map(function ($reservation) {
+                return [
+                    'id' => $reservation->id,
+                    'status' => $reservation->status,
+                    'service_start_at' => $reservation->service_start_at,
+                    'service_end_at' => $reservation->service_end_at,
+                    'babysitter_amount' => $reservation->babysitter_amount,
+                    'ad' => [
+                        'title' => $reservation->ad->title,
+                        'date_start' => $reservation->ad->date_start,
+                        'date_end' => $reservation->ad->date_end,
+                    ]
+                ];
+            });
+
         $viewData = [
             'mode' => 'babysitter',
             'accountStatus' => $accountStatus,
             'accountDetails' => $accountDetails,
             'accountBalance' => $accountBalance,
             'recentTransactions' => $recentTransactions,
+            'reservations' => $reservations,
             'stripeAccountId' => $user->stripe_account_id,
             'babysitterProfile' => $user->babysitterProfile
         ];

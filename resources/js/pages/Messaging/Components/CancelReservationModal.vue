@@ -150,6 +150,9 @@ async function confirmCancellation() {
     error.value = '';
 
     try {
+        // Déterminer la raison selon le rôle
+        const reason = props.userRole === 'parent' ? 'parent_unavailable' : 'babysitter_unavailable';
+        
         const response = await fetch(route('reservations.cancel', props.reservation.id), {
             method: 'POST',
             headers: {
@@ -157,7 +160,8 @@ async function confirmCancellation() {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
             },
             body: JSON.stringify({
-                reason: cancellationReason.value,
+                reason: reason,
+                note: cancellationReason.value, // Le texte libre devient la note
             }),
         });
 

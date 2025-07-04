@@ -94,17 +94,16 @@ class PaymentController extends Controller
     {
         $user = $request->user();
 
-        // Récupérer uniquement les réservations payées du parent
+        // Récupérer toutes les réservations du parent
         $reservations = Reservation::where('parent_id', $user->id)
-            ->whereIn('status', ['completed', 'service_completed', 'payment_processing'])
             ->with(['babysitter', 'ad'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Calculer les statistiques
-        $totalSpent = $reservations->where('status', 'completed')->sum('total_amount');
+        $totalSpent = $reservations->whereIn('status', ['completed', 'paid'])->sum('total_deposit');
         $totalReservations = $reservations->count();
-        $pendingPayments = $reservations->whereIn('status', ['pending_payment', 'payment_failed'])->count();
+        $pendingPayments = $reservations->where('status', 'pending_payment')->count();
 
         // Grouper les transactions par mois pour l'affichage
         $transactions = $reservations->map(function ($reservation) {
@@ -112,11 +111,12 @@ class PaymentController extends Controller
                 'id' => $reservation->id,
                 'date' => $reservation->created_at,
                 'babysitter_name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
-                'amount' => $reservation->total_amount,
+                'amount' => $reservation->total_deposit,
                 'status' => $reservation->status,
-                'duration' => $reservation->duration,
-                'start_date' => $reservation->start_date,
-                'can_download_invoice' => in_array($reservation->status, ['completed', 'service_completed']),
+                'service_start' => $reservation->service_start_at,
+                'service_end' => $reservation->service_end_at,
+                'ad_title' => $reservation->ad->title,
+                'can_download_invoice' => in_array($reservation->status, ['completed', 'paid']),
             ];
         });
 

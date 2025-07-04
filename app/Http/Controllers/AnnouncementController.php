@@ -897,14 +897,23 @@ class AnnouncementController extends Controller
         $user = Auth::user();
 
         // Récupérer les annonces du parent avec leurs candidatures
-        $announcements = Ad::with(['address', 'applications' => function($query) {
+        // Séparer les annonces actives (futures) et passées
+        $allAnnouncements = Ad::with(['address', 'applications' => function($query) {
                 $query->with(['babysitter' => function($q) {
                     $q->select('id', 'firstname', 'lastname', 'avatar');
                 }]);
             }])
             ->where('parent_id', $user->id)
             ->orderBy('created_at', 'desc')
-            ->get()
+            ->get();
+
+        $announcements = $allAnnouncements
+            ->filter(function($ad) {
+                // Garder seulement les annonces dont la date n'est pas encore passée
+                // OU qui ont des réservations actives (garde confirmée)
+                return $ad->date_start > now() || 
+                       $ad->reservations()->whereIn('status', ['paid', 'active'])->exists();
+            })
             ->map(function ($ad) {
                 return [
                     'id' => $ad->id,
@@ -971,8 +980,8 @@ class AnnouncementController extends Controller
 
         // Statistiques
         $stats = [
-            'total_announcements' => $announcements->count(),
-            'active_announcements' => $announcements->where('status', 'active')->count(),
+            'total_announcements' => $allAnnouncements->count(), // Toutes les annonces
+            'active_announcements' => $announcements->where('status', 'active')->count(), // Seulement les actives/futures
             'total_reservations' => $reservations->count(),
             'completed_reservations' => $reservations->where('status', 'completed')->count(),
             'total_spent' => $reservations->where('status', 'completed')->sum('total_deposit'),

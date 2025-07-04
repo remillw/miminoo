@@ -297,7 +297,7 @@ class Reservation extends Model
     }
 
     /**
-     * Calculer les frais Stripe (2.9% + 0.25€)
+     * Calculer les frais Stripe (2.9% + 0.25€) basés sur le montant total
      */
     public function getStripeFeeAttribute(): float
     {
@@ -313,11 +313,12 @@ class Reservation extends Model
     }
 
     /**
-     * Montant que recevra la babysitter (acompte - frais Stripe)
+     * Montant que recevra la babysitter (montant total - frais plateforme - frais Stripe)
      */
     public function getBabysitterAmountAttribute(): float
     {
-        return $this->deposit_amount - $this->stripe_fee;
+        // La babysitter reçoit : total payé - frais de service - frais Stripe
+        return round($this->total_deposit - $this->service_fee - $this->stripe_fee, 2);
     }
 
     // Boot method

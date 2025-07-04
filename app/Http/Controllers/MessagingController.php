@@ -48,6 +48,9 @@ class MessagingController extends Controller
                 'babysitter:id,firstname,lastname,avatar',
                 'application' => function($query) {
                     $query->with(['babysitter:id,firstname,lastname,avatar', 'ad.parent:id,firstname,lastname,avatar']);
+                },
+                'reservation' => function($query) {
+                    $query->select('id', 'conversation_id', 'status', 'service_start_at', 'service_end_at', 'total_deposit', 'deposit_amount');
                 }
             ]);
 
@@ -178,11 +181,28 @@ class MessagingController extends Controller
                     } else {
                         $conversationData['application'] = null;
                     }
+
+                    // Ajouter les données de réservation si elle existe
+                    if ($conversation->reservation) {
+                        $conversationData['reservation'] = [
+                            'id' => $conversation->reservation->id,
+                            'status' => $conversation->reservation->status,
+                            'service_start_at' => $conversation->reservation->service_start_at,
+                            'service_end_at' => $conversation->reservation->service_end_at,
+                            'total_deposit' => $conversation->reservation->total_deposit,
+                            'deposit_amount' => $conversation->reservation->deposit_amount,
+                            'can_be_cancelled' => $conversation->reservation->can_be_cancelled,
+                            'can_be_cancelled_free' => $conversation->reservation->can_be_cancelled_free
+                        ];
+                    } else {
+                        $conversationData['reservation'] = null;
+                    }
                     
                     \Log::info('Conversation formatée avec succès', [
                         'conversation_id' => $conversation->id,
                         'type' => $conversationData['type'],
-                        'has_application_data' => $conversationData['application'] ? true : false
+                        'has_application_data' => $conversationData['application'] ? true : false,
+                        'has_reservation_data' => $conversationData['reservation'] ? true : false
                     ]);
                     
                     return $conversationData;
@@ -860,9 +880,12 @@ class MessagingController extends Controller
         }
 
         try {
-            // Charger la relation ad si elle n'est pas déjà chargée
+            // Charger les relations nécessaires si elles ne sont pas déjà chargées
             if (!$conversation->relationLoaded('ad')) {
                 $conversation->load('ad');
+            }
+            if (!$conversation->relationLoaded('reservation')) {
+                $conversation->load('reservation');
             }
             
             $messages = $conversation->messages()
@@ -943,6 +966,16 @@ class MessagingController extends Controller
                         'firstname' => $otherUser->firstname,
                         'lastname' => $otherUser->lastname,
                         'avatar' => $otherUser->avatar ?? '/default-avatar.svg',
+                    ] : null,
+                    'reservation' => $conversation->reservation ? [
+                        'id' => $conversation->reservation->id,
+                        'status' => $conversation->reservation->status,
+                        'service_start_at' => $conversation->reservation->service_start_at,
+                        'service_end_at' => $conversation->reservation->service_end_at,
+                        'total_deposit' => $conversation->reservation->total_deposit,
+                        'deposit_amount' => $conversation->reservation->deposit_amount,
+                        'can_be_cancelled' => $conversation->reservation->can_be_cancelled,
+                        'can_be_cancelled_free' => $conversation->reservation->can_be_cancelled_free
                     ] : null
                 ]
             ];

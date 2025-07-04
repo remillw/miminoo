@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use App\Notifications\ReservationPaid;
 
 class ReservationController extends Controller
 {
@@ -228,29 +229,33 @@ class ReservationController extends Controller
                 ], 400);
             }
 
-            // Ajouter un message système dans la conversation
+            // Ajouter un message du parent dans la conversation
             if ($reservation->conversation) {
-                $reservation->conversation->addSystemMessage('deposit_paid', [
-                    'amount' => $reservation->total_deposit,
-                    'deposit' => $reservation->deposit_amount,
-                    'service_fee' => $reservation->service_fee
+                $reservation->conversation->messages()->create([
+                    'sender_id' => $user->id, // Le parent qui vient de payer
+                    'message' => "L'acompte de {$reservation->total_deposit}€ a été payé avec succès. La réservation est confirmée !",
+                    'type' => 'user',
+                    'read_at' => null // Non lu par la babysitter par défaut
+                ]);
+                
+                // Mettre à jour les métadonnées de la conversation
+                $reservation->conversation->update([
+                    'last_message_at' => now(),
+                    'last_message_by' => $user->id
                 ]);
             }
 
+            // Notifier la babysitter du paiement
+            $reservation->babysitter->notify(new ReservationPaid($reservation));
+
             Log::info('Réservation confirmée et payée', [
                 'reservation_id' => $reservation->id,
-                'payment_intent_id' => $validated['payment_intent_id']
+                'payment_intent_id' => $validated['payment_intent_id'],
+                'babysitter_notified' => true
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Paiement confirmé ! La réservation est maintenant active.',
-                'reservation' => [
-                    'id' => $reservation->id,
-                    'status' => $reservation->status,
-                    'paid_at' => $reservation->paid_at->toISOString()
-                ]
-            ]);
+            // Redirection vers la messagerie avec message de succès
+            return redirect()->route('messaging.index')->with('success', 'Paiement confirmé ! La réservation est maintenant active.');
 
         } catch (\Exception $e) {
             Log::error('Erreur lors de la confirmation du paiement', [
