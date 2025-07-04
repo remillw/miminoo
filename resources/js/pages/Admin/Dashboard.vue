@@ -195,6 +195,14 @@ const getStatusText = (status: string) => {
                             <span>Avis</span>
                         </Link>
 
+                        <Link
+                            href="/admin/contacts"
+                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
+                        >
+                            <MessageSquare class="h-4 w-4" />
+                            <span>Contacts</span>
+                        </Link>
+
                         <Link href="/admin/comptes-stripe" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <CreditCard class="h-4 w-4" />
                             <span>Comptes Stripe</span>

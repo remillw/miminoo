@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, CreditCard, FileText, ShieldAlert, Star, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
+import { ArrowLeft, CreditCard, FileText, MessageSquare, ShieldAlert, Star, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
 
 interface Address {
     id: number;
@@ -133,6 +133,11 @@ const statusOptions = [
                         <Link href="/admin/avis" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <Star class="h-4 w-4" />
                             <span>Avis</span>
+                        </Link>
+
+                        <Link href="/admin/contacts" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
+                            <MessageSquare class="h-4 w-4" />
+                            <span>Contacts</span>
                         </Link>
                         <Link href="/admin/comptes-stripe" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <CreditCard class="h-4 w-4" />

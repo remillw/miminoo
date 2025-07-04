@@ -6,6 +6,7 @@ use App\Models\Contact;
 use App\Models\User;
 use App\Notifications\ContactReceived;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
@@ -17,7 +18,20 @@ class ContactController extends Controller
      */
     public function index()
     {
-        return Inertia::render('Contact');
+        $userInfo = null;
+        
+        if (Auth::check()) {
+            $user = Auth::user();
+            $userInfo = [
+                'name' => trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')),
+                'email' => $user->email ?? '',
+                'phone' => $user->phone ?? '',
+            ];
+        }
+        
+        return Inertia::render('Contact', [
+            'userInfo' => $userInfo
+        ]);
     }
 
     /**
@@ -51,7 +65,9 @@ class ContactController extends Controller
             ]);
 
             // Notifier tous les admins
-            $admins = User::role('admin')->get();
+            $admins = User::whereHas('roles', function($q) {
+                $q->where('name', 'admin');
+            })->get();
             
             if ($admins->count() > 0) {
                 Notification::send($admins, new ContactReceived($contact));
@@ -109,7 +125,23 @@ class ContactController extends Controller
             });
         }
 
-        $contacts = $query->orderBy('created_at', 'desc')->paginate(20);
+        $contacts = $query->orderBy('created_at', 'desc')
+            ->paginate(20)
+            ->through(function ($contact) {
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'email' => $contact->email,
+                    'phone' => $contact->phone,
+                    'subject' => $contact->subject,
+                    'subject_text' => $contact->subject_text,
+                    'message' => $contact->message,
+                    'status' => $contact->status,
+                    'created_at' => $contact->created_at,
+                    'read_at' => $contact->read_at,
+                    'admin_notes' => $contact->admin_notes,
+                ];
+            });
 
         return Inertia::render('Admin/Contacts', [
             'contacts' => $contacts,
@@ -121,7 +153,7 @@ class ContactController extends Controller
             'stats' => [
                 'total' => Contact::count(),
                 'unread' => Contact::unread()->count(),
-                'recent' => Contact::recent()->count(),
+                'recent' => Contact::where('created_at', '>=', now()->subDays(7))->count(),
             ]
         ]);
     }

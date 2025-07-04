@@ -9,7 +9,8 @@ import {
     ShieldAlert, 
     FileText, 
     Star, 
-    CreditCard 
+    CreditCard,
+    MessageSquare
 } from 'lucide-vue-next';
 
 interface Props {
@@ -107,6 +108,17 @@ const getNavItemClass = (section: string) => {
                         <Link href="/admin/avis" :class="getNavItemClass('reviews')">
                             <Star class="h-4 w-4" />
                             <span>Avis</span>
+                        </Link>
+
+                        <Link href="/admin/contacts" :class="getNavItemClass('contacts')">
+                            <MessageSquare class="h-4 w-4" />
+                            <span class="flex-1">Contacts</span>
+                            <Badge 
+                                v-if="stats.unread_contacts > 0" 
+                                class="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded-full"
+                            >
+                                {{ stats.unread_contacts }}
+                            </Badge>
                         </Link>
 
                         <Link href="/admin/comptes-stripe" :class="getNavItemClass('stripe')">
