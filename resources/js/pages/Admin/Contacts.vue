@@ -119,27 +119,43 @@ const viewContact = (contact: Contact) => {
     }
 };
 
-const updateContactStatus = (contactId: number, status: 'unread' | 'read' | 'replied', notes?: string) => {
-    router.put(
-        `/admin/contacts/${contactId}`,
-        {
-            status,
-            admin_notes: notes,
-        },
-        {
-            preserveState: true,
-            onSuccess: () => {
-                if (selectedContact.value && selectedContact.value.id === contactId) {
-                    selectedContact.value.status = status;
-                    if (notes !== undefined) selectedContact.value.admin_notes = notes;
-                }
-                showSuccess('✅ Contact mis à jour', 'Le statut a été modifié avec succès');
+const updateContactStatus = async (contactId: number, status: 'unread' | 'read' | 'replied', notes?: string) => {
+    try {
+        const response = await fetch(`/admin/contacts/${contactId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                Accept: 'application/json',
             },
-            onError: () => {
-                showError('❌ Erreur', 'Impossible de mettre à jour le contact');
-            },
-        },
-    );
+            body: JSON.stringify({
+                status,
+                admin_notes: notes,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            if (selectedContact.value && selectedContact.value.id === contactId) {
+                selectedContact.value.status = status;
+                if (notes !== undefined) selectedContact.value.admin_notes = notes;
+            }
+
+            // Mettre à jour le contact dans la liste
+            const contactIndex = props.contacts.data.findIndex((c) => c.id === contactId);
+            if (contactIndex !== -1) {
+                props.contacts.data[contactIndex].status = status;
+                if (notes !== undefined) props.contacts.data[contactIndex].admin_notes = notes;
+            }
+
+            showSuccess('✅ Contact mis à jour', data.message);
+        } else {
+            showError('❌ Erreur', data.message || 'Impossible de mettre à jour le contact');
+        }
+    } catch (error) {
+        showError('❌ Erreur', 'Impossible de mettre à jour le contact');
+    }
 };
 
 const saveContactNotes = () => {
@@ -148,17 +164,41 @@ const saveContactNotes = () => {
     updateContactStatus(selectedContact.value.id, contactStatus.value, adminNotes.value);
 };
 
-const deleteContact = (contact: Contact) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le contact de ${contact.name} ?`)) return;
+const contactToDelete = ref<Contact | null>(null);
+const showDeleteModal = ref(false);
 
-    router.delete(`/admin/contacts/${contact.id}`, {
-        onSuccess: () => {
-            showSuccess('🗑️ Contact supprimé', 'Le contact a été supprimé avec succès');
-        },
-        onError: () => {
-            showError('❌ Erreur', 'Impossible de supprimer le contact');
-        },
-    });
+const confirmDeleteContact = (contact: Contact) => {
+    contactToDelete.value = contact;
+    showDeleteModal.value = true;
+};
+
+const deleteContact = async () => {
+    if (!contactToDelete.value) return;
+
+    try {
+        const response = await fetch(`/admin/contacts/${contactToDelete.value.id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                Accept: 'application/json',
+            },
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showSuccess('🗑️ Contact supprimé', data.message);
+            // Recharger la page ou retirer l'élément de la liste
+            router.reload({ only: ['contacts'] });
+        } else {
+            showError('❌ Erreur', data.message || 'Impossible de supprimer le contact');
+        }
+    } catch (error) {
+        showError('❌ Erreur', 'Impossible de supprimer le contact');
+    } finally {
+        showDeleteModal.value = false;
+        contactToDelete.value = null;
+    }
 };
 
 const getStatusClass = (status: string) => {
@@ -326,7 +366,7 @@ const formatDate = (dateString: string) => {
                     <Button size="sm" variant="outline" @click="viewContact(item)">
                         <Eye class="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="destructive" @click="deleteContact(item)">
+                    <Button size="sm" variant="destructive" @click="confirmDeleteContact(item)">
                         <Trash2 class="h-4 w-4" />
                     </Button>
                 </div>
@@ -408,6 +448,28 @@ const formatDate = (dateString: string) => {
                             <Button variant="outline" @click="showDetailModal = false"> Fermer </Button>
                             <Button @click="saveContactNotes"> Sauvegarder </Button>
                         </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Modal de confirmation de suppression -->
+        <Dialog v-model:open="showDeleteModal">
+            <DialogContent class="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Confirmer la suppression</DialogTitle>
+                </DialogHeader>
+
+                <div v-if="contactToDelete" class="space-y-4">
+                    <p class="text-gray-600">
+                        Êtes-vous sûr de vouloir supprimer le contact de
+                        <strong>{{ contactToDelete.name }}</strong> ?
+                    </p>
+                    <p class="text-sm text-gray-500">Cette action est irréversible.</p>
+
+                    <div class="flex justify-end space-x-2">
+                        <Button variant="outline" @click="showDeleteModal = false"> Annuler </Button>
+                        <Button variant="destructive" @click="deleteContact"> Supprimer </Button>
                     </div>
                 </div>
             </DialogContent>

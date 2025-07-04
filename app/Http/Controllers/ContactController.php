@@ -185,8 +185,10 @@ class ContactController extends Controller
 
         $contact->update($validated);
 
-        return redirect()->route('admin.contacts.show', $contact)
-            ->with('success', 'Contact mis à jour avec succès');
+        return response()->json([
+            'success' => true,
+            'message' => 'Contact mis à jour avec succès'
+        ]);
     }
 
     /**
@@ -196,7 +198,9 @@ class ContactController extends Controller
     {
         $contact->delete();
 
-        return redirect()->route('admin.contacts.index')
-            ->with('success', 'Contact supprimé avec succès');
+        return response()->json([
+            'success' => true,
+            'message' => 'Contact supprimé avec succès'
+        ]);
     }
 }
