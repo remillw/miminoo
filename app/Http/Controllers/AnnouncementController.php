@@ -30,8 +30,12 @@ class AnnouncementController extends Controller
     public function index(Request $request): Response
     {
         $query = Ad::with(['address'])
-            ->where('status', 'active')
+            ->where('status', 'active') // Seulement les annonces actives (pas expirées, pas réservées, pas terminées)
             ->where('date_start', '>', Carbon::now()) // Exclure les annonces dont la date/heure de début est déjà passée
+            ->whereDoesntHave('reservations', function($q) {
+                // Exclure les annonces qui ont déjà des réservations confirmées
+                $q->whereIn('status', ['paid', 'active', 'completed', 'service_completed']);
+            })
             ->where(function($q) {
                 // Inclure les annonces normales ET les annonces guests non expirées
                 $q->whereNotNull('parent_id')
@@ -941,10 +945,13 @@ class AnnouncementController extends Controller
 
         $announcements = $allAnnouncements
             ->filter(function($ad) {
-                // Garder seulement les annonces dont la date n'est pas encore passée
-                // OU qui ont des réservations actives (garde confirmée)
-                return $ad->date_start > now() || 
-                       $ad->reservations()->whereIn('status', ['paid', 'active'])->exists();
+                // Garder les annonces selon leur statut et situation :
+                // - active : futures et disponibles
+                // - booked : réservées (payées) 
+                // - service_completed : service terminé en attente d'avis
+                // - expired : non réservées et date passée
+                // Exclure seulement les "completed" (finalisées après 7 jours)
+                return in_array($ad->status, ['active', 'booked', 'service_completed', 'expired', 'cancelled']);
             })
             ->map(function ($ad) {
                 return [

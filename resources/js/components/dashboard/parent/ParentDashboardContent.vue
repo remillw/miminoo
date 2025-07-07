@@ -112,6 +112,8 @@ const getStatusClass = (status: string) => {
         cancelled: 'bg-red-100 text-red-800',
         booked: 'bg-blue-100 text-blue-800',
         pending_payment: 'bg-orange-100 text-orange-800',
+        service_completed: 'bg-purple-100 text-purple-800',
+        expired: 'bg-gray-100 text-gray-600',
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
 };
@@ -123,6 +125,8 @@ const getStatusText = (status: string) => {
         cancelled: 'Annulée',
         booked: 'Réservée',
         pending_payment: 'En attente de paiement',
+        service_completed: 'Service terminé',
+        expired: 'Expirée',
     };
     return texts[status] || status;
 };

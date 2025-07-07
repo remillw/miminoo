@@ -175,8 +175,14 @@ const getStatusClass = (status: string) => {
     switch (status) {
         case 'active':
             return 'bg-green-100 text-green-800';
-        case 'completed':
+        case 'booked':
             return 'bg-blue-100 text-blue-800';
+        case 'service_completed':
+            return 'bg-purple-100 text-purple-800';
+        case 'completed':
+            return 'bg-gray-100 text-gray-800';
+        case 'expired':
+            return 'bg-orange-100 text-orange-800';
         case 'cancelled':
             return 'bg-red-100 text-red-800';
         case 'paused':
@@ -190,8 +196,14 @@ const getStatusText = (status: string) => {
     switch (status) {
         case 'active':
             return 'Active';
+        case 'booked':
+            return 'Réservée';
+        case 'service_completed':
+            return 'Service terminé';
         case 'completed':
             return 'Terminée';
+        case 'expired':
+            return 'Expirée';
         case 'cancelled':
             return 'Annulée';
         case 'paused':

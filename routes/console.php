@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Programmer l'archivage automatique des conversations tous les jours à 2h du matin
 Schedule::command('conversations:archive-old')->dailyAt('02:00');
+
+// Mettre à jour les statuts des annonces toutes les 15 minutes
+Schedule::command('announcements:update-statuses')->everyFifteenMinutes();

@@ -297,7 +297,7 @@
                                     </button>
 
                                     <button
-                                        v-if="reservation.can_be_reviewed"
+                                        v-if="reservation.can_be_reviewed || reservation.status === 'service_completed'"
                                         @click="leaveReview(reservation.id)"
                                         class="flex items-center gap-2 rounded-lg border border-yellow-300 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50"
                                     >
@@ -446,7 +446,9 @@ const getAnnouncementStatusClass = (status: string) => {
     const classes: { [key: string]: string } = {
         active: 'bg-green-100 text-green-800',
         booked: 'bg-blue-100 text-blue-800',
+        service_completed: 'bg-purple-100 text-purple-800',
         completed: 'bg-gray-100 text-gray-800',
+        expired: 'bg-orange-100 text-orange-800',
         cancelled: 'bg-red-100 text-red-800',
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
@@ -456,7 +458,9 @@ const getAnnouncementStatusText = (status: string) => {
     const texts: { [key: string]: string } = {
         active: 'Active',
         booked: 'Réservée',
+        service_completed: 'Service terminé',
         completed: 'Terminée',
+        expired: 'Expirée',
         cancelled: 'Annulée',
     };
     return texts[status] || status;
@@ -489,6 +493,7 @@ const getReservationStatusClass = (status: string) => {
         pending_payment: 'bg-yellow-100 text-yellow-800',
         paid: 'bg-blue-100 text-blue-800',
         active: 'bg-green-100 text-green-800',
+        service_completed: 'bg-purple-100 text-purple-800',
         completed: 'bg-gray-100 text-gray-800',
         cancelled_by_parent: 'bg-red-100 text-red-800',
         cancelled_by_babysitter: 'bg-red-100 text-red-800',
@@ -501,6 +506,7 @@ const getReservationStatusText = (status: string) => {
         pending_payment: 'Paiement requis',
         paid: 'Confirmée',
         active: 'En cours',
+        service_completed: 'Service terminé',
         completed: 'Terminée',
         cancelled_by_parent: 'Annulée par vous',
         cancelled_by_babysitter: 'Annulée par la babysitter',

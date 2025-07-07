@@ -14,7 +14,8 @@ class Ad extends Model
         'parent_id', 'title', 'description', 'address_id',
         'date_start', 'date_end', 'hourly_rate', 'estimated_duration', 
         'estimated_total', 'children', 'additional_info',
-        'status', 'is_boosted', 'guest_email', 'guest_firstname', 'guest_token', 
+        'status', 'status_updated_at', 'service_completed_at', 'expired_at', 
+        'is_boosted', 'guest_email', 'guest_firstname', 'guest_token', 
         'guest_expires_at', 'is_guest', 'cancelled_at', 'cancellation_reason', 'cancellation_note'
     ];
 
@@ -29,6 +30,9 @@ class Ad extends Model
         'is_guest' => 'boolean',
         'guest_expires_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'status_updated_at' => 'datetime',
+        'service_completed_at' => 'datetime',
+        'expired_at' => 'datetime',
     ];
 
     public function parent(): BelongsTo
@@ -154,5 +158,30 @@ class Ad extends Model
         } while (self::where('guest_token', $token)->exists());
 
         return $token;
+    }
+
+    /**
+     * Boot method pour gérer automatiquement les horodatages de statut
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::updating(function ($ad) {
+            // Si le statut change, mettre à jour l'horodatage
+            if ($ad->isDirty('status')) {
+                $ad->status_updated_at = now();
+                
+                // Horodatages spécifiques selon le nouveau statut
+                switch ($ad->status) {
+                    case 'expired':
+                        $ad->expired_at = now();
+                        break;
+                    case 'service_completed':
+                        $ad->service_completed_at = now();
+                        break;
+                }
+            }
+        });
     }
 }

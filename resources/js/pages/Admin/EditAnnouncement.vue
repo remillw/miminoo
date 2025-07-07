@@ -79,7 +79,10 @@ const submit = () => {
 
 const statusOptions = [
     { value: 'active', label: 'Active' },
+    { value: 'booked', label: 'Réservée' },
+    { value: 'service_completed', label: 'Service terminé' },
     { value: 'completed', label: 'Terminée' },
+    { value: 'expired', label: 'Expirée' },
     { value: 'cancelled', label: 'Annulée' },
     { value: 'paused', label: 'En pause' },
 ];

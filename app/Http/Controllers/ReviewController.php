@@ -25,7 +25,7 @@ class ReviewController extends Controller
         }
         
         // Vérifier que le service est terminé
-        if ($reservation->status !== 'completed') {
+        if (!in_array($reservation->status, ['completed', 'service_completed'])) {
             abort(403, 'Vous ne pouvez laisser un avis que pour un service terminé.');
         }
         
@@ -69,7 +69,7 @@ class ReviewController extends Controller
             abort(403);
         }
         
-        if ($reservation->status !== 'completed') {
+        if (!in_array($reservation->status, ['completed', 'service_completed'])) {
             abort(403, 'Le service doit être terminé pour laisser un avis.');
         }
         
