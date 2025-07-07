@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Contact;
 use App\Models\User;
+use App\Models\BabysitterProfile;
 use App\Notifications\ContactReceived;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -101,6 +102,17 @@ class ContactController extends Controller
     }
 
     /**
+     * Get admin stats for sidebar badges (partagé avec AdminController)
+     */
+    protected function getAdminStats()
+    {
+        return [
+            'pending_verifications' => BabysitterProfile::where('verification_status', 'pending')->count(),
+            'unread_contacts' => Contact::where('status', 'unread')->count(),
+        ];
+    }
+
+    /**
      * Display contacts in admin panel
      */
     public function adminIndex(Request $request)
@@ -143,11 +155,6 @@ class ContactController extends Controller
                 ];
             });
 
-        $adminStats = [
-            'pending_verifications' => \App\Models\BabysitterProfile::where('verification_status', 'pending')->count(),
-            'unread_contacts' => Contact::where('status', 'unread')->count(),
-        ];
-
         return Inertia::render('Admin/Contacts', [
             'contacts' => $contacts,
             'filters' => [
@@ -155,14 +162,11 @@ class ContactController extends Controller
                 'subject' => $request->subject,
                 'search' => $request->search,
             ],
-            'stats' => [
+            'stats' => array_merge([
                 'total' => Contact::count(),
                 'unread' => Contact::unread()->count(),
                 'recent' => Contact::where('created_at', '>=', now()->subDays(7))->count(),
-                // Stats pour la sidebar
-                'pending_verifications' => $adminStats['pending_verifications'],
-                'unread_contacts' => $adminStats['unread_contacts'],
-            ]
+            ], $this->getAdminStats())
         ]);
     }
 
@@ -177,7 +181,8 @@ class ContactController extends Controller
         }
 
         return Inertia::render('Admin/ContactDetail', [
-            'contact' => $contact
+            'contact' => $contact,
+            'stats' => $this->getAdminStats()
         ]);
     }
 

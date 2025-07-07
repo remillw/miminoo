@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\CheckBabysitterVerification;
+use App\Http\Middleware\ShareAdminStats;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -31,11 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class,
             'check.babysitter.verification' => \App\Http\Middleware\CheckBabysitterVerification::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'share.admin.stats' => \App\Http\Middleware\ShareAdminStats::class,
         ]);
 
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            ShareAdminStats::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -12,7 +12,6 @@ class Transaction extends Model
         'reservation_id',
         'payer_id', 
         'babysitter_id', 
-        'user_id',
         'amount', 
         'fee', 
         'payment_method', 
@@ -50,10 +49,8 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'babysitter_id');
     }
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
+    // Relation user supprimée car la colonne user_id n'existe pas dans la table
+    // Utiliser payer() ou babysitter() selon le contexte
 
     // Scopes pour filtrer par type
     public function scopePayments($query)

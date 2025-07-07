@@ -50,7 +50,8 @@ class MessagingController extends Controller
                     $query->with(['babysitter:id,firstname,lastname,avatar', 'ad.parent:id,firstname,lastname,avatar']);
                 },
                 'reservation' => function($query) {
-                    $query->select('id', 'conversation_id', 'status', 'service_start_at', 'service_end_at', 'total_deposit', 'deposit_amount');
+                    $query->select('id', 'conversation_id', 'ad_id', 'status', 'service_start_at', 'service_end_at', 'total_deposit', 'deposit_amount')
+                          ->with('ad:id,title,date_start,date_end');
                 }
             ]);
 
@@ -196,7 +197,13 @@ class MessagingController extends Controller
                             'total_deposit' => $conversation->reservation->total_deposit,
                             'deposit_amount' => $conversation->reservation->deposit_amount,
                             'can_be_cancelled' => $conversation->reservation->can_be_cancelled,
-                            'can_be_cancelled_free' => $conversation->reservation->can_be_cancelled_free
+                            'can_be_cancelled_free' => $conversation->reservation->can_be_cancelled_free,
+                            'ad' => $conversation->reservation->ad ? [
+                                'id' => $conversation->reservation->ad->id,
+                                'title' => $conversation->reservation->ad->title,
+                                'date_start' => $conversation->reservation->ad->date_start,
+                                'date_end' => $conversation->reservation->ad->date_end,
+                            ] : null
                         ];
                     } else {
                         $conversationData['reservation'] = null;
@@ -889,7 +896,7 @@ class MessagingController extends Controller
                 $conversation->load('ad');
             }
             if (!$conversation->relationLoaded('reservation')) {
-                $conversation->load('reservation');
+                $conversation->load(['reservation.ad']);
             }
             
             $messages = $conversation->messages()
@@ -979,7 +986,13 @@ class MessagingController extends Controller
                         'total_deposit' => $conversation->reservation->total_deposit,
                         'deposit_amount' => $conversation->reservation->deposit_amount,
                         'can_be_cancelled' => $conversation->reservation->can_be_cancelled,
-                        'can_be_cancelled_free' => $conversation->reservation->can_be_cancelled_free
+                        'can_be_cancelled_free' => $conversation->reservation->can_be_cancelled_free,
+                        'ad' => $conversation->reservation->ad ? [
+                            'id' => $conversation->reservation->ad->id,
+                            'title' => $conversation->reservation->ad->title,
+                            'date_start' => $conversation->reservation->ad->date_start,
+                            'date_end' => $conversation->reservation->ad->date_end,
+                        ] : null
                     ] : null
                 ]
             ];

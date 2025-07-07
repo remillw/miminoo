@@ -941,16 +941,51 @@ function onTyping(isTyping) {
 }
 
 // Gestion des mises à jour de réservation
-function handleReservationUpdate(updatedReservation) {
-    console.log('🔄 Mise à jour réservation:', updatedReservation);
+function handleReservationUpdate(updateData) {
+    console.log('🔄 Mise à jour de réservation reçue:', updateData);
 
-    // Mettre à jour la réservation dans la conversation sélectionnée
     if (selectedConversation.value) {
-        selectedConversation.value.reservation = updatedReservation;
-    }
+        // Si c'est une annulation complète d'annonce
+        if (updateData.type === 'announcement_cancelled') {
+            // Mettre à jour le statut de la conversation et de la réservation
+            selectedConversation.value.status = 'cancelled';
+            if (selectedConversation.value.reservation) {
+                selectedConversation.value.reservation.status = 'cancelled_by_parent';
+            }
+            
+            // Mettre à jour aussi dans la liste des conversations
+            const conversationInList = props.conversations.find((c) => c.id === selectedConversation.value.id);
+            if (conversationInList) {
+                conversationInList.status = 'cancelled';
+                if (conversationInList.reservation) {
+                    conversationInList.reservation.status = 'cancelled_by_parent';
+                }
+            }
+            
+            console.log('📢 Annonce annulée - conversation mise à jour');
+        } else if (updateData.reservation || updateData.status) {
+            // Mise à jour normale de réservation
+            const reservationData = updateData.reservation || updateData;
+            
+            if (selectedConversation.value.reservation) {
+                Object.assign(selectedConversation.value.reservation, reservationData);
+            } else {
+                selectedConversation.value.reservation = reservationData;
+            }
 
-    // Optionnel : recharger les conversations pour synchroniser
-    // router.get(route('messaging.index'), {}, { preserveState: true });
+            // Mettre à jour aussi dans la liste des conversations
+            const conversationInList = props.conversations.find((c) => c.id === selectedConversation.value.id);
+            if (conversationInList) {
+                if (conversationInList.reservation) {
+                    Object.assign(conversationInList.reservation, reservationData);
+                } else {
+                    conversationInList.reservation = reservationData;
+                }
+            }
+            
+            console.log('📝 Réservation mise à jour:', reservationData);
+        }
+    }
 }
 
 // Fonction pour recharger les conversations selon le mode

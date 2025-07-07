@@ -35,9 +35,22 @@ interface User {
 const page = usePage();
 const auth = page.props.auth as { user: User | null };
 
-// Récupération des stats pour les badges
+// Récupération des stats pour les badges via le middleware
+const adminStats = computed(() => {
+    return (page.props as any).adminStats || {};
+});
+
+// Fallback sur les stats locales si disponibles (pour compatibilité)
 const stats = computed(() => {
     return (page.props as any).stats || {};
+});
+
+// Utiliser adminStats en priorité, sinon fallback sur stats
+const badgeStats = computed(() => {
+    return {
+        pending_verifications: adminStats.value.pending_verifications || stats.value.pending_verifications || 0,
+        unread_contacts: adminStats.value.unread_contacts || stats.value.unread_contacts || 0
+    };
 });
 
 const isActive = (section: string) => {
@@ -54,17 +67,27 @@ const getNavItemClass = (section: string) => {
 <template>
     <div class="min-h-screen bg-gray-50">
         <!-- Header -->
-        <header class="border-b bg-white shadow-sm">
-            <div class="flex h-16 items-center px-6">
+        <header class="bg-white shadow">
+            <div class="flex h-16 items-center justify-between px-6">
                 <div class="flex items-center space-x-4">
-                    <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
-                    <p v-if="description" class="text-sm text-gray-500">{{ description }}</p>
+                    <h1 class="text-xl font-semibold text-gray-900">{{ props.title }}</h1>
+                    <p v-if="props.description" class="text-sm text-gray-600">{{ props.description }}</p>
                 </div>
-                <div class="ml-auto flex items-center space-x-4">
-                    <slot name="header-actions" />
-                    <span class="rounded-md border border-gray-200 bg-blue-50 px-2 py-1 text-sm text-blue-700">
-                        {{ auth.user?.firstname }} {{ auth.user?.lastname }}
+
+                <div v-if="props.headerActions" class="flex items-center space-x-4">
+                    <slot name="headerActions" />
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">
+                        Bonjour, {{ auth.user?.firstname }} {{ auth.user?.lastname }}
                     </span>
+                    <Link
+                        href="/dashboard"
+                        class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                        Retour au dashboard
+                    </Link>
                 </div>
             </div>
         </header>
@@ -93,10 +116,10 @@ const getNavItemClass = (section: string) => {
                             <ShieldAlert class="h-4 w-4" />
                             <span class="flex-1">Modération</span>
                             <Badge 
-                                v-if="stats.pending_verifications > 0" 
+                                v-if="badgeStats.pending_verifications > 0" 
                                 class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full"
                             >
-                                {{ stats.pending_verifications }}
+                                {{ badgeStats.pending_verifications }}
                             </Badge>
                         </Link>
 
@@ -114,10 +137,10 @@ const getNavItemClass = (section: string) => {
                             <MessageSquare class="h-4 w-4" />
                             <span class="flex-1">Contacts</span>
                             <Badge 
-                                v-if="stats.unread_contacts > 0" 
+                                v-if="badgeStats.unread_contacts > 0" 
                                 class="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded-full"
                             >
-                                {{ stats.unread_contacts }}
+                                {{ badgeStats.unread_contacts }}
                             </Badge>
                         </Link>
 

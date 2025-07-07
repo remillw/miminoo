@@ -122,18 +122,33 @@ const viewContact = (contact: Contact) => {
 
 const updateContactStatus = async (contactId: number, status: 'unread' | 'read' | 'replied', notes?: string) => {
     try {
+        // Récupération du token CSRF
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        
+        if (!csrfToken) {
+            showError('❌ Erreur', 'Token CSRF manquant');
+            return;
+        }
+
         const response = await fetch(`/admin/contacts/${contactId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
             },
             body: JSON.stringify({
                 status,
                 admin_notes: notes,
             }),
         });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erreur HTTP:', response.status, errorText);
+            showError('❌ Erreur HTTP', `Erreur ${response.status}: ${response.statusText}`);
+            return;
+        }
 
         const data = await response.json();
 
@@ -155,6 +170,7 @@ const updateContactStatus = async (contactId: number, status: 'unread' | 'read' 
             showError('❌ Erreur', data.message || 'Impossible de mettre à jour le contact');
         }
     } catch (error) {
+        console.error('Erreur lors de la mise à jour du contact:', error);
         showError('❌ Erreur', 'Impossible de mettre à jour le contact');
     }
 };

@@ -259,6 +259,11 @@ async function confirmCancellation() {
 
         if (props.userRole === 'parent' && selectedOption.value === 'entire_announcement') {
             // Annuler toute l'annonce
+            if (!props.reservation.ad?.id) {
+                error.value = "Impossible d'annuler l'annonce : informations manquantes";
+                loading.value = false;
+                return;
+            }
             endpoint = route('announcements.cancel', props.reservation.ad.id);
             payload = {
                 reason: cancelReason.value,

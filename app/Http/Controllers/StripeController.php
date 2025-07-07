@@ -570,7 +570,7 @@ class StripeController extends Controller
             });
 
         // Récupérer les transactions de déduction de la babysitter
-        $deductionTransactions = \App\Models\Transaction::where('user_id', $user->id)
+        $deductionTransactions = \App\Models\Transaction::where('babysitter_id', $user->id)
             ->where('type', 'deduction')
             ->with(['reservation.parent', 'reservation.ad'])
             ->orderBy('created_at', 'desc')

@@ -91,8 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('annonces/{announcement}/apply', [AnnouncementController::class, 'apply'])
         ->middleware('check.babysitter.verification:apply')
         ->name('announcements.apply');
-    Route::get('annonces/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
-    Route::put('annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+    // Routes d'édition d'annonce pour les parents - déplacées vers le bas pour éviter les conflits
     Route::delete('annonces/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
     Route::post('annonces/{announcement}/cancel', [AnnouncementController::class, 'cancel'])->name('announcements.cancel');
     
@@ -239,10 +238,10 @@ Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('ba
 Route::get('parent/{slug}', [ParentController::class, 'show'])->name('parent.show');
 Route::get('annonce/{slug}', [AnnouncementController::class, 'show'])->name('announcements.show');
 
-// Routes d'édition d'annonce pour les parents
+// Routes d'édition d'annonce pour les parents (unifiées)
 Route::middleware(['auth'])->group(function () {
-    Route::get('/annonces/{announcement}/modifier', [AnnouncementController::class, 'edit'])->name('announcements.edit.parent');
-    Route::put('/annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update.parent');
+    Route::get('/annonces/{announcement}/modifier', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+    Route::put('/annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
 });
 
 

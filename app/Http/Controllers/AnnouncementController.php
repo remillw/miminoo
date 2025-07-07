@@ -850,8 +850,49 @@ class AnnouncementController extends Controller
 
         $announcement->load(['address']);
 
+        // Convertir les données enfants du format DB vers le format composant
+        $convertedChildren = collect($announcement->children)->map(function ($child) {
+            // Convertir de {nom: "Léa", age: "2", unite: "ans"} vers {nom: "Léa", age_range: "2-3-ans"}
+            if (isset($child['age']) && isset($child['unite'])) {
+                $age = (int) $child['age'];
+                $unite = $child['unite'];
+                
+                if ($unite === 'mois') {
+                    if ($age <= 6) {
+                        $ageRange = '0-6-mois';
+                    } else {
+                        $ageRange = '6-12-mois';
+                    }
+                } else { // ans
+                    if ($age <= 1) {
+                        $ageRange = '1-2-ans';
+                    } elseif ($age <= 2) {
+                        $ageRange = '2-3-ans';
+                    } elseif ($age <= 6) {
+                        $ageRange = '3-6-ans';
+                    } elseif ($age <= 10) {
+                        $ageRange = '6-10-ans';
+                    } else {
+                        $ageRange = '10-ans-plus';
+                    }
+                }
+                
+                return [
+                    'nom' => $child['nom'],
+                    'age_range' => $ageRange
+                ];
+            }
+            
+            // Si déjà au bon format ou format inconnu, garder tel quel
+            return $child;
+        });
+
+        // Remplacer les enfants par les données converties
+        $announcementData = $announcement->toArray();
+        $announcementData['children'] = $convertedChildren->toArray();
+
         return Inertia::render('EditAnnouncement', [
-            'announcement' => $announcement
+            'announcement' => $announcementData
         ]);
     }
 
@@ -886,7 +927,37 @@ class AnnouncementController extends Controller
             'children.*.age_range' => 'required|string',
         ]);
 
-        $announcement->update($validated);
+        // Convertir les données enfants du format composant vers le format DB
+        $convertedChildren = collect($validated['children'])->map(function ($child) {
+            // Convertir de {nom: "Léa", age_range: "2-3-ans"} vers {nom: "Léa", age: "2", unite: "ans"}
+            $ageRange = $child['age_range'];
+            
+            switch ($ageRange) {
+                case '0-6-mois':
+                    return ['nom' => $child['nom'], 'age' => '3', 'unite' => 'mois'];
+                case '6-12-mois':
+                    return ['nom' => $child['nom'], 'age' => '9', 'unite' => 'mois'];
+                case '1-2-ans':
+                    return ['nom' => $child['nom'], 'age' => '1', 'unite' => 'ans'];
+                case '2-3-ans':
+                    return ['nom' => $child['nom'], 'age' => '2', 'unite' => 'ans'];
+                case '3-6-ans':
+                    return ['nom' => $child['nom'], 'age' => '4', 'unite' => 'ans'];
+                case '6-10-ans':
+                    return ['nom' => $child['nom'], 'age' => '8', 'unite' => 'ans'];
+                case '10-ans-plus':
+                    return ['nom' => $child['nom'], 'age' => '12', 'unite' => 'ans'];
+                default:
+                    // Fallback pour un format non reconnu
+                    return ['nom' => $child['nom'], 'age' => '3', 'unite' => 'ans'];
+            }
+        });
+
+        // Préparer les données à mettre à jour
+        $updateData = $validated;
+        $updateData['children'] = $convertedChildren->toArray();
+
+        $announcement->update($updateData);
 
         return redirect()
             ->route('parent.announcements-reservations')

@@ -106,7 +106,7 @@ class PaymentController extends Controller
         $pendingPayments = $reservations->where('status', 'pending_payment')->count();
 
         // Récupérer les transactions de remboursement du parent
-        $refundTransactions = \App\Models\Transaction::where('user_id', $user->id)
+        $refundTransactions = \App\Models\Transaction::where('payer_id', $user->id)
             ->where('type', 'refund')
             ->with(['reservation.babysitter', 'reservation.ad'])
             ->orderBy('created_at', 'desc')

@@ -440,13 +440,30 @@ function handleCancellationSuccess(result) {
     showCancelModal.value = false;
 
     if (result.type === 'announcement_cancelled') {
-        // Annonce complète annulée - rediriger vers tableau de bord ou page d'annonces
-        router.visit(route('parent.announcements-reservations'), {
-            preserveState: false,
-            onSuccess: () => {
-                // Message de succès sera géré par la page de destination
-            },
+        // Annonce complète annulée - mettre à jour le statut local avant de rediriger
+        if (props.conversation) {
+            props.conversation.status = 'cancelled';
+            if (props.conversation.reservation) {
+                props.conversation.reservation.status = 'cancelled_by_parent';
+            }
+        }
+        
+        // Émettre l'événement de mise à jour pour la sidebar
+        emit('reservation-updated', { 
+            ...result, 
+            conversation: props.conversation,
+            type: 'announcement_cancelled'
         });
+        
+        // Redirection différée pour laisser le temps à la sidebar de se mettre à jour
+        setTimeout(() => {
+            router.visit(route('parent.announcements-reservations'), {
+                preserveState: false,
+                onSuccess: () => {
+                    // Message de succès sera géré par la page de destination
+                },
+            });
+        }, 500);
     } else {
         // Juste cette réservation annulée
         emit('reservation-updated', result.reservation || result);
