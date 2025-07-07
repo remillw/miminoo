@@ -169,6 +169,14 @@
                                         <Eye class="h-4 w-4" />
                                         Voir l'annonce
                                     </button>
+                                    <button
+                                        v-if="canCancelAnnouncement(announcement)"
+                                        @click="showCancelAnnouncementModal(announcement)"
+                                        class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+                                    >
+                                        <X class="h-4 w-4" />
+                                        Annuler l'annonce
+                                    </button>
                                 </div>
 
                                 <!-- Candidatures -->
@@ -332,14 +340,29 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Modal d'annulation d'annonce -->
+        <ConfirmModal
+            :show="showCancelModal"
+            title="Annuler l'annonce"
+            :message="getCancelModalMessage()"
+            confirm-text="Oui, annuler"
+            cancel-text="Non, garder"
+            confirm-variant="danger"
+            @confirm="confirmCancelAnnouncement"
+            @cancel="closeCancelModal"
+        />
     </DashboardLayout>
 </template>
 
 <script setup lang="ts">
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import ConfirmModal from '@/components/ui/ConfirmModal.vue';
+import { useToast } from '@/composables/useToast';
 import { router, usePage } from '@inertiajs/vue3';
 import { Calendar, CheckCircle, CreditCard, Edit2, Eye, FileText, MapPin, MessageCircle, Plus, Search, Star, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Announcement {
     id: number;
@@ -423,6 +446,11 @@ const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'))
 
 // État local
 const activeTab = ref<'announcements' | 'reservations'>('announcements');
+const showCancelModal = ref(false);
+const selectedAnnouncement = ref<Announcement | null>(null);
+
+// Toast
+const { showSuccess, showError } = useToast();
 
 // Méthodes de formatage
 const formatAmount = (amount: number) => {
@@ -566,5 +594,55 @@ const editAnnouncement = (announcementId: number) => {
 const viewAnnouncement = (announcement: Announcement) => {
     // Ouvrir l'annonce dans un nouvel onglet
     window.open(`/annonce/${announcement.id}`, '_blank');
+};
+
+// Méthodes pour l'annulation d'annonces
+const canCancelAnnouncement = (announcement: Announcement) => {
+    // Une annonce peut être annulée si elle est active
+    return announcement.status === 'active';
+};
+
+const showCancelAnnouncementModal = (announcement: Announcement) => {
+    selectedAnnouncement.value = announcement;
+    showCancelModal.value = true;
+};
+
+const closeCancelModal = () => {
+    showCancelModal.value = false;
+    selectedAnnouncement.value = null;
+};
+
+const getCancelModalMessage = () => {
+    if (!selectedAnnouncement.value) return '';
+    
+    const hasApplications = selectedAnnouncement.value.applications.length > 0;
+    
+    if (hasApplications) {
+        return `Êtes-vous sûr de vouloir annuler l'annonce "${selectedAnnouncement.value.title}" ? Cela annulera également toutes les ${selectedAnnouncement.value.applications.length} candidature(s) associée(s) et les babysitters seront notifiées.`;
+    }
+    
+    return `Êtes-vous sûr de vouloir annuler l'annonce "${selectedAnnouncement.value.title}" ?`;
+};
+
+const confirmCancelAnnouncement = () => {
+    if (!selectedAnnouncement.value) return;
+    
+    router.post(route('announcements.cancel', selectedAnnouncement.value.id), {
+        reason: 'no_longer_needed',
+        note: 'Annulation depuis la page mes annonces'
+    }, {
+        preserveState: true,
+        onSuccess: (response) => {
+            showSuccess('Annonce annulée avec succès');
+            closeCancelModal();
+            // Recharger la page pour mettre à jour les statuts
+            router.reload();
+        },
+        onError: (errors) => {
+            console.error('Erreur lors de l\'annulation:', errors);
+            showError('Erreur lors de l\'annulation de l\'annonce');
+            closeCancelModal();
+        }
+    });
 };
 </script>

@@ -113,6 +113,7 @@ import { router } from '@inertiajs/vue3';
 import { Calendar, CheckCircle, Clock, CreditCard, FileText, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import CancelReservationModal from './CancelReservationModal.vue';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     conversation: Object,
@@ -124,6 +125,9 @@ const emit = defineEmits(['reservation-updated']);
 
 // État local
 const showCancelModal = ref(false);
+
+// Toast
+const { showSuccess, showError } = useToast();
 
 // Computed
 const canCancelReservation = computed(() => {
@@ -440,6 +444,9 @@ function handleCancellationSuccess(result) {
     showCancelModal.value = false;
 
     if (result.type === 'announcement_cancelled') {
+        // Afficher le toast de succès
+        showSuccess('Annonce annulée avec succès', 'Toutes les candidatures ont été annulées et les babysitters notifiées');
+        
         // Annonce complète annulée - mettre à jour le statut local avant de rediriger
         if (props.conversation) {
             props.conversation.status = 'cancelled';
@@ -466,6 +473,7 @@ function handleCancellationSuccess(result) {
         }, 500);
     } else {
         // Juste cette réservation annulée
+        showSuccess('Réservation annulée avec succès');
         emit('reservation-updated', result.reservation || result);
     }
 }

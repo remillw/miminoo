@@ -66,7 +66,7 @@
                                         </span>
                                         <!-- Badge statut conversation -->
                                         <span
-                                            v-else-if="conversation.status === 'active'"
+                                            v-else-if="conversation.status === 'active' && !conversation.reservation?.status?.includes('cancelled')"
                                             class="flex-shrink-0 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700"
                                         >
                                             Confirmée
