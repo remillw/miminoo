@@ -10,6 +10,7 @@ use App\Models\BabysitterProfile;
 use App\Models\Review;
 use App\Models\Reservation;
 use App\Models\Address;
+use App\Models\Contact;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -18,6 +19,17 @@ use Inertia\Inertia;
 
 class AdminController extends Controller
 {
+    /**
+     * Get admin stats for sidebar badges
+     */
+    protected function getAdminStats()
+    {
+        return [
+            'pending_verifications' => BabysitterProfile::where('verification_status', 'pending')->count(),
+            'unread_contacts' => Contact::where('status', 'unread')->count(),
+        ];
+    }
+
     public function dashboard()
     {
         // Statistiques pour le dashboard
@@ -42,6 +54,9 @@ class AdminController extends Controller
             'stripe_active_accounts' => User::where('stripe_account_status', 'active')->count(),
             'stripe_pending_accounts' => User::where('stripe_account_status', 'pending')->count(),
             'stripe_rejected_accounts' => User::where('stripe_account_status', 'rejected')->count(),
+
+            // Statistiques des contacts non lus
+            'unread_contacts' => Contact::where('status', 'unread')->count(),
         ];
 
         // Activité récente
@@ -80,7 +95,8 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Parents', [
             'parents' => $parents,
-            'filters' => $request->only(['search'])
+            'filters' => $request->only(['search']),
+            'stats' => $this->getAdminStats()
         ]);
     }
 
@@ -113,7 +129,8 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Babysitters', [
             'babysitters' => $babysitters,
-            'filters' => $request->only(['search', 'status'])
+            'filters' => $request->only(['search', 'status']),
+            'stats' => $this->getAdminStats()
         ]);
     }
 
@@ -143,7 +160,8 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Announcements', [
             'announcements' => $announcements,
-            'filters' => $request->only(['search', 'status'])
+            'filters' => $request->only(['search', 'status']),
+            'stats' => $this->getAdminStats()
         ]);
     }
 
@@ -176,7 +194,8 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Reviews', [
             'reviews' => $reviews,
-            'filters' => $request->only(['search', 'rating'])
+            'filters' => $request->only(['search', 'rating']),
+            'stats' => $this->getAdminStats()
         ]);
     }
 

@@ -105,20 +105,58 @@ class PaymentController extends Controller
         $totalReservations = $reservations->count();
         $pendingPayments = $reservations->where('status', 'pending_payment')->count();
 
-        // Grouper les transactions par mois pour l'affichage
-        $transactions = $reservations->map(function ($reservation) {
-            return [
+        // Récupérer les transactions de remboursement du parent
+        $refundTransactions = \App\Models\Transaction::where('user_id', $user->id)
+            ->where('type', 'refund')
+            ->with(['reservation.babysitter', 'reservation.ad'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Créer la liste combinée des transactions (réservations + remboursements)
+        $transactions = collect();
+
+        // Ajouter les réservations
+        $reservations->each(function ($reservation) use ($transactions) {
+            $startDate = $reservation->service_start_at ? new \Carbon\Carbon($reservation->service_start_at) : null;
+            $endDate = $reservation->service_end_at ? new \Carbon\Carbon($reservation->service_end_at) : null;
+            
+            // Calculer la durée en heures
+            $duration = $startDate && $endDate ? $startDate->diffInHours($endDate) : 0;
+            
+            $transactions->push([
                 'id' => $reservation->id,
+                'type' => 'payment',
                 'date' => $reservation->created_at,
                 'babysitter_name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
                 'amount' => $reservation->total_deposit,
                 'status' => $reservation->status,
                 'service_start' => $reservation->service_start_at,
                 'service_end' => $reservation->service_end_at,
+                'duration' => $duration,
                 'ad_title' => $reservation->ad->title,
-                'can_download_invoice' => in_array($reservation->status, ['completed', 'paid']),
-            ];
+                'can_download_invoice' => in_array($reservation->status, ['completed', 'service_completed']),
+            ]);
         });
+
+        // Ajouter les remboursements
+        $refundTransactions->each(function ($transaction) use ($transactions) {
+            $reservation = $transaction->reservation;
+            $transactions->push([
+                'id' => $transaction->id,
+                'type' => 'refund',
+                'date' => $transaction->created_at,
+                'babysitter_name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
+                'amount' => $transaction->amount,
+                'status' => 'refunded',
+                'description' => $transaction->description,
+                'ad_title' => $reservation->ad->title,
+                'original_reservation_id' => $reservation->id,
+                'metadata' => $transaction->metadata,
+            ]);
+        });
+
+        // Trier par date décroissante
+        $transactions = $transactions->sortByDesc('date')->values();
 
         return Inertia::render('Payments/Index', [
             'mode' => 'parent',
@@ -143,16 +181,35 @@ class PaymentController extends Controller
             abort(403, 'Accès non autorisé');
         }
 
-        // Vérifier que la réservation est complétée
-        if (!in_array($reservation->status, ['completed', 'service_completed'])) {
-            abort(400, 'La facture n\'est pas encore disponible');
+        // Vérifier que le service est terminé (date de fin passée)
+        $now = now();
+        $serviceEndTime = $reservation->service_end_at ? new \Carbon\Carbon($reservation->service_end_at) : null;
+        
+        if (!$serviceEndTime || $serviceEndTime->isFuture()) {
+            return response()->json([
+                'error' => 'La facture n\'est disponible qu\'après la fin du service de babysitting.'
+            ], 400);
+        }
+
+        // Vérifier que la réservation est dans un état permettant le téléchargement
+        if (!in_array($reservation->status, ['completed', 'service_completed', 'paid'])) {
+            return response()->json([
+                'error' => 'La facture n\'est pas encore disponible pour cette réservation.'
+            ], 400);
         }
 
         try {
             // Générer la facture via Stripe
             $invoice = $this->generateInvoiceForReservation($reservation);
 
-            // Rediriger vers l'URL de téléchargement Stripe
+            // Si c'est une requête AJAX, retourner l'URL
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'pdf_url' => $invoice->invoice_pdf
+                ]);
+            }
+
+            // Sinon rediriger vers l'URL de téléchargement Stripe
             return redirect($invoice->invoice_pdf);
         } catch (\Exception $e) {
             Log::error('Erreur génération facture parent', [
@@ -160,6 +217,12 @@ class PaymentController extends Controller
                 'parent_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'error' => 'Impossible de générer la facture'
+                ], 500);
+            }
 
             return back()->with('error', 'Impossible de générer la facture');
         }
@@ -179,12 +242,17 @@ class PaymentController extends Controller
                 'name' => $reservation->parent->firstname . ' ' . $reservation->parent->lastname,
                 'metadata' => [
                     'user_id' => $reservation->parent->id,
-                    'platform' => 'TrouvetaBabysitter'
+                    'platform' => 'TrouveTaBabysitter'
                 ]
             ]);
 
             $reservation->parent->update(['stripe_customer_id' => $customer->id]);
         }
+
+        // Calculer la durée du service
+        $startDate = new \Carbon\Carbon($reservation->service_start_at);
+        $endDate = new \Carbon\Carbon($reservation->service_end_at);
+        $duration = $startDate->diffInHours($endDate);
 
         // Créer la facture
         $invoice = $stripe->invoices->create([
@@ -194,7 +262,7 @@ class PaymentController extends Controller
             'metadata' => [
                 'reservation_id' => $reservation->id,
                 'parent_id' => $reservation->parent->id,
-                'platform' => 'TrouvetaBabysitter'
+                'platform' => 'TrouveTaBabysitter'
             ]
         ]);
 
@@ -205,11 +273,12 @@ class PaymentController extends Controller
             'price_data' => [
                 'currency' => 'eur',
                 'product_data' => [
-                    'name' => 'Service de garde - ' . $reservation->start_date->format('d/m/Y'),
-                    'description' => 'Garde de ' . $reservation->duration . 'h avec ' . 
-                                   $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
+                    'name' => 'Service de garde - ' . $startDate->format('d/m/Y'),
+                    'description' => 'Garde de ' . $duration . 'h avec ' . 
+                                   $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname .
+                                   ' du ' . $startDate->format('d/m/Y à H:i') . ' au ' . $endDate->format('d/m/Y à H:i'),
                 ],
-                'unit_amount' => $reservation->total_amount * 100, // Convertir en centimes
+                'unit_amount' => round($reservation->total_deposit * 100), // Convertir en centimes
             ],
             'quantity' => 1,
         ]);

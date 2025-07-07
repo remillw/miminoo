@@ -529,22 +529,64 @@ class StripeController extends Controller
 
         // Récupérer les réservations de la babysitter pour calculer les prochaines dates de libération
         $reservations = Reservation::where('babysitter_id', $user->id)
-            ->whereIn('status', ['paid', 'active', 'completed'])
+            ->whereIn('status', ['paid', 'active', 'completed', 'service_completed'])
             ->with(['ad:id,title,date_start,date_end'])
             ->orderBy('service_start_at', 'desc')
             ->get()
             ->map(function ($reservation) {
+                $serviceEndDate = $reservation->service_end_at ? new \Carbon\Carbon($reservation->service_end_at) : null;
+                
+                // Calculer la date de disponibilité des fonds (7 jours après la fin du service)
+                $fundsAvailableAt = null;
+                $fundsStatus = 'pending';
+                
+                if ($serviceEndDate) {
+                    $fundsAvailableAt = $serviceEndDate->addDays(7);
+                    $now = now();
+                    
+                    if ($fundsAvailableAt->isPast()) {
+                        $fundsStatus = 'available';
+                    } elseif ($serviceEndDate->isPast()) {
+                        $fundsStatus = 'processing';
+                    } else {
+                        $fundsStatus = 'waiting_service_completion';
+                    }
+                }
+                
                 return [
                     'id' => $reservation->id,
                     'status' => $reservation->status,
                     'service_start_at' => $reservation->service_start_at,
                     'service_end_at' => $reservation->service_end_at,
                     'babysitter_amount' => $reservation->babysitter_amount,
+                    'funds_available_at' => $fundsAvailableAt,
+                    'funds_status' => $fundsStatus,
                     'ad' => [
                         'title' => $reservation->ad->title,
                         'date_start' => $reservation->ad->date_start,
                         'date_end' => $reservation->ad->date_end,
                     ]
+                ];
+            });
+
+        // Récupérer les transactions de déduction de la babysitter
+        $deductionTransactions = \App\Models\Transaction::where('user_id', $user->id)
+            ->where('type', 'deduction')
+            ->with(['reservation.parent', 'reservation.ad'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($transaction) {
+                $reservation = $transaction->reservation;
+                return [
+                    'id' => $transaction->id,
+                    'type' => 'deduction',
+                    'date' => $transaction->created_at,
+                    'parent_name' => $reservation->parent->firstname . ' ' . $reservation->parent->lastname,
+                    'amount' => $transaction->amount, // Négatif
+                    'description' => $transaction->description,
+                    'ad_title' => $reservation->ad->title,
+                    'reservation_id' => $reservation->id,
+                    'metadata' => $transaction->metadata,
                 ];
             });
 
@@ -555,6 +597,7 @@ class StripeController extends Controller
             'accountBalance' => $accountBalance,
             'recentTransactions' => $recentTransactions,
             'reservations' => $reservations,
+            'deductionTransactions' => $deductionTransactions,
             'stripeAccountId' => $user->stripe_account_id,
             'babysitterProfile' => $user->babysitterProfile
         ];

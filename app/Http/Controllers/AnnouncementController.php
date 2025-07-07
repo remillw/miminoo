@@ -581,7 +581,7 @@ class AnnouncementController extends Controller
                 'additional_info' => 'nullable|string|max:2000',
                 
                 // Étape 5: Tarif
-                'hourly_rate' => 'required|numeric|min:0|max:999.99',
+                'hourly_rate' => 'required|numeric|min:10',
                 'estimated_duration' => 'nullable|numeric|min:0',
                 'estimated_total' => 'nullable|numeric|min:0',
             ];
@@ -876,7 +876,7 @@ class AnnouncementController extends Controller
             'additional_info' => 'nullable|string|max:2000',
             'date_start' => 'required|date|after_or_equal:today',
             'date_end' => 'required|date|after:date_start',
-            'hourly_rate' => 'required|numeric|min:10|max:50',
+            'hourly_rate' => 'required|numeric|min:10',
             'children' => 'required|array|min:1',
             'children.*.nom' => 'required|string|max:255',
             'children.*.age_range' => 'required|string',
@@ -1123,34 +1123,40 @@ class AnnouncementController extends Controller
                         $reservation = $application->conversation->reservation;
                         
                         // Annuler la réservation et gérer le remboursement
-                        $canCancelFree = $reservation->can_be_cancelled_free;
-                        $reservation->cancelByParent('parent_cancelled_announcement', $validated['note']);
+                        $reservation->update([
+                            'status' => 'cancelled_by_parent',
+                            'cancelled_at' => now(),
+                            'cancellation_reason' => 'parent_cancelled_announcement',
+                            'cancellation_note' => $validated['note']
+                        ]);
                         
-                        // Remboursement automatique selon les conditions
+                        // Remboursement avec le nouveau système
                         $refundAmount = $reservation->getRefundAmount();
-                        if ($refundAmount > 0) {
-                            // Tentative de remboursement Stripe
+                        if ($refundAmount > 0 && $reservation->stripe_payment_intent_id) {
+                            // Tentative de remboursement avec déduction babysitter
                             try {
-                                app(StripeService::class)->createRefund(
-                                    $reservation->payment_intent_id,
-                                    $refundAmount * 100, // Stripe utilise les centimes
+                                $refund = app(StripeService::class)->createRefundWithBabysitterDeduction(
+                                    $reservation->stripe_payment_intent_id,
+                                    $reservation,
                                     'Annulation de l\'annonce par le parent'
                                 );
                                 
                                 $reservation->update([
-                                    'refund_amount' => $refundAmount,
+                                    'refund_amount' => $reservation->getParentRefundAmount(),
                                     'refunded_at' => now()
                                 ]);
                                 
                                 $refundedReservations[] = [
                                     'reservation_id' => $reservation->id,
                                     'babysitter_id' => $reservation->babysitter_id,
-                                    'refund_amount' => $refundAmount
+                                    'parent_refund_amount' => $reservation->getParentRefundAmount(),
+                                    'babysitter_deduction' => $reservation->getBabysitterDeductionAmount()
                                 ];
                                 
                             } catch (\Exception $e) {
                                 Log::error('Erreur remboursement lors annulation annonce', [
                                     'reservation_id' => $reservation->id,
+                                    'payment_intent_id' => $reservation->stripe_payment_intent_id,
                                     'error' => $e->getMessage()
                                 ]);
                                 // Ne pas faire échouer l'annulation pour un problème de remboursement

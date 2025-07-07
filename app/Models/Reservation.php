@@ -279,15 +279,59 @@ class Reservation extends Model
 
     public function getRefundAmount(): float
     {
+        // Pas de remboursement si annulation tardive par le parent avec pénalité
         if ($this->status === 'cancelled_by_parent' && $this->cancellation_penalty) {
-            return 0; // Pas de remboursement si annulation tardive par le parent
+            return 0;
         }
 
+        // Si babysitter annule ou parent annule sans pénalité
+        return $this->getParentRefundAmount();
+    }
+
+    /**
+     * Calculer le montant remboursé au parent
+     * Parent reçoit : Montant total payé - frais de service - frais Stripe de remboursement
+     */
+    public function getParentRefundAmount(): float
+    {
+        $paidAmount = $this->total_deposit; // Ce que le parent a payé (50€ + 2€ frais = 52€)
+        $serviceFees = $this->service_fee; // Frais de service non remboursables (2€)
+        $stripeRefundFees = $this->getStripeRefundFees(); // Frais Stripe de remboursement
+        
+        $refundAmount = $paidAmount - $serviceFees - $stripeRefundFees;
+        
+        // S'assurer que le montant n'est pas négatif
+        return max(0, round($refundAmount, 2));
+    }
+
+    /**
+     * Calculer les frais Stripe pour un remboursement
+     * Environ 0.25€ fixe + 2.9% du montant remboursé
+     */
+    public function getStripeRefundFees(): float
+    {
+        $baseAmount = $this->total_deposit - $this->service_fee; // Montant qui sera remboursé
+        return round(0.25 + ($baseAmount * 0.029), 2);
+    }
+
+    /**
+     * Calculer le montant à déduire du compte babysitter
+     * Quand le parent se fait rembourser, ces fonds viennent du compte Connect de la babysitter
+     */
+    public function getBabysitterDeductionAmount(): float
+    {
+        // Si c'est la babysitter qui annule, elle perd tous les fonds qu'elle aurait reçus
         if ($this->status === 'cancelled_by_babysitter') {
-            return $this->total_deposit; // Remboursement complet si babysitter annule
+            return $this->babysitter_amount;
         }
 
-        return $this->total_deposit; // Remboursement complet pour annulation gratuite
+        // Si c'est le parent qui annule et demande un remboursement
+        if ($this->status === 'cancelled_by_parent' && !$this->cancellation_penalty) {
+            // La babysitter perd le montant remboursé au parent + frais Stripe
+            return $this->getParentRefundAmount() + $this->getStripeRefundFees();
+        }
+
+        return 0;
     }
 
     public function shouldReceiveBadReview(): bool

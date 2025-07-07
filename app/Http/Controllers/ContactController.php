@@ -143,6 +143,11 @@ class ContactController extends Controller
                 ];
             });
 
+        $adminStats = [
+            'pending_verifications' => \App\Models\BabysitterProfile::where('verification_status', 'pending')->count(),
+            'unread_contacts' => Contact::where('status', 'unread')->count(),
+        ];
+
         return Inertia::render('Admin/Contacts', [
             'contacts' => $contacts,
             'filters' => [
@@ -154,6 +159,9 @@ class ContactController extends Controller
                 'total' => Contact::count(),
                 'unread' => Contact::unread()->count(),
                 'recent' => Contact::where('created_at', '>=', now()->subDays(7))->count(),
+                // Stats pour la sidebar
+                'pending_verifications' => $adminStats['pending_verifications'],
+                'unread_contacts' => $adminStats['unread_contacts'],
             ]
         ]);
     }

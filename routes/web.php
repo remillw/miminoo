@@ -320,7 +320,7 @@ Route::middleware('auth')->group(function () {
 // Routes pour les paiements (unifiées babysitter/parent)
 Route::middleware(['auth'])->group(function () {
     Route::get('/paiements', [PaymentController::class, 'index'])->name('payments.index');
-    Route::get('/paiements/facture/{reservation}', [PaymentController::class, 'downloadInvoice'])->name('payments.download-invoice');
+    Route::get('/reservations/{reservation}/invoice', [PaymentController::class, 'downloadInvoice'])->name('reservations.download-invoice');
 });
 
 // Routes spécifiques pour les parents (compatibilité)

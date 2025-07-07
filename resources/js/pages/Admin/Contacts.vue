@@ -10,6 +10,7 @@ import type { Column } from '@/types/datatable';
 import { Head, router } from '@inertiajs/vue3';
 import { CheckCircle, Clock, Eye, Mail, MessageSquare, Phone, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Contact {
     id: number;
@@ -428,14 +429,16 @@ const formatDate = (dateString: string) => {
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="text-sm font-medium text-gray-500">Statut</label>
-                                <select
-                                    v-model="contactStatus"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                >
-                                    <option value="unread">Non lu</option>
-                                    <option value="read">Lu</option>
-                                    <option value="replied">Répondu</option>
-                                </select>
+                                <Select v-model="contactStatus">
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Sélectionner un statut" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="unread">Non lu</SelectItem>
+                                        <SelectItem value="read">Lu</SelectItem>
+                                        <SelectItem value="replied">Répondu</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 

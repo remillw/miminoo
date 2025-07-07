@@ -324,24 +324,25 @@ class ReservationController extends Controller
                 }
             }
 
-            // Gérer le remboursement si nécessaire
+            // Gérer le remboursement avec le nouveau système
             $refundAmount = $reservation->getRefundAmount();
             if ($refundAmount > 0 && $reservation->stripe_payment_intent_id) {
                 try {
-                    $refund = $this->stripeService->createRefund(
+                    $refund = $this->stripeService->createRefundWithBabysitterDeduction(
                         $reservation->stripe_payment_intent_id,
-                        $refundAmount * 100 // Stripe attend des centimes
+                        $reservation,
+                        $validated['reason']
                     );
                     
-                    Log::info('Remboursement Stripe effectué', [
+                    Log::info('Remboursement avec déduction babysitter effectué', [
                         'reservation_id' => $reservation->id,
-                        'refund_amount' => $refundAmount,
-                        'refund_id' => $refund->id
+                        'parent_refund_amount' => $reservation->getParentRefundAmount(),
+                        'babysitter_deduction' => $reservation->getBabysitterDeductionAmount(),
+                        'refund_id' => $refund?->id
                     ]);
                 } catch (\Exception $e) {
-                    Log::error('Erreur lors du remboursement Stripe', [
+                    Log::error('Erreur lors du remboursement avec déduction', [
                         'reservation_id' => $reservation->id,
-                        'refund_amount' => $refundAmount,
                         'error' => $e->getMessage()
                     ]);
                     // Ne pas faire échouer l'annulation si le remboursement échoue

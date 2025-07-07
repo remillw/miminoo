@@ -8,12 +8,36 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Transaction extends Model
 {
     protected $fillable = [
-        'ad_id', 'payer_id', 'babysitter_id', 'amount', 'fee', 'payment_method', 'stripe_id', 'status'
+        'ad_id', 
+        'reservation_id',
+        'payer_id', 
+        'babysitter_id', 
+        'user_id',
+        'amount', 
+        'fee', 
+        'payment_method', 
+        'stripe_id',
+        'stripe_refund_id',
+        'status',
+        'type',
+        'description',
+        'metadata'
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
+        'amount' => 'decimal:2',
+        'fee' => 'decimal:2'
     ];
 
     public function ad(): BelongsTo
     {
         return $this->belongsTo(Ad::class);
+    }
+
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
     }
 
     public function payer(): BelongsTo
@@ -24,5 +48,42 @@ class Transaction extends Model
     public function babysitter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'babysitter_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // Scopes pour filtrer par type
+    public function scopePayments($query)
+    {
+        return $query->where('type', 'payment');
+    }
+
+    public function scopeRefunds($query)
+    {
+        return $query->where('type', 'refund');
+    }
+
+    public function scopeDeductions($query)
+    {
+        return $query->where('type', 'deduction');
+    }
+
+    // Accesseurs pour formater les montants
+    public function getFormattedAmountAttribute(): string
+    {
+        return number_format($this->amount, 2, ',', ' ') . ' €';
+    }
+
+    public function getIsRefundAttribute(): bool
+    {
+        return $this->type === 'refund';
+    }
+
+    public function getIsDeductionAttribute(): bool
+    {
+        return $this->type === 'deduction';
     }
 }

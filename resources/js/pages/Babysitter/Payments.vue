@@ -15,9 +15,11 @@ import {
     ExternalLink,
     Eye,
     Info,
+    Minus,
     RefreshCw,
     Settings,
     Shield,
+    TrendingDown,
     TrendingUp,
     User,
     Wallet,
@@ -83,6 +85,20 @@ interface BabysitterReservation {
         date_start: string;
         date_end: string;
     };
+    funds_status: 'available' | 'processing' | 'waiting_service_completion';
+    funds_available_at?: string;
+}
+
+interface DeductionTransaction {
+    id: number;
+    type: 'deduction';
+    date: string;
+    parent_name: string;
+    amount: number;
+    description: string;
+    ad_title: string;
+    reservation_id: number;
+    metadata: any;
 }
 
 interface Props {
@@ -91,6 +107,7 @@ interface Props {
     accountBalance: AccountBalance | null;
     recentTransactions: Transaction[];
     reservations: BabysitterReservation[];
+    deductionTransactions: DeductionTransaction[];
     stripeAccountId: string;
     babysitterProfile: BabysitterProfile | null;
 }
@@ -727,6 +744,53 @@ onMounted(() => {
         }, 2000);
     }
 });
+
+const formatServiceDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
+const formatFundsDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
+const getFundsStatusVariant = (status: BabysitterReservation['funds_status']) => {
+    switch (status) {
+        case 'available':
+            return 'success';
+        case 'processing':
+            return 'warning';
+        case 'waiting_service_completion':
+            return 'secondary';
+        default:
+            return 'secondary';
+    }
+};
+
+const getFundsStatusText = (status: BabysitterReservation['funds_status']) => {
+    switch (status) {
+        case 'available':
+            return 'Fonds disponibles';
+        case 'processing':
+            return 'En traitement (7 jours)';
+        case 'waiting_service_completion':
+            return 'En attente de fin de service';
+        default:
+            return 'En attente';
+    }
+};
+
 </script>
 
 <template>
@@ -1236,6 +1300,50 @@ onMounted(() => {
                 </CardContent>
             </Card>
 
+            <!-- Réservations et disponibilité des fonds -->
+            <Card v-if="props.reservations && props.reservations.length > 0">
+                <CardHeader>
+                    <CardTitle class="flex items-center">
+                        <Wallet class="mr-2 h-5 w-5" />
+                        Réservations et disponibilité des fonds
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div class="space-y-4">
+                        <div
+                            v-for="reservation in props.reservations"
+                            :key="reservation.id"
+                            class="rounded-lg border p-4"
+                        >
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900">{{ reservation.ad.title }}</h4>
+                                    <p class="text-sm text-gray-600">
+                                        {{ formatServiceDate(reservation.service_start_at) }} - {{ formatServiceDate(reservation.service_end_at) }}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold text-gray-900">{{ formatCurrency(reservation.babysitter_amount) }}</div>
+                                    <Badge :variant="getFundsStatusVariant(reservation.funds_status)" class="text-xs">
+                                        {{ getFundsStatusText(reservation.funds_status) }}
+                                    </Badge>
+                                </div>
+                            </div>
+                            
+                            <div v-if="reservation.funds_available_at" class="mt-3 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <Calendar class="h-4 w-4 text-gray-400" />
+                                    <span class="text-gray-600">
+                                        Fonds disponibles le : 
+                                        <span class="font-medium">{{ formatFundsDate(reservation.funds_available_at) }}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             <!-- Aide -->
             <Card>
                 <CardHeader>
@@ -1259,6 +1367,51 @@ onMounted(() => {
                     </div>
                 </CardContent>
             </Card>
+            <!-- Transactions de déduction -->
+            <Card v-if="currentStatus === 'active' && props.deductionTransactions.length > 0">
+                <CardHeader>
+                    <CardTitle class="flex items-center text-red-600">
+                        <TrendingDown class="mr-2 h-5 w-5" />
+                        Déductions (remboursements parents)
+                    </CardTitle>
+                    <CardDescription>
+                        Montants déduits de votre compte suite aux remboursements de parents
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div class="space-y-3">
+                        <div
+                            v-for="transaction in props.deductionTransactions"
+                            :key="`deduction-${transaction.id}`"
+                            class="flex items-center justify-between border-b border-gray-100 py-3 last:border-b-0 bg-red-50 rounded-lg px-3"
+                        >
+                            <div class="flex items-center">
+                                <div class="mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                                    <Minus class="h-5 w-5 text-red-600" />
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">{{ transaction.description }}</p>
+                                    <p class="text-sm text-gray-500">
+                                        Parent: {{ transaction.parent_name }} - {{ transaction.ad_title }}
+                                    </p>
+                                    <p class="text-xs text-gray-400">
+                                        {{ formatDate(transaction.date) }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold text-red-600">
+                                    {{ formatAmount(transaction.amount) }}
+                                </p>
+                                <Badge variant="destructive" class="text-xs">
+                                    Déduction
+                                </Badge>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
         </div>
     </DashboardLayout>
 </template>

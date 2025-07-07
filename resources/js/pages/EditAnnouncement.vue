@@ -110,7 +110,6 @@
                                 type="number"
                                 step="0.5"
                                 min="10"
-                                max="50"
                                 required
                                 class="focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-1 focus:outline-none"
                                 :class="{ 'border-red-500': form.errors.hourly_rate }"
@@ -119,7 +118,7 @@
                             <p v-if="form.errors.hourly_rate" class="mt-1 text-sm text-red-500">
                                 {{ form.errors.hourly_rate }}
                             </p>
-                            <p class="mt-1 text-sm text-gray-500">Le tarif doit être entre 10€ et 50€ par heure</p>
+                            <p class="mt-1 text-sm text-gray-500">Le tarif doit être d'au moins 10€ par heure</p>
                         </div>
 
                         <!-- Enfants -->

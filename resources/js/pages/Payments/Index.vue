@@ -245,35 +245,47 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
-                                    <tr v-for="transaction in isParentMode(props) ? props.transactions : []" :key="transaction.id">
+                                    <tr v-for="transaction in isParentMode(props) ? props.transactions : []" :key="`${transaction.type}-${transaction.id}`"
+                                        :class="transaction.type === 'refund' ? 'bg-green-50' : ''">
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             {{ formatDate(transaction.date) }}
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             {{ transaction.babysitter_name }}
+                                            <span v-if="transaction.type === 'refund'" class="ml-2 text-xs text-green-600">(Remboursement)</span>
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ formatDate(transaction.start_date) }} - {{ transaction.duration }}h
+                                            <span v-if="transaction.type === 'payment'">
+                                                {{ formatDate(transaction.service_start) }} - {{ transaction.duration }}h
+                                            </span>
+                                            <span v-else-if="transaction.type === 'refund'" class="text-green-600">
+                                                {{ transaction.description }}
+                                            </span>
                                         </td>
-                                        <td class="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
-                                            {{ formatAmount(transaction.amount) }}€
+                                        <td class="px-6 py-4 text-sm font-medium whitespace-nowrap">
+                                            <span :class="transaction.type === 'refund' ? 'text-green-600' : 'text-gray-900'">
+                                                {{ transaction.type === 'refund' ? '+' : '' }}{{ formatAmount(transaction.amount) }}€
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span
-                                                :class="getReservationStatusClass(transaction.status)"
+                                                :class="transaction.type === 'refund' ? 'bg-green-100 text-green-800' : getReservationStatusClass(transaction.status)"
                                                 class="rounded-full px-2 py-1 text-xs font-medium"
                                             >
-                                                {{ getReservationStatusText(transaction.status) }}
+                                                {{ transaction.type === 'refund' ? 'Remboursé' : getReservationStatusText(transaction.status) }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                                             <button
-                                                v-if="transaction.can_download_invoice"
+                                                v-if="transaction.type === 'payment' && transaction.can_download_invoice"
                                                 @click="downloadInvoice(transaction.id)"
                                                 class="text-blue-600 hover:text-blue-800"
                                             >
                                                 Télécharger facture
                                             </button>
+                                            <span v-if="transaction.type === 'refund'" class="text-xs text-gray-400">
+                                                Frais service/Stripe déduits
+                                            </span>
                                         </td>
                                     </tr>
                                     <tr v-if="isParentMode(props) && (!props.transactions || props.transactions.length === 0)">
@@ -360,8 +372,11 @@ const formatAmount = (amount: number) => {
     return Number(amount).toFixed(2);
 };
 
-const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleDateString('fr-FR');
+const formatDate = (date: string | Date | null | undefined) => {
+    if (!date) return '-';
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) return '-';
+    return dateObj.toLocaleDateString('fr-FR');
 };
 
 // Méthodes pour les statuts (mode babysitter)
@@ -432,22 +447,32 @@ const getTransactionStatusText = (status: string) => {
 // Méthodes pour les statuts (mode parent)
 const getReservationStatusClass = (status: string) => {
     const classes: { [key: string]: string } = {
+        pending_payment: 'bg-yellow-100 text-yellow-800',
+        paid: 'bg-green-100 text-green-800',
+        active: 'bg-blue-100 text-blue-800',
         completed: 'bg-green-100 text-green-800',
         service_completed: 'bg-green-100 text-green-800',
-        pending_payment: 'bg-yellow-100 text-yellow-800',
-        payment_failed: 'bg-red-100 text-red-800',
         cancelled: 'bg-gray-100 text-gray-800',
+        cancelled_by_parent: 'bg-red-100 text-red-800',
+        cancelled_by_babysitter: 'bg-red-100 text-red-800',
+        payment_failed: 'bg-red-100 text-red-800',
+        refunded: 'bg-purple-100 text-purple-800',
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
 };
 
 const getReservationStatusText = (status: string) => {
     const statusTexts: { [key: string]: string } = {
+        pending_payment: 'En attente de paiement',
+        paid: 'Payé',
+        active: 'En cours',
         completed: 'Terminé',
         service_completed: 'Service terminé',
-        pending_payment: 'Paiement en attente',
-        payment_failed: 'Paiement échoué',
         cancelled: 'Annulé',
+        cancelled_by_parent: 'Annulé par le parent',
+        cancelled_by_babysitter: 'Annulé par la babysitter',
+        payment_failed: 'Paiement échoué',
+        refunded: 'Remboursé',
     };
     return statusTexts[status] || status;
 };
@@ -476,12 +501,49 @@ const triggerManualPayout = () => {
     );
 };
 
-const downloadPayoutReceipt = (payoutId: string) => {
-    router.get(`/stripe/payout-receipt/${payoutId}`);
+// Méthodes pour les actions
+const downloadInvoice = async (transactionId: number) => {
+    try {
+        const response = await fetch(`/reservations/${transactionId}/invoice`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/pdf',
+            },
+        });
+
+        if (!response.ok) {
+            if (response.status === 400) {
+                alert('La facture n\'est disponible qu\'après la fin du service de babysitting.');
+            } else {
+                alert('Erreur lors du téléchargement de la facture');
+            }
+            return;
+        }
+
+        // Télécharger le fichier
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `facture-${transactionId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors du téléchargement de la facture');
+    }
 };
 
-// Actions pour le mode parent
-const downloadInvoice = (reservationId: number) => {
-    router.get(`/paiements/facture/${reservationId}`);
+const downloadPayoutReceipt = async (transactionId: string) => {
+    try {
+        // Télécharger le reçu de virement pour les babysitters
+        window.open(`/babysitter/virements/${transactionId}/recu`, '_blank');
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors du téléchargement du reçu');
+    }
 };
 </script>
