@@ -204,12 +204,22 @@
                                     />
                                     <div class="flex-1">
                                         <h4 class="font-medium text-gray-900">{{ reservation.parent.name }}</h4>
-                                        <p class="text-sm text-gray-600">Paris 16e • À domicile</p>
+                                        <p class="text-sm text-gray-600">Service terminé</p>
                                     </div>
-                                    <div v-if="reservation.status === 'completed'" class="text-right">
-                                        <button class="text-yellow-600 hover:text-yellow-700">
-                                            <Star class="h-5 w-5" />
+                                    <div v-if="reservation.can_review" class="text-right">
+                                        <button 
+                                            @click="createReview(reservation.id)"
+                                            class="inline-flex items-center gap-1 rounded-md bg-yellow-500 px-3 py-1 text-xs font-medium text-white hover:bg-yellow-600"
+                                        >
+                                            <Star class="h-4 w-4" />
+                                            Laisser un avis
                                         </button>
+                                    </div>
+                                    <div v-else-if="reservation.babysitter_reviewed" class="text-right">
+                                        <span class="inline-flex items-center gap-1 rounded-md bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                                            <Star class="h-4 w-4 fill-current" />
+                                            Avis donné
+                                        </span>
                                     </div>
                                 </div>
 
@@ -251,7 +261,7 @@
 
 <script setup>  
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import { Briefcase, Calendar, MessageCircle, Search, Star } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 
@@ -353,5 +363,9 @@ const viewDetails = (application) => {
 const viewReservationDetails = (reservation) => {
     // Rediriger vers les détails de la réservation
     window.location.href = `/reservations/${reservation.id}`;
+};
+
+const createReview = (reservationId) => {
+    router.visit(route('reviews.create', reservationId));
 };
 </script>

@@ -131,7 +131,7 @@ class PaymentController extends Controller
             ->get();
 
         // Calculer les statistiques
-        $totalSpent = $reservations->whereIn('status', ['completed', 'paid'])->sum('total_deposit');
+        $totalSpent = $reservations->whereIn('status', ['completed', 'service_completed', 'paid'])->sum('total_deposit');
         $totalReservations = $reservations->count();
         $pendingPayments = $reservations->where('status', 'pending_payment')->count();
 

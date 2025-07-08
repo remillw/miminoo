@@ -698,21 +698,9 @@ class StripeController extends Controller
                 $request->amount
             );
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Virement créé avec succès',
-                'payout' => [
-                    'id' => $payout->id,
-                    'amount' => $payout->amount / 100,
-                    'arrival_date' => $payout->arrival_date,
-                    'status' => $payout->status
-                ]
-            ]);
+            return redirect()->back()->with('success', 'Virement créé avec succès ! Montant: ' . ($payout->amount / 100) . '€');
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 400);
+            return redirect()->back()->with('error', 'Erreur lors de la création du virement: ' . $e->getMessage());
         }
     }
 

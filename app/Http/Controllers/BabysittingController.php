@@ -60,6 +60,10 @@ class BabysittingController extends Controller
             ->orderBy('service_start_at', 'desc')
             ->get()
             ->map(function ($reservation) {
+                // Vérifier si la babysitter peut laisser un avis
+                $canReview = in_array($reservation->status, ['completed', 'service_completed']) && 
+                           !$reservation->babysitter_reviewed;
+                
                 return [
                     'id' => $reservation->id,
                     'status' => $reservation->status,
@@ -68,6 +72,8 @@ class BabysittingController extends Controller
                     'service_end_at' => $reservation->service_end_at,
                     'total_amount' => $reservation->total_amount,
                     'babysitter_amount' => $reservation->babysitter_amount,
+                    'babysitter_reviewed' => $reservation->babysitter_reviewed,
+                    'can_review' => $canReview,
                     'created_at' => $reservation->created_at,
                     'ad' => [
                         'id' => $reservation->ad->id,

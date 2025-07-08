@@ -2588,6 +2588,7 @@ class StripeService
                 'babysitter_id' => $reservation->babysitter_id,
                 'type' => 'payout',
                 'amount' => $transferAmount,
+                'babysitter_amount' => $transferAmount, // Ajout du champ requis
                 'status' => 'succeeded',
                 'stripe_id' => $transfer->id,
                 'description' => 'Paiement babysitter après validation (24h)',
@@ -2698,6 +2699,7 @@ class StripeService
                 'babysitter_id' => $reservation->babysitter_id,
                 'type' => 'refund',
                 'amount' => $parentRefundAmount,
+                'babysitter_amount' => 0, // Remboursement = pas de gain babysitter
                 'status' => 'succeeded',
                 'stripe_refund_id' => $refund?->id,
                 'description' => 'Remboursement partiel (frais service et Stripe déduits)',
@@ -2718,6 +2720,7 @@ class StripeService
                 'babysitter_id' => $reservation->babysitter_id, // La babysitter qui perd les fonds
                 'type' => 'deduction',
                 'amount' => -$babysitterDeduction, // Montant négatif pour déduction
+                'babysitter_amount' => -$babysitterDeduction, // Déduction = perte babysitter
                 'status' => 'succeeded',
                 'description' => 'Déduction pour remboursement parent',
                 'metadata' => [

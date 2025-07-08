@@ -1096,8 +1096,8 @@ class AnnouncementController extends Controller
             'total_announcements' => $allAnnouncements->count(), // Toutes les annonces
             'active_announcements' => $announcements->where('status', 'active')->count(), // Seulement les actives/futures
             'total_reservations' => $reservations->count(),
-            'completed_reservations' => $reservations->where('status', 'completed')->count(),
-            'total_spent' => $reservations->where('status', 'completed')->sum('total_deposit'),
+            'completed_reservations' => $reservations->whereIn('status', ['completed', 'service_completed'])->count(),
+            'total_spent' => $reservations->whereIn('status', ['completed', 'service_completed', 'paid'])->sum('total_deposit'),
         ];
 
         return Inertia::render('Parent/AnnouncementsAndReservations', [

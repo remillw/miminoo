@@ -69,8 +69,8 @@
                             <div v-else class="text-gray-500">Chargement du solde...</div>
                         </div>
 
-                        <!-- Configuration des virements -->
-                        <div class="rounded-lg bg-white p-6 shadow">
+                        <!-- Configuration des virements - seulement si solde > 0 -->
+                        <div v-if="shouldShowTransferCard" class="rounded-lg bg-white p-6 shadow">
                             <h3 class="mb-4 text-lg font-semibold text-gray-900">Configuration des virements</h3>
 
                             <div class="space-y-4">
@@ -313,10 +313,11 @@
 </template>
 
 <script setup lang="ts">
+import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { Calendar, Clock, CreditCard } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 // Types
 interface BabysitterProps {
@@ -344,6 +345,7 @@ type Props = BabysitterProps | ParentProps;
 const props = defineProps<Props>();
 
 const page = usePage();
+const { handleApiResponse } = useToast();
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);
@@ -523,7 +525,7 @@ const triggerManualPayout = () => {
 
     isProcessingPayout.value = true;
     router.post(
-        '/stripe/manual-payout',
+        '/babysitter/paiements/manual-payout',
         {},
         {
             onFinish: () => {
@@ -578,4 +580,21 @@ const downloadPayoutReceipt = async (transactionId: string) => {
         alert('Erreur lors du téléchargement du reçu');
     }
 };
+
+// Computed pour vérifier si on doit afficher la carte de transfert
+const shouldShowTransferCard = computed(() => {
+    if (!isBabysitterMode(props) || !props.accountBalance) return false;
+    const availableBalance = props.accountBalance.available[0]?.amount || 0;
+    return availableBalance > 0;
+});
+
+// Surveillance des flash messages
+onMounted(() => {
+    // Gérer les flash messages d'Inertia
+    watch(() => page.props.flash, (flash) => {
+        if (flash) {
+            handleApiResponse({ props: { flash } });
+        }
+    }, { immediate: true });
+});
 </script>
