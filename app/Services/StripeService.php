@@ -510,12 +510,9 @@ class StripeService
                 ]
             ];
 
-            // Application fee pour la plateforme (pas de transfert immédiat vers la babysitter)
-            // Les fonds seront transférés plus tard via une tâche cron après validation
-            if ($babysitter && $babysitter->stripe_account_id && $applicationFee > 0) {
-                $paymentIntentData['application_fee_amount'] = $applicationFee;
-                // PLUS DE transfer_data - les fonds restent sur la plateforme jusqu'au déblocage
-            }
+            // Note: Plus d'application_fee_amount car on ne fait plus de transfert immédiat
+            // Les frais sont maintenant gérés lors du transfert différé dans releaseFundsToBabysitter()
+            // Le montant total reste sur la plateforme jusqu'au déblocage
 
             $paymentIntent = $this->stripe->paymentIntents->create($paymentIntentData);
 
@@ -1928,11 +1925,8 @@ class StripeService
                 ]
             ];
 
-            // Ajouter les frais d'application (pas de transfert immédiat)
-            if ($babysitter && $babysitter->stripe_account_id && $applicationFee > 0) {
-                $paymentIntentData['application_fee_amount'] = $applicationFee;
-                // Les fonds seront transférés plus tard via une tâche cron
-            }
+            // Note: Plus d'application_fee_amount car on ne fait plus de transfert immédiat
+            // Les frais sont gérés lors du transfert différé
 
             $paymentIntent = $this->stripe->paymentIntents->create($paymentIntentData);
 
@@ -2542,7 +2536,7 @@ class StripeService
                 throw new \Exception('Les fonds ne sont pas en attente de validation');
             }
 
-            // Calculer le montant à transférer
+            // Calculer le montant à transférer (babysitter_amount déjà calculé sans les frais plateforme)
             $transferAmount = $reservation->babysitter_amount ?? $reservation->deposit_amount;
 
             // Créer le transfer vers la babysitter
@@ -2550,11 +2544,13 @@ class StripeService
                 'amount' => round($transferAmount * 100), // En centimes
                 'currency' => 'eur',
                 'destination' => $reservation->babysitter->stripe_account_id,
-                'source_transaction' => $reservation->stripe_payment_intent_id,
                 'metadata' => [
                     'reservation_id' => $reservation->id,
                     'type' => 'babysitter_payment_release',
-                    'release_reason' => 'service_completed_validation_passed'
+                    'release_reason' => 'service_completed_validation_passed',
+                    'original_deposit' => $reservation->total_deposit,
+                    'platform_fee' => $reservation->platform_fee,
+                    'babysitter_net_amount' => $transferAmount
                 ]
             ]);
 

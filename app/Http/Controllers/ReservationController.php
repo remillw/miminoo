@@ -79,8 +79,8 @@ class ReservationController extends Controller
             $paymentIntent = $this->stripeService->createPaymentIntent(
                 $reservation->total_deposit * 100, // Convertir en centimes
                 'eur',
-                $reservation->platform_fee * 100, // Application fee (seulement frais de service) en centimes
-                $reservation->babysitter, // Destination du transfer
+                0, // Plus d'application fee - gestion différée des frais
+                $reservation->babysitter, // Babysitter (pour métadonnées)
                 $user // Utilisateur connecté
             );
 
@@ -158,7 +158,7 @@ class ReservationController extends Controller
                     'eur',
                     $validated['payment_method_id'],
                     $user,
-                    $reservation->service_fee * 100,
+                    0, // Plus d'application fee
                     $reservation->babysitter
                 );
 
@@ -623,8 +623,8 @@ class ReservationController extends Controller
             $paymentIntent = $this->stripeService->createPaymentIntent(
                 $reservation->total_deposit * 100, // Convertir en centimes
                 'eur',
-                $reservation->platform_fee * 100, // Application fee (seulement frais de service) en centimes
-                $reservation->babysitter, // Destination du transfer
+                0, // Plus d'application fee - gestion différée des frais
+                $reservation->babysitter, // Babysitter (pour métadonnées)
                 $user // Utilisateur connecté
             );
 
