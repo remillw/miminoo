@@ -528,8 +528,13 @@ class StripeController extends Controller
         }
 
         // Récupérer les réservations/transactions de la babysitter avec statut des fonds
+        // Seulement celles qui ne sont PAS encore virées (pas de funds_status = 'released')
         $reservationTransactions = Reservation::where('babysitter_id', $user->id)
             ->whereIn('status', ['paid', 'active', 'service_completed', 'completed'])
+            ->where(function($query) {
+                $query->whereNull('funds_status')
+                      ->orWhere('funds_status', '!=', 'released');
+            })
             ->with(['parent', 'ad'])
             ->orderBy('service_start_at', 'desc')
             ->get()
@@ -556,6 +561,19 @@ class StripeController extends Controller
                     'reservation_id' => $reservation->id,
                 ];
             });
+
+        // Récupérer l'historique des virements Stripe pour cette babysitter
+        $payoutHistory = [];
+        if ($accountStatus === 'active') {
+            try {
+                $payoutHistory = $this->stripeService->getPayoutHistory($user, 20);
+            } catch (\Exception $e) {
+                Log::error('Erreur récupération historique virements', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
 
         // Récupérer les transactions de déduction de la babysitter
         $deductionTransactions = \App\Models\Transaction::where('babysitter_id', $user->id)
@@ -584,6 +602,7 @@ class StripeController extends Controller
             'accountDetails' => $accountDetails,
             'accountBalance' => $accountBalance,
             'recentTransactions' => $reservationTransactions, // Utiliser nos nouvelles transactions détaillées
+            'payoutHistory' => $payoutHistory, // Ajouter l'historique des virements
             'deductionTransactions' => $deductionTransactions,
             'stripeAccountId' => $user->stripe_account_id,
             'babysitterProfile' => $user->babysitterProfile

@@ -75,7 +75,7 @@ const links = computed(() => {
     const babysitterLinks = [
         { name: 'Tableau de bord', href: route('dashboard', { mode: 'babysitter' }), icon: Home },
         { name: 'Annonces', href: '/annonces', icon: Briefcase },
-        { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
+        { name: 'Mes gardes', href: '/babysitting', icon: Calendar },
         { name: 'Messagerie', href: route('messaging.index', { mode: 'babysitter' }), icon: MessageCircle },
         { name: 'Mon profil', href: route('profil', { mode: 'babysitter' }), icon: User },
         { name: 'Paiements', href: '/babysitter/paiements', icon: CreditCard },

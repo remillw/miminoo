@@ -21,7 +21,7 @@ class BabysittingController extends Controller
         $applications = AdApplication::where('babysitter_id', $user->id)
             ->with([
                 'ad' => function ($query) {
-                    $query->select('id', 'title', 'description', 'date_start', 'date_end', 'hourly_rate', 'parent_id')
+                    $query->select('id', 'title', 'additional_info', 'date_start', 'date_end', 'hourly_rate', 'parent_id')
                         ->with(['parent:id,firstname,lastname,avatar']);
                 }
             ])
@@ -38,7 +38,7 @@ class BabysittingController extends Controller
                     'ad' => [
                         'id' => $application->ad->id,
                         'title' => $application->ad->title,
-                        'description' => $application->ad->description,
+                        'additional_info' => $application->ad->additional_info,
                         'date_start' => $application->ad->date_start,
                         'date_end' => $application->ad->date_end,
                         'hourly_rate' => $application->ad->hourly_rate,
@@ -54,7 +54,7 @@ class BabysittingController extends Controller
         // Récupérer les réservations de la babysitter avec les relations
         $reservations = Reservation::where('babysitter_id', $user->id)
             ->with([
-                'ad:id,title,description,date_start,date_end,hourly_rate',
+                'ad:id,title,additional_info,date_start,date_end,hourly_rate',
                 'parent:id,firstname,lastname,avatar'
             ])
             ->orderBy('service_start_at', 'desc')
@@ -78,7 +78,7 @@ class BabysittingController extends Controller
                     'ad' => [
                         'id' => $reservation->ad->id,
                         'title' => $reservation->ad->title,
-                        'description' => $reservation->ad->description,
+                        'additional_info' => $reservation->ad->additional_info,
                     ],
                     'parent' => [
                         'id' => $reservation->parent->id,

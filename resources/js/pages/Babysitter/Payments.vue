@@ -107,11 +107,23 @@ interface DeductionTransaction {
     metadata: any;
 }
 
+interface PayoutTransaction {
+    id: string;
+    amount: number;
+    currency: string;
+    arrival_date: number;
+    created: number;
+    status: string;
+    method: string;
+    type: string;
+}
+
 interface Props {
     accountStatus: string;
     accountDetails: AccountDetails | null;
     accountBalance: AccountBalance | null;
     recentTransactions: Transaction[];
+    payoutHistory: PayoutTransaction[];
     reservations: BabysitterReservation[];
     deductionTransactions: DeductionTransaction[];
     stripeAccountId: string;
@@ -851,6 +863,40 @@ const formatAmount = (amount: number) => {
     }).format(amount);
 };
 
+const getPayoutStatusText = (status: string) => {
+    switch (status) {
+        case 'pending':
+            return 'En attente';
+        case 'in_transit':
+            return 'En cours';
+        case 'paid':
+            return 'Effectué';
+        case 'failed':
+            return 'Échec';
+        case 'canceled':
+            return 'Annulé';
+        default:
+            return status;
+    }
+};
+
+const getPayoutStatusClass = (status: string) => {
+    switch (status) {
+        case 'pending':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'in_transit':
+            return 'bg-blue-100 text-blue-800';
+        case 'paid':
+            return 'bg-green-100 text-green-800';
+        case 'failed':
+            return 'bg-red-100 text-red-800';
+        case 'canceled':
+            return 'bg-gray-100 text-gray-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
+    }
+};
+
 </script>
 
 <template>
@@ -1388,7 +1434,53 @@ const formatAmount = (amount: number) => {
                 </CardContent>
             </Card>
 
-
+            <!-- Historique des virements -->
+            <Card v-if="currentStatus === 'active' && props.payoutHistory && props.payoutHistory.length > 0">
+                <CardHeader>
+                    <CardTitle class="flex items-center">
+                        <Download class="mr-2 h-5 w-5" />
+                        Historique des virements
+                    </CardTitle>
+                    <CardDescription>
+                        Les virements effectués vers votre compte bancaire
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div class="space-y-3">
+                        <div
+                            v-for="payout in props.payoutHistory"
+                            :key="`payout-${payout.id}`"
+                            class="flex items-center justify-between border-b border-gray-100 py-3 last:border-b-0"
+                        >
+                            <div class="flex items-center">
+                                <div class="mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                                    <Download class="h-5 w-5 text-green-600" />
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900">Virement bancaire</p>
+                                    <p class="text-sm text-gray-500">
+                                        {{ payout.method === 'standard' ? 'Virement SEPA' : 'Virement instantané' }}
+                                    </p>
+                                    <p class="text-xs text-gray-400">
+                                        Créé le {{ new Date(payout.created * 1000).toLocaleDateString('fr-FR') }}
+                                        <span v-if="payout.arrival_date">
+                                            • Arrivée le {{ new Date(payout.arrival_date * 1000).toLocaleDateString('fr-FR') }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold text-green-600">
+                                    {{ formatAmount(payout.amount / 100) }}
+                                </p>
+                                <Badge :class="getPayoutStatusClass(payout.status)" class="text-xs">
+                                    {{ getPayoutStatusText(payout.status) }}
+                                </Badge>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <!-- Aide -->
             <Card>

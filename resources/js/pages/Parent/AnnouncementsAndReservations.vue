@@ -568,7 +568,7 @@ const cancelReservation = (reservationId: number) => {
 };
 
 const leaveReview = (reservationId: number) => {
-    router.visit(`/reviews/create/${reservationId}`);
+    router.visit(route('reviews.create', reservationId));
 };
 
 const proceedToPayment = (reservationId: number) => {
