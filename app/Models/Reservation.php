@@ -292,15 +292,16 @@ class Reservation extends Model
 
     /**
      * Calculer le montant remboursé au parent
-     * Parent reçoit : Montant total payé - frais de service
-     * Les frais Stripe de remboursement sont couverts par la plateforme ou la babysitter selon le cas
+     * Parent reçoit : Montant total payé - frais de service - frais Stripe de remboursement
+     * Les frais Stripe de remboursement sont à la charge du parent, pas de la plateforme
      */
     public function getParentRefundAmount(): float
     {
-        $paidAmount = $this->total_deposit; // Ce que le parent a payé (17€ = 15€ + 2€ frais service)
+        $paidAmount = $this->total_deposit; // Ce que le parent a payé (13€ = 11€ + 2€ frais service)
         $serviceFees = $this->service_fee; // Frais de service non remboursables (2€)
+        $stripeRefundFees = $this->getStripeRefundFees(); // Frais Stripe pour le remboursement (~0.35€)
         
-        $refundAmount = $paidAmount - $serviceFees; // 17€ - 2€ = 15€
+        $refundAmount = $paidAmount - $serviceFees - $stripeRefundFees; // 13€ - 2€ - 0.35€ = 10.65€
         
         // S'assurer que le montant n'est pas négatif
         return max(0, round($refundAmount, 2));
@@ -308,18 +309,22 @@ class Reservation extends Model
 
     /**
      * Calculer les frais Stripe pour un remboursement
-     * Environ 0.25€ fixe + 2.9% du montant remboursé au parent
+     * Frais Stripe: 0.25€ fixe + 1.5% du montant remboursé (pas 2.9%)
+     * Note: Les frais de remboursement Stripe sont différents des frais de paiement
      */
     public function getStripeRefundFees(): float
     {
-        // Calcul direct pour éviter la référence circulaire
-        $refundAmount = $this->total_deposit - $this->service_fee; // 17€ - 2€ = 15€
-        return round(0.25 + ($refundAmount * 0.029), 2); // 0.25 + (15 * 0.029) = 0.685€
+        // Calculer le montant qui serait remboursé avant frais
+        $baseRefundAmount = $this->total_deposit - $this->service_fee; // 13€ - 2€ = 11€
+        
+        // Frais de remboursement Stripe: 0.25€ + 1.5% du montant
+        return round(0.25 + ($baseRefundAmount * 0.015), 2); // 0.25 + (11 * 0.015) = 0.415€
     }
 
     /**
      * Calculer le montant à déduire du compte babysitter
-     * Quand le parent se fait rembourser, ces fonds viennent du compte Connect de la babysitter
+     * La babysitter perd TOUJOURS l'acompte complet (11€) peu importe les frais
+     * Le parent reçoit moins à cause des frais, mais la babysitter perd le montant plein
      */
     public function getBabysitterDeductionAmount(): float
     {
@@ -330,10 +335,9 @@ class Reservation extends Model
 
         // Si c'est le parent qui annule et demande un remboursement
         if ($this->status === 'cancelled_by_parent' && !$this->cancellation_penalty) {
-            // La babysitter perd le montant remboursé au parent + les frais Stripe de remboursement
-            $parentRefund = $this->getParentRefundAmount(); // 15€
-            $stripeRefundFees = $this->getStripeRefundFees(); // ~0.43€
-            return $parentRefund + $stripeRefundFees; // 15€ + 0.43€ = 15.43€
+            // La babysitter perd TOUJOURS l'acompte complet (deposit_amount = 11€)
+            // Peu importe ce que le parent récupère après déduction des frais
+            return $this->deposit_amount; // 11€ dans tous les cas
         }
 
         return 0;

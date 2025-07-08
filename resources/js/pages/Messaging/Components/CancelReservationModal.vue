@@ -47,7 +47,14 @@
                                     <div class="mt-2 text-xs text-blue-600">
                                         ✓ Votre annonce reste visible<br />
                                         ✓ D'autres babysitters peuvent postuler<br />
-                                        {{ reservation?.can_be_cancelled_free ? '✓ Remboursement complet' : '⚠️ Pénalité selon délai' }}
+                                        <template v-if="reservation?.can_be_cancelled_free">
+                                            ✓ <strong>Remboursement: {{ getRefundDetails().amount }}€</strong><br />
+                                            <span class="text-green-600">{{ getRefundDetails().description }}</span>
+                                        </template>
+                                        <template v-else>
+                                            ⚠️ <strong>Pénalité appliquée</strong><br />
+                                            <span class="text-orange-600">{{ getPenaltyDetails() }}</span>
+                                        </template>
                                     </div>
                                 </div>
                             </div>
@@ -82,7 +89,14 @@
                                     <div class="mt-2 text-xs text-red-600">
                                         ✗ Annonce supprimée définitivement<br />
                                         ✗ Toutes les candidatures archivées<br />
-                                        {{ reservation?.can_be_cancelled_free ? '✓ Remboursement complet' : '⚠️ Pénalité selon délai' }}
+                                        <template v-if="reservation?.can_be_cancelled_free">
+                                            ✓ <strong>Remboursement: {{ getRefundDetails().amount }}€</strong><br />
+                                            <span class="text-green-600">{{ getRefundDetails().description }}</span>
+                                        </template>
+                                        <template v-else>
+                                            ⚠️ <strong>Pénalité appliquée</strong><br />
+                                            <span class="text-orange-600">{{ getPenaltyDetails() }}</span>
+                                        </template>
                                     </div>
                                 </div>
                             </div>
@@ -114,18 +128,24 @@
                             <div class="flex items-start gap-3">
                                 <AlertTriangle class="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-600" />
                                 <div>
-                                    <h4 class="font-medium text-yellow-800">Conditions d'annulation</h4>
+                                    <h4 class="font-medium text-yellow-800">Conditions d'annulation babysitter</h4>
                                     <div class="mt-2 text-sm text-yellow-700">
                                         <div v-if="reservation?.can_be_cancelled_free">
                                             <p class="font-medium text-green-700">✓ Annulation gratuite</p>
-                                            <p>Vous pouvez annuler sans frais car il reste plus de 24h avant le début du service.</p>
+                                            <p>Vous pouvez annuler sans conséquence car il reste plus de 48h avant le début du service.</p>
+                                            <p class="text-xs mt-1 text-gray-600">Les fonds seront retournés au parent intégralement.</p>
                                         </div>
                                         <div v-else>
-                                            <p class="font-medium text-red-700">⚠️ Annulation avec pénalité</p>
-                                            <p>
-                                                Annuler maintenant affectera négativement votre réputation et pourra entraîner un avis automatique
-                                                défavorable.
+                                            <p class="font-medium text-red-700">⚠️ Annulation avec conséquences</p>
+                                            <p class="mb-2">
+                                                Annuler maintenant (moins de 48h avant le service) aura les conséquences suivantes :
                                             </p>
+                                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                                <li>Un avis négatif automatique sera ajouté à votre profil</li>
+                                                <li v-if="getTimeBeforeService() < 24">Vous perdez les fonds reçus ({{ getBabysitterAmount() }}€)</li>
+                                                <li v-else>Les fonds seront retournés au parent avec déduction des frais</li>
+                                                <li>Votre taux d'annulation augmentera</li>
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>
@@ -246,6 +266,49 @@ function formatTime(dateTimeString) {
         hour: '2-digit',
         minute: '2-digit',
     });
+}
+
+function getTimeBeforeService() {
+    if (!props.reservation?.service_start_at) return 0;
+    const serviceDate = new Date(props.reservation.service_start_at);
+    const now = new Date();
+    return Math.floor((serviceDate - now) / (1000 * 60 * 60)); // heures
+}
+
+function getRefundDetails() {
+    if (!props.reservation) return { amount: 0, description: '' };
+    
+    const totalPaid = props.reservation.total_deposit || 0; // 13€ exemple
+    const serviceFees = props.reservation.service_fee || 2; // 2€
+    const stripeRefundFees = Math.round((0.25 + ((totalPaid - serviceFees) * 0.015)) * 100) / 100; // ~0.41€
+    
+    const refundAmount = Math.max(0, totalPaid - serviceFees - stripeRefundFees);
+    
+    return {
+        amount: refundAmount.toFixed(2),
+        description: `Montant payé ${totalPaid}€ - Frais service ${serviceFees}€ - Frais Stripe ${stripeRefundFees}€`
+    };
+}
+
+function getPenaltyDetails() {
+    const timeBeforeService = getTimeBeforeService();
+    
+    if (timeBeforeService < 24) {
+        return "Aucun remboursement - Acompte définitivement perdu";
+    } else {
+        const refund = getRefundDetails();
+        return `Remboursement partiel: ${refund.amount}€ (frais déduits)`;
+    }
+}
+
+function getBabysitterAmount() {
+    if (!props.reservation) return 0;
+    
+    const totalPaid = props.reservation.total_deposit || 0;
+    const serviceFees = props.reservation.service_fee || 2;
+    const stripeFees = Math.round(((totalPaid * 0.029) + 0.25) * 100) / 100;
+    
+    return Math.max(0, totalPaid - serviceFees - stripeFees).toFixed(2);
 }
 
 async function confirmCancellation() {

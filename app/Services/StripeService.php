@@ -2434,26 +2434,37 @@ class StripeService
             // 2. Créer une transaction de déduction sur le compte Connect babysitter
             if ($babysitterDeduction > 0 && $reservation->babysitter->stripe_account_id) {
                 try {
-                    // Créer un transfert inversé (déduction) depuis le compte Connect
+                    // IMPORTANT: Pour déduire des fonds du compte Connect, utiliser un Transfer Reversal
+                    // Cela retire les fonds du compte Connect vers le compte principal de la plateforme
                     $transfer = $this->stripe->transfers->create([
                         'amount' => round($babysitterDeduction * 100), // Montant en centimes  
                         'currency' => 'eur',
-                        'destination' => config('stripe.platform_account_id', 'acct_platform'), // Compte principal
-                        'transfer_group' => 'refund_' . $reservation->id,
+                        'destination' => $reservation->babysitter->stripe_account_id,
+                        'source_transaction' => $reservation->stripe_payment_intent_id ?? null,
+                        'transfer_group' => 'refund_deduction_' . $reservation->id,
                         'metadata' => [
                             'type' => 'babysitter_refund_deduction',
                             'reservation_id' => $reservation->id,
                             'babysitter_id' => $reservation->babysitter_id,
                             'parent_refund_amount' => $parentRefundAmount,
-                            'deduction_reason' => $reason ?? 'Remboursement parent suite annulation'
+                            'babysitter_loses' => $babysitterDeduction,
+                            'deduction_reason' => $reason ?? 'Remboursement parent - babysitter perd acompte'
                         ]
-                    ], [
-                        'stripe_account' => $reservation->babysitter->stripe_account_id
+                    ]);
+
+                    // Ensuite, créer un Transfer Reversal pour récupérer les fonds
+                    $reversal = $this->stripe->transfers->createReversal($transfer->id, [
+                        'amount' => round($babysitterDeduction * 100),
+                        'metadata' => [
+                            'type' => 'deduction_for_parent_refund',
+                            'reservation_id' => $reservation->id
+                        ]
                     ]);
 
                     Log::info('Déduction compte babysitter effectuée', [
                         'transfer_id' => $transfer->id,
-                        'amount' => $transfer->amount / 100,
+                        'reversal_id' => $reversal->id,
+                        'amount_deducted' => $babysitterDeduction,
                         'babysitter_account' => $reservation->babysitter->stripe_account_id
                     ]);
 
@@ -2465,8 +2476,13 @@ class StripeService
                         'error' => $e->getMessage()
                     ]);
                     
-                    // Si la déduction échoue, on crée une dette à recouvrer plus tard
-                    $this->createBabysitterDebt($reservation, $babysitterDeduction, $reason);
+                    // Si la déduction échoue, essayer une approche alternative avec un payout négatif
+                    try {
+                        $this->createNegativePayout($reservation->babysitter, $babysitterDeduction, $reservation);
+                    } catch (\Exception $secondError) {
+                        // Si même l'approche alternative échoue, on crée une dette à recouvrer plus tard
+                        $this->createBabysitterDebt($reservation, $babysitterDeduction, $reason);
+                    }
                 }
             }
 
@@ -2479,6 +2495,46 @@ class StripeService
             Log::error('Erreur lors du remboursement avec déduction babysitter', [
                 'payment_intent_id' => $paymentIntentId,
                 'reservation_id' => $reservation->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Méthode alternative : créer un payout négatif pour déduire des fonds
+     */
+    private function createNegativePayout(User $babysitter, float $deductionAmount, Reservation $reservation)
+    {
+        try {
+            // Créer un payout négatif (déduction) sur le compte Connect
+            $payout = $this->stripe->payouts->create([
+                'amount' => -round($deductionAmount * 100), // Montant négatif pour déduction
+                'currency' => 'eur',
+                'method' => 'instant',
+                'metadata' => [
+                    'type' => 'deduction_for_refund',
+                    'reservation_id' => $reservation->id,
+                    'parent_refund_enabled_by' => 'babysitter_deduction',
+                    'amount_deducted' => $deductionAmount
+                ]
+            ], [
+                'stripe_account' => $babysitter->stripe_account_id
+            ]);
+
+            Log::info('Payout négatif créé pour déduction babysitter', [
+                'payout_id' => $payout->id,
+                'amount' => $deductionAmount,
+                'babysitter_id' => $babysitter->id,
+                'reservation_id' => $reservation->id
+            ]);
+
+            return $payout;
+
+        } catch (\Exception $e) {
+            Log::error('Échec du payout négatif', [
+                'babysitter_id' => $babysitter->id,
+                'deduction_amount' => $deductionAmount,
                 'error' => $e->getMessage()
             ]);
             throw $e;
@@ -2509,11 +2565,13 @@ class StripeService
         // Transaction de remboursement parent
         if ($parentRefundAmount > 0) {
             \App\Models\Transaction::create([
+                'ad_id' => $reservation->ad_id,
                 'reservation_id' => $reservation->id,
-                'user_id' => $reservation->parent_id,
+                'payer_id' => $reservation->parent_id, // Utiliser payer_id au lieu de user_id
+                'babysitter_id' => $reservation->babysitter_id,
                 'type' => 'refund',
                 'amount' => $parentRefundAmount,
-                'status' => 'completed',
+                'status' => 'succeeded',
                 'stripe_refund_id' => $refund?->id,
                 'description' => 'Remboursement partiel (frais service et Stripe déduits)',
                 'metadata' => [
@@ -2527,15 +2585,18 @@ class StripeService
         // Transaction de déduction babysitter
         if ($babysitterDeduction > 0) {
             \App\Models\Transaction::create([
+                'ad_id' => $reservation->ad_id,
                 'reservation_id' => $reservation->id,
-                'user_id' => $reservation->babysitter_id,
+                'payer_id' => $reservation->parent_id, // Le parent comme "payeur" de cette transaction
+                'babysitter_id' => $reservation->babysitter_id, // La babysitter qui perd les fonds
                 'type' => 'deduction',
                 'amount' => -$babysitterDeduction, // Montant négatif pour déduction
-                'status' => 'completed',
+                'status' => 'succeeded',
                 'description' => 'Déduction pour remboursement parent',
                 'metadata' => [
                     'refund_amount_to_parent' => $parentRefundAmount,
-                    'deduction_reason' => 'parent_refund'
+                    'deduction_reason' => 'parent_refund',
+                    'babysitter_loses' => $babysitterDeduction
                 ]
             ]);
         }

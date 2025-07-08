@@ -1186,13 +1186,17 @@ class AnnouncementController extends Controller
 
             // 3. Traiter chaque candidature
             foreach ($applications as $application) {
-                // Archiver la candidature
-                $application->update(['status' => 'archived']);
+                // Marquer la candidature comme annulée d'abord
+                $application->update([
+                    'status' => 'cancelled', // Utiliser 'cancelled' au lieu de 'archived'
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => 'parent_cancelled_announcement'
+                ]);
                 $archivedApplications[] = $application->id;
 
                 // Archiver la conversation
                 if ($application->conversation) {
-                    $application->conversation->update(['status' => 'archived']);
+                    $application->conversation->update(['status' => 'cancelled']);
 
                     // Si il y a une réservation payée, gérer le remboursement
                     if ($application->conversation->reservation && 
