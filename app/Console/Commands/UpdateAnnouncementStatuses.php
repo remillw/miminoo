@@ -68,6 +68,7 @@ class UpdateAnnouncementStatuses extends Command
         $completedReservations = Reservation::where('status', 'paid')
             ->where('service_end_at', '<', $now)
             ->whereNull('service_completed_at')
+            ->with(['ad.parent', 'babysitter']) // Précharger les relations nécessaires
             ->limit(50) // Limiter pour éviter les timeouts
             ->get();
             
@@ -128,8 +129,19 @@ class UpdateAnnouncementStatuses extends Command
     private function sendReviewRequestNotifications(Reservation $reservation)
     {
         try {
+            // Vérifier que les relations nécessaires sont présentes
+            if (!$reservation->ad || !$reservation->ad->parent) {
+                Log::warning("Impossible d'envoyer notification parent - annonce ou parent manquant pour réservation #{$reservation->id}");
+                return;
+            }
+            
+            if (!$reservation->babysitter) {
+                Log::warning("Impossible d'envoyer notification babysitter - babysitter manquante pour réservation #{$reservation->id}");
+                return;
+            }
+            
             // Notification pour le parent (pour noter la babysitter)
-            $reservation->ad->user->notify(new ReviewRequestNotification(
+            $reservation->ad->parent->notify(new ReviewRequestNotification(
                 $reservation,
                 'babysitter',
                 'Votre garde d\'enfants est terminée ! Notez votre babysitter.'
