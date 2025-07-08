@@ -2147,7 +2147,7 @@ class StripeService
             $payout = $this->stripe->payouts->create([
                 'amount' => $amount,
                 'currency' => $currency,
-                'method' => 'instant', // ou 'standard'
+                'method' => 'standard', // Utiliser 'standard' pour éviter les frais supplémentaires
             ], [
                 'stripe_account' => $user->stripe_account_id
             ]);

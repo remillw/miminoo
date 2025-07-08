@@ -556,7 +556,21 @@ const formatCurrency = (amount: number) => {
 
 // Méthodes pour la gestion des virements
 const updateTransferSettings = () => {
-    router.post('/babysitter/paiements/configure-schedule', transferSettings.value);
+    // Mapper frequency -> interval pour correspondre au backend
+    const payload = {
+        interval: transferSettings.value.frequency,
+        weekly_anchor: transferSettings.value.weekly_anchor,
+        monthly_anchor: transferSettings.value.monthly_anchor,
+    };
+    
+    router.post('/babysitter/paiements/configure-schedule', payload, {
+        onSuccess: () => {
+            console.log('✅ Configuration des virements mise à jour');
+        },
+        onError: (errors) => {
+            console.error('❌ Erreur configuration virements:', errors);
+        },
+    });
 };
 
 const triggerManualPayout = () => {
