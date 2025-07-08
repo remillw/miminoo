@@ -510,12 +510,11 @@ class StripeService
                 ]
             ];
 
-            // Si une babysitter est fournie et a un compte Stripe, configurer le transfer
-            if ($babysitter && $babysitter->stripe_account_id) {
+            // Application fee pour la plateforme (pas de transfert immédiat vers la babysitter)
+            // Les fonds seront transférés plus tard via une tâche cron après validation
+            if ($babysitter && $babysitter->stripe_account_id && $applicationFee > 0) {
                 $paymentIntentData['application_fee_amount'] = $applicationFee;
-                $paymentIntentData['transfer_data'] = [
-                    'destination' => $babysitter->stripe_account_id,
-                ];
+                // PLUS DE transfer_data - les fonds restent sur la plateforme jusqu'au déblocage
             }
 
             $paymentIntent = $this->stripe->paymentIntents->create($paymentIntentData);
@@ -1929,12 +1928,10 @@ class StripeService
                 ]
             ];
 
-            // Ajouter les frais d'application et le transfer si babysitter fournie
+            // Ajouter les frais d'application (pas de transfert immédiat)
             if ($babysitter && $babysitter->stripe_account_id && $applicationFee > 0) {
                 $paymentIntentData['application_fee_amount'] = $applicationFee;
-                $paymentIntentData['transfer_data'] = [
-                    'destination' => $babysitter->stripe_account_id,
-                ];
+                // Les fonds seront transférés plus tard via une tâche cron
             }
 
             $paymentIntent = $this->stripe->paymentIntents->create($paymentIntentData);
@@ -2431,59 +2428,23 @@ class StripeService
                 ]);
             }
 
-            // 2. Créer une transaction de déduction sur le compte Connect babysitter
-            if ($babysitterDeduction > 0 && $reservation->babysitter->stripe_account_id) {
-                try {
-                    // IMPORTANT: Pour déduire des fonds du compte Connect, utiliser un Transfer Reversal
-                    // Cela retire les fonds du compte Connect vers le compte principal de la plateforme
-                    $transfer = $this->stripe->transfers->create([
-                        'amount' => round($babysitterDeduction * 100), // Montant en centimes  
-                        'currency' => 'eur',
-                        'destination' => $reservation->babysitter->stripe_account_id,
-                        'source_transaction' => $reservation->stripe_payment_intent_id ?? null,
-                        'transfer_group' => 'refund_deduction_' . $reservation->id,
-                        'metadata' => [
-                            'type' => 'babysitter_refund_deduction',
-                            'reservation_id' => $reservation->id,
-                            'babysitter_id' => $reservation->babysitter_id,
-                            'parent_refund_amount' => $parentRefundAmount,
-                            'babysitter_loses' => $babysitterDeduction,
-                            'deduction_reason' => $reason ?? 'Remboursement parent - babysitter perd acompte'
-                        ]
-                    ]);
-
-                    // Ensuite, créer un Transfer Reversal pour récupérer les fonds
-                    $reversal = $this->stripe->transfers->createReversal($transfer->id, [
-                        'amount' => round($babysitterDeduction * 100),
-                        'metadata' => [
-                            'type' => 'deduction_for_parent_refund',
-                            'reservation_id' => $reservation->id
-                        ]
-                    ]);
-
-                    Log::info('Déduction compte babysitter effectuée', [
-                        'transfer_id' => $transfer->id,
-                        'reversal_id' => $reversal->id,
-                        'amount_deducted' => $babysitterDeduction,
-                        'babysitter_account' => $reservation->babysitter->stripe_account_id
-                    ]);
-
-                } catch (\Exception $e) {
-                    Log::error('Erreur déduction compte babysitter', [
-                        'reservation_id' => $reservation->id,
-                        'babysitter_account' => $reservation->babysitter->stripe_account_id,
-                        'deduction_amount' => $babysitterDeduction,
-                        'error' => $e->getMessage()
-                    ]);
-                    
-                    // Si la déduction échoue, essayer une approche alternative avec un payout négatif
-                    try {
-                        $this->createNegativePayout($reservation->babysitter, $babysitterDeduction, $reservation);
-                    } catch (\Exception $secondError) {
-                        // Si même l'approche alternative échoue, on crée une dette à recouvrer plus tard
-                        $this->createBabysitterDebt($reservation, $babysitterDeduction, $reason);
-                    }
-                }
+            // 2. La babysitter "perd" les fonds : on ne lui transfère simplement rien
+            // Les fonds restent sur la plateforme et peuvent servir au remboursement parent + frais plateforme
+            if ($babysitterDeduction > 0) {
+                // La "déduction" babysitter est conceptuelle - elle ne reçoit simplement pas les fonds
+                // qui auraient dû lui être transférés lors du PaymentIntent original
+                
+                Log::info('Babysitter perd les fonds (non-transfert)', [
+                    'reservation_id' => $reservation->id,
+                    'babysitter_id' => $reservation->babysitter_id,
+                    'amount_not_transferred' => $babysitterDeduction,
+                    'babysitter_account' => $reservation->babysitter->stripe_account_id,
+                    'explanation' => 'Les fonds restent sur la plateforme au lieu d\'être transférés à la babysitter'
+                ]);
+                
+                // Si des fonds avaient déjà été transférés à la babysitter précédemment, 
+                // il faudrait les récupérer, mais normalement ce n'est pas le cas dans notre flow
+                $this->handlePreviousTransfersIfAny($reservation);
             }
 
             // 3. Enregistrer les transactions dans notre base
@@ -2502,42 +2463,52 @@ class StripeService
     }
 
     /**
-     * Méthode alternative : créer un payout négatif pour déduire des fonds
+     * Vérifier s'il y a eu des transfers précédents vers la babysitter et les reverser si nécessaire
      */
-    private function createNegativePayout(User $babysitter, float $deductionAmount, Reservation $reservation)
+    private function handlePreviousTransfersIfAny(Reservation $reservation)
     {
         try {
-            // Créer un payout négatif (déduction) sur le compte Connect
-            $payout = $this->stripe->payouts->create([
-                'amount' => -round($deductionAmount * 100), // Montant négatif pour déduction
-                'currency' => 'eur',
-                'method' => 'instant',
-                'metadata' => [
-                    'type' => 'deduction_for_refund',
-                    'reservation_id' => $reservation->id,
-                    'parent_refund_enabled_by' => 'babysitter_deduction',
-                    'amount_deducted' => $deductionAmount
-                ]
-            ], [
-                'stripe_account' => $babysitter->stripe_account_id
+            if (!$reservation->stripe_payment_intent_id) {
+                return;
+            }
+
+            // Chercher les transfers existants liés à ce PaymentIntent
+            $transfers = $this->stripe->transfers->all([
+                'destination' => $reservation->babysitter->stripe_account_id,
+                'limit' => 10
             ]);
 
-            Log::info('Payout négatif créé pour déduction babysitter', [
-                'payout_id' => $payout->id,
-                'amount' => $deductionAmount,
-                'babysitter_id' => $babysitter->id,
-                'reservation_id' => $reservation->id
-            ]);
+            foreach ($transfers->data as $transfer) {
+                // Vérifier si ce transfer est lié à notre réservation
+                if (isset($transfer->metadata['reservation_id']) && 
+                    $transfer->metadata['reservation_id'] == $reservation->id) {
+                    
+                    // Reverser ce transfer
+                    $reversal = $this->stripe->transfers->createReversal($transfer->id, [
+                        'amount' => $transfer->amount,
+                        'metadata' => [
+                            'type' => 'refund_recovery',
+                            'reservation_id' => $reservation->id,
+                            'reason' => 'Récupération fonds pour remboursement parent'
+                        ]
+                    ]);
 
-            return $payout;
+                    Log::info('Transfer précédent reversé', [
+                        'transfer_id' => $transfer->id,
+                        'reversal_id' => $reversal->id,
+                        'amount' => $transfer->amount / 100,
+                        'reservation_id' => $reservation->id
+                    ]);
+                }
+            }
 
         } catch (\Exception $e) {
-            Log::error('Échec du payout négatif', [
-                'babysitter_id' => $babysitter->id,
-                'deduction_amount' => $deductionAmount,
+            Log::warning('Impossible de vérifier/reverser les transfers précédents', [
+                'reservation_id' => $reservation->id,
+                'babysitter_account' => $reservation->babysitter->stripe_account_id,
                 'error' => $e->getMessage()
             ]);
-            throw $e;
+            // Ne pas faire échouer le processus pour ça
         }
     }
 
@@ -2554,6 +2525,93 @@ class StripeService
             'debt_amount' => $amount,
             'reason' => $reason,
             'created_at' => now()
+        ]);
+    }
+
+    /**
+     * Transférer les fonds vers la babysitter après validation (déblocage des fonds)
+     */
+    public function releaseFundsToBabysitter(Reservation $reservation)
+    {
+        try {
+            if (!$reservation->babysitter->stripe_account_id) {
+                throw new \Exception('Babysitter n\'a pas de compte Stripe Connect');
+            }
+
+            if ($reservation->funds_status !== 'held_for_validation') {
+                throw new \Exception('Les fonds ne sont pas en attente de validation');
+            }
+
+            // Calculer le montant à transférer
+            $transferAmount = $reservation->babysitter_amount ?? $reservation->deposit_amount;
+
+            // Créer le transfer vers la babysitter
+            $transfer = $this->stripe->transfers->create([
+                'amount' => round($transferAmount * 100), // En centimes
+                'currency' => 'eur',
+                'destination' => $reservation->babysitter->stripe_account_id,
+                'source_transaction' => $reservation->stripe_payment_intent_id,
+                'metadata' => [
+                    'reservation_id' => $reservation->id,
+                    'type' => 'babysitter_payment_release',
+                    'release_reason' => 'service_completed_validation_passed'
+                ]
+            ]);
+
+            // Mettre à jour la réservation
+            $reservation->update([
+                'stripe_transfer_id' => $transfer->id,
+                'funds_status' => 'released',
+                'funds_released_at' => now()
+            ]);
+
+            // Enregistrer la transaction
+            \App\Models\Transaction::create([
+                'ad_id' => $reservation->ad_id,
+                'reservation_id' => $reservation->id,
+                'payer_id' => $reservation->parent_id,
+                'babysitter_id' => $reservation->babysitter_id,
+                'type' => 'payout',
+                'amount' => $transferAmount,
+                'status' => 'succeeded',
+                'stripe_id' => $transfer->id,
+                'description' => 'Paiement babysitter après validation (24h)',
+                'metadata' => [
+                    'transfer_id' => $transfer->id,
+                    'release_type' => 'automatic_after_validation'
+                ]
+            ]);
+
+            Log::info('Fonds libérés vers la babysitter', [
+                'reservation_id' => $reservation->id,
+                'transfer_id' => $transfer->id,
+                'amount' => $transferAmount,
+                'babysitter_id' => $reservation->babysitter_id
+            ]);
+
+            return $transfer;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la libération des fonds', [
+                'reservation_id' => $reservation->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Bloquer les fonds en cas de dispute
+     */
+    public function holdFundsForDispute(Reservation $reservation)
+    {
+        $reservation->update([
+            'funds_status' => 'disputed',
+            'funds_hold_until' => null // Pas de limite de temps en cas de dispute
+        ]);
+
+        Log::info('Fonds bloqués pour dispute', [
+            'reservation_id' => $reservation->id
         ]);
     }
 

@@ -20,6 +20,8 @@ class Reservation extends Model
         'service_fee',
         'total_deposit',
         'status',
+        'funds_status',
+        'funds_hold_until',
         'reserved_at',
         'payment_due_at',
         'paid_at',
@@ -35,7 +37,10 @@ class Reservation extends Model
         'stripe_transfer_id',
         'stripe_metadata',
         'parent_reviewed',
-        'babysitter_reviewed'
+        'babysitter_reviewed',
+        'babysitter_amount',
+        'platform_fee',
+        'stripe_fee'
     ];
 
     protected $casts = [
@@ -43,6 +48,9 @@ class Reservation extends Model
         'deposit_amount' => 'decimal:2',
         'service_fee' => 'decimal:2',
         'total_deposit' => 'decimal:2',
+        'babysitter_amount' => 'decimal:2',
+        'platform_fee' => 'decimal:2',
+        'stripe_fee' => 'decimal:2',
         'reserved_at' => 'datetime',
         'payment_due_at' => 'datetime',
         'paid_at' => 'datetime',
@@ -51,6 +59,7 @@ class Reservation extends Model
         'cancelled_at' => 'datetime',
         'service_completed_at' => 'datetime',
         'funds_released_at' => 'datetime',
+        'funds_hold_until' => 'datetime',
         'cancellation_penalty' => 'boolean',
         'parent_reviewed' => 'boolean',
         'babysitter_reviewed' => 'boolean',
@@ -227,10 +236,19 @@ class Reservation extends Model
 
     public function markAsPaid(string $paymentIntentId): bool
     {
+        // Calculer et stocker les montants lors du paiement
+        $babysitterAmount = $this->getBabysitterAmountAttribute();
+        $platformFee = $this->getPlatformFeeAttribute();
+        $stripeFee = $this->getStripeFeeAttribute();
+
         return $this->update([
             'status' => 'paid',
             'paid_at' => now(),
-            'stripe_payment_intent_id' => $paymentIntentId
+            'stripe_payment_intent_id' => $paymentIntentId,
+            'funds_status' => 'pending_service',
+            'babysitter_amount' => $babysitterAmount,
+            'platform_fee' => $platformFee,
+            'stripe_fee' => $stripeFee
         ]);
     }
 
@@ -249,9 +267,11 @@ class Reservation extends Model
         if ($this->status !== 'active') return false;
 
         return $this->update([
-            'status' => 'completed',
+            'status' => 'service_completed',
+            'service_completed_at' => now(),
             'service_end_at' => now(),
-            'funds_released_at' => now()->addHours(24) // Fonds libérés 24h après
+            'funds_status' => 'held_for_validation',
+            'funds_hold_until' => now()->addHours(24) // Fonds libérés 24h après si pas de dispute
         ]);
     }
 
@@ -292,16 +312,16 @@ class Reservation extends Model
 
     /**
      * Calculer le montant remboursé au parent
-     * Parent reçoit : Montant total payé - frais de service - frais Stripe de remboursement
-     * Les frais Stripe de remboursement sont à la charge du parent, pas de la plateforme
+     * Parent reçoit : Acompte babysitter - frais Stripe de remboursement
+     * Les frais de service (2€) restent acquis à la plateforme
+     * Les frais Stripe sont à la charge du parent lors du remboursement
      */
     public function getParentRefundAmount(): float
     {
-        $paidAmount = $this->total_deposit; // Ce que le parent a payé (13€ = 11€ + 2€ frais service)
-        $serviceFees = $this->service_fee; // Frais de service non remboursables (2€)
-        $stripeRefundFees = $this->getStripeRefundFees(); // Frais Stripe pour le remboursement (~0.35€)
+        $baseRefundAmount = $this->deposit_amount; // Acompte babysitter (17€)
+        $stripeRefundFees = $this->getStripeRefundFees(); // Frais Stripe pour le remboursement (0,87€)
         
-        $refundAmount = $paidAmount - $serviceFees - $stripeRefundFees; // 13€ - 2€ - 0.35€ = 10.65€
+        $refundAmount = $baseRefundAmount - $stripeRefundFees; // 17€ - 0,87€ = 16,13€
         
         // S'assurer que le montant n'est pas négatif
         return max(0, round($refundAmount, 2));
@@ -309,16 +329,16 @@ class Reservation extends Model
 
     /**
      * Calculer les frais Stripe pour un remboursement
-     * Frais Stripe: 0.25€ fixe + 1.5% du montant remboursé (pas 2.9%)
-     * Note: Les frais de remboursement Stripe sont différents des frais de paiement
+     * Les frais correspondent aux frais de paiement originaux que Stripe ne rembourse pas
+     * Formula : 2.9% + 0.25€ du montant total payé
      */
     public function getStripeRefundFees(): float
     {
-        // Calculer le montant qui serait remboursé avant frais
-        $baseRefundAmount = $this->total_deposit - $this->service_fee; // 13€ - 2€ = 11€
+        // Frais de paiement Stripe originaux (que Stripe garde lors du remboursement)
+        // Ces frais sont à la charge du parent lors du remboursement
+        $stripePaymentFees = ($this->total_deposit * 0.029) + 0.25;
         
-        // Frais de remboursement Stripe: 0.25€ + 1.5% du montant
-        return round(0.25 + ($baseRefundAmount * 0.015), 2); // 0.25 + (11 * 0.015) = 0.415€
+        return round($stripePaymentFees, 2);
     }
 
     /**

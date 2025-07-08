@@ -13,3 +13,6 @@ Schedule::command('conversations:archive-old')->dailyAt('02:00');
 
 // Mettre à jour les statuts des annonces toutes les 15 minutes
 Schedule::command('announcements:update-statuses')->everyFifteenMinutes();
+
+// Libérer les fonds en attente vers les babysitters toutes les 10 minutes
+Schedule::command('funds:release')->everyTenMinutes();
