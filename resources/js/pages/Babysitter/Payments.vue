@@ -365,11 +365,16 @@ const totalAvailable = computed(() => {
 });
 
 const totalPending = computed(() => {
-    if (!props.accountBalance?.pending) return 0;
-    return props.accountBalance.pending.reduce((sum, balance) => {
-        // Les montants Stripe sont en centimes, donc on divise par 100
-        return balance.currency === 'eur' ? sum + balance.amount / 100 : sum;
-    }, 0);
+    // Calculer le total des fonds en attente de futurs transferts
+    // Cela inclut les réservations payées dont les fonds seront libérés plus tard
+    if (!props.recentTransactions) return 0;
+    
+    return props.recentTransactions
+        .filter(transaction => 
+            transaction.funds_status === 'pending_service' || 
+            transaction.funds_status === 'held_for_validation'
+        )
+        .reduce((sum, transaction) => sum + transaction.amount, 0);
 });
 
 // Computed pour vérifier si on peut déclencher un virement
@@ -380,14 +385,16 @@ const canTriggerPayout = computed(() => {
 
 // Calculer la prochaine date de disponibilité des fonds
 const nextAvailableDate = computed(() => {
-    if (!props.reservations || props.reservations.length === 0) return null;
+    if (!props.recentTransactions || props.recentTransactions.length === 0) return null;
 
-    // Trouver la prochaine réservation terminée dont les fonds seront libérés
+    // Trouver la prochaine transaction dont les fonds seront libérés
     const now = new Date();
-    const nextRelease = props.reservations
-        .filter((r) => r.status === 'paid' && r.service_end_at)
-        .map((r) => new Date(r.service_end_at))
-        .map((endDate) => new Date(endDate.getTime() + 24 * 60 * 60 * 1000)) // +24h
+    const nextRelease = props.recentTransactions
+        .filter(transaction => 
+            transaction.funds_status === 'held_for_validation' && 
+            transaction.funds_release_date
+        )
+        .map(transaction => new Date(transaction.funds_release_date!))
         .filter((releaseDate) => releaseDate > now)
         .sort((a, b) => a.getTime() - b.getTime())[0];
 

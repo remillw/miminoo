@@ -78,21 +78,7 @@
                         Annuler
                     </button>
 
-                    <button
-                        v-if="canStartService"
-                        @click="startService"
-                        class="cursor-pointer rounded bg-green-600 px-3 py-1 text-sm text-white transition-colors hover:bg-green-700"
-                    >
-                        Commencer
-                    </button>
-
-                    <button
-                        v-if="canCompleteService"
-                        @click="completeService"
-                        class="cursor-pointer rounded bg-blue-600 px-3 py-1 text-sm text-white transition-colors hover:bg-blue-700"
-                    >
-                        Terminer
-                    </button>
+                    <!-- Supprimé les boutons Commencer/Terminer pour la babysitter -->
                 </div>
             </div>
         </div>
@@ -134,13 +120,9 @@ const canCancelReservation = computed(() => {
     return props.reservation && props.reservation.can_be_cancelled;
 });
 
-const canStartService = computed(() => {
-    return props.reservation && props.reservation.status === 'paid' && props.userRole === 'babysitter';
-});
-
-const canCompleteService = computed(() => {
-    return props.reservation && props.reservation.status === 'active';
-});
+// Supprimé: startService et completeService
+// Le service démarre et se termine automatiquement selon la logique métier
+// La babysitter peut seulement annuler avant le début du service
 
 // Méthodes
 function getCurrentRate() {
@@ -388,57 +370,8 @@ function getReservationMessage() {
     }
 }
 
-async function startService() {
-    if (!props.reservation) return;
-
-    try {
-        const response = await fetch(route('reservations.start-service', props.reservation.id), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            },
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            emit('reservation-updated', data.reservation);
-        } else {
-            alert(data.error || 'Erreur lors du démarrage du service');
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        alert('Erreur lors du démarrage du service');
-    }
-}
-
-async function completeService() {
-    if (!props.reservation) return;
-
-    if (confirm('Êtes-vous sûr de vouloir terminer le service ? Les fonds seront libérés dans 24h.')) {
-        try {
-            const response = await fetch(route('reservations.complete-service', props.reservation.id), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                },
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                emit('reservation-updated', data.reservation);
-            } else {
-                alert(data.error || 'Erreur lors de la finalisation du service');
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la finalisation du service');
-        }
-    }
-}
+// Supprimé les fonctions startService et completeService
+// Le cycle de vie du service est maintenant géré automatiquement
 
 function handleCancellationSuccess(result) {
     showCancelModal.value = false;
