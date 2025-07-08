@@ -64,20 +64,33 @@ class UpdateAnnouncementStatuses extends Command
         }
         
        
-        // 4. Traiter les réservations terminées individuellement 
+        // 4. Traiter les réservations avec service terminé (selon date/heure de fin)
         $completedReservations = Reservation::where('status', 'paid')
-            ->where('service_end_at', '<', $now)
-            ->whereNull('service_completed_at')
+            ->where('service_end_at', '<', $now) // Service terminé selon la date/heure prévue
+            ->whereNull('service_completed_at') // Pas encore marquées comme terminées
             ->with(['ad.parent', 'babysitter']) // Précharger les relations nécessaires
             ->limit(50) // Limiter pour éviter les timeouts
             ->get();
             
         foreach ($completedReservations as $reservation) {
-            // Utiliser completeService() pour mettre automatiquement held_for_validation + funds_hold_until
-            $reservation->completeService();
-            
-            // Envoyer les notifications de demande d'avis
-            $this->sendReviewRequestNotifications($reservation);
+            try {
+                // Utiliser completeService() qui met automatiquement :
+                // - status = 'service_completed'
+                // - funds_status = 'held_for_validation' 
+                // - funds_hold_until = now + 24h (pour libération automatique)
+                $success = $reservation->completeService();
+                
+                if ($success) {
+                    // Envoyer les notifications de demande d'avis
+                    $this->sendReviewRequestNotifications($reservation);
+                    
+                    Log::info("Service terminé pour réservation #{$reservation->id} - fonds bloqués 24h");
+                } else {
+                    Log::warning("Échec completeService() pour réservation #{$reservation->id}");
+                }
+            } catch (\Exception $e) {
+                Log::error("Erreur completeService() réservation #{$reservation->id}: " . $e->getMessage());
+            }
         }
         
         if ($completedReservations->count() > 0) {

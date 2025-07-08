@@ -264,14 +264,20 @@ class Reservation extends Model
 
     public function completeService(): bool
     {
-        if ($this->status !== 'active') return false;
+        // Accepter 'paid' (service pas commencé) et 'active' (service en cours)
+        if (!in_array($this->status, ['paid', 'active'])) return false;
+
+        // Utiliser la vraie date de fin du service (service_end_at) pour calculer la libération
+        $serviceEndDate = $this->service_end_at ? 
+            \Carbon\Carbon::parse($this->service_end_at) : 
+            now();
 
         return $this->update([
             'status' => 'service_completed',
             'service_completed_at' => now(),
-            'service_end_at' => now(),
+            'service_end_at' => $serviceEndDate, // Garder la date de fin prévue
             'funds_status' => 'held_for_validation',
-            'funds_hold_until' => now()->addHours(24) // Fonds libérés 24h après si pas de dispute
+            'funds_hold_until' => $serviceEndDate->addHours(24) // 24h après la FIN du service
         ]);
     }
 
