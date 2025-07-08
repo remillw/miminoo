@@ -179,9 +179,12 @@ class AnnouncementController extends Controller
                 )) AS distance
             ", [$userLat, $userLng, $userLat])
             ->join('addresses', 'ads.address_id', '=', 'addresses.id')
-            ->orderBy('distance', 'asc');
+            ->orderBy('distance', 'asc')
+            ->orderBy('date_start', 'asc'); // Puis par date de début
         } else {
-            $query->orderBy('created_at', 'desc');
+            // Trier par date de début (les plus proches en premier)
+            $query->orderBy('date_start', 'asc')
+                  ->orderBy('created_at', 'desc'); // Puis par date de création pour les annonces du même jour
         }
 
         $announcements = $query->paginate(12);

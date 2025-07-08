@@ -63,7 +63,8 @@ class UpdateAnnouncementStatuses extends Command
             $totalUpdated += $bookedCount;
         }
         
-        // 3. Traiter les réservations terminées individuellement (pour les notifications)
+       
+        // 4. Traiter les réservations terminées individuellement 
         $completedReservations = Reservation::where('status', 'paid')
             ->where('service_end_at', '<', $now)
             ->whereNull('service_completed_at')
@@ -71,10 +72,8 @@ class UpdateAnnouncementStatuses extends Command
             ->get();
             
         foreach ($completedReservations as $reservation) {
-            $reservation->update([
-                'status' => 'service_completed',
-                'service_completed_at' => $now
-            ]);
+            // Utiliser completeService() pour mettre automatiquement held_for_validation + funds_hold_until
+            $reservation->completeService();
             
             // Envoyer les notifications de demande d'avis
             $this->sendReviewRequestNotifications($reservation);
@@ -84,13 +83,11 @@ class UpdateAnnouncementStatuses extends Command
             $this->info("✅ {$completedReservations->count()} réservation(s) service terminé");
         }
         
-        // 4. Mise à jour en lot : annonces service terminé
-        $serviceCompletedCount = Ad::where('status', 'booked')
+        // 5. Mise à jour en lot : annonces service terminé (après 24h de blocage)
+        $serviceCompletedCount = Ad::where('status', 'blocked_24h')
             ->whereHas('reservations', function($query) use ($now) {
-                $query->where('status', 'paid')->where('service_end_at', '<', $now);
-            })
-            ->whereDoesntHave('reservations', function($query) use ($now) {
-                $query->where('status', 'paid')->where('service_end_at', '>=', $now);
+                $query->where('status', 'paid')
+                      ->where('service_end_at', '<', $now->copy()->subHours(24)); // Plus de 24h écoulées
             })
             ->update([
                 'status' => 'service_completed',
@@ -99,11 +96,11 @@ class UpdateAnnouncementStatuses extends Command
             ]);
             
         if ($serviceCompletedCount > 0) {
-            $this->info("✅ {$serviceCompletedCount} annonce(s) service terminé");
+            $this->info("✅ {$serviceCompletedCount} annonce(s) service terminé (après déblocage des fonds)");
             $totalUpdated += $serviceCompletedCount;
         }
         
-        // 5. Mise à jour en lot : finaliser les annonces anciennes
+        // 6. Mise à jour en lot : finaliser les annonces anciennes
         $finalCompletedCount = Ad::where('status', 'service_completed')
             ->where('service_completed_at', '<', $now->copy()->subDays(7))
             ->update([

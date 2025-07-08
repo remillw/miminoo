@@ -156,7 +156,7 @@ class AdminController extends Controller
             $query->where('status', $request->status);
         }
 
-        $announcements = $query->latest()->paginate(20);
+        $announcements = $query->orderBy('date_start', 'asc')->paginate(20);
 
         return Inertia::render('Admin/Announcements', [
             'announcements' => $announcements,

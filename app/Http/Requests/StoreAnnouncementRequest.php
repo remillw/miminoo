@@ -153,12 +153,12 @@ class StoreAnnouncementRequest extends FormRequest
     }
 
     /**
-     * Validation additionnelle personnalisée pour les âges des enfants
+     * Validation additionnelle personnalisée
      */
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            // Validation des âges des enfants
+            // 1. Validation des âges des enfants
             if ($this->children && is_array($this->children)) {
                 foreach ($this->children as $index => $child) {
                     if (isset($child['age']) && isset($child['unite'])) {
@@ -175,6 +175,16 @@ class StoreAnnouncementRequest extends FormRequest
                             }
                         }
                     }
+                }
+            }
+
+            // 2. Validation que l'heure de début n'est pas dans le passé
+            if ($this->date && $this->start_time) {
+                $startDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $this->date . ' ' . $this->start_time);
+                $now = \Carbon\Carbon::now();
+                
+                if ($startDateTime->isPast()) {
+                    $validator->errors()->add('start_time', 'L\'heure de début ne peut pas être dans le passé.');
                 }
             }
         });
