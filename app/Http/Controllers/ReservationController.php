@@ -324,7 +324,7 @@ class ReservationController extends Controller
                 }
             }
 
-            // Gérer le remboursement avec le nouveau système
+            // Gérer le remboursement automatique
             $refundAmount = $reservation->getRefundAmount();
             if ($refundAmount > 0 && $reservation->stripe_payment_intent_id) {
                 try {

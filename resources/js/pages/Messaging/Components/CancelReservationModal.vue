@@ -48,12 +48,12 @@
                                         ✓ Votre annonce reste visible<br />
                                         ✓ D'autres babysitters peuvent postuler<br />
                                         <template v-if="reservation?.can_be_cancelled_free">
-                                            ✓ <strong>Remboursement: {{ getRefundDetails().amount }}€</strong><br />
-                                            <span class="text-green-600">{{ getRefundDetails().description }}</span>
+                                            ✓ <strong>Remboursement intégral</strong><br />
+                                            <span class="text-green-600">Vous serez remboursé - les frais</span>
                                         </template>
                                         <template v-else>
                                             ⚠️ <strong>Pénalité appliquée</strong><br />
-                                            <span class="text-orange-600">{{ getPenaltyDetails() }}</span>
+                                            <span class="text-orange-600">Vous serez remboursé - les frais</span>
                                         </template>
                                     </div>
                                 </div>
@@ -90,12 +90,12 @@
                                         ✗ Annonce supprimée définitivement<br />
                                         ✗ Toutes les candidatures archivées<br />
                                         <template v-if="reservation?.can_be_cancelled_free">
-                                            ✓ <strong>Remboursement: {{ getRefundDetails().amount }}€</strong><br />
-                                            <span class="text-green-600">{{ getRefundDetails().description }}</span>
+                                            ✓ <strong>Remboursement intégral</strong><br />
+                                            <span class="text-green-600">Vous serez remboursé - les frais</span>
                                         </template>
                                         <template v-else>
                                             ⚠️ <strong>Pénalité appliquée</strong><br />
-                                            <span class="text-orange-600">{{ getPenaltyDetails() }}</span>
+                                            <span class="text-orange-600">Vous serez remboursé - les frais</span>
                                         </template>
                                     </div>
                                 </div>
@@ -121,32 +121,55 @@
                         </div>
                     </div>
 
-                    <!-- Affichage simplifié pour babysitter -->
+                    <!-- Affichage pour babysitter -->
                     <div v-else class="space-y-4">
-                        <!-- Avertissement -->
+                        <!-- Conséquences automatiques -->
                         <div class="rounded-lg bg-yellow-50 p-4">
                             <div class="flex items-start gap-3">
                                 <AlertTriangle class="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-600" />
                                 <div>
-                                    <h4 class="font-medium text-yellow-800">Conditions d'annulation babysitter</h4>
+                                    <h4 class="font-medium text-yellow-800">Conséquences de l'annulation</h4>
                                     <div class="mt-2 text-sm text-yellow-700">
                                         <div v-if="reservation?.can_be_cancelled_free">
-                                            <p class="font-medium text-green-700">✓ Annulation gratuite</p>
-                                            <p>Vous pouvez annuler sans conséquence car il reste plus de 48h avant le début du service.</p>
-                                            <p class="text-xs mt-1 text-gray-600">Les fonds seront retournés au parent intégralement.</p>
-                                        </div>
-                                        <div v-else>
-                                            <p class="font-medium text-red-700">⚠️ Annulation avec conséquences</p>
-                                            <p class="mb-2">
-                                                Annuler maintenant (moins de 48h avant le service) aura les conséquences suivantes :
-                                            </p>
+                                            <p class="font-medium text-green-700 mb-2">✓ Annulation gratuite (plus de 48h)</p>
                                             <ul class="list-disc list-inside space-y-1 text-xs">
-                                                <li>Un avis négatif automatique sera ajouté à votre profil</li>
-                                                <li v-if="getTimeBeforeService() < 24">Vous perdez les fonds reçus ({{ getBabysitterAmount() }}€)</li>
-                                                <li v-else>Les fonds seront retournés au parent avec déduction des frais</li>
-                                                <li>Votre taux d'annulation augmentera</li>
+                                                <li>Aucune pénalité sur votre profil</li>
+                                                <li>Le parent sera automatiquement remboursé (moins les frais)</li>
+                                                <li>Vous ne recevrez aucun paiement pour cette réservation</li>
+                                                <li>Notification automatique envoyée au parent</li>
                                             </ul>
                                         </div>
+                                        <div v-else>
+                                            <p class="font-medium text-red-700 mb-2">⚠️ Annulation tardive (moins de 48h)</p>
+                                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                                <li class="text-red-600">Impact négatif sur votre taux d'annulation</li>
+                                                <li class="text-red-600">Un avis négatif automatique sera ajouté à votre profil</li>
+                                                <li>Le parent sera automatiquement remboursé (moins les frais)</li>
+                                                <li>Vous ne recevrez aucun paiement pour cette réservation</li>
+                                                <li>Notification automatique envoyée au parent</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Processus automatique -->
+                        <div class="rounded-lg bg-blue-50 p-4">
+                            <div class="flex items-start gap-3">
+                                <div class="mt-0.5 h-5 w-5 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <div class="h-2 w-2 bg-blue-600 rounded-full"></div>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-blue-800">Traitement automatique</h4>
+                                    <div class="mt-2 text-sm text-blue-700">
+                                        <p class="mb-2">Le système va automatiquement :</p>
+                                        <ul class="list-disc list-inside space-y-1 text-xs">
+                                            <li>Annuler le transfert de fonds vers votre compte</li>
+                                            <li>Rembourser le parent (montant payé moins les frais)</li>
+                                            <li>Envoyer les notifications appropriées</li>
+                                            <li>Mettre à jour votre profil si nécessaire</li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -246,6 +269,7 @@ const getConfirmButtonText = () => {
     if (props.userRole === 'parent') {
         return selectedOption.value === 'entire_announcement' ? "Annuler l'annonce" : 'Annuler avec cette babysitter';
     }
+    // Pour les babysitters - un seul type d'annulation
     return "Confirmer l'annulation";
 };
 
@@ -335,6 +359,7 @@ async function confirmCancellation() {
         } else {
             // Annuler juste cette réservation
             const reason = props.userRole === 'parent' ? 'parent_unavailable' : 'babysitter_unavailable';
+            
             endpoint = route('reservations.cancel', props.reservation.id);
             payload = {
                 reason: reason,

@@ -66,6 +66,12 @@ interface Transaction {
     currency: string;
     created: number;
     description: string;
+    parent_name?: string;
+    service_date?: string;
+    funds_status?: string;
+    funds_message?: string;
+    funds_release_date?: string;
+    date?: string;
 }
 
 interface BabysitterProfile {
@@ -778,23 +784,56 @@ const getFundsStatusVariant = (status: BabysitterReservation['funds_status']) =>
     }
 };
 
-const getFundsStatusText = (status: BabysitterReservation['funds_status']) => {
+const getFundsStatusText = (status?: string) => {
     switch (status) {
-        case 'available':
-            return 'Fonds disponibles';
-        case 'processing':
-            return 'En traitement (7 jours)';
-        case 'waiting_service_completion':
-            return 'En attente de fin de service';
+        case 'pending_service':
+            return 'En attente';
+        case 'held_for_validation':
+            return 'Bloqué 24h';
+        case 'released':
+            return 'Disponible';
+        case 'disputed':
+            return 'Réclamation';
+        case 'cancelled':
+            return 'Annulé - Rien reçu';
+        case 'refunded':
+            return 'Remboursé - Rien reçu';
         default:
             return 'En attente';
     }
 };
 
+// Méthodes pour les statuts des fonds
+const getFundsStatusClass = (status?: string) => {
+    switch (status) {
+        case 'pending_service':
+            return 'bg-blue-100 text-blue-800';
+        case 'held_for_validation':
+            return 'bg-yellow-100 text-yellow-800';
+        case 'released':
+            return 'bg-green-100 text-green-800';
+        case 'disputed':
+            return 'bg-red-100 text-red-800';
+        case 'cancelled':
+            return 'bg-gray-100 text-gray-800';
+        case 'refunded':
+            return 'bg-orange-100 text-orange-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
+    }
+};
+
+const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR',
+    }).format(amount);
+};
+
 </script>
 
 <template>
-    <DashboardLayout :currentMode="currentMode" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
+    <DashboardLayout :currentMode="currentMode">
         <Head title="Gestion des paiements" />
 
         <div class="space-y-6">
@@ -1265,84 +1304,70 @@ const getFundsStatusText = (status: BabysitterReservation['funds_status']) => {
                 </CardContent>
             </Card>
 
-            <!-- Transactions récentes -->
-            <Card v-if="currentStatus === 'active' && recentTransactions.length > 0">
+            <!-- Mes paiements et statut des fonds -->
+            <Card v-if="recentTransactions.length > 0">
                 <CardHeader>
                     <CardTitle class="flex items-center">
                         <TrendingUp class="mr-2 h-5 w-5" />
-                        Transactions récentes
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div class="space-y-3">
-                        <div
-                            v-for="transaction in recentTransactions"
-                            :key="transaction.id"
-                            class="flex items-center justify-between border-b border-gray-100 py-3 last:border-b-0"
-                        >
-                            <div>
-                                <p class="font-medium">{{ formatCurrency(transaction.amount) }}</p>
-                                <p class="text-sm text-gray-500">{{ formatDate(transaction.created) }}</p>
-                            </div>
-                            <Badge variant="outline">
-                                <Download class="mr-1 h-3 w-3" />
-                                Reçu
-                            </Badge>
-                        </div>
-                    </div>
-
-                    <div class="border-t pt-4">
-                        <Button variant="outline" @click="router.visit('/stripe/connect')" class="w-full">
-                            <Eye class="mr-2 h-4 w-4" />
-                            Voir toutes les transactions
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <!-- Réservations et disponibilité des fonds -->
-            <Card v-if="props.reservations && props.reservations.length > 0">
-                <CardHeader>
-                    <CardTitle class="flex items-center">
-                        <Wallet class="mr-2 h-5 w-5" />
-                        Réservations et disponibilité des fonds
+                        Mes paiements et statut des fonds
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div class="space-y-4">
                         <div
-                            v-for="reservation in props.reservations"
-                            :key="reservation.id"
+                            v-for="transaction in recentTransactions"
+                            :key="transaction.id"
                             class="rounded-lg border p-4"
                         >
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
-                                    <h4 class="font-medium text-gray-900">{{ reservation.ad.title }}</h4>
-                                    <p class="text-sm text-gray-600">
-                                        {{ formatServiceDate(reservation.service_start_at) }} - {{ formatServiceDate(reservation.service_end_at) }}
+                                    <h4 class="font-medium text-gray-900">{{ transaction.description }}</h4>
+                                    <p class="text-sm text-gray-600">{{ transaction.parent_name }}</p>
+                                    <p v-if="transaction.service_date" class="text-xs text-gray-400">
+                                        Service : {{ formatServiceDate(transaction.service_date) }}
                                     </p>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-lg font-bold text-gray-900">{{ formatCurrency(reservation.babysitter_amount) }}</div>
-                                    <Badge :variant="getFundsStatusVariant(reservation.funds_status)" class="text-xs">
-                                        {{ getFundsStatusText(reservation.funds_status) }}
+                                    <div class="text-lg font-bold text-gray-900">{{ formatCurrency(transaction.amount) }}</div>
+                                    <Badge :class="getFundsStatusClass(transaction.funds_status)" class="text-xs">
+                                        {{ getFundsStatusText(transaction.funds_status) }}
                                     </Badge>
                                 </div>
                             </div>
                             
-                            <div v-if="reservation.funds_available_at" class="mt-3 text-sm">
+                            <div v-if="transaction.funds_message" class="mt-3 text-sm">
                                 <div class="flex items-center gap-2">
-                                    <Calendar class="h-4 w-4 text-gray-400" />
-                                    <span class="text-gray-600">
-                                        Fonds disponibles le : 
-                                        <span class="font-medium">{{ formatFundsDate(reservation.funds_available_at) }}</span>
+                                    <Info class="h-4 w-4 text-gray-400" />
+                                    <span class="text-gray-600">{{ transaction.funds_message }}</span>
+                                </div>
+                            </div>
+
+                            <div v-if="transaction.funds_release_date && transaction.funds_status === 'held_for_validation'" class="mt-2 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <Calendar class="h-4 w-4 text-orange-400" />
+                                    <span class="text-orange-600">
+                                        Libéré le : <span class="font-medium">{{ formatFundsDate(transaction.funds_release_date) }}</span>
                                     </span>
+                                </div>
+                            </div>
+
+                            <div v-if="transaction.funds_status === 'released'" class="mt-2 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <CheckCircle class="h-4 w-4 text-green-500" />
+                                    <span class="text-green-600 font-medium">✓ Fonds disponibles sur votre compte</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <div v-if="recentTransactions.length === 0" class="py-8 text-center text-gray-500">
+                        <Wallet class="mx-auto mb-3 h-12 w-12 text-gray-300" />
+                        <p>Aucune transaction pour le moment</p>
+                    </div>
                 </CardContent>
             </Card>
+
+
 
             <!-- Aide -->
             <Card>
@@ -1394,8 +1419,8 @@ const getFundsStatusText = (status: BabysitterReservation['funds_status']) => {
                                     <p class="text-sm text-gray-500">
                                         Parent: {{ transaction.parent_name }} - {{ transaction.ad_title }}
                                     </p>
-                                    <p class="text-xs text-gray-400">
-                                        {{ formatDate(transaction.date) }}
+                                    <p v-if="transaction.date" class="text-xs text-gray-400">
+                                        {{ new Date(transaction.date).toLocaleDateString('fr-FR') }}
                                     </p>
                                 </div>
                             </div>

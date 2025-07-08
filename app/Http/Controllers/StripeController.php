@@ -527,45 +527,33 @@ class StripeController extends Controller
             $recentTransactions = [];
         }
 
-        // Récupérer les réservations de la babysitter pour calculer les prochaines dates de libération
-        $reservations = Reservation::where('babysitter_id', $user->id)
-            ->whereIn('status', ['paid', 'active', 'completed', 'service_completed'])
-            ->with(['ad:id,title,date_start,date_end'])
+        // Récupérer les réservations/transactions de la babysitter avec statut des fonds
+        $reservationTransactions = Reservation::where('babysitter_id', $user->id)
+            ->whereIn('status', ['paid', 'active', 'service_completed', 'completed'])
+            ->with(['parent', 'ad'])
             ->orderBy('service_start_at', 'desc')
             ->get()
             ->map(function ($reservation) {
-                $serviceEndDate = $reservation->service_end_at ? new \Carbon\Carbon($reservation->service_end_at) : null;
-                
-                // Calculer la date de disponibilité des fonds (7 jours après la fin du service)
-                $fundsAvailableAt = null;
-                $fundsStatus = 'pending';
-                
-                if ($serviceEndDate) {
-                    $fundsAvailableAt = $serviceEndDate->addDays(7);
-                    $now = now();
-                    
-                    if ($fundsAvailableAt->isPast()) {
-                        $fundsStatus = 'available';
-                    } elseif ($serviceEndDate->isPast()) {
-                        $fundsStatus = 'processing';
-                    } else {
-                        $fundsStatus = 'waiting_service_completion';
-                    }
-                }
-                
+                // Calculer le statut des fonds
+                $fundsStatus = $this->getFundsStatusForReservation($reservation);
+                $fundsMessage = $this->getFundsMessageForReservation($reservation, $fundsStatus);
+                $releaseDate = $this->getFundsReleaseDateForReservation($reservation);
+
                 return [
                     'id' => $reservation->id,
-                    'status' => $reservation->status,
-                    'service_start_at' => $reservation->service_start_at,
-                    'service_end_at' => $reservation->service_end_at,
-                    'babysitter_amount' => $reservation->babysitter_amount,
-                    'funds_available_at' => $fundsAvailableAt,
+                    'type' => 'payment',
+                    'created' => $reservation->service_start_at ?? $reservation->created_at,
+                    'amount' => $reservation->babysitter_amount ?? ($reservation->total_deposit - ($reservation->service_fee ?? 2)),
+                    'status' => 'succeeded', // Le paiement a réussi
+                    'description' => 'Service de garde - ' . $reservation->ad->title,
+                    'parent_name' => $reservation->parent->firstname . ' ' . $reservation->parent->lastname,
+                    'service_date' => $reservation->service_start_at,
+                    'service_end' => $reservation->service_end_at,
+                    'reservation_status' => $reservation->status,
                     'funds_status' => $fundsStatus,
-                    'ad' => [
-                        'title' => $reservation->ad->title,
-                        'date_start' => $reservation->ad->date_start,
-                        'date_end' => $reservation->ad->date_end,
-                    ]
+                    'funds_message' => $fundsMessage,
+                    'funds_release_date' => $releaseDate,
+                    'reservation_id' => $reservation->id,
                 ];
             });
 
@@ -595,8 +583,7 @@ class StripeController extends Controller
             'accountStatus' => $accountStatus,
             'accountDetails' => $accountDetails,
             'accountBalance' => $accountBalance,
-            'recentTransactions' => $recentTransactions,
-            'reservations' => $reservations,
+            'recentTransactions' => $reservationTransactions, // Utiliser nos nouvelles transactions détaillées
             'deductionTransactions' => $deductionTransactions,
             'stripeAccountId' => $user->stripe_account_id,
             'babysitterProfile' => $user->babysitterProfile
@@ -798,5 +785,116 @@ class StripeController extends Controller
                 'error' => $e->getMessage()
             ], 400);
         }
+    }
+
+    /**
+     * Calculer le statut des fonds pour une réservation
+     */
+    private function getFundsStatusForReservation(Reservation $reservation)
+    {
+        // Vérifier d'abord le champ funds_status s'il existe
+        if ($reservation->funds_status) {
+            return $reservation->funds_status;
+        }
+
+        // Vérifier d'abord si la réservation a été annulée
+        if (in_array($reservation->status, ['cancelled_by_parent', 'cancelled_by_babysitter'])) {
+            // Si annulé, vérifier s'il y a eu un remboursement
+            if ($reservation->stripe_refund_id) {
+                return 'refunded'; // Parent remboursé = babysitter ne touche rien
+            }
+            
+            // Distinction selon qui a annulé :
+            if ($reservation->status === 'cancelled_by_babysitter') {
+                // Babysitter annule = elle ne touche rien (même sans remboursement parent)
+                return 'cancelled';
+            } else {
+                // Parent annule sans remboursement = situation particulière
+                return 'cancelled';
+            }
+        }
+
+        // Vérifier s'il y a une dispute active
+        if ($reservation->disputes()->where('status', 'active')->exists()) {
+            return 'disputed';
+        }
+
+        // Calculer le statut basé sur les dates et le statut de la réservation
+        $now = now();
+        $serviceEnd = $reservation->service_end_at ? new \Carbon\Carbon($reservation->service_end_at) : null;
+
+        if ($reservation->status === 'paid') {
+            // Service pas encore commencé
+            return 'pending_service';
+        } elseif ($reservation->status === 'active') {
+            // Service en cours
+            return 'pending_service';
+        } elseif (in_array($reservation->status, ['service_completed', 'completed'])) {
+            if (!$serviceEnd) {
+                return 'held_for_validation';
+            }
+
+            $releaseDate = $serviceEnd->copy()->addHours(24);
+            if ($now->gte($releaseDate)) {
+                return 'released';
+            } else {
+                return 'held_for_validation';
+            }
+        }
+
+        return 'pending_service';
+    }
+
+    /**
+     * Obtenir le message d'état des fonds
+     */
+    private function getFundsMessageForReservation(Reservation $reservation, $fundsStatus)
+    {
+        switch ($fundsStatus) {
+            case 'pending_service':
+                return 'En attente du début du service';
+            case 'held_for_validation':
+                $releaseDate = $this->getFundsReleaseDateForReservation($reservation);
+                if ($releaseDate) {
+                    return 'Fonds libérés le ' . $releaseDate->format('d/m/Y à H:i');
+                }
+                return 'En attente de libération (24h après la fin du service)';
+            case 'released':
+                return 'Fonds libérés sur votre compte';
+            case 'disputed':
+                return 'Fonds bloqués - réclamation en cours';
+            case 'cancelled':
+                if ($reservation->status === 'cancelled_by_babysitter') {
+                    return 'Vous avez annulé - aucun paiement';
+                }
+                return 'Service annulé - aucun paiement';
+            case 'refunded':
+                if ($reservation->status === 'cancelled_by_babysitter') {
+                    return 'Vous avez annulé - parent remboursé';
+                }
+                return 'Service remboursé - aucun paiement';
+            default:
+                return 'Statut inconnu';
+        }
+    }
+
+    /**
+     * Calculer la date de libération des fonds
+     */
+    private function getFundsReleaseDateForReservation(Reservation $reservation)
+    {
+        if ($reservation->funds_released_at) {
+            return new \Carbon\Carbon($reservation->funds_released_at);
+        }
+
+        if ($reservation->funds_hold_until) {
+            return new \Carbon\Carbon($reservation->funds_hold_until);
+        }
+
+        if ($reservation->service_end_at) {
+            return (new \Carbon\Carbon($reservation->service_end_at))->addHours(24);
+        }
+
+        return null;
     }
 } 

@@ -139,40 +139,51 @@
                             <table class="w-full">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Date service</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Service</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Montant</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Statut</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Actions</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Statut des fonds</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Disponibilité</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
                                     <tr v-for="transaction in isBabysitterMode(props) ? props.recentTransactions : []" :key="transaction.id">
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ formatDate(transaction.created) }}
+                                            {{ formatDate(transaction.service_date || transaction.created) }}
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ getTransactionType(transaction.type) }}
+                                            <div>{{ transaction.description || getTransactionType(transaction.type) }}</div>
+                                            <div v-if="transaction.parent_name" class="text-xs text-gray-500">
+                                                {{ transaction.parent_name }}
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm font-medium whitespace-nowrap" :class="getAmountClass(transaction.amount)">
                                             {{ formatAmount(transaction.amount) }}€
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                :class="getTransactionStatusClass(transaction.status)"
-                                                class="rounded-full px-2 py-1 text-xs font-medium"
-                                            >
-                                                {{ getTransactionStatusText(transaction.status) }}
-                                            </span>
+                                            <div class="space-y-1">
+                                                <span
+                                                    :class="getFundsStatusClass(transaction.funds_status)"
+                                                    class="rounded-full px-2 py-1 text-xs font-medium block"
+                                                >
+                                                    {{ getFundsStatusText(transaction.funds_status) }}
+                                                </span>
+                                                <div v-if="transaction.funds_message" class="text-xs text-gray-500">
+                                                    {{ transaction.funds_message }}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                                             <button
-                                                v-if="transaction.type === 'payout'"
-                                                @click="downloadPayoutReceipt(transaction.id)"
-                                                class="text-blue-600 hover:text-blue-800"
+                                                v-if="transaction.funds_release_date && transaction.funds_status === 'held_for_validation'"
+                                                class="text-blue-600 hover:text-blue-800 text-xs"
+                                                disabled
                                             >
-                                                Télécharger reçu
+                                                Libéré le {{ formatDate(transaction.funds_release_date) }}
                                             </button>
+                                            <span v-else-if="transaction.funds_status === 'released'" class="text-green-600 text-xs">
+                                                ✓ Disponible
+                                            </span>
                                         </td>
                                     </tr>
                                     <tr v-if="isBabysitterMode(props) && (!props.recentTransactions || props.recentTransactions.length === 0)">
@@ -440,6 +451,27 @@ const getTransactionStatusText = (status: string) => {
         succeeded: 'Réussi',
         pending: 'En attente',
         failed: 'Échoué',
+    };
+    return statusTexts[status] || status;
+};
+
+// Méthodes pour les statuts des fonds (babysitter)
+const getFundsStatusClass = (status: string) => {
+    const classes: { [key: string]: string } = {
+        pending_service: 'bg-blue-100 text-blue-800',
+        held_for_validation: 'bg-yellow-100 text-yellow-800',
+        released: 'bg-green-100 text-green-800',
+        disputed: 'bg-red-100 text-red-800',
+    };
+    return classes[status] || 'bg-gray-100 text-gray-800';
+};
+
+const getFundsStatusText = (status: string) => {
+    const statusTexts: { [key: string]: string } = {
+        pending_service: 'En attente',
+        held_for_validation: 'Bloqué 24h',
+        released: 'Disponible',
+        disputed: 'Réclamation',
     };
     return statusTexts[status] || status;
 };

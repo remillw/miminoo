@@ -2250,7 +2250,7 @@ class StripeService
     /**
      * Créer un remboursement Stripe
      */
-    public function createRefund($paymentIntentId, $amount = null, $reason = null)
+    public function createRefund($paymentIntentId, $amount = null, $reason = null, Reservation $reservation = null)
     {
         try {
             $refundData = [
@@ -2270,12 +2270,23 @@ class StripeService
             // Créer le remboursement
             $refund = $this->stripe->refunds->create($refundData);
 
+            // Mettre à jour le statut des fonds si une réservation est fournie
+            if ($reservation) {
+                $reservation->update([
+                    'stripe_refund_id' => $refund->id,
+                    'funds_status' => 'refunded',
+                    'funds_released_at' => null,
+                    'funds_hold_until' => null
+                ]);
+            }
+
             Log::info('Remboursement Stripe créé avec succès', [
                 'refund_id' => $refund->id,
                 'payment_intent_id' => $paymentIntentId,
                 'amount' => $refund->amount,
                 'status' => $refund->status,
-                'reason' => $reason
+                'reason' => $reason,
+                'reservation_id' => $reservation?->id
             ]);
 
             return $refund;
@@ -2441,7 +2452,15 @@ class StripeService
                 $this->handlePreviousTransfersIfAny($reservation);
             }
 
-            // 3. Enregistrer les transactions dans notre base
+            // 3. Mettre à jour le statut des fonds dans la réservation
+            $reservation->update([
+                'stripe_refund_id' => $refund?->id,
+                'funds_status' => 'refunded', // Parent remboursé = babysitter ne touche rien
+                'funds_released_at' => null,
+                'funds_hold_until' => null
+            ]);
+
+            // 4. Enregistrer les transactions dans notre base
             $this->recordRefundTransactions($reservation, $parentRefundAmount, $babysitterDeduction, $refund);
 
             return $refund;
@@ -2609,6 +2628,60 @@ class StripeService
         Log::info('Fonds bloqués pour dispute', [
             'reservation_id' => $reservation->id
         ]);
+    }
+
+    /**
+     * Marquer les fonds comme annulés (pas de remboursement)
+     */
+    public function cancelFundsWithoutRefund(Reservation $reservation, $reason = null)
+    {
+        $reservation->update([
+            'funds_status' => 'cancelled',
+            'funds_hold_until' => null,
+            'funds_released_at' => null
+        ]);
+
+        Log::info('Fonds marqués comme annulés sans remboursement', [
+            'reservation_id' => $reservation->id,
+            'reason' => $reason ?? 'Annulation sans remboursement'
+        ]);
+    }
+
+    /**
+     * Gérer l'annulation par la babysitter avec remboursement du parent
+     */
+    public function handleBabysitterCancellationWithRefund(Reservation $reservation, $reason = null)
+    {
+        try {
+            // La babysitter annule : parent doit être remboursé, babysitter ne touche rien
+            $refund = $this->createRefundWithBabysitterDeduction(
+                $reservation->stripe_payment_intent_id,
+                $reservation,
+                $reason ?? 'Annulation par la babysitter'
+            );
+
+            // Marquer que c'est la babysitter qui a annulé (pour les messages)
+            $reservation->update([
+                'funds_status' => 'refunded',
+                'stripe_refund_id' => $refund?->id
+            ]);
+
+            Log::info('Annulation babysitter avec remboursement parent traitée', [
+                'reservation_id' => $reservation->id,
+                'refund_id' => $refund?->id,
+                'parent_refund_amount' => $reservation->getParentRefundAmount(),
+                'babysitter_loses' => $reservation->getBabysitterDeductionAmount()
+            ]);
+
+            return $refund;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors du traitement annulation babysitter', [
+                'reservation_id' => $reservation->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
