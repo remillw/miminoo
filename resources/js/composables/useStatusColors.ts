@@ -175,6 +175,88 @@ export function useStatusColors() {
         }
     };
 
+    // Couleurs pour les statuts de virements Stripe
+    const payoutStatusColors: Record<string, StatusColorConfig> = {
+        'pending': {
+            text: 'text-yellow-800',
+            badge: 'bg-yellow-100 text-yellow-800',
+            background: 'bg-yellow-50 border-yellow-200'
+        },
+        'in_transit': {
+            text: 'text-blue-800',
+            badge: 'bg-blue-100 text-blue-800',
+            background: 'bg-blue-50 border-blue-200'
+        },
+        'paid': {
+            text: 'text-green-800',
+            badge: 'bg-green-100 text-green-800',
+            background: 'bg-green-50 border-green-200'
+        },
+        'failed': {
+            text: 'text-red-800',
+            badge: 'bg-red-100 text-red-800',
+            background: 'bg-red-50 border-red-200'
+        },
+        'canceled': {
+            text: 'text-gray-800',
+            badge: 'bg-gray-100 text-gray-800',
+            background: 'bg-gray-50 border-gray-200'
+        },
+        'cancelled': {
+            text: 'text-gray-800',
+            badge: 'bg-gray-100 text-gray-800',
+            background: 'bg-gray-50 border-gray-200'
+        }
+    };
+
+    // Couleurs pour les statuts de contact
+    const contactStatusColors: Record<string, StatusColorConfig> = {
+        'unread': {
+            text: 'text-orange-800',
+            badge: 'bg-orange-100 text-orange-800',
+            background: 'bg-orange-50 border-orange-200'
+        },
+        'read': {
+            text: 'text-blue-800',
+            badge: 'bg-blue-100 text-blue-800',
+            background: 'bg-blue-50 border-blue-200'
+        },
+        'replied': {
+            text: 'text-green-800',
+            badge: 'bg-green-100 text-green-800',
+            background: 'bg-green-50 border-green-200'
+        }
+    };
+
+    // Couleurs pour les statuts utilisateur
+    const userStatusColors: Record<string, StatusColorConfig> = {
+        'approved': {
+            text: 'text-green-800',
+            badge: 'bg-green-100 text-green-800',
+            background: 'bg-green-50 border-green-200'
+        },
+        'pending': {
+            text: 'text-yellow-800',
+            badge: 'bg-yellow-100 text-yellow-800',
+            background: 'bg-yellow-50 border-yellow-200'
+        },
+        'suspended': {
+            text: 'text-red-800',
+            badge: 'bg-red-100 text-red-800',
+            background: 'bg-red-50 border-red-200'
+        },
+        'active': {
+            text: 'text-green-800',
+            badge: 'bg-green-100 text-green-800',
+            background: 'bg-green-50 border-green-200'
+        },
+        'inactive': {
+            text: 'text-gray-800',
+            badge: 'bg-gray-100 text-gray-800',
+            background: 'bg-gray-50 border-gray-200'
+        }
+    };
+
     // Textes français pour les statuts
     const statusTexts: Record<string, Record<string, string>> = {
         reservation: {
@@ -205,16 +287,38 @@ export function useStatusColors() {
             'archived': 'Archivée'
         },
         funds: {
-            'pending_service': 'En attente du service',
-            'held_for_validation': 'En attente de libération',
-            'released': 'Fonds libérés',
-            'disputed': 'Litige en cours'
+            'pending_service': 'En attente',
+            'held_for_validation': 'Bloqué 24h',
+            'released': 'Disponible',
+            'disputed': 'Réclamation',
+            'cancelled': 'Annulé - Rien reçu',
+            'refunded': 'Remboursé - Rien reçu'
         },
         stripeAccount: {
             'pending': 'En attente',
             'active': 'Actif',
             'restricted': 'Restreint',
             'rejected': 'Rejeté',
+            'inactive': 'Inactif'
+        },
+        payout: {
+            'pending': 'En attente',
+            'in_transit': 'En cours',
+            'paid': 'Effectué',
+            'failed': 'Échec',
+            'canceled': 'Annulé',
+            'cancelled': 'Annulé'
+        },
+        contact: {
+            'unread': 'Non lu',
+            'read': 'Lu',
+            'replied': 'Répondu'
+        },
+        user: {
+            'approved': 'Approuvé',
+            'pending': 'En attente',
+            'suspended': 'Suspendu',
+            'active': 'Actif',
             'inactive': 'Inactif'
         }
     };
@@ -240,6 +344,18 @@ export function useStatusColors() {
         return stripeAccountStatusColors[status] || stripeAccountStatusColors['pending'];
     };
 
+    const getPayoutStatusColor = (status: string): StatusColorConfig => {
+        return payoutStatusColors[status] || payoutStatusColors['pending'];
+    };
+
+    const getContactStatusColor = (status: string): StatusColorConfig => {
+        return contactStatusColors[status] || contactStatusColors['unread'];
+    };
+
+    const getUserStatusColor = (status: string): StatusColorConfig => {
+        return userStatusColors[status] || userStatusColors['pending'];
+    };
+
     const getStatusText = (type: string, status: string): string => {
         return statusTexts[type]?.[status] || status;
     };
@@ -251,6 +367,9 @@ export function useStatusColors() {
         getApplicationStatusColor,
         getFundsStatusColor,
         getStripeAccountStatusColor,
+        getPayoutStatusColor,
+        getContactStatusColor,
+        getUserStatusColor,
         
         // Fonction pour obtenir le texte
         getStatusText,
@@ -261,6 +380,9 @@ export function useStatusColors() {
         applicationStatusColors,
         fundsStatusColors,
         stripeAccountStatusColors,
+        payoutStatusColors,
+        contactStatusColors,
+        userStatusColors,
         statusTexts
     };
 } 

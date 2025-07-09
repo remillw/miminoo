@@ -25,6 +25,7 @@ import {
     Wallet,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
+import { useStatusColors } from '@/composables/useStatusColors';
 
 interface AccountDetails {
     id: string;
@@ -131,6 +132,9 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Composables
+const { getFundsStatusColor, getPayoutStatusColor, getStatusText } = useStatusColors();
 
 const isLoading = ref(false);
 const currentStatus = ref(props.accountStatus);
@@ -817,44 +821,7 @@ const getFundsStatusVariant = (status: BabysitterReservation['funds_status']) =>
     }
 };
 
-const getFundsStatusText = (status?: string) => {
-    switch (status) {
-        case 'pending_service':
-            return 'En attente';
-        case 'held_for_validation':
-            return 'Bloqué 24h';
-        case 'released':
-            return 'Disponible';
-        case 'disputed':
-            return 'Réclamation';
-        case 'cancelled':
-            return 'Annulé - Rien reçu';
-        case 'refunded':
-            return 'Remboursé - Rien reçu';
-        default:
-            return 'En attente';
-    }
-};
 
-// Méthodes pour les statuts des fonds
-const getFundsStatusClass = (status?: string) => {
-    switch (status) {
-        case 'pending_service':
-            return 'bg-blue-100 text-blue-800';
-        case 'held_for_validation':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'released':
-            return 'bg-green-100 text-green-800';
-        case 'disputed':
-            return 'bg-red-100 text-red-800';
-        case 'cancelled':
-            return 'bg-gray-100 text-gray-800';
-        case 'refunded':
-            return 'bg-orange-100 text-orange-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
 
 const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -863,39 +830,7 @@ const formatAmount = (amount: number) => {
     }).format(amount);
 };
 
-const getPayoutStatusText = (status: string) => {
-    switch (status) {
-        case 'pending':
-            return 'En attente';
-        case 'in_transit':
-            return 'En cours';
-        case 'paid':
-            return 'Effectué';
-        case 'failed':
-            return 'Échec';
-        case 'canceled':
-            return 'Annulé';
-        default:
-            return status;
-    }
-};
 
-const getPayoutStatusClass = (status: string) => {
-    switch (status) {
-        case 'pending':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'in_transit':
-            return 'bg-blue-100 text-blue-800';
-        case 'paid':
-            return 'bg-green-100 text-green-800';
-        case 'failed':
-            return 'bg-red-100 text-red-800';
-        case 'canceled':
-            return 'bg-gray-100 text-gray-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
 
 </script>
 
@@ -1396,8 +1331,8 @@ const getPayoutStatusClass = (status: string) => {
                                 </div>
                                 <div class="text-right">
                                     <div class="text-lg font-bold text-gray-900">{{ formatCurrency(transaction.amount) }}</div>
-                                    <Badge :class="getFundsStatusClass(transaction.funds_status)" class="text-xs">
-                                        {{ getFundsStatusText(transaction.funds_status) }}
+                                    <Badge :class="getFundsStatusColor(transaction.funds_status || '').badge" class="text-xs">
+                                        {{ getStatusText('funds', transaction.funds_status || '') }}
                                     </Badge>
                                 </div>
                             </div>
@@ -1473,8 +1408,8 @@ const getPayoutStatusClass = (status: string) => {
                                 <p class="font-semibold text-green-600">
                                     {{ formatAmount(payout.amount / 100) }}
                                 </p>
-                                <Badge :class="getPayoutStatusClass(payout.status)" class="text-xs">
-                                    {{ getPayoutStatusText(payout.status) }}
+                                <Badge :class="getPayoutStatusColor(payout.status).badge" class="text-xs">
+                                    {{ getStatusText('payout', payout.status) }}
                                 </Badge>
                             </div>
                         </div>

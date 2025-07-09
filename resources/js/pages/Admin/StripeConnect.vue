@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { AlertCircle, CheckCircle, Clock, CreditCard, Eye, RefreshCw, ShieldAlert, Trash2, TrendingUp, Users, XCircle } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
@@ -83,6 +84,7 @@ const props = defineProps<Props>();
 const page = usePage();
 const auth = page.props.auth as { user: any };
 const { showSuccess, showError } = useToast();
+const { getStripeAccountStatusColor } = useStatusColors();
 
 const accounts = ref<Account[]>(props.accounts);
 const stats = ref<Stats>(props.stats);
@@ -128,18 +130,18 @@ const filteredAccounts = computed(() => {
 
 const getStatusBadge = (account: Account) => {
     if (account.stripe_account.error) {
-        return { label: 'Erreur', color: 'bg-red-100 text-red-800', icon: XCircle };
+        return { label: 'Erreur', color: getStripeAccountStatusColor('rejected').badge, icon: XCircle };
     }
 
     if (account.stripe_account.charges_enabled && account.stripe_account.payouts_enabled) {
-        return { label: 'Actif', color: 'bg-green-100 text-green-800', icon: CheckCircle };
+        return { label: 'Actif', color: getStripeAccountStatusColor('active').badge, icon: CheckCircle };
     }
 
     if (account.status === 'rejected') {
-        return { label: 'Rejeté', color: 'bg-red-100 text-red-800', icon: XCircle };
+        return { label: 'Rejeté', color: getStripeAccountStatusColor('rejected').badge, icon: XCircle };
     }
 
-    return { label: 'En attente', color: 'bg-orange-100 text-orange-800', icon: Clock };
+    return { label: 'En attente', color: getStripeAccountStatusColor('pending').badge, icon: Clock };
 };
 
 const formatCurrency = (amount: number, currency: string) => {

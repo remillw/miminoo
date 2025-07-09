@@ -31,7 +31,7 @@
                             <div class="flex h-5 w-5 items-center justify-center">
                                 <div class="h-2 w-2 rounded-full" :class="getStatusColor(reservation.status)"></div>
                             </div>
-                            <span class="text-gray-700">{{ getStatusText(reservation.status) }}</span>
+                            <span class="text-gray-700">{{ getStatusText('reservation', reservation.status) }}</span>
                         </div>
                     </div>
                 </div>
@@ -134,6 +134,7 @@
 import { router } from '@inertiajs/vue3';
 import { AlertTriangle, Calendar, Clock, FileText } from 'lucide-vue-next';
 import { reactive, ref } from 'vue';
+import { useStatusColors } from '@/composables/useStatusColors';
 
 const props = defineProps({
     reservation: Object,
@@ -143,6 +144,7 @@ const props = defineProps({
 });
 
 const processing = ref(false);
+const { getReservationStatusColor, getStatusText } = useStatusColors();
 
 const form = reactive({
     reason: '',
@@ -165,28 +167,12 @@ const formatTime = (dateString) => {
     });
 };
 
+// Fonctions de statut remplacées par le composable useStatusColors
 const getStatusColor = (status) => {
-    const colors = {
-        pending_payment: 'bg-yellow-500',
-        paid: 'bg-blue-500',
-        active: 'bg-green-500',
-        completed: 'bg-gray-500',
-        cancelled_by_parent: 'bg-red-500',
-        cancelled_by_babysitter: 'bg-red-500',
-    };
-    return colors[status] || 'bg-gray-500';
-};
-
-const getStatusText = (status) => {
-    const texts = {
-        pending_payment: 'En attente de paiement',
-        paid: 'Payé',
-        active: 'En cours',
-        completed: 'Terminé',
-        cancelled_by_parent: 'Annulé par le parent',
-        cancelled_by_babysitter: 'Annulé par la babysitter',
-    };
-    return texts[status] || 'Statut inconnu';
+    // Utiliser la couleur de background du composable et extraire la couleur
+    const config = getReservationStatusColor(status);
+    const colorMatch = config.background.match(/bg-(\w+)-/);
+    return colorMatch ? `bg-${colorMatch[1]}-500` : 'bg-gray-500';
 };
 
 const submitDispute = () => {

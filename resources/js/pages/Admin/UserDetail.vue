@@ -6,6 +6,7 @@ import DataTable from '@/components/DataTable.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { Users, TrendingUp, ShieldAlert, FileText, Star, CreditCard, UserCheck, ArrowLeft, Mail, Phone, MapPin, Calendar, Edit } from 'lucide-vue-next';
 import { ref } from 'vue';
+import { useStatusColors } from '@/composables/useStatusColors';
 
 interface Address {
     id: number;
@@ -86,6 +87,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
+// Composable pour les couleurs de statut
+const { getAnnouncementStatusColor, getApplicationStatusColor, getUserStatusColor, getStatusText } = useStatusColors();
+
 // État pour la navigation entre les sections
 const activeSection = ref<'ads' | 'applications' | 'reviews'>('ads');
 
@@ -99,43 +103,7 @@ const formatDate = (dateString: string) => {
     });
 };
 
-const getStatusClass = (status: string) => {
-    switch (status) {
-        case 'approved':
-        case 'verified':
-        case 'active':
-            return 'bg-green-100 text-green-800';
-        case 'pending':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'suspended':
-        case 'rejected':
-        case 'cancelled':
-            return 'bg-red-100 text-red-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
-
-const getStatusText = (status: string) => {
-    switch (status) {
-        case 'approved':
-            return 'Approuvé';
-        case 'pending':
-            return 'En attente';
-        case 'suspended':
-            return 'Suspendu';
-        case 'verified':
-            return 'Vérifié';
-        case 'rejected':
-            return 'Rejeté';
-        case 'active':
-            return 'Active';
-        case 'cancelled':
-            return 'Annulée';
-        default:
-            return status;
-    }
-};
+// Fonctions de statut remplacées par le composable useStatusColors
 
 const getRatingStars = (rating: number) => {
     return '★'.repeat(rating) + '☆'.repeat(5 - rating);
@@ -242,8 +210,8 @@ const reviewsColumns = [
                                     >
                                         {{ role.label }}
                                     </Badge>
-                                    <Badge :class="getStatusClass(user.status)">
-                                        {{ getStatusText(user.status) }}
+                                    <Badge :class="getUserStatusColor(user.status).badge">
+                                        {{ getStatusText('user', user.status) }}
                                     </Badge>
                                 </div>
                             </div>
@@ -308,8 +276,8 @@ const reviewsColumns = [
                             <div class="space-y-4">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm text-gray-500">Statut de vérification</span>
-                                    <Badge :class="getStatusClass(user.babysitter_profile.verification_status)">
-                                        {{ getStatusText(user.babysitter_profile.verification_status) }}
+                                    <Badge :class="getUserStatusColor(user.babysitter_profile.verification_status).badge">
+                                        {{ getStatusText('user', user.babysitter_profile.verification_status) }}
                                     </Badge>
                                 </div>
                                 
@@ -366,8 +334,8 @@ const reviewsColumns = [
                             empty-message="Aucune annonce trouvée"
                         >
                             <template #status="{ value }">
-                                <Badge :class="getStatusClass(value)">
-                                    {{ getStatusText(value) }}
+                                <Badge :class="getAnnouncementStatusColor(value).badge">
+                                    {{ getStatusText('announcement', value) }}
                                 </Badge>
                             </template>
                             <template #date="{ value }">
@@ -391,8 +359,8 @@ const reviewsColumns = [
                             empty-message="Aucune candidature trouvée"
                         >
                             <template #status="{ value }">
-                                <Badge :class="getStatusClass(value)">
-                                    {{ getStatusText(value) }}
+                                <Badge :class="getApplicationStatusColor(value).badge">
+                                    {{ getStatusText('application', value) }}
                                 </Badge>
                             </template>
                             <template #date="{ value }">

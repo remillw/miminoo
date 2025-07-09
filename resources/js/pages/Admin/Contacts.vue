@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
 import type { Column } from '@/types/datatable';
 import { Head, router } from '@inertiajs/vue3';
 import { CheckCircle, Clock, Eye, Mail, MessageSquare, Phone, Trash2 } from 'lucide-vue-next';
@@ -51,6 +52,9 @@ const showDetailModal = ref(false);
 const adminNotes = ref('');
 const contactStatus = ref<'unread' | 'read' | 'replied'>('read');
 const { showSuccess, showError } = useToast();
+
+// Utilisation du composable pour les couleurs de statut
+const { getContactStatusColor, getStatusText } = useStatusColors();
 
 // Configuration des colonnes pour le DataTable
 const columns: Column<Contact>[] = [
@@ -218,31 +222,7 @@ const deleteContact = async () => {
     }
 };
 
-const getStatusClass = (status: string) => {
-    switch (status) {
-        case 'unread':
-            return 'bg-orange-100 text-orange-800';
-        case 'read':
-            return 'bg-blue-100 text-blue-800';
-        case 'replied':
-            return 'bg-green-100 text-green-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
-
-const getStatusText = (status: string) => {
-    switch (status) {
-        case 'unread':
-            return 'Non lu';
-        case 'read':
-            return 'Lu';
-        case 'replied':
-            return 'Répondu';
-        default:
-            return status;
-    }
-};
+// Fonctions de statut supprimées - utilise maintenant useStatusColors
 
 const getSubjectClass = (subject: string) => {
     switch (subject) {
@@ -372,8 +352,8 @@ const formatDate = (dateString: string) => {
 
             <!-- Colonne statut -->
             <template #status="{ item }">
-                <Badge :class="getStatusClass(item.status)">
-                    {{ getStatusText(item.status) }}
+                <Badge :class="getContactStatusColor(item.status).badge">
+                    {{ getStatusText('contact', item.status) }}
                 </Badge>
             </template>
 

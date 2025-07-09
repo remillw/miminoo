@@ -116,9 +116,9 @@
                             <div class="text-right">
                                 <span
                                     class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                    :class="getStatusClass(ad.status)"
+                                    :class="getAnnouncementStatusColor(ad.status).badge"
                                 >
-                                    {{ getStatusText(ad.status) }}
+                                    {{ getStatusText('announcement', ad.status) }}
                                 </span>
                             </div>
                         </div>
@@ -273,6 +273,7 @@ import { router } from '@inertiajs/vue3';
 import { AlertTriangle, Bell, Calendar, Clock, DollarSign, FileText, MapPin, Search, Star, Users } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import { route } from 'ziggy-js';
+import { useStatusColors } from '@/composables/useStatusColors';
 
 const props = defineProps({
     user: Object,
@@ -292,6 +293,9 @@ const props = defineProps({
 
 // État local pour la disponibilité
 const isAvailable = ref(props.availability?.is_available || false);
+
+// Composables
+const { getAnnouncementStatusColor, getStatusText } = useStatusColors();
 
 // Méthodes
 const toggleAvailability = async () => {
@@ -363,18 +367,7 @@ const formatTimeAgo = (dateString) => {
     }
 };
 
-const getStatusClass = (status) => {
-    const classes = {
-        Acceptée: 'bg-green-100 text-green-800',
-        Refusée: 'bg-red-100 text-red-800',
-        'En attente': 'bg-orange-100 text-orange-800',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
-
-const getStatusText = (status) => {
-    return status;
-};
+// Fonctions de statut maintenant dans useStatusColors
 
 const viewReservationDetails = (id) => {
     router.visit(route('messaging.index'));

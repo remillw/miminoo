@@ -58,25 +58,18 @@ interface Props {
 const props = defineProps<Props>();
 const { showSuccess, showError } = useToast();
 const { getAnnouncementStatusColor, getStatusText } = useStatusColors();
-const { formatDate, formatTime } = useDateFormat();
+const { formatDate: formatDateShort, formatTime } = useDateFormat();
 
 // État du modal
 const isModalOpen = ref(false);
 
-// Formater les dates
+// Formater les dates avec style complet
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
-    });
-};
-
-const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
     });
 };
 

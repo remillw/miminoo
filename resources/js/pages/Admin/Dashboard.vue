@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Clock, CreditCard, MessageSquare, ShieldAlert, TrendingUp, UserCheck, Users, FileText, Calendar, Star, Plus, Edit, Trash2 } from 'lucide-vue-next';
 import { computed, onMounted } from 'vue';
+import { useStatusColors } from '@/composables/useStatusColors';
 
 interface Stats {
     total_users: number;
@@ -72,6 +73,9 @@ const props = defineProps<Props>();
 const page = usePage();
 const auth = page.props.auth as { user: User | null };
 
+// Composable pour les couleurs de statut
+const { getAnnouncementStatusColor, getStatusText } = useStatusColors();
+
 console.log('Auth data:', auth);
 console.log('User roles:', auth.user?.roles);
 
@@ -97,43 +101,7 @@ const formatDate = (dateString: string) => {
     });
 };
 
-const getStatusClass = (status: string) => {
-    switch (status) {
-        case 'active':
-            return 'bg-green-100 text-green-800';
-        case 'completed':
-            return 'bg-gray-100 text-gray-800';
-        case 'cancelled':
-            return 'bg-red-100 text-red-800';
-        case 'booked':
-            return 'bg-blue-100 text-blue-800';
-        case 'service_completed':
-            return 'bg-purple-100 text-purple-800';
-        case 'expired':
-            return 'bg-gray-100 text-gray-600';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
-
-const getStatusText = (status: string) => {
-    switch (status) {
-        case 'active':
-            return 'Active';
-        case 'completed':
-            return 'Terminée';
-        case 'cancelled':
-            return 'Annulée';
-        case 'booked':
-            return 'Réservée';
-        case 'service_completed':
-            return 'Service terminé';
-        case 'expired':
-            return 'Expirée';
-        default:
-            return status;
-    }
-};
+// Fonctions de statut remplacées par le composable useStatusColors
 </script>
 
 <template>
@@ -439,9 +407,9 @@ const getStatusText = (status: string) => {
                                         <p class="text-xs text-gray-500">
                                             Par {{ ad.parent.firstname }} {{ ad.parent.lastname }}
                                         </p>
-                                        <span :class="['inline-flex items-center rounded-full px-2 py-1 text-xs font-medium', getStatusClass(ad.status)]">
-                                            {{ getStatusText(ad.status) }}
-                                        </span>
+                                                                        <span :class="['inline-flex items-center rounded-full px-2 py-1 text-xs font-medium', getAnnouncementStatusColor(ad.status).badge]">
+                                    {{ getStatusText('announcement', ad.status) }}
+                                </span>
                                     </div>
                                     <div class="flex items-center space-x-1">
                                         <Button size="sm" variant="ghost" as-child>

@@ -4,36 +4,14 @@ import DataTable from '@/components/DataTable.vue';
 import { Button } from '@/components/ui/button';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
 import type { Column } from '@/types/datatable';
+import type { User, Address, ParentProfile } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Edit, Eye, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
-interface Address {
-    id: number;
-    address: string;
-    postal_code: string;
-    country: string;
-}
-
-interface ParentProfile {
-    id: number;
-    user_id: number;
-}
-
-interface User {
-    id: number;
-    firstname: string;
-    lastname: string;
-    email: string;
-    phone?: string;
-    status: string;
-    created_at: string;
-    address?: Address;
-    parent_profile?: ParentProfile;
-    ads_count: number;
-    given_reviews_count: number;
-}
+// Types importés depuis @/types
 
 interface Props {
     parents: {
@@ -52,6 +30,9 @@ const showDeleteModal = ref(false);
 const parentToDelete = ref<User | null>(null);
 const isDeleting = ref(false);
 const { showSuccess, showError } = useToast();
+
+// Utilisation du composable pour les couleurs de statut
+const { getUserStatusColor, getStatusText } = useStatusColors();
 
 // Configuration des colonnes pour le DataTable
 const columns: Column<User>[] = [
@@ -157,31 +138,7 @@ const confirmDelete = () => {
     });
 };
 
-const getStatusClass = (status: string) => {
-    switch (status) {
-        case 'approved':
-            return 'bg-green-100 text-green-800';
-        case 'pending':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'suspended':
-            return 'bg-red-100 text-red-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
-
-const getStatusText = (status: string) => {
-    switch (status) {
-        case 'approved':
-            return 'Approuvé';
-        case 'pending':
-            return 'En attente';
-        case 'suspended':
-            return 'Suspendu';
-        default:
-            return status;
-    }
-};
+// Fonctions de statut supprimées - utilise maintenant useStatusColors
 
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -238,8 +195,8 @@ const formatDate = (dateString: string) => {
 
             <!-- Colonne statut -->
             <template #status="{ item }">
-                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getStatusClass(item.status)]">
-                    {{ getStatusText(item.status) }}
+                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getUserStatusColor(item.status).badge]">
+                    {{ getStatusText('user', item.status) }}
                 </span>
             </template>
 

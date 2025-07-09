@@ -234,10 +234,10 @@
                                 </div>
                                 <div class="flex items-center gap-3">
                                     <span
-                                        :class="getApplicationStatusClass(application.status)"
+                                        :class="getApplicationStatusColor(application.status).badge"
                                         class="rounded-full px-2 py-1 text-xs font-medium"
                                     >
-                                        {{ getApplicationStatusText(application.status) }}
+                                        {{ getStatusText('application', application.status) }}
                                     </span>
                                     <div class="text-right">
                                         <div class="text-primary text-lg font-bold">{{ application.counter_rate || application.proposed_rate || application.ad.hourly_rate }}€/h</div>

@@ -199,7 +199,7 @@
                                         </h3>
                                         <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
                                             <Calendar class="h-4 w-4" />
-                                            {{ formatShortDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
+                                            {{ formatDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
                                             {{ formatTime(announcement.date_end) }}
                                         </p>
                                         <p class="flex items-center gap-1 text-sm text-gray-600">
@@ -208,8 +208,8 @@
                                         </p>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status)">
-                                            {{ getStatusText(announcement.status, 'announcement') }}
+                                        <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status).badge">
+                                            {{ getStatusText('announcement', announcement.status) }}
                                         </Badge>
                                         <div class="text-right">
                                             <div class="text-primary text-lg font-bold">{{ announcement.hourly_rate }}€/h</div>
@@ -248,7 +248,7 @@
                                 </div>
 
                                 <!-- Candidatures -->
-                                <div v-if="announcement.applications.length > 0" class="border-t border-gray-200 pt-4">
+                                <div v-if="announcement.applications && announcement.applications.length > 0" class="border-t border-gray-200 pt-4">
                                     <h4 class="mb-3 text-sm font-medium text-gray-900">
                                         {{ announcement.applications.length }} candidature{{ announcement.applications.length > 1 ? 's' : '' }}
                                     </h4>
@@ -272,8 +272,8 @@
                                                 </div>
                                             </div>
                                             <div class="flex items-center gap-3">
-                                                <Badge variant="outline" :class="getApplicationStatusColor(application.status)">
-                                                    {{ getStatusText(application.status, 'application') }}
+                                                <Badge variant="outline" :class="getApplicationStatusColor(application.status).badge">
+                                                    {{ getStatusText('application', application.status) }}
                                                 </Badge>
                                                 <button @click="viewMessaging" class="text-primary hover:text-primary/80 text-sm font-medium">
                                                     Voir la conversation
@@ -328,13 +328,13 @@
                                         </h3>
                                         <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
                                             <Calendar class="h-4 w-4" />
-                                            {{ formatShortDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
+                                            {{ formatDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
                                             {{ formatTime(reservation.service_end_at) }}
                                         </p>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <Badge variant="outline" :class="getReservationStatusColor(reservation.status)">
-                                            {{ getStatusText(reservation.status, 'reservation') }}
+                                        <Badge variant="outline" :class="getReservationStatusColor(reservation.status).badge">
+                                            {{ getStatusText('reservation', reservation.status) }}
                                         </Badge>
                                         <div class="text-right">
                                             <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.total_deposit) }}€</div>
@@ -472,10 +472,12 @@ import type {
     User
 } from '@/types';
 
-interface ExtendedReservation extends Reservation {
+interface ExtendedReservation extends Omit<Reservation, 'babysitter'> {
     babysitter: {
         id: number;
         name: string;
+        firstname?: string;
+        lastname?: string;
         avatar?: string;
     };
     ad: {
@@ -510,8 +512,8 @@ const props = defineProps<Props>();
 
 const page = usePage();
 const { showSuccess, showError } = useToast();
-const { getAnnouncementStatusColor, getReservationStatusColor, getStatusText } = useStatusColors();
-const { formatShortDate } = useDateFormat();
+const { getAnnouncementStatusColor, getReservationStatusColor, getApplicationStatusColor, getStatusText } = useStatusColors();
+const { formatDate: formatShortDate } = useDateFormat();
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);
@@ -526,17 +528,14 @@ const showCancelModal = ref(false);
 const selectedAnnouncement = ref<Announcement | null>(null);
 
 // Filtres initialisés depuis les props
-const selectedAnnouncementStatus = ref<string>(props.filters.announcement_status);
-const selectedReservationStatus = ref<string>(props.filters.reservation_status);
-const selectedDateFilter = ref<string>(props.filters.date_filter);
+const selectedAnnouncementStatus = ref<string>(props.filters.announcement_status || 'all');
+const selectedReservationStatus = ref<string>(props.filters.reservation_status || 'all');
+const selectedDateFilter = ref<string>(props.filters.date_filter || 'all');
 
 // Temp variables for shadcn select
 const tempAnnouncementStatus = ref<string>(selectedAnnouncementStatus.value);
 const tempReservationStatus = ref<string>(selectedReservationStatus.value);
 const tempDateFilter = ref<string>(selectedDateFilter.value);
-
-// Toast
-const { showSuccess, showError } = useToast();
 
 // Filtres actuels pour InfiniteScroll
 const currentFilters = computed(() => {
@@ -591,78 +590,7 @@ const formatTime = (date: string) => {
     });
 };
 
-// Méthodes pour les classes de statut
-const getAnnouncementStatusClass = (status: string) => {
-    const classes: { [key: string]: string } = {
-        active: 'bg-green-100 text-green-800',
-        booked: 'bg-blue-100 text-blue-800',
-        service_completed: 'bg-purple-100 text-purple-800',
-        completed: 'bg-gray-100 text-gray-800',
-        expired: 'bg-orange-100 text-orange-800',
-        cancelled: 'bg-red-100 text-red-800',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
-
-const getAnnouncementStatusText = (status: string) => {
-    const texts: { [key: string]: string } = {
-        active: 'Active',
-        booked: 'Réservée',
-        service_completed: 'Service terminé',
-        completed: 'Terminée',
-        expired: 'Expirée',
-        cancelled: 'Annulée',
-    };
-    return texts[status] || status;
-};
-
-const getApplicationStatusClass = (status: string) => {
-    const classes: { [key: string]: string } = {
-        pending: 'bg-yellow-100 text-yellow-800',
-        accepted: 'bg-green-100 text-green-800',
-        rejected: 'bg-red-100 text-red-800',
-        counter_offered: 'bg-blue-100 text-blue-800',
-        counter_accepted: 'bg-green-100 text-green-800',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
-
-const getApplicationStatusText = (status: string) => {
-    const texts: { [key: string]: string } = {
-        pending: 'En attente',
-        accepted: 'Acceptée',
-        rejected: 'Refusée',
-        counter_offered: 'Contre-offre reçue',
-        counter_accepted: 'Contre-offre acceptée',
-    };
-    return texts[status] || status;
-};
-
-const getReservationStatusClass = (status: string) => {
-    const classes: { [key: string]: string } = {
-        pending_payment: 'bg-yellow-100 text-yellow-800',
-        paid: 'bg-blue-100 text-blue-800',
-        active: 'bg-green-100 text-green-800',
-        service_completed: 'bg-purple-100 text-purple-800',
-        completed: 'bg-gray-100 text-gray-800',
-        cancelled_by_parent: 'bg-red-100 text-red-800',
-        cancelled_by_babysitter: 'bg-red-100 text-red-800',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
-
-const getReservationStatusText = (status: string) => {
-    const texts: { [key: string]: string } = {
-        pending_payment: 'Paiement requis',
-        paid: 'Confirmée',
-        active: 'En cours',
-        service_completed: 'Service terminé',
-        completed: 'Terminée',
-        cancelled_by_parent: 'Annulée par vous',
-        cancelled_by_babysitter: 'Annulée par la babysitter',
-    };
-    return texts[status] || status;
-};
+// Toutes les fonctions de statut sont désormais dans useStatusColors
 
 // Actions
 const viewMessaging = () => {
@@ -729,7 +657,7 @@ const canEditAnnouncement = (announcement: Announcement) => {
     // - Elle est active
     // - Elle n'a pas de candidatures acceptées/confirmées
     // - La date n'est pas passée
-    const hasAcceptedApplications = announcement.applications.some((app) => ['accepted', 'counter_accepted'].includes(app.status));
+    const hasAcceptedApplications = announcement.applications?.some((app) => ['accepted', 'counter_accepted'].includes(app.status)) || false;
     const isPastDate = new Date(announcement.date_start) < new Date();
 
     return announcement.status === 'active' && !hasAcceptedApplications && !isPastDate;
@@ -763,10 +691,10 @@ const closeCancelModal = () => {
 const getCancelModalMessage = () => {
     if (!selectedAnnouncement.value) return '';
     
-    const hasApplications = selectedAnnouncement.value.applications.length > 0;
+    const hasApplications = (selectedAnnouncement.value.applications?.length || 0) > 0;
     
     if (hasApplications) {
-        return `Êtes-vous sûr de vouloir annuler l'annonce "${selectedAnnouncement.value.title}" ? Cela annulera également toutes les ${selectedAnnouncement.value.applications.length} candidature(s) associée(s) et les babysitters seront notifiées.`;
+        return `Êtes-vous sûr de vouloir annuler l'annonce "${selectedAnnouncement.value.title}" ? Cela annulera également toutes les ${selectedAnnouncement.value.applications?.length || 0} candidature(s) associée(s) et les babysitters seront notifiées.`;
     }
     
     return `Êtes-vous sûr de vouloir annuler l'annonce "${selectedAnnouncement.value.title}" ?`;

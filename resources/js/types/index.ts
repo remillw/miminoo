@@ -66,12 +66,15 @@ export interface BabysitterProfile {
     languages?: Language[];
     skills?: Skill[];
     age_ranges?: AgeRange[];
+    excluded_age_ranges?: AgeRange[];
     experiences?: any[];
     verification_status: 'pending' | 'verified' | 'rejected';
     rejection_reason?: string;
     is_available?: boolean;
     has_driving_license?: boolean;
     has_vehicle?: boolean;
+    profile_photos?: string[];
+    additional_photos_urls?: string[];
 }
 
 export interface Child {
@@ -229,11 +232,15 @@ export interface Transaction {
     currency: string;
     status: string;
     created_at: string;
+    created?: string; // Alternative pour created_at
     description?: string;
     reservation_id?: number;
     parent_name?: string;
     babysitter_name?: string;
     service_date?: string;
+    service_start?: string; // Pour les données de service
+    date?: string; // Date alternative
+    duration?: number; // Durée du service en heures
     funds_status?: string;
     funds_message?: string;
     funds_release_date?: string;

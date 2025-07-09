@@ -41,7 +41,7 @@
                                 <div
                                     v-if="conversation.type === 'application'"
                                     class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm"
-                                    :class="getApplicationBadgeClass(conversation.application?.status)"
+                                    :class="getApplicationStatusColor(conversation.application?.status).icon"
                                 >
                                     {{ getApplicationBadgeIcon(conversation.application?.status) }}
                                 </div>
@@ -239,7 +239,7 @@
                                 <div
                                     v-if="conversation.type === 'application'"
                                     class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm"
-                                    :class="getApplicationBadgeClass(conversation.application?.status)"
+                                    :class="getApplicationStatusColor(conversation.application?.status).icon"
                                 >
                                     {{ getApplicationBadgeIcon(conversation.application?.status) }}
                                 </div>
@@ -391,25 +391,46 @@
 </template>
 
 <script setup lang="ts">
-import { useUserMode } from '@/composables/useUserMode';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { router, usePage, Head } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { router } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
-import CandidatureChat from './Components/CandidatureChat.vue';
-import ChatInput from './Components/ChatInput.vue';
-import ChatMessages from './Components/ChatMessages.vue';
 import ConversationHeader from './Components/ConversationHeader.vue';
+import ChatMessages from './Components/ChatMessages.vue';
+import ChatInput from './Components/ChatInput.vue';
+import CandidatureChat from './Components/CandidatureChat.vue';
+import { Search, MessageSquare, MessagesSquare, Clock, Check, ChevronRight, MoreVertical, ArrowLeft } from 'lucide-vue-next';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useUserMode } from '@/composables/useUserMode';
+import type { User, Application, Reservation, Conversation, Message } from '@/types';
 
-const props = defineProps({
-    conversations: Array,
-    userRole: String,
-    hasParentRole: Boolean,
-    hasBabysitterRole: Boolean,
-    requestedMode: String,
-    currentMode: String, // Ajout de la prop currentMode du serveur
-});
+interface ApplicationConversation extends Conversation {
+    type: 'application';
+    application: Application;
+}
 
+interface RegularConversation extends Conversation {
+    type: 'normal';
+    application?: never;
+}
+
+type ConversationType = ApplicationConversation | RegularConversation;
+
+interface Props {
+    conversations: ConversationType[];
+    currentMode: 'parent' | 'babysitter';
+    requestedMode?: 'parent' | 'babysitter';
+    auth: {
+        user: User;
+    };
+    hasParentRole: boolean;
+    hasBabysitterRole: boolean;
+}
+
+const props = defineProps<Props>();
+
+// Composables
+const { getApplicationStatusColor, getStatusText } = useStatusColors();
 const { currentMode, initializeMode, setMode } = useUserMode();
 
 // Initialiser le mode IMMÉDIATEMENT (pas dans onMounted)
@@ -645,21 +666,6 @@ function formatTimeAgo(dateString) {
         return `${days}j`;
     } catch (error) {
         return 'Maintenant';
-    }
-}
-
-function getApplicationBadgeClass(status) {
-    switch (status) {
-        case 'pending':
-            return 'bg-yellow-500';
-        case 'counter_offered':
-            return 'bg-blue-500';
-        case 'accepted':
-            return 'bg-green-500';
-        case 'declined':
-            return 'bg-red-500';
-        default:
-            return 'bg-gray-500';
     }
 }
 

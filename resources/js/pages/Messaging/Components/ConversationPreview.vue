@@ -57,8 +57,8 @@
     <!-- Statut conversation -->
     <div v-if="conversation.status !== 'active'" class="mt-2">
       <span class="text-xs px-2 py-1 rounded-full" 
-            :class="getStatusClasses(conversation.status)">
-        {{ getStatusText(conversation.status) }}
+            :class="getReservationStatusColor(conversation.status).badge">
+        {{ getStatusText('reservation', conversation.status) }}
       </span>
     </div>
   </div>
@@ -66,12 +66,16 @@
 
 <script setup>
 import { BadgeCheck } from 'lucide-vue-next'
+import { useStatusColors } from '@/composables/useStatusColors'
 
 const props = defineProps({
   conversation: Object
 })
 
 defineEmits(['click'])
+
+// Composable pour les couleurs de statut
+const { getReservationStatusColor, getStatusText } = useStatusColors()
 
 function filterSensitiveInfo(text) {
   if (!text) return '';
@@ -110,51 +114,5 @@ function filterSensitiveInfo(text) {
   return filteredText;
 }
 
-function getStatusClasses(status) {
-  switch (status) {
-    case 'pending_payment':
-      return 'bg-yellow-100 text-yellow-800'
-    case 'paid':
-      return 'bg-blue-100 text-blue-800'
-    case 'active':
-      return 'bg-green-100 text-green-800'
-    case 'service_completed':
-      return 'bg-purple-100 text-purple-800'
-    case 'completed':
-      return 'bg-gray-100 text-gray-800'
-    case 'cancelled_by_parent':
-    case 'cancelled_by_babysitter':
-    case 'cancelled':
-      return 'bg-red-100 text-red-800'
-    case 'dispute':
-      return 'bg-orange-100 text-orange-800'
-    default:
-      return 'bg-gray-100 text-gray-600'
-  }
-}
-
-function getStatusText(status) {
-  switch (status) {
-    case 'pending_payment':
-      return 'Paiement requis'
-    case 'paid':
-      return 'Confirmée'
-    case 'active':
-      return 'En cours'
-    case 'service_completed':
-      return 'Service terminé'
-    case 'completed':
-      return 'Terminée'
-    case 'cancelled_by_parent':
-      return 'Annulée par le parent'
-    case 'cancelled_by_babysitter':
-      return 'Annulée par la babysitter'
-    case 'cancelled':
-      return 'Annulée'
-    case 'dispute':
-      return 'Litige'
-    default:
-      return status
-  }
-}
+// Fonctions de statut remplacées par le composable useStatusColors
 </script> 

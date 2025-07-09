@@ -11,6 +11,7 @@ import { router } from '@inertiajs/vue3';
 import {
     AlertCircle,
     Baby,
+    Building,
     Camera,
     CheckCircle,
     Clock,

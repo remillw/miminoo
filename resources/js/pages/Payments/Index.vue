@@ -31,10 +31,10 @@
                                 <div class="flex items-center">
                                     <div
                                         v-if="isBabysitterMode(props)"
-                                        :class="getStatusBadgeClass(props.accountStatus)"
+                                        :class="getStripeAccountStatusColor(props.accountStatus).badge"
                                         class="rounded-full px-3 py-1 text-sm font-medium"
                                     >
-                                        {{ getStatusText(props.accountStatus) }}
+                                        {{ getStatusText('stripeAccount', props.accountStatus) }}
                                     </div>
                                 </div>
                             </div>
@@ -192,7 +192,7 @@
                                 <tbody class="divide-y divide-gray-200 bg-white">
                                     <tr v-for="transaction in isBabysitterMode(props) ? props.recentTransactions.data : []" :key="transaction.id">
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ formatDate(transaction.service_date || transaction.created) }}
+                                            {{ formatDate(transaction.service_date || transaction.created || transaction.created_at) }}
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             <div>{{ transaction.description || getTransactionType(transaction.type) }}</div>
@@ -361,7 +361,7 @@
                                     <tr v-for="transaction in isParentMode(props) ? props.transactions.data : []" :key="`${transaction.type}-${transaction.id}`"
                                         :class="transaction.type === 'refund' ? 'bg-green-50' : ''">
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ formatDate(transaction.date) }}
+                                            {{ formatDate(transaction.date || transaction.created_at) }}
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             {{ transaction.babysitter_name }}
@@ -369,7 +369,7 @@
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             <span v-if="transaction.type === 'payment'">
-                                                {{ formatDate(transaction.service_start) }} - {{ transaction.duration }}h
+                                                {{ formatDate(transaction.service_date) }} - {{ transaction.duration || 0 }}h
                                             </span>
                                             <span v-else-if="transaction.type === 'refund'" class="text-green-600">
                                                 {{ transaction.description }}
@@ -422,7 +422,7 @@ import { router, usePage, Head } from '@inertiajs/vue3';
 import { 
     AlertCircle, Building, Calendar, CheckCircle, Clock, CreditCard, 
     Download, ExternalLink, Eye, Info, Minus, RefreshCw, Settings, 
-    Shield, TrendingDown, TrendingUp, User, Wallet 
+    Shield, TrendingDown, TrendingUp, UserIcon, Wallet 
 } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
@@ -499,7 +499,13 @@ const props = defineProps<Props>();
 
 const page = usePage();
 const { handleApiResponse, showSuccess, showError } = useToast();
-const { getStatusText, getFundsStatusColor } = useStatusColors();
+const { 
+    getStatusText, 
+    getFundsStatusColor, 
+    getReservationStatusColor, 
+    getStripeAccountStatusColor,
+    getPayoutStatusColor
+} = useStatusColors();
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);
@@ -589,27 +595,7 @@ const getAccountStatusText = (status: string) => {
     return statusTexts[status] || 'Statut inconnu';
 };
 
-const getStatusText = (status: string) => {
-    const statusTexts: { [key: string]: string } = {
-        pending: 'En attente',
-        active: 'Actif',
-        restricted: 'Restreint',
-        rejected: 'Rejeté',
-        inactive: 'Inactif',
-    };
-    return statusTexts[status] || 'Inconnu';
-};
-
-const getStatusBadgeClass = (status: string) => {
-    const classes: { [key: string]: string } = {
-        pending: 'bg-yellow-100 text-yellow-800',
-        active: 'bg-green-100 text-green-800',
-        restricted: 'bg-red-100 text-red-800',
-        rejected: 'bg-red-100 text-red-800',
-        inactive: 'bg-gray-100 text-gray-800',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
+// getStatusText et getStatusBadgeClass sont importés du composable useStatusColors
 
 const getTransactionType = (type: string) => {
     const types: { [key: string]: string } = {
@@ -721,7 +707,7 @@ const triggerManualPayout = () => {
 };
 
 // Méthodes pour les actions
-const downloadInvoice = async (transactionId: number) => {
+        const downloadInvoice = async (transactionId: string) => {
     try {
         const response = await fetch(`/reservations/${transactionId}/invoice`, {
             method: 'GET',

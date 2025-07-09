@@ -11,29 +11,8 @@ import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { Calendar, Check, Clock, CreditCard, FileText, MapPin, Users } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
+import type { User, Child, Address } from '@/types';
 
-interface Child {
-    nom: string;
-    age: string;
-    unite: 'ans' | 'mois';
-}
-
-interface User {
-    id: number;
-    firstname: string;
-    lastname: string;
-    email: string;
-    address?: {
-        address: string;
-        postal_code: string;
-        country: string;
-        latitude: number;
-        longitude: number;
-    };
-    parentProfile?: {
-        children_ages: Child[];
-    };
-}
 const role = 'parent';
 
 interface Props {
@@ -42,6 +21,19 @@ interface Props {
     googlePlacesApiKey?: string;
     isGuest?: boolean;
     userEmail?: string;
+}
+
+interface FlashSuccess {
+    title: string;
+    message: string;
+}
+
+interface FlashData {
+    success?: FlashSuccess;
+}
+
+interface PageProps {
+    flash?: FlashData;
 }
 
 const props = defineProps<Props>();
@@ -235,8 +227,8 @@ const progressPercentage = computed(() => {
 
 // Initialiser les enfants depuis le profil
 const initializeChildren = () => {
-    if (props.user?.parentProfile?.children_ages && props.user.parentProfile.children_ages.length > 0) {
-        form.value.children = [...props.user.parentProfile.children_ages].map((child) => ({
+    if (props.user?.parent_profile?.children && props.user.parent_profile.children.length > 0) {
+        form.value.children = [...props.user.parent_profile.children].map((child) => ({
             ...child,
             age: String(child.age), // S'assurer que l'âge est une string
         }));
@@ -346,8 +338,10 @@ const initAutocomplete = async () => {
 
     autocomplete = new window.google.maps.places.Autocomplete(input, {
         types: ['address'],
-        fields: ['formatted_address', 'address_components', 'geometry'],
-    });
+    } as any);
+
+    // Configuration des champs retournés
+    autocomplete.setFields(['formatted_address', 'address_components', 'geometry']);
 
     autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
@@ -668,9 +662,10 @@ const submitAnnouncement = async () => {
 
     try {
         router.post('/annonces', announcementData, {
-            onSuccess: (page) => {
+            onSuccess: (page: any) => {
                 // Récupérer le message de succès depuis la session
-                const successData = page.props.flash?.success;
+                const pageProps = page.props as PageProps;
+                const successData = pageProps.flash?.success;
 
                 if (successData && typeof successData === 'object') {
                     showSuccess(`${successData.title}\n${successData.message}`);
@@ -1103,7 +1098,7 @@ initializeChildren();
                                     :model-value="String(form.children.length)"
                                     @update:model-value="
                                         (value) => {
-                                            const count = parseInt(value);
+                                            const count = parseInt(value as string);
                                             while (form.children.length < count) addChild();
                                             while (form.children.length > count) removeChild(form.children.length - 1);
                                         }

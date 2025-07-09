@@ -100,6 +100,7 @@ import { Calendar, CheckCircle, Clock, CreditCard, FileText, User } from 'lucide
 import { computed, ref } from 'vue';
 import CancelReservationModal from './CancelReservationModal.vue';
 import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
 
 const props = defineProps({
     conversation: Object,
@@ -112,8 +113,9 @@ const emit = defineEmits(['reservation-updated']);
 // État local
 const showCancelModal = ref(false);
 
-// Toast
+// Toast et composables
 const { showSuccess, showError } = useToast();
+const { getReservationStatusColor, getStatusText } = useStatusColors();
 
 // Computed
 const canCancelReservation = computed(() => {
@@ -268,24 +270,7 @@ function getConversationStatus() {
 
 function getReservationStatusClass() {
     if (!props.reservation) return '';
-
-    switch (props.reservation.status) {
-        case 'pending_payment':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'paid':
-            return 'bg-blue-100 text-blue-800';
-        case 'active':
-            return 'bg-green-100 text-green-800';
-        case 'service_completed':
-            return 'bg-purple-100 text-purple-800';
-        case 'completed':
-            return 'bg-gray-100 text-gray-800';
-        case 'cancelled_by_parent':
-        case 'cancelled_by_babysitter':
-            return 'bg-red-100 text-red-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
+    return getReservationStatusColor(props.reservation.status).badge;
 }
 
 function getReservationDotClass() {
@@ -312,40 +297,12 @@ function getReservationDotClass() {
 
 function getReservationStatusText() {
     if (!props.reservation) return '';
-
-    switch (props.reservation.status) {
-        case 'pending_payment':
-            return 'Paiement requis';
-        case 'paid':
-            return 'Confirmée';
-        case 'active':
-            return 'En cours';
-        case 'service_completed':
-            return 'Service terminé';
-        case 'completed':
-            return 'Terminée';
-        case 'cancelled_by_parent':
-            return 'Annulée par le parent';
-        case 'cancelled_by_babysitter':
-            return 'Annulée par la babysitter';
-        default:
-            return 'Inconnue';
-    }
+    return getStatusText('reservation', props.reservation.status);
 }
 
 function getReservationBannerClass() {
     if (!props.reservation) return '';
-
-    switch (props.reservation.status) {
-        case 'pending_payment':
-            return 'bg-yellow-50 border border-yellow-200 text-yellow-800';
-        case 'paid':
-            return 'bg-blue-50 border border-blue-200 text-blue-800';
-        case 'active':
-            return 'bg-green-50 border border-green-200 text-green-800';
-        default:
-            return 'bg-gray-50 border border-gray-200 text-gray-800';
-    }
+    return getReservationStatusColor(props.reservation.status).background;
 }
 
 function getReservationIcon() {

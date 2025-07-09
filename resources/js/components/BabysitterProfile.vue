@@ -573,27 +573,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import type { 
+    Language, 
+    Skill, 
+    AgeRange, 
+    BabysitterProfile as BabysitterProfileType,
+    Review
+} from '@/types';
 
-interface Language {
-    id: number;
-    name: string;
-    code: string;
-}
-
-interface Skill {
-    id: number;
-    name: string;
-    description?: string;
-    category?: string;
-}
-
-interface AgeRange {
-    id: number;
-    name: string;
-    min_age_months: number;
-    max_age_months?: number;
-    display_order: number;
-}
+// Types Language, Skill, AgeRange importés depuis @/types
 
 interface Experience {
     type: 'formation' | 'experience';
@@ -605,41 +593,21 @@ interface Experience {
     is_current?: boolean;
 }
 
-interface Review {
-    id: number;
-    rating: number;
-    comment?: string;
-    created_at: string;
-    reviewer: {
-        id: number;
-        firstname: string;
-        lastname: string;
-        avatar?: string;
-    };
-}
+// Type Review importé depuis @/types
 
-interface BabysitterProfileData {
-    id?: number;
-    bio?: string;
-    experience_years?: number;
-    available_radius_km?: number;
-    is_available?: boolean;
-    hourly_rate?: number;
-    documents_verified?: boolean;
-    has_driving_license?: boolean;
-    has_vehicle?: boolean;
-    comfortable_with_all_ages?: boolean;
-    profile_photos?: string[];
-    additional_photos_urls?: string[];
-    languages?: Language[];
-    skills?: Skill[];
-    age_ranges?: AgeRange[];
-    excluded_age_ranges?: AgeRange[];
-    experiences?: Experience[];
+// Interface pour Experience locale uniquement
+interface Experience {
+    type: 'formation' | 'experience';
+    title: string;
+    description?: string;
+    institution?: string;
+    start_date?: string;
+    end_date?: string;
+    is_current?: boolean;
 }
 
 interface Props {
-    babysitterProfile?: BabysitterProfileData;
+    babysitterProfile?: BabysitterProfileType;
     availableLanguages?: Language[];
     availableSkills?: Skill[];
     availableAgeRanges?: AgeRange[];
