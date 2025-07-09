@@ -327,19 +327,7 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { useToast } from '@/composables/useToast';
 
 // Types
-interface User {
-    id: number;
-    firstname: string;
-    lastname: string;
-    email: string;
-    language: string;
-    google_id?: string;
-    apple_id?: string;
-    is_social_account: boolean;
-    password?: string;
-    social_data_locked: boolean;
-    provider?: string;
-}
+import type { User } from '@/types';
 
 interface NotificationSettings {
     email_notifications: boolean;

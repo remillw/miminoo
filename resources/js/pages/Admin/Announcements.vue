@@ -2,37 +2,20 @@
 import AdminLayout from '@/components/AdminLayout.vue';
 import DataTable from '@/components/DataTable.vue';
 import { Button } from '@/components/ui/button';
-
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
 import type { Column } from '@/types/datatable';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Plus, Eye, Edit, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
+import type { Address, User, Announcement, PaginatedData } from '@/types';
 
-interface Address {
-    id: number;
-    address: string;
-    postal_code: string;
-    country: string;
+interface Parent extends User {
+    // Propriétés spécifiques au parent si nécessaire
 }
 
-interface Parent {
-    id: number;
-    firstname: string;
-    lastname: string;
-}
-
-interface Announcement {
-    id: number;
-    title: string;
-    description?: string;
-    status: string;
-    slug?: string;
-    hourly_rate: number;
-    date_start: string;
-    date_end: string;
-    created_at: string;
+interface ExtendedAnnouncement extends Announcement {
     applications_count: number;
     reservations_count: number;
     parent: Parent;
@@ -40,11 +23,7 @@ interface Announcement {
 }
 
 interface Props {
-    announcements: {
-        data: Announcement[];
-        meta: any;
-        links: any;
-    };
+    announcements: PaginatedData<ExtendedAnnouncement>;
     filters: {
         search?: string;
         status?: string;
@@ -52,15 +31,16 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const { showSuccess, showError } = useToast();
+const { getAnnouncementStatusColor, getStatusText } = useStatusColors();
 
 const searchTerm = ref(props.filters.search || '');
 const statusFilter = ref(props.filters.status || '');
 const showDeleteModal = ref(false);
-const announcementToDelete = ref<Announcement | null>(null);
+const announcementToDelete = ref<ExtendedAnnouncement | null>(null);
 const isDeleting = ref(false);
-const { showSuccess, showError } = useToast();
 
-const columns: Column<Announcement>[] = [
+const columns: Column<ExtendedAnnouncement>[] = [
     {
         key: 'title',
         label: 'Annonce',
@@ -132,7 +112,7 @@ const search = () => {
     });
 };
 
-const viewAnnouncement = (announcement: Announcement) => {
+const viewAnnouncement = (announcement: ExtendedAnnouncement) => {
     // Rediriger vers la page publique de l'annonce
     window.open(`/annonce/${announcement.slug || announcement.id}`, '_blank');
 };
@@ -141,7 +121,7 @@ const editAnnouncement = (announcementId: number) => {
     router.visit(`/admin/annonces/${announcementId}/modifier`);
 };
 
-const deleteAnnouncement = (announcement: Announcement) => {
+const deleteAnnouncement = (announcement: ExtendedAnnouncement) => {
     announcementToDelete.value = announcement;
     showDeleteModal.value = true;
 };
@@ -169,50 +149,6 @@ const confirmDelete = () => {
             isDeleting.value = false;
         }
     });
-};
-
-const getStatusClass = (status: string) => {
-    switch (status) {
-        case 'active':
-            return 'bg-green-100 text-green-800';
-        case 'booked':
-            return 'bg-blue-100 text-blue-800';
-        case 'blocked_24h':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'service_completed':
-            return 'bg-purple-100 text-purple-800';
-        case 'completed':
-            return 'bg-gray-100 text-gray-800';
-        case 'expired':
-            return 'bg-orange-100 text-orange-800';
-        case 'cancelled':
-            return 'bg-red-100 text-red-800';
-        case 'paused':
-            return 'bg-yellow-100 text-yellow-800';
-        default:
-            return 'bg-gray-100 text-gray-800';
-    }
-};
-
-const getStatusText = (status: string) => {
-    switch (status) {
-        case 'active':
-            return 'Active';
-        case 'booked':
-            return 'Réservée';
-        case 'service_completed':
-            return 'Service terminé';
-        case 'completed':
-            return 'Terminée';
-        case 'expired':
-            return 'Expirée';
-        case 'cancelled':
-            return 'Annulée';
-        case 'paused':
-            return 'En pause';
-        default:
-            return status;
-    }
 };
 
 const formatDate = (dateString: string) => {
@@ -285,8 +221,8 @@ const formatDate = (dateString: string) => {
 
             <!-- Colonne statut -->
             <template #status="{ item }">
-                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getStatusClass(item.status)]">
-                    {{ getStatusText(item.status) }}
+                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getAnnouncementStatusColor(item.status).badge]">
+                    {{ getStatusText('announcement', item.status) }}
                 </span>
             </template>
 

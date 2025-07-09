@@ -28,11 +28,28 @@ import {
 } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
+import type { 
+    User, 
+    Child, 
+    Address, 
+    Language, 
+    Skill, 
+    AgeRange,
+    BabysitterProfile as BabysitterProfileType 
+} from '@/types';
 
-interface Child {
-    nom: string;
-    age: string;
-    unite: 'ans' | 'mois';
+interface ExtendedUser extends User {
+    parentProfile?: {
+        children_ages: Child[];
+    };
+    babysitterProfile?: BabysitterProfileType;
+    role: string;
+    social_data_locked: boolean;
+    provider: string;
+    avatar_url?: string;
+    google_id?: string;
+    password?: boolean;
+    is_social_account?: boolean;
 }
 
 interface AddressData {
@@ -44,89 +61,14 @@ interface AddressData {
     google_place_id: string;
 }
 
-interface Address extends AddressData {
-    id?: number;
-}
-
-interface User {
-    id: number;
-    firstname: string;
-    lastname: string;
-    email: string;
-    date_of_birth?: string;
-    avatar?: string;
-    slug?: string;
-    address?: Address;
-    parentProfile?: {
-        children_ages: Child[];
-    };
-    babysitterProfile?: {
-        bio?: string;
-        experience_years?: number;
-        available_radius_km?: number;
-        availability?: any;
-        hourly_rate?: number;
-        documents_verified?: boolean;
-        comfortable_with_all_ages?: boolean;
-        languages?: Language[];
-        skills?: Skill[];
-        age_ranges?: AgeRange[];
-        experiences?: any[];
-        verification_status: 'pending' | 'verified' | 'rejected';
-        rejection_reason?: string;
-    };
-    role: string;
-    social_data_locked: boolean;
-    provider: string;
-    avatar_url?: string;
-    google_id?: string;
-    password?: boolean;
-    is_social_account?: boolean;
-}
-
-interface Language {
-    id: number;
-    name: string;
-    code: string;
-}
-
-interface Skill {
-    id: number;
-    name: string;
-    description?: string;
-    category?: string;
-}
-
-interface AgeRange {
-    id: number;
-    name: string;
-    min_age_months: number;
-    max_age_months?: number;
-    display_order: number;
-}
-
 interface Props {
-    user: User;
+    user: ExtendedUser;
     userRoles: string[];
     hasParentRole: boolean;
     hasBabysitterRole: boolean;
     requestedMode?: 'parent' | 'babysitter';
     children?: Child[];
-    babysitterProfile?: {
-        bio?: string;
-        experience_years?: number;
-        available_radius_km?: number;
-        availability?: any;
-        hourly_rate?: number;
-        documents_verified?: boolean;
-        comfortable_with_all_ages?: boolean;
-        languages?: Language[];
-        skills?: Skill[];
-        age_ranges?: AgeRange[];
-        experiences?: any[];
-        verification_status: 'pending' | 'verified' | 'rejected';
-        rejection_reason?: string;
-    };
+    babysitterProfile?: BabysitterProfileType;
     availableLanguages?: Language[];
     availableSkills?: Skill[];
     availableAgeRanges?: AgeRange[];
@@ -288,21 +230,65 @@ const toggleEdit = () => {
 };
 
 const viewMyProfile = () => {
-    // Rediriger vers la page de profil publique basée sur le mode actuel
-    if (currentMode.value === 'babysitter' && props.hasBabysitterRole && props.user.slug) {
-        // Ouvrir le profil babysitter dans un nouvel onglet
-        window.open(route('babysitter.show', { slug: props.user.slug }), '_blank');
-    } else if (currentMode.value === 'parent' && props.hasParentRole && props.user.slug) {
-        // Ouvrir le profil parent dans un nouvel onglet
-        window.open(route('parent.show', { slug: props.user.slug }), '_blank');
-    } else {
-        // Fallback: utiliser le mode babysitter si l'utilisateur a ce rôle
-        if (props.hasBabysitterRole && props.user.slug) {
-            window.open(route('babysitter.show', { slug: props.user.slug }), '_blank');
+    // Créer le slug à la volée
+    try {
+        let url;
+        if (currentMode.value === 'babysitter' && props.hasBabysitterRole) {
+            // Créer le slug babysitter
+            const slug = createBabysitterSlug(props.user);
+            url = route('babysitter.show', { slug });
+        } else if (currentMode.value === 'parent' && props.hasParentRole) {
+            // Créer le slug parent
+            const slug = createParentSlug(props.user);
+            url = route('parent.show', { slug });
+        } else if (props.hasBabysitterRole) {
+            // Fallback: utiliser le mode babysitter si l'utilisateur a ce rôle
+            const slug = createBabysitterSlug(props.user);
+            url = route('babysitter.show', { slug });
         } else {
-            showError('Impossible d\'afficher le profil public - Slug manquant');
+            showError('Impossible d\'afficher le profil public - Rôle incompatible');
+            return;
         }
+        
+        // Ouvrir le profil dans un nouvel onglet
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('❌ Erreur création profil:', error);
+        showError('Impossible d\'afficher le profil public - Erreur de génération du lien');
     }
+};
+
+// Fonctions de création de slugs (inspirées de la messagerie)
+const createBabysitterSlug = (user: User) => {
+    if (!user || !user.id) {
+        console.error('❌ User invalide pour babysitter slug:', user);
+        throw new Error('User invalide');
+    }
+
+    // Reproduire exactement l'algorithme PHP
+    const firstName = user.firstname ? user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'babysitter';
+    const lastName = user.lastname ? user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
+
+    const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
+    const finalSlug = slug.replace(/-+/g, '-');
+
+    return finalSlug;
+};
+
+const createParentSlug = (user: User) => {
+    if (!user || !user.id) {
+        console.error('❌ User invalide pour parent slug:', user);
+        throw new Error('User invalide');
+    }
+
+    // Reproduire exactement l'algorithme PHP
+    const firstName = user.firstname ? user.firstname.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'parent';
+    const lastName = user.lastname ? user.lastname.toLowerCase().replace(/[^a-z0-9]/g, '-') : '';
+
+    const slug = (firstName + '-' + lastName + '-' + user.id).replace(/^-+|-+$/g, '');
+    const finalSlug = slug.replace(/-+/g, '-');
+
+    return finalSlug;
 };
 
 // Charger l'API Google Places

@@ -1,90 +1,64 @@
 <script setup lang="ts">
-import PostulerModal from '@/components/PostulerModal.vue';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useDateFormat } from '@/composables/useDateFormat';
+import { router } from '@inertiajs/vue3';
+import { Calendar, MapPin, Clock, Star, Users, Heart, MessageCircle, UserCheck, ShieldCheck } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { route } from 'ziggy-js';
+import type { 
+    Announcement, 
+    Child, 
+    User, 
+    Review, 
+    Address
+} from '@/types';
 
-interface Child {
-    nom: string;
-    age: string;
-    unite: 'ans' | 'mois';
-}
-
-interface Parent {
-    id: number;
-    firstname: string;
-    lastname: string;
-    avatar?: string;
-    slug: string;
-    reviews: Review[];
-    review_stats: ReviewStats;
-    member_since: string;
-}
-
-interface Review {
-    id: number;
-    rating: number;
-    comment: string;
-    created_at: string;
-    reviewer: {
-        firstname: string;
-        lastname: string;
-        avatar?: string;
-    };
+interface Parent extends User {
+    // Hérite de toutes les propriétés de User
 }
 
 interface ReviewStats {
     average_rating: number;
     total_reviews: number;
-    rating_distribution: {
-        [key: number]: {
-            count: number;
-            percentage: number;
-        };
+    rating_breakdown: {
+        1: number;
+        2: number;
+        3: number;
+        4: number;
+        5: number;
     };
 }
 
-interface Address {
-    address: string;
-    postal_code: string;
-    country: string;
-    latitude: number;
-    longitude: number;
-}
-
 interface Duration {
-    is_multi_day: boolean;
-    total_hours: number;
-    days: number;
-    start_date: string;
-    end_date: string;
-    start_time: string;
-    end_time: string;
+    hours: number;
+    minutes: number;
+    total_minutes: number;
+    formatted: string;
 }
 
-interface Announcement {
-    id: number;
-    title: string;
-    description?: string;
-    date_start: string;
-    date_end: string;
-    hourly_rate: number;
-    estimated_duration: number;
-    estimated_total: number;
-    status: string;
-    children: Child[];
-    created_at: string;
-    slug: string;
+interface ExtendedAnnouncement extends Announcement {
     duration: Duration;
-    parent: Parent;
-    address: Address;
+    reviews_stats: ReviewStats;
+    recent_reviews: Review[];
+    can_apply: boolean;
+    user_application_status?: string;
 }
 
 interface Props {
-    announcement: Announcement;
+    announcement: ExtendedAnnouncement;
+    auth?: {
+        user?: User;
+    };
 }
 
 const props = defineProps<Props>();
+const { showSuccess, showError } = useToast();
+const { getAnnouncementStatusColor, getStatusText } = useStatusColors();
+const { formatDate, formatTime } = useDateFormat();
 
 // État du modal
 const isModalOpen = ref(false);

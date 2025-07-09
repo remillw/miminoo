@@ -3,48 +3,46 @@ import { router } from '@inertiajs/vue3';
 import { Bell, Calendar, Clock, FileText, MessageCircle, Plus, Star, Users } from 'lucide-vue-next';
 import { onMounted } from 'vue';
 import { route } from 'ziggy-js';
+import { useStatusColors } from '@/composables/useStatusColors';
+import type { User, DashboardStats, Announcement, Reservation, Notification } from '@/types';
+
+interface CompletedReservation {
+    id: number;
+    babysitter_name: string;
+    babysitter_avatar?: string;
+    service_date: string;
+    can_review: boolean;
+}
+
+interface NextReservation {
+    id: number;
+    babysitter_name: string;
+    babysitter_avatar?: string;
+    babysitter_rating: number;
+    babysitter_reviews_count: number;
+    service_start_at: string;
+    service_end_at: string;
+    status: string;
+}
+
+interface RecentAd {
+    id: number;
+    title: string;
+    date: string;
+    time: string;
+    candidates_count: number;
+    status: string;
+}
 
 interface Props {
-    user: any;
+    user: User;
     currentMode: string;
     parentProfile?: any;
-    stats?: {
-        active_ads: number;
-        bookings_this_month: number;
-        average_babysitter_rating: number;
-    };
-    nextReservation?: {
-        id: number;
-        babysitter_name: string;
-        babysitter_avatar?: string;
-        babysitter_rating: number;
-        babysitter_reviews_count: number;
-        service_start_at: string;
-        service_end_at: string;
-        status: string;
-    };
-    recentAds?: Array<{
-        id: number;
-        title: string;
-        date: string;
-        time: string;
-        candidates_count: number;
-        status: string;
-    }>;
-    notifications?: Array<{
-        id: string;
-        type: string;
-        title: string;
-        created_at: string;
-        read_at?: string;
-    }>;
-    completedReservations?: Array<{
-        id: number;
-        babysitter_name: string;
-        babysitter_avatar?: string;
-        service_date: string;
-        can_review: boolean;
-    }>;
+    stats?: DashboardStats;
+    nextReservation?: NextReservation;
+    recentAds?: RecentAd[];
+    notifications?: Notification[];
+    completedReservations?: CompletedReservation[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -52,8 +50,10 @@ const props = withDefaults(defineProps<Props>(), {
     recentAds: () => [],
     notifications: () => [],
     completedReservations: () => [],
-    nextReservation: () => null,
 });
+
+// Utiliser le composable pour les couleurs de statut
+const { getAnnouncementStatusColor, getStatusText } = useStatusColors();
 
 // Méthodes
 const formatDateTime = (dateString: string) => {
@@ -103,32 +103,6 @@ const formatTimeAgo = (dateString: string) => {
         const days = Math.floor(diffInMinutes / 1440);
         return `Il y a ${days} jour${days > 1 ? 's' : ''}`;
     }
-};
-
-const getStatusClass = (status: string) => {
-    const classes: Record<string, string> = {
-        active: 'bg-green-100 text-green-800',
-        completed: 'bg-gray-100 text-gray-800',
-        cancelled: 'bg-red-100 text-red-800',
-        booked: 'bg-blue-100 text-blue-800',
-        pending_payment: 'bg-orange-100 text-orange-800',
-        service_completed: 'bg-purple-100 text-purple-800',
-        expired: 'bg-gray-100 text-gray-600',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
-
-const getStatusText = (status: string) => {
-    const texts: Record<string, string> = {
-        active: 'Active',
-        completed: 'Terminée',
-        cancelled: 'Annulée',
-        booked: 'Réservée',
-        pending_payment: 'En attente de paiement',
-        service_completed: 'Service terminé',
-        expired: 'Expirée',
-    };
-    return texts[status] || status;
 };
 
 const viewReservationDetails = (id: number) => {
@@ -282,9 +256,9 @@ onMounted(() => {
                                 </div>
                                 <span
                                     class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                    :class="getStatusClass(ad.status)"
+                                    :class="getAnnouncementStatusColor(ad.status).badge"
                                 >
-                                    {{ getStatusText(ad.status) }}
+                                    {{ getStatusText('announcement', ad.status) }}
                                 </span>
                             </div>
                         </div>
@@ -302,7 +276,10 @@ onMounted(() => {
                         </a>
                     </div>
                 </div>
+            </div>
 
+            <!-- Colonne latérale -->
+            <div class="space-y-6">
                 <!-- Avis à laisser -->
                 <div v-if="props.completedReservations && props.completedReservations.length > 0" class="rounded-lg bg-white p-6 shadow-sm">
                     <h2 class="mb-4 text-lg font-semibold text-gray-900">Avis à laisser</h2>
@@ -334,10 +311,7 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Colonne latérale -->
-            <div class="space-y-6">
                 <!-- Notifications -->
                 <div class="rounded-lg bg-white p-6 shadow-sm">
                     <div class="mb-4 flex items-center gap-2">

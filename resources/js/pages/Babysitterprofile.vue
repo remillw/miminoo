@@ -1,114 +1,75 @@
 <script setup lang="ts">
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { router } from '@inertiajs/vue3';
+import { 
+    Calendar, Clock, MapPin, Star, Users, Car, 
+    CheckCircle, Shield, MessageCircle, Heart,
+    Baby, Award, Globe
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-
-interface Language {
-    id: number;
-    name: string;
-    code: string;
-    pivot?: {
-        level: string;
-    };
-}
-
-interface Skill {
-    id: number;
-    name: string;
-    description?: string;
-    category?: string;
-}
-
-interface AgeRange {
-    id: number;
-    name: string;
-    min_age_months: number;
-    max_age_months: number;
-}
+import { route } from 'ziggy-js';
+import type { 
+    User, 
+    Language, 
+    Skill, 
+    AgeRange, 
+    Review, 
+    Address,
+    BabysitterProfile
+} from '@/types';
 
 interface Experience {
     id: number;
-    type: 'formation' | 'experience';
     title: string;
+    organization?: string;
     description?: string;
-    institution?: string;
-    start_date?: string;
-    end_date?: string;
-    is_current: boolean;
+    duration?: string;
+    category?: string;
 }
 
-interface Address {
-    address: string;
-    postal_code: string;
-    country: string;
-}
-
-interface BabysitterProfile {
-    id: number;
-    bio?: string;
-    experience_years?: number;
-    available_radius_km?: number;
-    hourly_rate?: number;
-    is_available: boolean;
-    has_driving_license: boolean;
-    has_vehicle: boolean;
-    comfortable_with_all_ages: boolean;
-    documents_verified: boolean;
-    profile_photos?: string[];
-    additional_photos_urls?: string[];
-    languages: Language[];
-    skills: Skill[];
-    excluded_age_ranges: AgeRange[];
-    experiences: Experience[];
-}
-
-interface User {
-    id: number;
-    firstname: string;
-    lastname: string;
-    email: string;
-    avatar?: string;
-    address?: Address;
-    babysitter_profile: BabysitterProfile;
-}
-
-interface Review {
-    id: number;
-    rating: number;
-    comment?: string;
-    created_at: string;
-    reviewer: {
-        id: number;
-        firstname: string;
-        lastname: string;
-        avatar?: string;
+interface ExtendedBabysitterProfile extends BabysitterProfile {
+    user: User;
+    reviews: Review[];
+    recent_reviews: Review[];
+    review_stats: {
+        average_rating: number;
+        total_reviews: number;
+        rating_breakdown: Record<number, number>;
     };
+    member_since: string;
 }
 
 interface Props {
-    babysitter: User;
-    available_age_ranges: AgeRange[];
-    reviews?: Review[];
-    averageRating?: number;
-    totalReviews?: number;
+    user: User;
+    profile: ExtendedBabysitterProfile;
+    auth?: {
+        user?: User;
+    };
 }
 
 const props = defineProps<Props>();
+const { showSuccess, showError } = useToast();
+const { getStatusText } = useStatusColors();
 
 // Calculer les tranches d'âge acceptées (toutes sauf les exclues)
 const acceptedAgeRanges = computed(() => {
-    if (props.babysitter.babysitter_profile.comfortable_with_all_ages) {
-        return props.available_age_ranges;
+    if (props.profile.comfortable_with_all_ages) {
+        return props.profile.available_age_ranges;
     }
 
-    const excludedIds = props.babysitter.babysitter_profile.excluded_age_ranges.map((range) => range.id);
-    return props.available_age_ranges.filter((range) => !excludedIds.includes(range.id));
+    const excludedIds = props.profile.excluded_age_ranges.map((range) => range.id);
+    return props.profile.available_age_ranges.filter((range) => !excludedIds.includes(range.id));
 });
 
 // Séparer les formations et expériences
-const formations = computed(() => props.babysitter.babysitter_profile.experiences.filter((exp) => exp.type === 'formation'));
+const formations = computed(() => props.profile.experiences.filter((exp) => exp.type === 'formation'));
 
-const workExperiences = computed(() => props.babysitter.babysitter_profile.experiences.filter((exp) => exp.type === 'experience'));
+const workExperiences = computed(() => props.profile.experiences.filter((exp) => exp.type === 'experience'));
 
 // Formater les dates
 const formatDate = (dateString?: string) => {
@@ -144,11 +105,11 @@ const getSkillColor = (index: number) => {
 
 // Computed pour les photos supplémentaires
 const additionalPhotos = computed(() => {
-    if (props.babysitter.babysitter_profile.additional_photos_urls) {
-        return props.babysitter.babysitter_profile.additional_photos_urls;
+    if (props.profile.additional_photos_urls) {
+        return props.profile.additional_photos_urls;
     }
-    if (props.babysitter.babysitter_profile.profile_photos) {
-        return props.babysitter.babysitter_profile.profile_photos.map(photo => {
+    if (props.profile.profile_photos) {
+        return props.profile.profile_photos.map(photo => {
             if (photo.startsWith('data:image')) {
                 return photo;
             }
@@ -205,7 +166,7 @@ const formatReviewDate = (dateString: string) => {
 </script>
 
 <template>
-    <Head :title="`${babysitter.firstname} ${babysitter.lastname} - Profil Babysitter`" />
+    <Head :title="`${profile.user.firstname} ${profile.user.lastname} - Profil Babysitter`" />
 
     <GlobalLayout>
         <div class="bg-secondary min-h-screen p-4">
@@ -218,13 +179,13 @@ const formatReviewDate = (dateString: string) => {
                         <div class="flex items-start space-x-6">
                             <div class="relative">
                                 <img
-                                    :src="babysitter.avatar || '/storage/default-avatar.png'"
-                                    :alt="`${babysitter.firstname} ${babysitter.lastname}`"
+                                    :src="profile.user.avatar || '/storage/default-avatar.png'"
+                                    :alt="`${profile.user.firstname} ${profile.user.lastname}`"
                                     class="h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg"
                                 />
                                 <!-- Badge de disponibilité -->
                                 <div
-                                    v-if="babysitter.babysitter_profile.is_available"
+                                    v-if="profile.is_available"
                                     class="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-green-500"
                                 >
                                     <div class="h-2 w-2 rounded-full bg-white"></div>
@@ -232,8 +193,8 @@ const formatReviewDate = (dateString: string) => {
                             </div>
                             <div class="flex-1">
                                 <div class="mb-2 flex items-center space-x-3">
-                                    <h1 class="text-2xl font-bold text-gray-900">{{ babysitter.firstname }} {{ babysitter.lastname }}</h1>
-                                    <div v-if="babysitter.babysitter_profile.documents_verified" class="flex items-center space-x-1 text-green-600">
+                                    <h1 class="text-2xl font-bold text-gray-900">{{ profile.user.firstname }} {{ profile.user.lastname }}</h1>
+                                    <div v-if="profile.documents_verified" class="flex items-center space-x-1 text-green-600">
                                         <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path
                                                 fill-rule="evenodd"
@@ -246,14 +207,14 @@ const formatReviewDate = (dateString: string) => {
                                 </div>
 
                                 <p class="mb-3 text-sm text-gray-600">
-                                    <span v-if="babysitter.babysitter_profile.experience_years">
-                                        {{ babysitter.babysitter_profile.experience_years }}
-                                        {{ babysitter.babysitter_profile.experience_years > 1 ? 'ans' : 'an' }} d'expérience
+                                    <span v-if="profile.experience_years">
+                                        {{ profile.experience_years }}
+                                        {{ profile.experience_years > 1 ? 'ans' : 'an' }} d'expérience
                                     </span>
-                                    <span v-if="babysitter.address && babysitter.babysitter_profile.experience_years"> | </span>
-                                    <span v-if="babysitter.address">{{ getCity(babysitter.address) }}</span>
-                                    <span v-if="babysitter.babysitter_profile.available_radius_km">
-                                        | Rayon {{ babysitter.babysitter_profile.available_radius_km }} km</span
+                                    <span v-if="profile.address && profile.experience_years"> | </span>
+                                    <span v-if="profile.address">{{ getCity(profile.address) }}</span>
+                                    <span v-if="profile.available_radius_km">
+                                        | Rayon {{ profile.available_radius_km }} km</span
                                     >
                                 </p>
 
@@ -266,26 +227,26 @@ const formatReviewDate = (dateString: string) => {
                                                 ></path>
                                             </svg>
                                         </div>
-                                        <span v-if="!averageRating" class="text-sm font-medium text-gray-900">Nouveau profil</span>
+                                        <span v-if="!profile.review_stats.average_rating" class="text-sm font-medium text-gray-900">Nouveau profil</span>
                                         <div v-else class="flex items-center gap-2">
-                                            <span class="text-sm font-medium text-gray-900">{{ averageRating.toFixed(1) }}</span>
-                                            <span class="text-sm text-gray-500">({{ totalReviews }} avis)</span>
+                                            <span class="text-sm font-medium text-gray-900">{{ profile.review_stats.average_rating.toFixed(1) }}</span>
+                                            <span class="text-sm text-gray-500">({{ profile.review_stats.total_reviews }} avis)</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div v-if="babysitter.babysitter_profile.hourly_rate" class="text-primary text-lg font-semibold">
-                                    {{ babysitter.babysitter_profile.hourly_rate }}€/heure
+                                <div v-if="profile.hourly_rate" class="text-primary text-lg font-semibold">
+                                    {{ profile.hourly_rate }}€/heure
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- À propos de moi -->
-                    <div v-if="babysitter.babysitter_profile.bio" class="rounded-2xl bg-white p-6 shadow-sm">
+                    <div v-if="profile.bio" class="rounded-2xl bg-white p-6 shadow-sm">
                         <h2 class="mb-4 text-xl font-bold text-gray-900">À propos de moi</h2>
                         <p class="leading-relaxed text-gray-700">
-                            {{ babysitter.babysitter_profile.bio }}
+                            {{ profile.bio }}
                         </p>
                     </div>
 
@@ -301,7 +262,7 @@ const formatReviewDate = (dateString: string) => {
                             >
                                 <img 
                                     :src="photo" 
-                                    :alt="`Photo ${index + 1} de ${babysitter.firstname}`"
+                                    :alt="`Photo ${index + 1} de ${profile.user.firstname}`"
                                     class="h-full w-full object-cover hover:scale-105 transition-transform duration-200"
                                     @error="handlePhotoError"
                                 />
@@ -326,10 +287,8 @@ const formatReviewDate = (dateString: string) => {
                                 <div class="flex-1">
                                     <h3 class="font-semibold text-gray-900">{{ experience.title }}</h3>
                                     <p class="mb-2 text-sm text-gray-500">
-                                        <span v-if="experience.institution">{{ experience.institution }} | </span>
-                                        <span v-if="experience.start_date">{{ formatDate(experience.start_date) }}</span>
-                                        <span v-if="experience.end_date && !experience.is_current"> - {{ formatDate(experience.end_date) }}</span>
-                                        <span v-if="experience.is_current"> - En cours</span>
+                                        <span v-if="experience.organization">{{ experience.organization }} | </span>
+                                        <span v-if="experience.duration">{{ experience.duration }}</span>
                                     </p>
                                     <p v-if="experience.description" class="text-sm text-gray-700">
                                         {{ experience.description }}
@@ -354,11 +313,9 @@ const formatReviewDate = (dateString: string) => {
                                 <div class="flex-1">
                                     <h3 class="font-semibold text-gray-900">{{ formation.title }}</h3>
                                     <p class="mb-1 text-sm text-gray-500">
-                                        <span v-if="formation.start_date">{{ formatDate(formation.start_date) }}</span>
-                                        <span v-if="formation.end_date && !formation.is_current"> - {{ formatDate(formation.end_date) }}</span>
-                                        <span v-if="formation.is_current"> - En cours</span>
+                                        <span v-if="formation.duration">{{ formatDate(formation.start_date) }} - {{ formatDate(formation.end_date) }}</span>
                                     </p>
-                                    <p v-if="formation.institution" class="text-sm text-gray-600">{{ formation.institution }}</p>
+                                    <p v-if="formation.organization" class="text-sm text-gray-600">{{ formation.organization }}</p>
                                     <p v-if="formation.description" class="mt-1 text-sm text-gray-600">{{ formation.description }}</p>
                                 </div>
                             </div>
@@ -366,7 +323,7 @@ const formatReviewDate = (dateString: string) => {
                     </div>
 
                     <!-- Section Avis -->
-                    <div v-if="reviews && reviews.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
+                    <div v-if="profile.reviews && profile.reviews.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
                         <div class="mb-6 flex items-center gap-2">
                             <h2 class="text-xl font-bold text-gray-900">Avis des parents</h2>
                             <div class="flex items-center gap-2">
@@ -374,15 +331,15 @@ const formatReviewDate = (dateString: string) => {
                                     <svg class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
-                                    <span class="text-sm font-medium text-gray-900">{{ averageRating?.toFixed(1) || 0 }}</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ profile.review_stats.average_rating?.toFixed(1) || 0 }}</span>
                                 </div>
-                                <span class="text-sm text-gray-500">({{ totalReviews || 0 }} avis)</span>
+                                <span class="text-sm text-gray-500">({{ profile.review_stats.total_reviews || 0 }} avis)</span>
                             </div>
                         </div>
 
                         <div class="space-y-4">
                             <div
-                                v-for="review in reviews"
+                                v-for="review in profile.reviews"
                                 :key="review.id"
                                 class="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0"
                             >
@@ -425,21 +382,21 @@ const formatReviewDate = (dateString: string) => {
                     <div class="rounded-2xl bg-white p-6 shadow-sm">
                         <h3 class="mb-4 text-lg font-bold text-gray-900">Disponibilité</h3>
                         <div class="flex items-center space-x-3">
-                            <div :class="['h-3 w-3 rounded-full', babysitter.babysitter_profile.is_available ? 'bg-green-500' : 'bg-red-500']"></div>
-                            <span :class="['font-medium', babysitter.babysitter_profile.is_available ? 'text-green-700' : 'text-red-700']">
-                                {{ babysitter.babysitter_profile.is_available ? 'Disponible pour du babysitting' : 'Non disponible actuellement' }}
+                            <div :class="['h-3 w-3 rounded-full', profile.is_available ? 'bg-green-500' : 'bg-red-500']"></div>
+                            <span :class="['font-medium', profile.is_available ? 'text-green-700' : 'text-red-700']">
+                                {{ profile.is_available ? 'Disponible pour du babysitting' : 'Non disponible actuellement' }}
                             </span>
                         </div>
                     </div>
 
                     <!-- Transport -->
                     <div
-                        v-if="babysitter.babysitter_profile.has_driving_license || babysitter.babysitter_profile.has_vehicle"
+                        v-if="profile.has_driving_license || profile.has_vehicle"
                         class="rounded-2xl bg-white p-6 shadow-sm"
                     >
                         <h3 class="mb-4 text-lg font-bold text-gray-900">Transport</h3>
                         <div class="space-y-3">
-                            <div v-if="babysitter.babysitter_profile.has_driving_license" class="flex items-center space-x-3">
+                            <div v-if="profile.has_driving_license" class="flex items-center space-x-3">
                                 <svg class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         fill-rule="evenodd"
@@ -449,7 +406,7 @@ const formatReviewDate = (dateString: string) => {
                                 </svg>
                                 <span class="text-gray-900">Permis de conduire</span>
                             </div>
-                            <div v-if="babysitter.babysitter_profile.has_vehicle" class="flex items-center space-x-3">
+                            <div v-if="profile.has_vehicle" class="flex items-center space-x-3">
                                 <svg class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         fill-rule="evenodd"
@@ -465,7 +422,7 @@ const formatReviewDate = (dateString: string) => {
                     <!-- Tranches d'âge -->
                     <div class="rounded-2xl bg-white p-6 shadow-sm">
                         <h3 class="mb-4 text-lg font-bold text-gray-900">Tranches d'âge acceptées</h3>
-                        <div v-if="babysitter.babysitter_profile.comfortable_with_all_ages" class="font-medium text-green-700">
+                        <div v-if="profile.comfortable_with_all_ages" class="font-medium text-green-700">
                             À l'aise avec toutes les tranches d'âge
                         </div>
                         <div v-else class="flex flex-wrap gap-2">
@@ -480,11 +437,11 @@ const formatReviewDate = (dateString: string) => {
                     </div>
 
                     <!-- Compétences -->
-                    <div v-if="babysitter.babysitter_profile.skills.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
+                    <div v-if="profile.skills.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
                         <h3 class="mb-4 text-lg font-bold text-gray-900">Compétences</h3>
                         <div class="flex flex-wrap gap-2">
                             <span
-                                v-for="(skill, index) in babysitter.babysitter_profile.skills"
+                                v-for="(skill, index) in profile.skills"
                                 :key="skill.id"
                                 :class="['rounded-full px-3 py-1 text-sm', getSkillColor(index)]"
                             >
@@ -494,10 +451,10 @@ const formatReviewDate = (dateString: string) => {
                     </div>
 
                     <!-- Langues -->
-                    <div v-if="babysitter.babysitter_profile.languages.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
+                    <div v-if="profile.languages.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
                         <h3 class="mb-4 text-lg font-bold text-gray-900">Langues</h3>
                         <div class="space-y-3">
-                            <div v-for="language in babysitter.babysitter_profile.languages" :key="language.id" class="flex items-center space-x-3">
+                            <div v-for="language in profile.languages" :key="language.id" class="flex items-center space-x-3">
                                 <svg class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         fill-rule="evenodd"
@@ -533,11 +490,11 @@ const formatReviewDate = (dateString: string) => {
                                 <div
                                     :class="[
                                         'flex h-4 w-4 items-center justify-center rounded-full border-2',
-                                        babysitter.babysitter_profile.documents_verified ? 'border-green-500 bg-green-500' : 'border-gray-300',
+                                        profile.documents_verified ? 'border-green-500 bg-green-500' : 'border-gray-300',
                                     ]"
                                 >
                                     <svg
-                                        v-if="babysitter.babysitter_profile.documents_verified"
+                                        v-if="profile.documents_verified"
                                         class="h-2 w-2 text-white"
                                         fill="currentColor"
                                         viewBox="0 0 20 20"
@@ -549,7 +506,7 @@ const formatReviewDate = (dateString: string) => {
                                         ></path>
                                     </svg>
                                 </div>
-                                <span :class="babysitter.babysitter_profile.documents_verified ? 'text-gray-900' : 'text-gray-500'">
+                                <span :class="profile.documents_verified ? 'text-gray-900' : 'text-gray-500'">
                                     Identité vérifiée
                                 </span>
                             </div>
@@ -566,13 +523,6 @@ const formatReviewDate = (dateString: string) => {
                                 <span class="text-gray-900">Email vérifié</span>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Bouton de contact -->
-                    <div class="rounded-2xl bg-white p-6 shadow-sm">
-                        <button class="bg-primary hover:bg-primary/90 w-full rounded-lg px-4 py-3 font-semibold text-white transition-colors">
-                            Contacter {{ babysitter.firstname }}
-                        </button>
                     </div>
                 </div>
             </div>
@@ -620,7 +570,7 @@ const formatReviewDate = (dateString: string) => {
                 <!-- Image -->
                 <img 
                     :src="currentPhoto" 
-                    :alt="`Photo ${currentPhotoIndex + 1} de ${babysitter.firstname}`"
+                    :alt="`Photo ${currentPhotoIndex + 1} de ${profile.user.firstname}`"
                     class="max-h-full max-w-full rounded-lg object-contain"
                     @click.stop
                 />

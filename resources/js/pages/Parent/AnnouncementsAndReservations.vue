@@ -25,7 +25,7 @@
                     <div class="rounded-lg bg-white p-6 shadow">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <Star class="h-8 w-8 text-green-600" />
+                                <StarIcon class="h-8 w-8 text-green-600" />
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-gray-600">Annonces actives</p>
@@ -49,7 +49,7 @@
                     <div class="rounded-lg bg-white p-6 shadow">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <CheckCircle class="h-8 w-8 text-purple-600" />
+                                <Check class="h-8 w-8 text-purple-600" />
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-gray-600">Gardes terminées</p>
@@ -61,7 +61,7 @@
                     <div class="rounded-lg bg-white p-6 shadow">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <CreditCard class="h-8 w-8 text-indigo-600" />
+                                <Euro class="h-8 w-8 text-indigo-600" />
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-gray-600">Total dépensé</p>
@@ -101,7 +101,7 @@
 
                 <!-- Filtres -->
                 <div class="mt-6">
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm mb-6">
                         <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
                         
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -121,7 +121,7 @@
                             </div>
 
                             <!-- Filtre par statut spécifique à l'onglet -->
-                            <div v-if="activeTab === 'annonces'" class="space-y-2">
+                            <div v-if="activeTab === 'announcements'" class="space-y-2">
                                 <Label class="text-sm font-medium text-gray-700">Statut d'annonce</Label>
                                 <Select v-model="tempAnnouncementStatus">
                                     <SelectTrigger class="w-full">
@@ -179,7 +179,7 @@
                     <!-- Liste des annonces avec scroll infini -->
                     <InfiniteScroll
                         :pagination="announcements"
-                        :route="'announcements.my-announcements-and-reservations'"
+                        :route="'parent.announcements-reservations'"
                         :parameters="currentFilters"
                         loading-message="Chargement des annonces..."
                         end-message="Toutes les annonces ont été chargées"
@@ -199,7 +199,7 @@
                                         </h3>
                                         <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
                                             <Calendar class="h-4 w-4" />
-                                            {{ formatDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
+                                            {{ formatShortDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
                                             {{ formatTime(announcement.date_end) }}
                                         </p>
                                         <p class="flex items-center gap-1 text-sm text-gray-600">
@@ -208,12 +208,9 @@
                                         </p>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <span
-                                            :class="getAnnouncementStatusClass(announcement.status)"
-                                            class="rounded-full px-2 py-1 text-xs font-medium"
-                                        >
-                                            {{ getAnnouncementStatusText(announcement.status) }}
-                                        </span>
+                                        <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status)">
+                                            {{ getStatusText(announcement.status, 'announcement') }}
+                                        </Badge>
                                         <div class="text-right">
                                             <div class="text-primary text-lg font-bold">{{ announcement.hourly_rate }}€/h</div>
                                             <div class="text-sm text-gray-600">
@@ -230,7 +227,7 @@
                                         @click="editAnnouncement(announcement.id)"
                                         class="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50"
                                     >
-                                        <Edit2 class="h-4 w-4" />
+                                        <Edit class="h-4 w-4" />
                                         Modifier
                                     </button>
                                     <button
@@ -275,12 +272,9 @@
                                                 </div>
                                             </div>
                                             <div class="flex items-center gap-3">
-                                                <span
-                                                    :class="getApplicationStatusClass(application.status)"
-                                                    class="rounded-full px-2 py-1 text-xs font-medium"
-                                                >
-                                                    {{ getApplicationStatusText(application.status) }}
-                                                </span>
+                                                <Badge variant="outline" :class="getApplicationStatusColor(application.status)">
+                                                    {{ getStatusText(application.status, 'application') }}
+                                                </Badge>
                                                 <button @click="viewMessaging" class="text-primary hover:text-primary/80 text-sm font-medium">
                                                     Voir la conversation
                                                 </button>
@@ -314,7 +308,7 @@
                     <!-- Liste des réservations avec scroll infini -->
                     <InfiniteScroll
                         :pagination="reservations"
-                        :route="'announcements.my-announcements-and-reservations'"
+                        :route="'parent.announcements-reservations'"
                         :parameters="currentFilters"
                         loading-message="Chargement des réservations..."
                         end-message="Toutes les réservations ont été chargées"
@@ -334,17 +328,14 @@
                                         </h3>
                                         <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
                                             <Calendar class="h-4 w-4" />
-                                            {{ formatDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
+                                            {{ formatShortDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
                                             {{ formatTime(reservation.service_end_at) }}
                                         </p>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <span
-                                            :class="getReservationStatusClass(reservation.status)"
-                                            class="rounded-full px-2 py-1 text-xs font-medium"
-                                        >
-                                            {{ getReservationStatusText(reservation.status) }}
-                                        </span>
+                                        <Badge variant="outline" :class="getReservationStatusColor(reservation.status)">
+                                            {{ getStatusText(reservation.status, 'reservation') }}
+                                        </Badge>
                                         <div class="text-right">
                                             <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.total_deposit) }}€</div>
                                             <div class="text-sm text-gray-600">{{ reservation.hourly_rate }}€/h</div>
@@ -390,7 +381,7 @@
                                         @click="leaveReview(reservation.id)"
                                         class="flex items-center gap-2 rounded-lg border border-yellow-300 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50"
                                     >
-                                        <Star class="h-4 w-4" />
+                                        <StarIcon class="h-4 w-4" />
                                         Laisser un avis
                                     </button>
 
@@ -399,7 +390,7 @@
                                         @click="proceedToPayment(reservation.id)"
                                         class="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white"
                                     >
-                                        <CreditCard class="h-4 w-4" />
+                                        <Euro class="h-4 w-4" />
                                         Payer
                                     </button>
                                 </div>
@@ -426,73 +417,62 @@
         
         <!-- Modal d'annulation d'annonce -->
         <ConfirmModal
-            :show="showCancelModal"
+            :open="showCancelModal"
             title="Annuler l'annonce"
-            :message="getCancelModalMessage()"
-            confirm-text="Oui, annuler"
-            cancel-text="Non, garder"
-            confirm-variant="danger"
+            :description="getCancelModalMessage()"
+            type="danger"
             @confirm="confirmCancelAnnouncement"
             @cancel="closeCancelModal"
+            @update:open="(value) => showCancelModal = value"
         />
     </DashboardLayout>
 </template>
 
 <script setup lang="ts">
-import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import InfiniteScroll from '@/components/InfiniteScroll.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
-import { useToast } from '@/composables/useToast';
-import { router, usePage } from '@inertiajs/vue3';
-import { Calendar, CheckCircle, CreditCard, Edit2, Eye, FileText, MapPin, MessageCircle, Plus, Search, Star, X, Filter } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { route } from 'ziggy-js';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useDateFormat } from '@/composables/useDateFormat';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { router, usePage, Head } from '@inertiajs/vue3';
+import {
+    Calendar,
+    Check,
+    ChevronRight,
+    Clock,
+    Edit,
+    Euro,
+    Eye,
+    FileText,
+    Filter,
+    Heart,
+    MapPin,
+    MoreHorizontal,
+    Pause,
+    Play,
+    Plus,
+    StarIcon,
+    Users,
+    X,
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { route } from 'ziggy-js';
+import type { 
+    Announcement,
+    Reservation,
+    PaginatedData,
+    Filters as BaseFilters,
+    User
+} from '@/types';
 
-interface Announcement {
-    id: number;
-    title: string;
-    date_start: string;
-    date_end: string;
-    hourly_rate: number;
-    status: string;
-    applications_count: number;
-    applications: Application[];
-    estimated_duration: number;
-    estimated_total: number;
-    address: {
-        address: string;
-        postal_code: string;
-    };
-}
-
-interface Application {
-    id: number;
-    status: string;
-    proposed_rate: number;
-    counter_rate?: number;
-    babysitter: {
-        id: number;
-        name: string;
-        avatar?: string;
-    };
-}
-
-interface Reservation {
-    id: number;
-    status: string;
-    hourly_rate: number;
-    deposit_amount: number;
-    service_fee: number;
-    total_deposit: number;
-    babysitter_amount: number;
-    service_start_at: string;
-    service_end_at: string;
-    paid_at?: string;
-    can_be_cancelled: boolean;
-    can_be_reviewed: boolean;
+interface ExtendedReservation extends Reservation {
     babysitter: {
         id: number;
         name: string;
@@ -514,23 +494,14 @@ interface Stats {
     total_spent: number;
 }
 
-interface Filters {
+interface Filters extends BaseFilters {
     announcement_status: string;
     reservation_status: string;
-    date_filter: string;
-}
-
-interface PaginatedData<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
 }
 
 interface Props {
     announcements: PaginatedData<Announcement>;
-    reservations: PaginatedData<Reservation>;
+    reservations: PaginatedData<ExtendedReservation>;
     stats: Stats;
     filters: Filters;
 }
@@ -538,6 +509,9 @@ interface Props {
 const props = defineProps<Props>();
 
 const page = usePage();
+const { showSuccess, showError } = useToast();
+const { getAnnouncementStatusColor, getReservationStatusColor, getStatusText } = useStatusColors();
+const { formatShortDate } = useDateFormat();
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);
@@ -696,7 +670,7 @@ const viewMessaging = () => {
 };
 
 const cancelReservation = (reservationId: number) => {
-    const reservation = props.reservations.find((r: Reservation) => r.id === reservationId);
+    const reservation = props.reservations.data.find((r: ExtendedReservation) => r.id === reservationId);
     if (!reservation) return;
 
     // Vérifier si c'est une annulation tardive (moins de 24h)
@@ -725,7 +699,7 @@ const proceedToPayment = (reservationId: number) => {
 
 // Fonctions de filtrage
 const applyFilters = () => {
-    router.get(route('announcements.my-announcements-and-reservations'), {
+    router.get(route('parent.announcements-reservations'), {
         announcement_status: tempAnnouncementStatus.value,
         reservation_status: tempReservationStatus.value,
         date_filter: tempDateFilter.value,
@@ -745,7 +719,7 @@ const resetFilters = () => {
 // Fonctions de filtrage supprimées - maintenant avec bouton de confirmation
 
 // Fonction pour vérifier si la garde est passée
-const isServicePast = (reservation: Reservation) => {
+const isServicePast = (reservation: ExtendedReservation) => {
     return new Date(reservation.service_end_at) < new Date();
 };
 

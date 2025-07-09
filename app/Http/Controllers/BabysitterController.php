@@ -68,7 +68,7 @@ class BabysitterController extends Controller
 
         // Récupérer les avis de la babysitter
         $reviews = \App\Models\Review::with(['reviewer'])
-            ->where('reviewed_id', $user->id)
+            ->where('reviewed_id', $babysitter->id)
             ->where('role', 'parent') // Avis donnés par des parents
             ->orderBy('created_at', 'desc')
             ->limit(10)
@@ -78,8 +78,8 @@ class BabysitterController extends Controller
             'babysitter' => $babysitter,
             'available_age_ranges' => $availableAgeRanges,
             'reviews' => $reviews,
-            'averageRating' => $user->averageRating(),
-            'totalReviews' => $user->totalReviews(),
+            'averageRating' => $babysitter->averageRating(),
+            'totalReviews' => $babysitter->totalReviews(),
         ]);
     }
 

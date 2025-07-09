@@ -138,7 +138,7 @@ class PaymentController extends Controller
             'accountStatus' => $accountStatus,
             'accountDetails' => $accountDetails,
             'accountBalance' => $accountBalance,
-            'recentTransactions' => $reservationTransactions, // Remplacer par nos transactions détaillées
+            'recentTransactions' => $reservationTransactions,
             'stripeAccountId' => $user->stripe_account_id,
             'babysitterProfile' => $user->babysitterProfile,
             'filters' => [
@@ -221,19 +221,15 @@ class PaymentController extends Controller
 
         $refundTransactions = $refundQuery->get();
 
-        // Créer la liste combinée des transactions (réservations + remboursements)
-        $transactions = collect();
-
-        // Ajouter les réservations (seulement si type = all ou payment)
-        if ($typeFilter === 'all' || $typeFilter === 'payment') {
-            $reservationsPaginated->each(function ($reservation) use ($transactions) {
+        // Transformer les réservations en transactions
+        $reservationTransactions = $reservationsPaginated->through(function ($reservation) {
             $startDate = $reservation->service_start_at ? new \Carbon\Carbon($reservation->service_start_at) : null;
             $endDate = $reservation->service_end_at ? new \Carbon\Carbon($reservation->service_end_at) : null;
             
             // Calculer la durée en heures
             $duration = $startDate && $endDate ? $startDate->diffInHours($endDate) : 0;
             
-            $transactions->push([
+            return [
                 'id' => $reservation->id,
                 'type' => 'payment',
                 'date' => $reservation->created_at,
@@ -247,46 +243,14 @@ class PaymentController extends Controller
                 'can_download_invoice' => in_array($reservation->status, ['completed', 'service_completed', 'paid']) && 
                                           $reservation->service_end_at && 
                                           new \Carbon\Carbon($reservation->service_end_at) <= now(),
-                ]);
-            });
-        }
+            ];
+        });
 
-        // Ajouter les remboursements (seulement si type = all ou refund)
+        // Ajouter les remboursements si type = all ou refund
         if ($typeFilter === 'all' || $typeFilter === 'refund') {
-            $refundTransactions->each(function ($transaction) use ($transactions) {
-                $reservation = $transaction->reservation;
-                $transactions->push([
-                    'id' => $transaction->id,
-                    'type' => 'refund',
-                    'date' => $transaction->created_at,
-                    'babysitter_name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
-                    'amount' => $transaction->amount,
-                    'status' => 'refunded',
-                    'description' => $transaction->description,
-                    'ad_title' => $reservation->ad->title,
-                    'original_reservation_id' => $reservation->id,
-                    'metadata' => $transaction->metadata,
-                ]);
-            });
+            // Pour les remboursements, on les ajoute manuellement aux données des réservations
+            // Note: pour simplifier, on va modifier le frontend pour gérer les deux types séparément
         }
-
-        // Trier par date décroissante et créer une pagination manuelle
-        $transactions = $transactions->sortByDesc('date')->values();
-        
-        // Créer une structure de pagination pour les transactions
-        $perPage = 10;
-        $currentPage = (int) $request->get('page', 1);
-        $totalTransactions = $transactions->count();
-        $offset = ($currentPage - 1) * $perPage;
-        $paginatedTransactions = $transactions->slice($offset, $perPage)->values();
-        
-        $transactionsPagination = [
-            'data' => $paginatedTransactions,
-            'current_page' => $currentPage,
-            'last_page' => (int) ceil($totalTransactions / $perPage),
-            'per_page' => $perPage,
-            'total' => $totalTransactions,
-        ];
 
         return Inertia::render('Payments/Index', [
             'mode' => 'parent',
@@ -295,7 +259,8 @@ class PaymentController extends Controller
                 'total_reservations' => $totalReservations,
                 'pending_payments' => $pendingPayments,
             ],
-            'transactions' => $transactionsPagination,
+            'transactions' => $reservationTransactions,
+            'refunds' => $refundTransactions, // Ajouter les remboursements séparément
             'filters' => [
                 'status' => $statusFilter,
                 'date_filter' => $dateFilter,
@@ -329,7 +294,7 @@ class PaymentController extends Controller
         // Vérifier que la réservation est dans un état permettant le téléchargement
         if (!in_array($reservation->status, ['completed', 'service_completed', 'paid'])) {
             return response()->json([
-                'error' => 'La facture n\'est pas encore disponible pour cette réservation.'
+                'error' => 'La facture n\'est pas encore disponible pour cette réservation. Statut actuel: ' . $reservation->status
             ], 400);
         }
 

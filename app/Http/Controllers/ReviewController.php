@@ -80,7 +80,7 @@ class ReviewController extends Controller
         $hasReviewed = $userRole === 'parent' ? $reservation->parent_reviewed : $reservation->babysitter_reviewed;
         
         if ($hasReviewed) {
-            return back()->with('error', 'Vous avez déjà laissé un avis pour cette réservation.');
+            return redirect()->route('messaging.index')->with('error', 'Vous avez déjà laissé un avis pour cette réservation.');
         }
         
         $validated = $request->validate([
@@ -127,7 +127,12 @@ class ReviewController extends Controller
                 'rating' => $validated['rating']
             ]);
             
-            return redirect()->route('messaging.index')->with('success', 'Votre avis a été publié avec succès !');
+            // Rediriger vers le dashboard selon le rôle de l'utilisateur
+            if ($userRole === 'parent') {
+                return redirect()->route('parent.dashboard')->with('success', 'Votre avis a été publié avec succès !');
+            } else {
+                return redirect()->route('babysitter.dashboard')->with('success', 'Votre avis a été publié avec succès !');
+            }
             
         } catch (\Exception $e) {
             DB::rollBack();

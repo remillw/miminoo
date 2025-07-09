@@ -401,7 +401,7 @@
                                             </span>
                                         </td>
                                     </tr>
-                                    <tr v-if="isParentMode(props) && (!props.transactions || props.transactions.length === 0)">
+                                    <tr v-if="isParentMode(props) && (!props.transactions || props.transactions.data.length === 0)">
                                         <td colspan="6" class="px-6 py-4 text-center text-gray-500">Aucune transaction pour le moment</td>
                                     </tr>
                                 </tbody>
@@ -415,38 +415,71 @@
 </template>
 
 <script setup lang="ts">
-import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import InfiniteScroll from '@/components/InfiniteScroll.vue';
-import { router, usePage } from '@inertiajs/vue3';
-import { Calendar, Clock, CreditCard } from 'lucide-vue-next';
+import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { router, usePage, Head } from '@inertiajs/vue3';
+import { 
+    AlertCircle, Building, Calendar, CheckCircle, Clock, CreditCard, 
+    Download, ExternalLink, Eye, Info, Minus, RefreshCw, Settings, 
+    Shield, TrendingDown, TrendingUp, User, Wallet 
+} from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import type { 
+    User, 
+    Transaction, 
+    PaginatedData, 
+    Filters,
+    BabysitterProfile 
+} from '@/types';
 
-// Types
-interface PaginatedData<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
+interface AccountDetails {
+    id: string;
+    email: string;
+    charges_enabled: boolean;
+    payouts_enabled: boolean;
+    details_submitted: boolean;
+    requirements: {
+        currently_due: string[];
+        eventually_due: string[];
+        past_due: string[];
+        pending_verification: string[];
+        disabled_reason: string | null;
+    };
+    business_profile: {
+        name: string | null;
+        product_description: string | null;
+        url: string | null;
+    };
+    individual: {
+        first_name: string | null;
+        last_name: string | null;
+        verification: {
+            status: string;
+            document: string;
+        };
+    };
+    created: number;
+}
+
+interface AccountBalance {
+    available: Array<{ amount: number; currency: string }>;
+    pending: Array<{ amount: number; currency: string }>;
 }
 
 interface BabysitterProps {
     mode: 'babysitter';
     accountStatus: string;
-    accountDetails: any;
-    accountBalance: any;
-    recentTransactions: PaginatedData<any>;
+    accountDetails: AccountDetails | null;
+    accountBalance: AccountBalance | null;
+    recentTransactions: PaginatedData<Transaction>;
     stripeAccountId: string;
-    babysitterProfile: any;
-    filters?: {
-        status: string;
-        date_filter: string;
-    };
+    babysitterProfile: BabysitterProfile;
+    filters?: Filters;
 }
 
 interface ParentProps {
@@ -456,12 +489,8 @@ interface ParentProps {
         total_reservations: number;
         pending_payments: number;
     };
-    transactions: PaginatedData<any>;
-    filters?: {
-        status: string;
-        date_filter: string;
-        type: string;
-    };
+    transactions: PaginatedData<Transaction>;
+    filters?: Filters;
 }
 
 type Props = BabysitterProps | ParentProps;
@@ -470,6 +499,7 @@ const props = defineProps<Props>();
 
 const page = usePage();
 const { handleApiResponse, showSuccess, showError } = useToast();
+const { getStatusText, getFundsStatusColor } = useStatusColors();
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);

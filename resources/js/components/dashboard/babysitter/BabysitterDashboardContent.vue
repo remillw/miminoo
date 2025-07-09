@@ -217,32 +217,48 @@
 
                 <!-- Avis à laisser -->
                 <div v-if="completedReservations?.length > 0" class="rounded-lg bg-white p-6 shadow-sm">
-                    <h2 class="mb-4 text-lg font-semibold text-gray-900">Avis à laisser</h2>
+                    <div class="mb-4 flex items-center gap-2">
+                        <Star class="h-5 w-5 text-yellow-500" />
+                        <h2 class="text-lg font-semibold text-gray-900">Avis à laisser</h2>
+                        <span class="rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
+                            {{ completedReservations.length }}
+                        </span>
+                    </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                         <div
-                            v-for="reservation in completedReservations"
+                            v-for="reservation in completedReservations.slice(0, 3)"
                             :key="reservation.id"
-                            class="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+                            class="rounded-lg border border-gray-100 bg-gray-50 p-3 transition-colors hover:bg-yellow-50"
                         >
-                            <div class="flex items-center gap-4">
-                                <img
-                                    :src="reservation.parent_avatar || '/default-avatar.svg'"
-                                    :alt="reservation.parent_name"
-                                    class="h-12 w-12 rounded-full object-cover"
-                                />
-                                <div>
-                                    <h3 class="font-medium text-gray-900">{{ reservation.parent_name }}</h3>
-                                    <p class="text-sm text-gray-600">{{ reservation.ad_title }}</p>
-                                    <p class="text-sm text-gray-600">Garde du {{ formatDate(reservation.service_date) }}</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <img
+                                        :src="reservation.parent_avatar || '/default-avatar.svg'"
+                                        :alt="reservation.parent_name"
+                                        class="h-8 w-8 rounded-full object-cover"
+                                    />
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-900">{{ reservation.parent_name }}</h3>
+                                        <p class="text-xs text-gray-600">{{ formatDate(reservation.service_date) }}</p>
+                                    </div>
                                 </div>
+                                <button
+                                    @click="createReview(reservation.id)"
+                                    class="flex items-center gap-1 rounded-lg bg-yellow-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-yellow-600"
+                                >
+                                    <Star class="h-3 w-3" />
+                                    Avis
+                                </button>
                             </div>
+                        </div>
+                        
+                        <div v-if="completedReservations.length > 3" class="text-center">
                             <button
-                                @click="createReview(reservation.id)"
-                                class="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-yellow-600"
+                                @click="viewAllPendingReviews"
+                                class="text-xs text-yellow-600 hover:text-yellow-800"
                             >
-                                <Star class="h-4 w-4" />
-                                Laisser un avis
+                                Voir {{ completedReservations.length - 3 }} autres
                             </button>
                         </div>
                     </div>
@@ -389,6 +405,10 @@ const markAsRead = async (notificationId) => {
 
 const createReview = (reservationId) => {
     router.visit(route('reviews.create', reservationId));
+};
+
+const viewAllPendingReviews = () => {
+    router.visit(route('reviews.index'));
 };
 
 // Charger les données au montage

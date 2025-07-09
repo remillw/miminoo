@@ -82,7 +82,61 @@
                 </div>
             </div>
 
-            <!-- Navigation des onglets -->
+            <!-- Filtres -->
+            <div class="mb-8 rounded-lg bg-white p-6 shadow">
+                <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                    <div>
+                        <Label for="application-status">Statut des candidatures</Label>
+                        <Select v-model="tempApplicationStatusFilter">
+                            <SelectTrigger id="application-status">
+                                <SelectValue placeholder="Tous les statuts" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="option in applicationStatusOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div>
+                        <Label for="reservation-status">Statut des réservations</Label>
+                        <Select v-model="tempReservationStatusFilter">
+                            <SelectTrigger id="reservation-status">
+                                <SelectValue placeholder="Tous les statuts" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="option in reservationStatusOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div>
+                        <Label for="date-filter">Période</Label>
+                        <Select v-model="tempDateFilter">
+                            <SelectTrigger id="date-filter">
+                                <SelectValue placeholder="Toutes les périodes" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="option in dateFilterOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div class="flex items-end">
+                        <Button @click="applyFilters" class="w-full">
+                            Appliquer les filtres
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vue avec onglets -->
             <div class="mb-6">
                 <div class="border-b border-gray-200">
                     <div class="-mb-px flex space-x-8">
@@ -266,12 +320,12 @@
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <span
-                                        :class="getReservationStatusClass(reservation.status)"
-                                        class="rounded-full px-2 py-1 text-xs font-medium"
-                                    >
-                                        {{ getReservationStatusText(reservation.status) }}
-                                    </span>
+                                                                    <span
+                                    :class="getReservationStatusColor(reservation.status).badge"
+                                    class="rounded-full px-2 py-1 text-xs font-medium"
+                                >
+                                    {{ getStatusText('reservation', reservation.status) }}
+                                </span>
                                     <div class="text-right">
                                         <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.babysitter_amount) }}€</div>
                                         <div class="text-sm text-gray-600">{{ reservation.hourly_rate }}€/h</div>
@@ -335,51 +389,15 @@
 <script setup lang="ts">
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { useToast } from '@/composables/useToast';
+import { useStatusColors } from '@/composables/useStatusColors';
 import { router, usePage, Head } from '@inertiajs/vue3';
 import { Calendar, CheckCircle, Clock, Briefcase, MessageCircle, Search, Star, Eye, DollarSign } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
-
-interface Application {
-    id: number;
-    status: string;
-    proposed_rate?: number;
-    counter_rate?: number;
-    motivation_note?: string;
-    created_at: string;
-    ad: {
-        id: number;
-        title: string;
-        date_start: string;
-        date_end: string;
-        hourly_rate: number;
-        parent: {
-            id: number;
-            name: string;
-            avatar?: string;
-        };
-    };
-}
-
-interface Reservation {
-    id: number;
-    status: string;
-    hourly_rate: number;
-    service_start_at: string;
-    service_end_at: string;
-    babysitter_amount: number;
-    babysitter_reviewed: boolean;
-    can_review: boolean;
-    ad: {
-        id: number;
-        title: string;
-    };
-    parent: {
-        id: number;
-        name: string;
-        avatar?: string;
-    };
-}
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import type { User, Application, Reservation, PaginatedData, Filters } from '@/types';
 
 interface Stats {
     total_applications: number;
@@ -387,12 +405,6 @@ interface Stats {
     total_reservations: number;
     completed_reservations: number;
     total_earned: number;
-}
-
-interface Filters {
-    application_status: string;
-    reservation_status: string;
-    date_filter: string;
 }
 
 interface Props {
@@ -413,43 +425,47 @@ const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name
 const hasParentRole = computed(() => userRoles.value.includes('parent'));
 const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
-// État local
-const activeTab = ref<'candidatures' | 'reservations'>('candidatures');
+// Variables pour les filtres temporaires
+const tempApplicationStatusFilter = ref(props.filters.application_status || 'all');
+const tempReservationStatusFilter = ref(props.filters.reservation_status || 'all');
+const tempDateFilter = ref(props.filters.date_filter || 'all');
 
-// Filtres initialisés depuis les props
-const selectedApplicationStatus = ref<string>(props.filters.application_status);
-const selectedReservationStatus = ref<string>(props.filters.reservation_status);
-const selectedDateFilter = ref<string>(props.filters.date_filter);
+// Utiliser le composable pour les couleurs de statut
+const { getApplicationStatusColor, getReservationStatusColor, getStatusText } = useStatusColors();
 
-// Toast
-const { showSuccess, showError } = useToast();
-
-// Options de filtres
+// Options pour les filtres
 const applicationStatusOptions = [
-    { value: 'all', label: 'Toutes' },
+    { value: 'all', label: 'Tous les statuts' },
     { value: 'pending', label: 'En attente' },
-    { value: 'accepted', label: 'Acceptées' },
-    { value: 'rejected', label: 'Refusées' },
-    { value: 'counter_offered', label: 'Contre-offres' },
-    { value: 'archived', label: 'Archivées' },
+    { value: 'counter_offered', label: 'Contre-offre' },
+    { value: 'accepted', label: 'Acceptée' },
+    { value: 'declined', label: 'Refusée' },
+    { value: 'cancelled', label: 'Annulée' },
+    { value: 'archived', label: 'Archivée' }
 ];
 
 const reservationStatusOptions = [
-    { value: 'all', label: 'Toutes' },
-    { value: 'pending_payment', label: 'Paiement requis' },
-    { value: 'paid', label: 'Confirmées' },
+    { value: 'all', label: 'Tous les statuts' },
+    { value: 'pending_payment', label: 'En attente de paiement' },
+    { value: 'paid', label: 'Payé' },
     { value: 'active', label: 'En cours' },
     { value: 'service_completed', label: 'Service terminé' },
-    { value: 'completed', label: 'Terminées' },
-    { value: 'cancelled_by_parent', label: 'Annulées par le parent' },
-    { value: 'cancelled_by_babysitter', label: 'Annulées par moi' },
+    { value: 'completed', label: 'Terminé' },
+    { value: 'cancelled', label: 'Annulé' }
 ];
 
 const dateFilterOptions = [
-    { value: 'upcoming', label: 'Prochaines dates' },
-    { value: 'past', label: 'Dates passées' },
-    { value: 'all', label: 'Toutes les dates' },
+    { value: 'all', label: 'Toutes les périodes' },
+    { value: 'week', label: 'Cette semaine' },
+    { value: 'month', label: 'Ce mois' },
+    { value: 'year', label: 'Cette année' }
 ];
+
+// État local
+const activeTab = ref<'candidatures' | 'reservations'>('candidatures');
+
+// Toast
+const { showSuccess, showError } = useToast();
 
 // Méthodes de formatage
 const formatAmount = (amount: number) => {
@@ -467,77 +483,21 @@ const formatTime = (date: string) => {
     });
 };
 
-// Méthodes pour les classes de statut
-const getApplicationStatusClass = (status: string) => {
-    const classes: { [key: string]: string } = {
-        pending: 'bg-yellow-100 text-yellow-800',
-        accepted: 'bg-green-100 text-green-800',
-        rejected: 'bg-red-100 text-red-800',
-        counter_offered: 'bg-blue-100 text-blue-800',
-        archived: 'bg-gray-100 text-gray-800',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
-
-const getApplicationStatusText = (status: string) => {
-    const texts: { [key: string]: string } = {
-        pending: 'En attente',
-        accepted: 'Acceptée',
-        rejected: 'Refusée',
-        counter_offered: 'Contre-offre',
-        archived: 'Archivée',
-    };
-    return texts[status] || status;
-};
-
-const getReservationStatusClass = (status: string) => {
-    const classes: { [key: string]: string } = {
-        pending_payment: 'bg-yellow-100 text-yellow-800',
-        paid: 'bg-blue-100 text-blue-800',
-        active: 'bg-green-100 text-green-800',
-        service_completed: 'bg-purple-100 text-purple-800',
-        completed: 'bg-gray-100 text-gray-800',
-        cancelled_by_parent: 'bg-red-100 text-red-800',
-        cancelled_by_babysitter: 'bg-red-100 text-red-800',
-    };
-    return classes[status] || 'bg-gray-100 text-gray-800';
-};
-
-const getReservationStatusText = (status: string) => {
-    const texts: { [key: string]: string } = {
-        pending_payment: 'Paiement requis',
-        paid: 'Confirmée',
-        active: 'En cours',
-        service_completed: 'Service terminé',
-        completed: 'Terminée',
-        cancelled_by_parent: 'Annulée par le parent',
-        cancelled_by_babysitter: 'Annulée par moi',
-    };
-    return texts[status] || status;
-};
-
-// Fonctions de filtrage
+// Fonction pour appliquer les filtres
 const applyFilters = () => {
-    router.get(route('babysitting.index'), {
-        application_status: selectedApplicationStatus.value,
-        reservation_status: selectedReservationStatus.value,
-        date_filter: selectedDateFilter.value,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
+    const params: any = {
+        application_status: tempApplicationStatusFilter.value !== 'all' ? tempApplicationStatusFilter.value : undefined,
+        reservation_status: tempReservationStatusFilter.value !== 'all' ? tempReservationStatusFilter.value : undefined,
+        date_filter: tempDateFilter.value !== 'all' ? tempDateFilter.value : undefined,
+    };
+    
+    // Supprimer les paramètres undefined
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+    
+    router.get(route('babysitter.babysitting.index'), params, {
+        preserveState: false,
+        preserveScroll: false,
     });
-};
-
-const onApplicationStatusChange = () => {
-    applyFilters();
-};
-
-const onReservationStatusChange = () => {
-    applyFilters();
-};
-
-const onDateFilterChange = () => {
-    applyFilters();
 };
 
 // Fonction pour vérifier si le service est passé
