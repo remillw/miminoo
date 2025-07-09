@@ -264,24 +264,6 @@ const annonces = computed(() => {
     });
 });
 
-const resetFilters = () => {
-    searchQuery.value = '';
-    tarif.value = 10;
-    age.value = '';
-    date.value = '';
-    lieu.value = '';
-
-    // Appliquer immédiatement sans filtres
-    router.get(
-        route('announcements.index'),
-        {},
-        {
-            preserveState: false,
-            preserveScroll: false,
-        },
-    );
-};
-
 const progressStyle = computed(() => {
     const percent = ((tarif.value - 10) / (100 - 10)) * 100;
     return {
