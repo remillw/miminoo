@@ -47,6 +47,13 @@ class ParentController extends Controller
             return redirect()->route('parent.show', ['slug' => $expectedSlug]);
         }
 
+        // Récupérer les avis pour ce parent
+        $reviews = \App\Models\Review::with(['reviewer'])
+            ->where('reviewed_id', $parent->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
         return Inertia::render('ParentProfile', [
             'parent' => [
                 'id' => $parent->id,
@@ -74,7 +81,10 @@ class ParentController extends Controller
                 }),
                 'total_ads' => $parent->ads()->where('status', 'active')->count(),
                 'member_since' => $parent->created_at->format('Y'),
-            ]
+            ],
+            'reviews' => $reviews,
+            'averageRating' => $parent->averageRating(),
+            'totalReviews' => $parent->totalReviews(),
         ]);
     }
 

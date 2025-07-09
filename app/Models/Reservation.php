@@ -203,9 +203,19 @@ class Reservation extends Model
 
     public function getCanBeReviewedAttribute(): bool
     {
-        return $this->status === 'completed' && 
+        return in_array($this->status, ['completed', 'service_completed']) && 
                $this->service_end_at && 
                $this->service_end_at->lt(now());
+    }
+
+    public function getCanBeReviewedByParentAttribute(): bool
+    {
+        return $this->can_be_reviewed && !$this->parent_reviewed;
+    }
+
+    public function getCanBeReviewedByBabysitterAttribute(): bool
+    {
+        return $this->can_be_reviewed && !$this->babysitter_reviewed;
     }
 
     // Methods

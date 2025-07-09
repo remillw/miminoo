@@ -251,8 +251,10 @@ function getConversationStatus() {
                 return 'Réservation confirmée';
             case 'active':
                 return 'Service en cours';
-            case 'completed':
+            case 'service_completed':
                 return 'Service terminé';
+            case 'completed':
+                return 'Terminée';
             case 'cancelled_by_parent':
             case 'cancelled_by_babysitter':
                 return 'Réservation annulée';
@@ -274,6 +276,8 @@ function getReservationStatusClass() {
             return 'bg-blue-100 text-blue-800';
         case 'active':
             return 'bg-green-100 text-green-800';
+        case 'service_completed':
+            return 'bg-purple-100 text-purple-800';
         case 'completed':
             return 'bg-gray-100 text-gray-800';
         case 'cancelled_by_parent':
@@ -294,6 +298,8 @@ function getReservationDotClass() {
             return 'bg-blue-500';
         case 'active':
             return 'bg-green-500';
+        case 'service_completed':
+            return 'bg-purple-500';
         case 'completed':
             return 'bg-gray-500';
         case 'cancelled_by_parent':
@@ -314,6 +320,8 @@ function getReservationStatusText() {
             return 'Confirmée';
         case 'active':
             return 'En cours';
+        case 'service_completed':
+            return 'Service terminé';
         case 'completed':
             return 'Terminée';
         case 'cancelled_by_parent':

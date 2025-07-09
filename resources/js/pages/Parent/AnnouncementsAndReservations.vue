@@ -99,6 +99,52 @@
                     </div>
                 </div>
 
+                <!-- Filtres -->
+                <div class="mb-6">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <!-- Filtre par date (commun aux deux onglets) -->
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Date :</label>
+                            <select
+                                v-model="selectedDateFilter"
+                                @change="onDateFilterChange"
+                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                                <option v-for="option in dateFilterOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Filtre par statut spécifique à l'onglet -->
+                        <div v-if="activeTab === 'announcements'" class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Statut :</label>
+                            <select
+                                v-model="selectedAnnouncementStatus"
+                                @change="onAnnouncementStatusChange"
+                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                                <option v-for="option in announcementStatusOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div v-else-if="activeTab === 'reservations'" class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">Statut :</label>
+                            <select
+                                v-model="selectedReservationStatus"
+                                @change="onReservationStatusChange"
+                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                                <option v-for="option in reservationStatusOptions" :key="option.value" :value="option.value">
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Contenu des onglets -->
                 <div v-if="activeTab === 'announcements'">
                     <!-- Bouton créer une annonce -->
@@ -288,6 +334,7 @@
                                 <!-- Actions -->
                                 <div class="flex items-center gap-3">
                                     <button
+                                        v-if="!isServicePast(reservation)"
                                         @click="viewMessaging"
                                         class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                     >
@@ -427,10 +474,17 @@ interface Stats {
     total_spent: number;
 }
 
+interface Filters {
+    announcement_status: string;
+    reservation_status: string;
+    date_filter: string;
+}
+
 interface Props {
     announcements: Announcement[];
     reservations: Reservation[];
     stats: Stats;
+    filters: Filters;
 }
 
 const props = defineProps<Props>();
@@ -449,8 +503,40 @@ const activeTab = ref<'announcements' | 'reservations'>('announcements');
 const showCancelModal = ref(false);
 const selectedAnnouncement = ref<Announcement | null>(null);
 
+// Filtres initialisés depuis les props
+const selectedAnnouncementStatus = ref<string>(props.filters.announcement_status);
+const selectedReservationStatus = ref<string>(props.filters.reservation_status);
+const selectedDateFilter = ref<string>(props.filters.date_filter);
+
 // Toast
 const { showSuccess, showError } = useToast();
+
+// Options de filtres
+const announcementStatusOptions = [
+    { value: 'all', label: 'Toutes' },
+    { value: 'active', label: 'Actives' },
+    { value: 'booked', label: 'Réservées' },
+    { value: 'service_completed', label: 'Service terminé' },
+    { value: 'expired', label: 'Expirées' },
+    { value: 'cancelled', label: 'Annulées' },
+];
+
+const reservationStatusOptions = [
+    { value: 'all', label: 'Toutes' },
+    { value: 'pending_payment', label: 'Paiement requis' },
+    { value: 'paid', label: 'Confirmées' },
+    { value: 'active', label: 'En cours' },
+    { value: 'service_completed', label: 'Service terminé' },
+    { value: 'completed', label: 'Terminées' },
+    { value: 'cancelled_by_parent', label: 'Annulées par vous' },
+    { value: 'cancelled_by_babysitter', label: 'Annulées par la babysitter' },
+];
+
+const dateFilterOptions = [
+    { value: 'upcoming', label: 'Prochaines dates' },
+    { value: 'past', label: 'Dates passées' },
+    { value: 'all', label: 'Toutes les dates' },
+];
 
 // Méthodes de formatage
 const formatAmount = (amount: number) => {
@@ -573,6 +659,35 @@ const leaveReview = (reservationId: number) => {
 
 const proceedToPayment = (reservationId: number) => {
     router.visit(`/reservations/${reservationId}/payment`);
+};
+
+// Fonctions de filtrage
+const applyFilters = () => {
+    router.get(route('announcements.my-announcements-and-reservations'), {
+        announcement_status: selectedAnnouncementStatus.value,
+        reservation_status: selectedReservationStatus.value,
+        date_filter: selectedDateFilter.value,
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+    });
+};
+
+const onAnnouncementStatusChange = () => {
+    applyFilters();
+};
+
+const onReservationStatusChange = () => {
+    applyFilters();
+};
+
+const onDateFilterChange = () => {
+    applyFilters();
+};
+
+// Fonction pour vérifier si la garde est passée
+const isServicePast = (reservation: Reservation) => {
+    return new Date(reservation.service_end_at) < new Date();
 };
 
 // Nouvelles fonctions pour l'édition d'annonces

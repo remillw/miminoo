@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Review;
 use App\Models\Reservation;
+use App\Models\User;
+use App\Notifications\ReviewReceivedNotification;
+use App\Notifications\ReviewThankYouNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -90,9 +93,10 @@ class ReviewController extends Controller
             
             // Déterminer qui est évalué
             $reviewedUserId = $userRole === 'parent' ? $reservation->babysitter_id : $reservation->parent_id;
+            $reviewedUser = User::find($reviewedUserId);
             
             // Créer l'avis
-            Review::create([
+            $review = Review::create([
                 'reviewer_id' => $user->id,
                 'reviewed_id' => $reviewedUserId,
                 'reservation_id' => $reservation->id,
@@ -104,6 +108,15 @@ class ReviewController extends Controller
             // Marquer comme évalué dans la réservation
             $updateField = $userRole === 'parent' ? 'parent_reviewed' : 'babysitter_reviewed';
             $reservation->update([$updateField => true]);
+            
+            // Envoyer les notifications
+            if ($reviewedUser) {
+                // Notification à la personne qui reçoit l'avis
+                $reviewedUser->notify(new ReviewReceivedNotification($review, $user));
+                
+                // Email de remerciement à la personne qui a laissé l'avis
+                $user->notify(new ReviewThankYouNotification($review, $reviewedUser));
+            }
             
             DB::commit();
             

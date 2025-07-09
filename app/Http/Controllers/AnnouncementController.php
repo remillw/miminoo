@@ -1002,31 +1002,48 @@ class AnnouncementController extends Controller
     /**
      * Show user's announcements and reservations combined.
      */
-    public function myAnnouncementsAndReservations(): Response
+    public function myAnnouncementsAndReservations(Request $request): Response
     {
         $user = Auth::user();
+        
+        // Récupérer les paramètres de filtrage
+        $announcementStatus = $request->get('announcement_status', 'all');
+        $reservationStatus = $request->get('reservation_status', 'all');
+        $dateFilter = $request->get('date_filter', 'upcoming');
 
-        // Récupérer les annonces du parent avec leurs candidatures
-        // Séparer les annonces actives (futures) et passées
-        $allAnnouncements = Ad::with(['address', 'applications' => function($query) {
+        // Construire la requête des annonces avec filtres
+        $announcementsQuery = Ad::with(['address', 'applications' => function($query) {
                 $query->with(['babysitter' => function($q) {
                     $q->select('id', 'firstname', 'lastname', 'avatar');
                 }]);
             }])
-            ->where('parent_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->where('parent_id', $user->id);
 
+        // Appliquer le filtre de statut pour les annonces
+        if ($announcementStatus !== 'all') {
+            $announcementsQuery->where('status', $announcementStatus);
+        } else {
+            // Par défaut, exclure seulement les "completed" (finalisées après 7 jours)
+            $announcementsQuery->whereIn('status', ['active', 'booked', 'service_completed', 'expired', 'cancelled']);
+        }
+
+        // Appliquer le filtre de date pour les annonces
+        if ($dateFilter === 'upcoming') {
+            $announcementsQuery->where('date_start', '>=', now());
+        } elseif ($dateFilter === 'past') {
+            $announcementsQuery->where('date_start', '<', now());
+        }
+
+        // Trier par date (plus proche à plus loin pour les prochaines, plus récent à plus ancien pour les passées)
+        if ($dateFilter === 'upcoming') {
+            $announcementsQuery->orderBy('date_start', 'asc');
+        } else {
+            $announcementsQuery->orderBy('date_start', 'desc');
+        }
+
+        $allAnnouncements = $announcementsQuery->get();
+        
         $announcements = $allAnnouncements
-            ->filter(function($ad) {
-                // Garder les annonces selon leur statut et situation :
-                // - active : futures et disponibles
-                // - booked : réservées (payées) 
-                // - service_completed : service terminé en attente d'avis
-                // - expired : non réservées et date passée
-                // Exclure seulement les "completed" (finalisées après 7 jours)
-                return in_array($ad->status, ['active', 'booked', 'service_completed', 'expired', 'cancelled']);
-            })
             ->map(function ($ad) {
                 return [
                     'id' => $ad->id,
@@ -1058,11 +1075,30 @@ class AnnouncementController extends Controller
                 ];
             });
 
-        // Récupérer les réservations du parent
-        $reservations = Reservation::with(['babysitter', 'ad'])
-            ->where('parent_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get()
+        // Construire la requête des réservations avec filtres
+        $reservationsQuery = Reservation::with(['babysitter', 'ad'])
+            ->where('parent_id', $user->id);
+
+        // Appliquer le filtre de statut pour les réservations
+        if ($reservationStatus !== 'all') {
+            $reservationsQuery->where('status', $reservationStatus);
+        }
+
+        // Appliquer le filtre de date pour les réservations
+        if ($dateFilter === 'upcoming') {
+            $reservationsQuery->where('service_start_at', '>=', now());
+        } elseif ($dateFilter === 'past') {
+            $reservationsQuery->where('service_start_at', '<', now());
+        }
+
+        // Trier par date (plus proche à plus loin pour les prochaines, plus récent à plus ancien pour les passées)
+        if ($dateFilter === 'upcoming') {
+            $reservationsQuery->orderBy('service_start_at', 'asc');
+        } else {
+            $reservationsQuery->orderBy('service_start_at', 'desc');
+        }
+
+        $reservations = $reservationsQuery->get()
             ->map(function ($reservation) {
                 return [
                     'id' => $reservation->id,
@@ -1076,7 +1112,7 @@ class AnnouncementController extends Controller
                     'service_end_at' => $reservation->service_end_at,
                     'paid_at' => $reservation->paid_at,
                     'can_be_cancelled' => $reservation->can_be_cancelled,
-                    'can_be_reviewed' => $reservation->can_be_reviewed,
+                    'can_be_reviewed' => $reservation->can_be_reviewed_by_parent,
                     'babysitter' => [
                         'id' => $reservation->babysitter->id,
                         'name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
@@ -1104,6 +1140,11 @@ class AnnouncementController extends Controller
             'announcements' => $announcements,
             'reservations' => $reservations,
             'stats' => $stats,
+            'filters' => [
+                'announcement_status' => $announcementStatus,
+                'reservation_status' => $reservationStatus,
+                'date_filter' => $dateFilter,
+            ],
         ]);
     }
 

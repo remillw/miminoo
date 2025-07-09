@@ -286,6 +286,24 @@ const toggleEdit = () => {
     }
 };
 
+const viewMyProfile = () => {
+    // Rediriger vers la page de profil publique basée sur le mode actuel
+    if (currentMode.value === 'babysitter' && props.hasBabysitterRole) {
+        // Ouvrir le profil babysitter dans un nouvel onglet
+        window.open(route('babysitter.profile.show', props.user.id), '_blank');
+    } else if (currentMode.value === 'parent' && props.hasParentRole) {
+        // Ouvrir le profil parent dans un nouvel onglet
+        window.open(route('parent.profile.show', props.user.id), '_blank');
+    } else {
+        // Fallback: utiliser le mode babysitter si l'utilisateur a ce rôle
+        if (props.hasBabysitterRole) {
+            window.open(route('babysitter.profile.show', props.user.id), '_blank');
+        } else {
+            showError('Impossible d\'afficher le profil public');
+        }
+    }
+};
+
 // Charger l'API Google Places
 const loadGooglePlaces = () => {
     console.log('🚀 Chargement Google Places API...');
@@ -968,7 +986,13 @@ console.log('🔍 Données utilisateur Profil:', {
                             </div>
                         </div>
 
-                        <Button v-if="!isEditing" @click="toggleEdit" class="bg-primary hover:bg-orange-500"> Modifier </Button>
+                        <div v-if="!isEditing" class="flex items-center gap-3">
+                            <Button @click="viewMyProfile" variant="outline" class="flex items-center gap-2">
+                                <ExternalLink class="h-4 w-4" />
+                                Voir mon profil
+                            </Button>
+                            <Button @click="toggleEdit" class="bg-primary hover:bg-orange-500"> Modifier </Button>
+                        </div>
                     </div>
                 </CardHeader>
 

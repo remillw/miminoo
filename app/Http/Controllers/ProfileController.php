@@ -81,6 +81,17 @@ class ProfileController extends Controller
             $profileData['availableLanguages'] = Language::where('is_active', true)->get();
             $profileData['availableSkills'] = Skill::where('is_active', true)->get();
             $profileData['availableAgeRanges'] = AgeRange::where('is_active', true)->orderBy('display_order')->get();
+            
+            // Ajouter les avis pour les babysitters
+            $reviews = \App\Models\Review::with(['reviewer'])
+                ->where('reviewed_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get();
+            
+            $profileData['reviews'] = $reviews;
+            $profileData['averageRating'] = $user->averageRating();
+            $profileData['totalReviews'] = $user->totalReviews();
         }
 
         // Ajouter la clé API Google Places pour le frontend
