@@ -83,7 +83,7 @@
                                 }"
                                 class="border-b-2 px-1 py-2 text-sm font-medium"
                             >
-                                Mes annonces ({{ announcements.length }})
+                                Mes annonces ({{ announcements.data.length }})
                             </button>
                             <button
                                 @click="activeTab = 'reservations'"
@@ -93,54 +93,72 @@
                                 }"
                                 class="border-b-2 px-1 py-2 text-sm font-medium"
                             >
-                                Mes réservations ({{ reservations.length }})
+                                Mes réservations ({{ reservations.data.length }})
                             </button>
                         </nav>
                     </div>
                 </div>
 
                 <!-- Filtres -->
-                <div class="mb-6">
-                    <div class="flex flex-wrap items-center gap-4">
-                        <!-- Filtre par date (commun aux deux onglets) -->
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm font-medium text-gray-700">Date :</label>
-                            <select
-                                v-model="selectedDateFilter"
-                                @change="onDateFilterChange"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                            >
-                                <option v-for="option in dateFilterOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </option>
-                            </select>
-                        </div>
-
-                        <!-- Filtre par statut spécifique à l'onglet -->
-                        <div v-if="activeTab === 'announcements'" class="flex items-center gap-2">
-                            <label class="text-sm font-medium text-gray-700">Statut :</label>
-                            <select
-                                v-model="selectedAnnouncementStatus"
-                                @change="onAnnouncementStatusChange"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                            >
-                                <option v-for="option in announcementStatusOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </option>
-                            </select>
-                        </div>
+                <div class="mt-6">
+                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                        <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
                         
-                        <div v-else-if="activeTab === 'reservations'" class="flex items-center gap-2">
-                            <label class="text-sm font-medium text-gray-700">Statut :</label>
-                            <select
-                                v-model="selectedReservationStatus"
-                                @change="onReservationStatusChange"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                            >
-                                <option v-for="option in reservationStatusOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </option>
-                            </select>
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <!-- Filtre par date -->
+                            <div class="space-y-2">
+                                <Label class="text-sm font-medium text-gray-700">Période</Label>
+                                <Select v-model="tempDateFilter">
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Sélectionner une période" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem v-for="option in dateFilterOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <!-- Filtre par statut spécifique à l'onglet -->
+                            <div v-if="activeTab === 'annonces'" class="space-y-2">
+                                <Label class="text-sm font-medium text-gray-700">Statut d'annonce</Label>
+                                <Select v-model="tempAnnouncementStatus">
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Tous les statuts" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem v-for="option in announcementStatusOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div v-else-if="activeTab === 'reservations'" class="space-y-2">
+                                <Label class="text-sm font-medium text-gray-700">Statut de réservation</Label>
+                                <Select v-model="tempReservationStatus">
+                                    <SelectTrigger class="w-full">
+                                        <SelectValue placeholder="Tous les statuts" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem v-for="option in reservationStatusOptions" :key="option.value" :value="option.value">
+                                            {{ option.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex items-end gap-2">
+                                <Button @click="applyFilters" class="flex-1">
+                                    <Filter class="h-4 w-4 mr-2" />
+                                    Appliquer
+                                </Button>
+                                <Button @click="resetFilters" variant="outline">
+                                    Réinitialiser
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -158,13 +176,20 @@
                         </a>
                     </div>
 
-                    <!-- Liste des annonces -->
-                    <div v-if="announcements.length > 0" class="space-y-6">
-                        <div
-                            v-for="announcement in announcements"
-                            :key="announcement.id"
-                            class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
-                        >
+                    <!-- Liste des annonces avec scroll infini -->
+                    <InfiniteScroll
+                        :pagination="announcements"
+                        :route="'announcements.my-announcements-and-reservations'"
+                        :parameters="currentFilters"
+                        loading-message="Chargement des annonces..."
+                        end-message="Toutes les annonces ont été chargées"
+                    >
+                        <div v-if="announcements.data.length > 0" class="space-y-6">
+                            <div
+                                v-for="announcement in announcements.data"
+                                :key="announcement.id"
+                                class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                            >
                             <div class="p-6">
                                 <!-- En-tête de l'annonce -->
                                 <div class="mb-4 flex items-start justify-between">
@@ -267,30 +292,39 @@
                                     <p class="text-sm text-gray-500">Aucune candidature pour le moment</p>
                                 </div>
                             </div>
+                            </div>
                         </div>
-                    </div>
-                    <div v-else class="py-12 text-center">
-                        <FileText class="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                        <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune annonce</h3>
-                        <p class="mb-4 text-gray-600">Créez votre première annonce pour trouver une babysitter</p>
-                        <a
-                            href="/creer-une-annonce"
-                            class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
-                        >
-                            <Plus class="h-4 w-4" />
-                            Créer ma première annonce
-                        </a>
-                    </div>
+                        
+                        <div v-if="announcements.data.length === 0" class="py-12 text-center">
+                            <FileText class="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                            <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune annonce</h3>
+                            <p class="mb-4 text-gray-600">Créez votre première annonce pour trouver une babysitter</p>
+                            <a
+                                href="/creer-une-annonce"
+                                class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+                            >
+                                <Plus class="h-4 w-4" />
+                                Créer ma première annonce
+                            </a>
+                        </div>
+                    </InfiniteScroll>
                 </div>
 
                 <div v-else-if="activeTab === 'reservations'">
-                    <!-- Liste des réservations -->
-                    <div v-if="reservations.length > 0" class="space-y-6">
-                        <div
-                            v-for="reservation in reservations"
-                            :key="reservation.id"
-                            class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
-                        >
+                    <!-- Liste des réservations avec scroll infini -->
+                    <InfiniteScroll
+                        :pagination="reservations"
+                        :route="'announcements.my-announcements-and-reservations'"
+                        :parameters="currentFilters"
+                        loading-message="Chargement des réservations..."
+                        end-message="Toutes les réservations ont été chargées"
+                    >
+                        <div v-if="reservations.data.length > 0" class="space-y-6">
+                            <div
+                                v-for="reservation in reservations.data"
+                                :key="reservation.id"
+                                class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                            >
                             <div class="p-6">
                                 <!-- En-tête de la réservation -->
                                 <div class="mb-4 flex items-start justify-between">
@@ -370,20 +404,22 @@
                                     </button>
                                 </div>
                             </div>
+                            </div>
                         </div>
-                    </div>
-                    <div v-else class="py-12 text-center">
-                        <Calendar class="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                        <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune réservation</h3>
-                        <p class="mb-4 text-gray-600">Vos réservations de garde apparaîtront ici</p>
-                        <a
-                            href="/annonces"
-                            class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
-                        >
-                            <Search class="h-4 w-4" />
-                            Parcourir les babysitters
-                        </a>
-                    </div>
+                        
+                        <div v-if="reservations.data.length === 0" class="py-12 text-center">
+                            <Calendar class="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                            <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune réservation</h3>
+                            <p class="mb-4 text-gray-600">Vos réservations de garde apparaîtront ici</p>
+                            <a
+                                href="/annonces"
+                                class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+                            >
+                                <Search class="h-4 w-4" />
+                                Parcourir les babysitters
+                            </a>
+                        </div>
+                    </InfiniteScroll>
                 </div>
             </div>
         </div>
@@ -404,12 +440,16 @@
 
 <script setup lang="ts">
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import InfiniteScroll from '@/components/InfiniteScroll.vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { useToast } from '@/composables/useToast';
 import { router, usePage } from '@inertiajs/vue3';
-import { Calendar, CheckCircle, CreditCard, Edit2, Eye, FileText, MapPin, MessageCircle, Plus, Search, Star, X } from 'lucide-vue-next';
+import { Calendar, CheckCircle, CreditCard, Edit2, Eye, FileText, MapPin, MessageCircle, Plus, Search, Star, X, Filter } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 interface Announcement {
     id: number;
@@ -480,9 +520,17 @@ interface Filters {
     date_filter: string;
 }
 
+interface PaginatedData<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+}
+
 interface Props {
-    announcements: Announcement[];
-    reservations: Reservation[];
+    announcements: PaginatedData<Announcement>;
+    reservations: PaginatedData<Reservation>;
     stats: Stats;
     filters: Filters;
 }
@@ -508,8 +556,22 @@ const selectedAnnouncementStatus = ref<string>(props.filters.announcement_status
 const selectedReservationStatus = ref<string>(props.filters.reservation_status);
 const selectedDateFilter = ref<string>(props.filters.date_filter);
 
+// Temp variables for shadcn select
+const tempAnnouncementStatus = ref<string>(selectedAnnouncementStatus.value);
+const tempReservationStatus = ref<string>(selectedReservationStatus.value);
+const tempDateFilter = ref<string>(selectedDateFilter.value);
+
 // Toast
 const { showSuccess, showError } = useToast();
+
+// Filtres actuels pour InfiniteScroll
+const currentFilters = computed(() => {
+    return {
+        announcement_status: tempAnnouncementStatus.value,
+        reservation_status: tempReservationStatus.value,
+        date_filter: tempDateFilter.value,
+    };
+});
 
 // Options de filtres
 const announcementStatusOptions = [
@@ -664,26 +726,23 @@ const proceedToPayment = (reservationId: number) => {
 // Fonctions de filtrage
 const applyFilters = () => {
     router.get(route('announcements.my-announcements-and-reservations'), {
-        announcement_status: selectedAnnouncementStatus.value,
-        reservation_status: selectedReservationStatus.value,
-        date_filter: selectedDateFilter.value,
+        announcement_status: tempAnnouncementStatus.value,
+        reservation_status: tempReservationStatus.value,
+        date_filter: tempDateFilter.value,
     }, {
         preserveState: true,
         preserveScroll: true,
     });
 };
 
-const onAnnouncementStatusChange = () => {
+const resetFilters = () => {
+    tempAnnouncementStatus.value = 'all';
+    tempReservationStatus.value = 'all';
+    tempDateFilter.value = 'all';
     applyFilters();
 };
 
-const onReservationStatusChange = () => {
-    applyFilters();
-};
-
-const onDateFilterChange = () => {
-    applyFilters();
-};
+// Fonctions de filtrage supprimées - maintenant avec bouton de confirmation
 
 // Fonction pour vérifier si la garde est passée
 const isServicePast = (reservation: Reservation) => {
@@ -703,7 +762,7 @@ const canEditAnnouncement = (announcement: Announcement) => {
 };
 
 const editAnnouncement = (announcementId: number) => {
-    router.visit(`/annonces/${announcementId}/modifier`);
+    router.visit(route('announcements.edit', { announcement: announcementId }));
 };
 
 const viewAnnouncement = (announcement: Announcement) => {

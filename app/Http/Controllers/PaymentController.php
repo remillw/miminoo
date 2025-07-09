@@ -76,13 +76,40 @@ class PaymentController extends Controller
             $recentTransactions = [];
         }
 
-        // Récupérer les réservations/transactions de la babysitter avec statut des fonds
-        $reservationTransactions = Reservation::where('babysitter_id', $user->id)
+        // Filtres pour babysitter
+        $statusFilter = $request->get('status', 'all');
+        $dateFilter = $request->get('date_filter', 'all');
+        
+        // Construire la requête base
+        $reservationQuery = Reservation::where('babysitter_id', $user->id)
             ->whereIn('status', ['paid', 'active', 'service_completed', 'completed'])
             ->with(['parent', 'ad'])
-            ->orderBy('service_start_at', 'desc')
-            ->get()
-            ->map(function ($reservation) {
+            ->orderBy('service_start_at', 'desc');
+            
+        // Appliquer le filtre de statut
+        if ($statusFilter !== 'all') {
+            $reservationQuery->where('status', $statusFilter);
+        }
+        
+        // Appliquer le filtre de date
+        if ($dateFilter !== 'all') {
+            switch ($dateFilter) {
+                case 'week':
+                    $reservationQuery->where('service_start_at', '>=', now()->subWeek());
+                    break;
+                case 'month':
+                    $reservationQuery->where('service_start_at', '>=', now()->subMonth());
+                    break;
+                case 'year':
+                    $reservationQuery->where('service_start_at', '>=', now()->subYear());
+                    break;
+            }
+        }
+
+        // Récupérer les réservations/transactions de la babysitter avec statut des fonds
+        $reservationTransactions = $reservationQuery
+            ->paginate(10)
+            ->through(function ($reservation) {
                 // Calculer le statut des fonds
                 $fundsStatus = $this->getFundsStatusForReservation($reservation);
                 $fundsMessage = $this->getFundsMessageForReservation($reservation, $fundsStatus);
@@ -113,7 +140,11 @@ class PaymentController extends Controller
             'accountBalance' => $accountBalance,
             'recentTransactions' => $reservationTransactions, // Remplacer par nos transactions détaillées
             'stripeAccountId' => $user->stripe_account_id,
-            'babysitterProfile' => $user->babysitterProfile
+            'babysitterProfile' => $user->babysitterProfile,
+            'filters' => [
+                'status' => $statusFilter,
+                'date_filter' => $dateFilter,
+            ],
         ]);
     }
 
@@ -123,30 +154,79 @@ class PaymentController extends Controller
     private function parentPayments(Request $request)
     {
         $user = $request->user();
+        
+        // Filtres
+        $statusFilter = $request->get('status', 'all');
+        $dateFilter = $request->get('date_filter', 'all');
+        $typeFilter = $request->get('type', 'all'); // payment, refund, all
 
-        // Récupérer toutes les réservations du parent
-        $reservations = Reservation::where('parent_id', $user->id)
+        // Construction de la requête base pour les réservations
+        $reservationsQuery = Reservation::where('parent_id', $user->id)
             ->with(['babysitter', 'ad'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'desc');
+            
+        // Appliquer le filtre de statut
+        if ($statusFilter !== 'all') {
+            $reservationsQuery->where('status', $statusFilter);
+        }
+        
+        // Appliquer le filtre de date
+        if ($dateFilter !== 'all') {
+            switch ($dateFilter) {
+                case 'week':
+                    $reservationsQuery->where('created_at', '>=', now()->subWeek());
+                    break;
+                case 'month':
+                    $reservationsQuery->where('created_at', '>=', now()->subMonth());
+                    break;
+                case 'year':
+                    $reservationsQuery->where('created_at', '>=', now()->subYear());
+                    break;
+            }
+        }
+
+        // Récupérer toutes les réservations pour les stats (sans filtres)
+        $allReservations = Reservation::where('parent_id', $user->id)
+            ->with(['babysitter', 'ad'])
             ->get();
+            
+        // Récupérer les réservations avec pagination
+        $reservationsPaginated = $reservationsQuery->paginate(10);
 
-        // Calculer les statistiques
-        $totalSpent = $reservations->whereIn('status', ['completed', 'service_completed', 'paid'])->sum('total_deposit');
-        $totalReservations = $reservations->count();
-        $pendingPayments = $reservations->where('status', 'pending_payment')->count();
+        // Calculer les statistiques basées sur toutes les réservations
+        $totalSpent = $allReservations->whereIn('status', ['completed', 'service_completed', 'paid'])->sum('total_deposit');
+        $totalReservations = $allReservations->count();
+        $pendingPayments = $allReservations->where('status', 'pending_payment')->count();
 
-        // Récupérer les transactions de remboursement du parent
-        $refundTransactions = \App\Models\Transaction::where('payer_id', $user->id)
+        // Récupérer les transactions de remboursement du parent avec filtres
+        $refundQuery = \App\Models\Transaction::where('payer_id', $user->id)
             ->where('type', 'refund')
             ->with(['reservation.babysitter', 'reservation.ad'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+            
+        // Appliquer les filtres de date aux remboursements
+        if ($dateFilter !== 'all') {
+            switch ($dateFilter) {
+                case 'week':
+                    $refundQuery->where('created_at', '>=', now()->subWeek());
+                    break;
+                case 'month':
+                    $refundQuery->where('created_at', '>=', now()->subMonth());
+                    break;
+                case 'year':
+                    $refundQuery->where('created_at', '>=', now()->subYear());
+                    break;
+            }
+        }
+
+        $refundTransactions = $refundQuery->get();
 
         // Créer la liste combinée des transactions (réservations + remboursements)
         $transactions = collect();
 
-        // Ajouter les réservations
-        $reservations->each(function ($reservation) use ($transactions) {
+        // Ajouter les réservations (seulement si type = all ou payment)
+        if ($typeFilter === 'all' || $typeFilter === 'payment') {
+            $reservationsPaginated->each(function ($reservation) use ($transactions) {
             $startDate = $reservation->service_start_at ? new \Carbon\Carbon($reservation->service_start_at) : null;
             $endDate = $reservation->service_end_at ? new \Carbon\Carbon($reservation->service_end_at) : null;
             
@@ -164,29 +244,49 @@ class PaymentController extends Controller
                 'service_end' => $reservation->service_end_at,
                 'duration' => $duration,
                 'ad_title' => $reservation->ad->title,
-                'can_download_invoice' => in_array($reservation->status, ['completed', 'service_completed']),
-            ]);
-        });
+                'can_download_invoice' => in_array($reservation->status, ['completed', 'service_completed', 'paid']) && 
+                                          $reservation->service_end_at && 
+                                          new \Carbon\Carbon($reservation->service_end_at) <= now(),
+                ]);
+            });
+        }
 
-        // Ajouter les remboursements
-        $refundTransactions->each(function ($transaction) use ($transactions) {
-            $reservation = $transaction->reservation;
-            $transactions->push([
-                'id' => $transaction->id,
-                'type' => 'refund',
-                'date' => $transaction->created_at,
-                'babysitter_name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
-                'amount' => $transaction->amount,
-                'status' => 'refunded',
-                'description' => $transaction->description,
-                'ad_title' => $reservation->ad->title,
-                'original_reservation_id' => $reservation->id,
-                'metadata' => $transaction->metadata,
-            ]);
-        });
+        // Ajouter les remboursements (seulement si type = all ou refund)
+        if ($typeFilter === 'all' || $typeFilter === 'refund') {
+            $refundTransactions->each(function ($transaction) use ($transactions) {
+                $reservation = $transaction->reservation;
+                $transactions->push([
+                    'id' => $transaction->id,
+                    'type' => 'refund',
+                    'date' => $transaction->created_at,
+                    'babysitter_name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
+                    'amount' => $transaction->amount,
+                    'status' => 'refunded',
+                    'description' => $transaction->description,
+                    'ad_title' => $reservation->ad->title,
+                    'original_reservation_id' => $reservation->id,
+                    'metadata' => $transaction->metadata,
+                ]);
+            });
+        }
 
-        // Trier par date décroissante
+        // Trier par date décroissante et créer une pagination manuelle
         $transactions = $transactions->sortByDesc('date')->values();
+        
+        // Créer une structure de pagination pour les transactions
+        $perPage = 10;
+        $currentPage = (int) $request->get('page', 1);
+        $totalTransactions = $transactions->count();
+        $offset = ($currentPage - 1) * $perPage;
+        $paginatedTransactions = $transactions->slice($offset, $perPage)->values();
+        
+        $transactionsPagination = [
+            'data' => $paginatedTransactions,
+            'current_page' => $currentPage,
+            'last_page' => (int) ceil($totalTransactions / $perPage),
+            'per_page' => $perPage,
+            'total' => $totalTransactions,
+        ];
 
         return Inertia::render('Payments/Index', [
             'mode' => 'parent',
@@ -195,7 +295,12 @@ class PaymentController extends Controller
                 'total_reservations' => $totalReservations,
                 'pending_payments' => $pendingPayments,
             ],
-            'transactions' => $transactions,
+            'transactions' => $transactionsPagination,
+            'filters' => [
+                'status' => $statusFilter,
+                'date_filter' => $dateFilter,
+                'type' => $typeFilter,
+            ],
         ]);
     }
 

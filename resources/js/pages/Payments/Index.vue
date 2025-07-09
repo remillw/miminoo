@@ -130,6 +130,49 @@
                         </div>
                     </div>
 
+                    <!-- Filtres pour les babysitters -->
+                    <div v-if="isBabysitterMode(props) && props.accountStatus === 'active'" class="mb-8 rounded-lg bg-white p-6 shadow">
+                        <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <div>
+                                <Label for="babysitter-status-filter">Statut</Label>
+                                <Select v-model="tempStatusFilter">
+                                    <SelectTrigger id="babysitter-status-filter">
+                                        <SelectValue placeholder="Tous les statuts" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tous les statuts</SelectItem>
+                                        <SelectItem value="paid">Payé</SelectItem>
+                                        <SelectItem value="active">En cours</SelectItem>
+                                        <SelectItem value="service_completed">Service terminé</SelectItem>
+                                        <SelectItem value="completed">Complété</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div>
+                                <Label for="babysitter-date-filter">Période</Label>
+                                <Select v-model="tempDateFilter">
+                                    <SelectTrigger id="babysitter-date-filter">
+                                        <SelectValue placeholder="Toutes les périodes" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Toutes les périodes</SelectItem>
+                                        <SelectItem value="week">Cette semaine</SelectItem>
+                                        <SelectItem value="month">Ce mois</SelectItem>
+                                        <SelectItem value="year">Cette année</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div class="flex items-end">
+                                <Button @click="applyFilters" class="w-full">
+                                    Appliquer les filtres
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Historique des transactions -->
                     <div v-if="isBabysitterMode(props) && props.accountStatus === 'active'" class="rounded-lg bg-white shadow">
                         <div class="border-b border-gray-200 p-6">
@@ -147,7 +190,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
-                                    <tr v-for="transaction in isBabysitterMode(props) ? props.recentTransactions : []" :key="transaction.id">
+                                    <tr v-for="transaction in isBabysitterMode(props) ? props.recentTransactions.data : []" :key="transaction.id">
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             {{ formatDate(transaction.service_date || transaction.created) }}
                                         </td>
@@ -186,7 +229,7 @@
                                             </span>
                                         </td>
                                     </tr>
-                                    <tr v-if="isBabysitterMode(props) && (!props.recentTransactions || props.recentTransactions.length === 0)">
+                                    <tr v-if="isBabysitterMode(props) && (!props.recentTransactions.data || props.recentTransactions.data.length === 0)">
                                         <td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucune transaction pour le moment</td>
                                     </tr>
                                 </tbody>
@@ -197,6 +240,65 @@
 
                 <!-- Mode Parent -->
                 <div v-if="isParentMode(props)">
+                    <!-- Filtres pour les parents -->
+                    <div class="mb-8 rounded-lg bg-white p-6 shadow">
+                        <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                            <div>
+                                <Label for="status-filter">Statut</Label>
+                                <Select v-model="tempStatusFilter">
+                                    <SelectTrigger id="status-filter">
+                                        <SelectValue placeholder="Tous les statuts" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tous les statuts</SelectItem>
+                                        <SelectItem value="pending_payment">En attente de paiement</SelectItem>
+                                        <SelectItem value="paid">Payé</SelectItem>
+                                        <SelectItem value="active">En cours</SelectItem>
+                                        <SelectItem value="service_completed">Service terminé</SelectItem>
+                                        <SelectItem value="completed">Complété</SelectItem>
+                                        <SelectItem value="cancelled">Annulé</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div>
+                                <Label for="date-filter">Période</Label>
+                                <Select v-model="tempDateFilter">
+                                    <SelectTrigger id="date-filter">
+                                        <SelectValue placeholder="Toutes les périodes" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Toutes les périodes</SelectItem>
+                                        <SelectItem value="week">Cette semaine</SelectItem>
+                                        <SelectItem value="month">Ce mois</SelectItem>
+                                        <SelectItem value="year">Cette année</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div>
+                                <Label for="type-filter">Type</Label>
+                                <Select v-model="tempTypeFilter">
+                                    <SelectTrigger id="type-filter">
+                                        <SelectValue placeholder="Tous les types" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tous les types</SelectItem>
+                                        <SelectItem value="payment">Paiements</SelectItem>
+                                        <SelectItem value="refund">Remboursements</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            <div class="flex items-end">
+                                <Button @click="applyFilters" class="w-full">
+                                    Appliquer les filtres
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Cartes statistiques -->
                     <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
                         <div class="rounded-lg bg-white p-6 shadow">
@@ -256,7 +358,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
-                                    <tr v-for="transaction in isParentMode(props) ? props.transactions : []" :key="`${transaction.type}-${transaction.id}`"
+                                    <tr v-for="transaction in isParentMode(props) ? props.transactions.data : []" :key="`${transaction.type}-${transaction.id}`"
                                         :class="transaction.type === 'refund' ? 'bg-green-50' : ''">
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             {{ formatDate(transaction.date) }}
@@ -315,19 +417,36 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import InfiniteScroll from '@/components/InfiniteScroll.vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { Calendar, Clock, CreditCard } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
+import { route } from 'ziggy-js';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 // Types
+interface PaginatedData<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+}
+
 interface BabysitterProps {
     mode: 'babysitter';
     accountStatus: string;
     accountDetails: any;
     accountBalance: any;
-    recentTransactions: any[];
+    recentTransactions: PaginatedData<any>;
     stripeAccountId: string;
     babysitterProfile: any;
+    filters?: {
+        status: string;
+        date_filter: string;
+    };
 }
 
 interface ParentProps {
@@ -337,7 +456,12 @@ interface ParentProps {
         total_reservations: number;
         pending_payments: number;
     };
-    transactions: any[];
+    transactions: PaginatedData<any>;
+    filters?: {
+        status: string;
+        date_filter: string;
+        type: string;
+    };
 }
 
 type Props = BabysitterProps | ParentProps;
@@ -345,7 +469,7 @@ type Props = BabysitterProps | ParentProps;
 const props = defineProps<Props>();
 
 const page = usePage();
-const { handleApiResponse } = useToast();
+const { handleApiResponse, showSuccess, showError } = useToast();
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);
@@ -370,6 +494,37 @@ const isBabysitterMode = (props: Props): props is BabysitterProps => {
 
 const isParentMode = (props: Props): props is ParentProps => {
     return props.mode === 'parent';
+};
+
+// Variables pour les filtres
+const tempStatusFilter = ref(
+    isParentMode(props) ? (props.filters?.status || 'all') : 
+    isBabysitterMode(props) ? (props.filters?.status || 'all') : 'all'
+);
+const tempDateFilter = ref(
+    isParentMode(props) ? (props.filters?.date_filter || 'all') : 
+    isBabysitterMode(props) ? (props.filters?.date_filter || 'all') : 'all'
+);
+const tempTypeFilter = ref(isParentMode(props) ? (props.filters?.type || 'all') : 'all');
+
+// Fonction pour appliquer les filtres
+const applyFilters = () => {
+    const params: any = {
+        status: tempStatusFilter.value !== 'all' ? tempStatusFilter.value : undefined,
+        date_filter: tempDateFilter.value !== 'all' ? tempDateFilter.value : undefined,
+    };
+    
+    if (isParentMode(props)) {
+        params.type = tempTypeFilter.value !== 'all' ? tempTypeFilter.value : undefined;
+    }
+    
+    // Supprimer les paramètres undefined
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+    
+    router.get(route('payments.index'), params, {
+        preserveState: false,
+        preserveScroll: false,
+    });
 };
 
 // Computed properties
@@ -541,33 +696,30 @@ const downloadInvoice = async (transactionId: number) => {
         const response = await fetch(`/reservations/${transactionId}/invoice`, {
             method: 'GET',
             headers: {
-                'Accept': 'application/pdf',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
             },
         });
 
         if (!response.ok) {
-            if (response.status === 400) {
-                alert('La facture n\'est disponible qu\'après la fin du service de babysitting.');
-            } else {
-                alert('Erreur lors du téléchargement de la facture');
-            }
+            const errorData = await response.json().catch(() => ({}));
+            const message = errorData.error || 'Erreur lors du téléchargement de la facture';
+            showError('📄 Facture indisponible', message);
             return;
         }
 
-        // Télécharger le fichier
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `facture-${transactionId}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        const data = await response.json();
+        
+        if (data.pdf_url) {
+            // Ouvrir la facture Stripe dans un nouvel onglet
+            window.open(data.pdf_url, '_blank');
+            showSuccess('📄 Facture ouverte', 'La facture a été ouverte dans un nouvel onglet');
+        } else {
+            showError('📄 Erreur facture', 'URL de facture non disponible');
+        }
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors du téléchargement de la facture');
+        showError('📄 Erreur réseau', 'Impossible de contacter le serveur pour télécharger la facture');
     }
 };
 

@@ -187,7 +187,7 @@ class AnnouncementController extends Controller
                   ->orderBy('created_at', 'desc'); // Puis par date de création pour les annonces du même jour
         }
 
-        $announcements = $query->paginate(12);
+        $announcements = $query->paginate(5);
 
         // Transformer les données pour inclure les avis du parent
         $announcements->getCollection()->transform(function ($announcement) {
@@ -714,7 +714,7 @@ class AnnouncementController extends Controller
     /**
      * Display the specified announcement.
      */
-    public function show($slug)
+    public function show($slug, Request $request)
     {
         // Extraire l'ID du slug (dernière partie après le dernier tiret)
         $parts = explode('-', $slug);
@@ -725,10 +725,26 @@ class AnnouncementController extends Controller
             abort(404);
         }
 
+        // Déterminer si on peut afficher les annonces expirées/annulées
+        $fromMessaging = $request->get('from') === 'messaging' || 
+                        $request->hasHeader('referer') && 
+                        str_contains($request->header('referer'), 'messagerie');
+        
+        $user = Auth::user();
+        $canViewExpired = $fromMessaging && $user;
+
         // Récupérer l'annonce avec ses relations enrichies
-        $announcement = Ad::with(['parent.parentProfile', 'address'])
-            ->where('status', 'active')
-            ->findOrFail($adId);
+        $query = Ad::with(['parent.parentProfile', 'address']);
+        
+        if ($canViewExpired) {
+            // Si on vient de la messagerie, permettre de voir les annonces expirées/annulées
+            $query->whereIn('status', ['active', 'expired', 'cancelled', 'booked', 'service_completed', 'completed']);
+        } else {
+            // Sinon, seulement les annonces actives
+            $query->where('status', 'active');
+        }
+        
+        $announcement = $query->findOrFail($adId);
 
         // Vérifier que le slug correspond bien à l'annonce
         $expectedSlug = $this->createAdSlug($announcement);
@@ -1023,8 +1039,8 @@ class AnnouncementController extends Controller
         if ($announcementStatus !== 'all') {
             $announcementsQuery->where('status', $announcementStatus);
         } else {
-            // Par défaut, exclure seulement les "completed" (finalisées après 7 jours)
-            $announcementsQuery->whereIn('status', ['active', 'booked', 'service_completed', 'expired', 'cancelled']);
+            // Par défaut, exclure les expirées, annulées et finalisées
+            $announcementsQuery->whereIn('status', ['active', 'booked', 'service_completed']);
         }
 
         // Appliquer le filtre de date pour les annonces
@@ -1041,9 +1057,9 @@ class AnnouncementController extends Controller
             $announcementsQuery->orderBy('date_start', 'desc');
         }
 
-        $allAnnouncements = $announcementsQuery->get();
+        $allAnnouncements = $announcementsQuery->paginate(10);
         
-        $announcements = $allAnnouncements
+        $announcements = $allAnnouncements->getCollection()
             ->map(function ($ad) {
                 return [
                     'id' => $ad->id,
@@ -1098,7 +1114,9 @@ class AnnouncementController extends Controller
             $reservationsQuery->orderBy('service_start_at', 'desc');
         }
 
-        $reservations = $reservationsQuery->get()
+        $allReservations = $reservationsQuery->paginate(10);
+        
+        $reservations = $allReservations->getCollection()
             ->map(function ($reservation) {
                 return [
                     'id' => $reservation->id,
@@ -1129,16 +1147,28 @@ class AnnouncementController extends Controller
 
         // Statistiques
         $stats = [
-            'total_announcements' => $allAnnouncements->count(), // Toutes les annonces
-            'active_announcements' => $announcements->where('status', 'active')->count(), // Seulement les actives/futures
-            'total_reservations' => $reservations->count(),
+            'total_announcements' => $allAnnouncements->total(), // Total toutes pages
+            'active_announcements' => $announcements->where('status', 'active')->count(), // Seulement les actives/futures page courante
+            'total_reservations' => $allReservations->total(),
             'completed_reservations' => $reservations->whereIn('status', ['completed', 'service_completed'])->count(),
             'total_spent' => $reservations->whereIn('status', ['completed', 'service_completed', 'paid'])->sum('total_deposit'),
         ];
 
         return Inertia::render('Parent/AnnouncementsAndReservations', [
-            'announcements' => $announcements,
-            'reservations' => $reservations,
+            'announcements' => [
+                'data' => $announcements,
+                'current_page' => $allAnnouncements->currentPage(),
+                'last_page' => $allAnnouncements->lastPage(),
+                'total' => $allAnnouncements->total(),
+                'per_page' => $allAnnouncements->perPage(),
+            ],
+            'reservations' => [
+                'data' => $reservations,
+                'current_page' => $allReservations->currentPage(),
+                'last_page' => $allReservations->lastPage(),
+                'total' => $allReservations->total(),
+                'per_page' => $allReservations->perPage(),
+            ],
             'stats' => $stats,
             'filters' => [
                 'announcement_status' => $announcementStatus,

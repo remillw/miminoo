@@ -451,7 +451,7 @@ function openAdUrl() {
 
     try {
         const slug = createAdSlug(props.conversation.ad);
-        const url = route('announcements.show', { slug });
+        const url = route('announcements.show', { slug }) + '?from=messaging';
 
         window.open(url, '_blank');
     } catch (error) {

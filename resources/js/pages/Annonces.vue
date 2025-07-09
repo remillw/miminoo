@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CardAnnonce from '@/components/CardAnnonce.vue';
+import InfiniteScroll from '@/components/InfiniteScroll.vue';
 import { Button } from '@/components/ui/button';
 import { useDateFormat } from '@/composables/useDateFormat';
 import { useGeolocation } from '@/composables/useGeolocation';
@@ -114,8 +115,23 @@ const applyFilters = async () => {
         }
     }
 
-    // Faire la requête normale sans coordonnées dans l'URL
+    // Faire la requête normale sans coordonnées dans l'URL (reset de la pagination)
     router.get(route('announcements.index'), params, {
+        preserveState: false,
+        preserveScroll: false,
+    });
+};
+
+// Réinitialiser les filtres
+const resetFilters = () => {
+    searchQuery.value = '';
+    tarif.value = 10;
+    age.value = '';
+    date.value = '';
+    lieu.value = '';
+    
+    // Faire une requête pour obtenir toutes les annonces
+    router.get(route('announcements.index'), {}, {
         preserveState: false,
         preserveScroll: false,
     });
@@ -164,6 +180,19 @@ const enableGeolocation = async () => {
         applyFilters();
     }
 };
+
+// Filtres actuels pour InfiniteScroll
+const currentFilters = computed(() => {
+    const filters: any = {};
+    
+    if (searchQuery.value.trim()) filters.search = searchQuery.value.trim();
+    if (tarif.value > 10) filters.min_rate = tarif.value;
+    if (age.value) filters.age_range = age.value;
+    if (date.value) filters.date = date.value;
+    if (lieu.value.trim()) filters.location = lieu.value.trim();
+    
+    return filters;
+});
 
 // Transformer les annonces backend pour le composant CardAnnonce
 const annonces = computed(() => {
@@ -451,57 +480,49 @@ onMounted(() => {
                     </p>
                 </div>
 
-                <!-- Liste des annonces optimisée mobile -->
-                <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:mt-10 lg:grid-cols-3 xl:gap-8">
-                    <CardAnnonce v-for="annonce in annonces" :key="annonce.id" v-bind="annonce" />
-                </div>
+                <!-- Liste des annonces avec scroll infini -->
+                <InfiniteScroll
+                    :pagination="props.announcements"
+                    :route="'announcements.index'"
+                    :parameters="currentFilters"
+                    loading-message="Chargement des annonces..."
+                    end-message="Toutes les annonces ont été chargées"
+                >
+                    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:mt-10 lg:grid-cols-3 xl:gap-8">
+                        <CardAnnonce v-for="annonce in annonces" :key="annonce.id" v-bind="annonce" />
+                    </div>
 
-                <!-- Message si aucune annonce optimisé mobile -->
-                <div v-if="annonces.length === 0" class="mt-6 text-center sm:mt-10">
-                    <div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-md sm:p-8">
-                        <div class="mb-4 text-6xl">👶</div>
-                        <h3 class="mb-2 text-xl font-semibold text-gray-800">Aucune annonce trouvée</h3>
-                        <p class="mb-4 text-gray-600">
-                            {{
-                                Object.keys(props.filters || {}).length > 0
-                                    ? 'Essayez de modifier vos critères de recherche ou réinitialisez les filtres.'
-                                    : 'Aucune annonce de babysitting disponible pour le moment. Revenez bientôt !'
-                            }}
-                        </p>
-                        <div class="mt-4 flex flex-col gap-2">
-                            <button
-                                v-if="Object.keys(props.filters || {}).length > 0"
-                                @click="resetFilters"
-                                class="bg-primary hover:bg-primary inline-block rounded-lg px-6 py-2 font-semibold text-white transition-colors"
-                            >
-                                Réinitialiser les filtres
-                            </button>
-                            <button
-                                v-else
-                                @click="applyFilters"
-                                class="inline-block rounded-lg bg-blue-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-blue-600"
-                            >
-                                Actualiser les annonces
-                            </button>
+                    <!-- Message si aucune annonce optimisé mobile -->
+                    <div v-if="annonces.length === 0" class="mt-6 text-center sm:mt-10">
+                        <div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-md sm:p-8">
+                            <div class="mb-4 text-6xl">👶</div>
+                            <h3 class="mb-2 text-xl font-semibold text-gray-800">Aucune annonce trouvée</h3>
+                            <p class="mb-4 text-gray-600">
+                                {{
+                                    Object.keys(props.filters || {}).length > 0
+                                        ? 'Essayez de modifier vos critères de recherche ou réinitialisez les filtres.'
+                                        : 'Aucune annonce de babysitting disponible pour le moment. Revenez bientôt !'
+                                }}
+                            </p>
+                            <div class="mt-4 flex flex-col gap-2">
+                                <button
+                                    v-if="Object.keys(props.filters || {}).length > 0"
+                                    @click="resetFilters"
+                                    class="bg-primary hover:bg-primary inline-block rounded-lg px-6 py-2 font-semibold text-white transition-colors"
+                                >
+                                    Réinitialiser les filtres
+                                </button>
+                                <button
+                                    v-else
+                                    @click="applyFilters"
+                                    class="inline-block rounded-lg bg-blue-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-blue-600"
+                                >
+                                    Actualiser les annonces
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Pagination -->
-                <div v-if="props.announcements.last_page > 1" class="mt-10 flex justify-center gap-2">
-                    <button
-                        v-for="page in props.announcements.last_page"
-                        :key="page"
-                        :class="[
-                            'flex h-9 w-9 items-center justify-center rounded-full font-bold transition-colors',
-                            page === props.announcements.current_page
-                                ? 'bg-primary text-white'
-                                : 'border border-gray-300 bg-white text-gray-400 hover:bg-gray-100',
-                        ]"
-                    >
-                        {{ page }}
-                    </button>
-                </div>
+                </InfiniteScroll>
             </div>
         </div>
     </GlobalLayout>

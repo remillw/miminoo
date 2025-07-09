@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\ArchiveCompletedConversations;
 use App\Models\Ad;
 use App\Models\Reservation;
 use App\Notifications\ReviewRequestNotification;
@@ -126,6 +127,10 @@ class UpdateAnnouncementStatuses extends Command
             $this->info("✅ {$finalCompletedCount} annonce(s) finalisée(s)");
             $totalUpdated += $finalCompletedCount;
         }
+        
+        // Déclencher l'archivage des conversations pour les services terminés depuis 24h
+        ArchiveCompletedConversations::dispatch();
+        $this->info("🗂️ Job d'archivage des conversations déclenché");
         
         if ($totalUpdated === 0) {
             $this->info("ℹ️ Aucune mise à jour nécessaire");

@@ -143,6 +143,26 @@ class DashboardController extends Controller
                     'created_at' => $review->created_at
                 ];
             });
+
+        // Réservations terminées nécessitant un avis (babysitter)
+        $completedReservations = Reservation::where('babysitter_id', $user->id)
+            ->whereIn('status', ['completed', 'service_completed'])
+            ->where('babysitter_reviewed', false)
+            ->with(['parent', 'ad:id,title'])
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($reservation) {
+                return [
+                    'id' => $reservation->id,
+                    'parent_name' => $reservation->parent->firstname . ' ' . substr($reservation->parent->lastname, 0, 1) . '.',
+                    'parent_avatar' => $reservation->parent->avatar,
+                    'parent_slug' => $reservation->parent->slug,
+                    'service_date' => $reservation->service_start_at,
+                    'ad_title' => $reservation->ad->title,
+                    'can_review' => true
+                ];
+            });
         
         return [
             'stats' => [
@@ -163,7 +183,8 @@ class DashboardController extends Controller
             ] : null,
             'recentAds' => $recentApplications,
             'notifications' => $notifications,
-            'recentReviews' => $recentReviews
+            'recentReviews' => $recentReviews,
+            'completedReservations' => $completedReservations
         ];
     }
     
@@ -226,22 +247,22 @@ class DashboardController extends Controller
                 ];
             });
         
-        // Réservations terminées pour lesquelles on peut laisser un avis
+        // Réservations terminées nécessitant un avis
         $completedReservations = Reservation::where('parent_id', $user->id)
-            ->where('status', 'completed')
-            ->whereDoesntHave('review', function ($query) use ($user) {
-                $query->where('reviewer_id', $user->id);
-            })
-            ->with(['babysitter'])
+            ->whereIn('status', ['completed', 'service_completed'])
+            ->where('parent_reviewed', false)
+            ->with(['babysitter', 'ad:id,title'])
             ->latest()
-            ->take(3)
+            ->take(5)
             ->get()
             ->map(function ($reservation) {
                 return [
                     'id' => $reservation->id,
                     'babysitter_name' => $reservation->babysitter->firstname . ' ' . substr($reservation->babysitter->lastname, 0, 1) . '.',
                     'babysitter_avatar' => $reservation->babysitter->avatar,
+                    'babysitter_slug' => $reservation->babysitter->slug,
                     'service_date' => $reservation->service_start_at,
+                    'ad_title' => $reservation->ad->title,
                     'can_review' => true
                 ];
             });

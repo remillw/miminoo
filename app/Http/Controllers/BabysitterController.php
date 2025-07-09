@@ -66,9 +66,20 @@ class BabysitterController extends Controller
             ->orderBy('display_order')
             ->get();
 
+        // Récupérer les avis de la babysitter
+        $reviews = \App\Models\Review::with(['reviewer'])
+            ->where('reviewed_id', $user->id)
+            ->where('role', 'parent') // Avis donnés par des parents
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
         return Inertia::render('Babysitterprofile', [
             'babysitter' => $babysitter,
-            'available_age_ranges' => $availableAgeRanges
+            'available_age_ranges' => $availableAgeRanges,
+            'reviews' => $reviews,
+            'averageRating' => $user->averageRating(),
+            'totalReviews' => $user->totalReviews(),
         ]);
     }
 

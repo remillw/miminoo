@@ -3,14 +3,14 @@
 namespace App\Jobs;
 
 use App\Models\Conversation;
-use App\Models\AdApplication;
+use App\Models\Reservation;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class ArchiveCompletedConversations implements ShouldQueue
 {
@@ -29,59 +29,67 @@ class ArchiveCompletedConversations implements ShouldQueue
      */
     public function handle(): void
     {
-        Log::info('🗂️ Début de l\'archivage automatique des conversations terminées');
-
-        // Trouver les conversations des gardes terminées depuis plus de 48h
-        $conversations = Conversation::with(['ad', 'application'])
-            ->whereNotIn('status', ['archived', 'cancelled'])
-            ->whereHas('ad', function($query) {
-                $query->where('date_end', '<', Carbon::now()->subHours(48));
+        $archivedCount = 0;
+        $now = Carbon::now();
+        
+        // Archiver les conversations liées à des réservations terminées depuis plus de 24h
+        $conversationsToArchive = Conversation::where('archived_at', null)
+            ->where('type', 'reservation')
+            ->whereHas('reservation', function($query) use ($now) {
+                $query->where('status', 'service_completed')
+                      ->where('service_end_at', '<', $now->copy()->subHours(24));
             })
+            ->with('reservation')
             ->get();
 
-        $archivedCount = 0;
-        $archivedApplicationsCount = 0;
-
-        foreach ($conversations as $conversation) {
+        foreach ($conversationsToArchive as $conversation) {
             try {
-                // Archiver la conversation
-                $conversation->update(['status' => 'archived']);
+                $conversation->update([
+                    'archived_at' => $now,
+                    'status' => 'archived'
+                ]);
                 
-                // Ajouter un message système
-                $conversation->addSystemMessage('conversation_archived', [
-                    'archived_by_name' => 'Système (automatique)',
-                    'reason' => 'Garde terminée depuis 48h'
-                ]);
-
-                // Archiver la candidature associée si elle existe
-                if ($conversation->application) {
-                    $conversation->application->update(['status' => 'archived']);
-                    $archivedApplicationsCount++;
-                }
-
+                Log::info("Conversation #{$conversation->id} archivée pour réservation #{$conversation->reservation->id}");
                 $archivedCount++;
-
-                Log::info('✅ Conversation archivée automatiquement', [
-                    'conversation_id' => $conversation->id,
-                    'ad_id' => $conversation->ad_id,
-                    'ad_title' => $conversation->ad->title ?? 'N/A',
-                    'ad_end_date' => $conversation->ad->date_end,
-                    'hours_since_end' => Carbon::now()->diffInHours($conversation->ad->date_end)
-                ]);
-
             } catch (\Exception $e) {
-                Log::error('❌ Erreur lors de l\'archivage automatique d\'une conversation', [
-                    'conversation_id' => $conversation->id,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
+                Log::error("Erreur lors de l'archivage de la conversation #{$conversation->id}: " . $e->getMessage());
             }
         }
 
-        Log::info('✅ Archivage automatique terminé', [
-            'conversations_archivees' => $archivedCount,
-            'candidatures_archivees' => $archivedApplicationsCount,
-            'total_conversations_examinees' => $conversations->count()
-        ]);
+        // Archiver aussi les conversations de candidatures acceptées dont la réservation est terminée depuis 24h
+        $applicationConversationsToArchive = Conversation::where('archived_at', null)
+            ->where('type', 'application')
+            ->whereHas('application', function($query) use ($now) {
+                $query->where('status', 'accepted')
+                      ->whereHas('ad', function($adQuery) use ($now) {
+                          $adQuery->where('status', 'service_completed')
+                                  ->whereHas('reservations', function($resQuery) use ($now) {
+                                      $resQuery->where('status', 'service_completed')
+                                              ->where('service_end_at', '<', $now->copy()->subHours(24));
+                                  });
+                      });
+            })
+            ->with(['application.ad.reservations'])
+            ->get();
+
+        foreach ($applicationConversationsToArchive as $conversation) {
+            try {
+                $conversation->update([
+                    'archived_at' => $now,
+                    'status' => 'archived'
+                ]);
+                
+                Log::info("Conversation de candidature #{$conversation->id} archivée");
+                $archivedCount++;
+            } catch (\Exception $e) {
+                Log::error("Erreur lors de l'archivage de la conversation de candidature #{$conversation->id}: " . $e->getMessage());
+            }
+        }
+
+        if ($archivedCount > 0) {
+            Log::info("✅ {$archivedCount} conversation(s) archivée(s) automatiquement");
+        } else {
+            Log::info("ℹ️ Aucune conversation à archiver");
+        }
     }
 } 

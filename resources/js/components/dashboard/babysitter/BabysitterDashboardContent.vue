@@ -214,6 +214,39 @@
                         <p class="text-sm">Aucun avis pour le moment</p>
                     </div>
                 </div>
+
+                <!-- Avis à laisser -->
+                <div v-if="completedReservations?.length > 0" class="rounded-lg bg-white p-6 shadow-sm">
+                    <h2 class="mb-4 text-lg font-semibold text-gray-900">Avis à laisser</h2>
+
+                    <div class="space-y-4">
+                        <div
+                            v-for="reservation in completedReservations"
+                            :key="reservation.id"
+                            class="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+                        >
+                            <div class="flex items-center gap-4">
+                                <img
+                                    :src="reservation.parent_avatar || '/default-avatar.svg'"
+                                    :alt="reservation.parent_name"
+                                    class="h-12 w-12 rounded-full object-cover"
+                                />
+                                <div>
+                                    <h3 class="font-medium text-gray-900">{{ reservation.parent_name }}</h3>
+                                    <p class="text-sm text-gray-600">{{ reservation.ad_title }}</p>
+                                    <p class="text-sm text-gray-600">Garde du {{ formatDate(reservation.service_date) }}</p>
+                                </div>
+                            </div>
+                            <button
+                                @click="createReview(reservation.id)"
+                                class="inline-flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-yellow-600"
+                            >
+                                <Star class="h-4 w-4" />
+                                Laisser un avis
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -235,6 +268,10 @@ const props = defineProps({
     recentAds: Array,
     notifications: Array,
     recentReviews: Array,
+    completedReservations: {
+        type: Array,
+        default: () => []
+    },
 });
 
 // État local pour la disponibilité
@@ -348,6 +385,10 @@ const markAsRead = async (notificationId) => {
     } catch (error) {
         console.error('Erreur lors du marquage de la notification:', error);
     }
+};
+
+const createReview = (reservationId) => {
+    router.visit(route('reviews.create', reservationId));
 };
 
 // Charger les données au montage

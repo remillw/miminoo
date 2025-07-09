@@ -55,6 +55,7 @@ interface User {
     email: string;
     date_of_birth?: string;
     avatar?: string;
+    slug?: string;
     address?: Address;
     parentProfile?: {
         children_ages: Child[];
@@ -288,18 +289,18 @@ const toggleEdit = () => {
 
 const viewMyProfile = () => {
     // Rediriger vers la page de profil publique basée sur le mode actuel
-    if (currentMode.value === 'babysitter' && props.hasBabysitterRole) {
+    if (currentMode.value === 'babysitter' && props.hasBabysitterRole && props.user.slug) {
         // Ouvrir le profil babysitter dans un nouvel onglet
-        window.open(route('babysitter.profile.show', props.user.id), '_blank');
-    } else if (currentMode.value === 'parent' && props.hasParentRole) {
+        window.open(route('babysitter.show', { slug: props.user.slug }), '_blank');
+    } else if (currentMode.value === 'parent' && props.hasParentRole && props.user.slug) {
         // Ouvrir le profil parent dans un nouvel onglet
-        window.open(route('parent.profile.show', props.user.id), '_blank');
+        window.open(route('parent.show', { slug: props.user.slug }), '_blank');
     } else {
         // Fallback: utiliser le mode babysitter si l'utilisateur a ce rôle
-        if (props.hasBabysitterRole) {
-            window.open(route('babysitter.profile.show', props.user.id), '_blank');
+        if (props.hasBabysitterRole && props.user.slug) {
+            window.open(route('babysitter.show', { slug: props.user.slug }), '_blank');
         } else {
-            showError('Impossible d\'afficher le profil public');
+            showError('Impossible d\'afficher le profil public - Slug manquant');
         }
     }
 };
