@@ -304,12 +304,16 @@ class PaymentController extends Controller
             // Générer la facture en PDF directement
             $pdfPath = $this->generateInvoicePdfForReservation($reservation);
 
-            // Si c'est une requête AJAX, retourner l'URL de téléchargement
+            // Si c'est une requête AJAX, retourner le PDF directement en base64
             if ($request->wantsJson()) {
+                $pdfContent = Storage::get($pdfPath);
+                $fileName = 'facture-' . $reservation->id . '.pdf';
+                
                 return response()->json([
-                    'download_url' => route('reservations.download-invoice', $reservation->id),
                     'success' => true,
-                    'message' => 'Facture générée avec succès'
+                    'message' => 'Facture générée avec succès',
+                    'pdf_base64' => base64_encode($pdfContent),
+                    'filename' => $fileName
                 ]);
             }
 

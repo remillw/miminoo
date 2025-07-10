@@ -20,20 +20,22 @@
                 <!-- Formulaire -->
                 <div class="rounded-lg bg-white p-8 shadow">
                     <form @submit.prevent="submit" class="space-y-6">
-                        <!-- Titre -->
+                        <!-- Titre (généré automatiquement) -->
                         <div>
-                            <label for="title" class="mb-2 block text-sm font-medium text-gray-700"> Titre de l'annonce * </label>
+                            <label for="title" class="mb-2 block text-sm font-medium text-gray-700"> 
+                                Titre de l'annonce 
+                                <span class="text-sm font-normal text-gray-500">(généré automatiquement)</span>
+                            </label>
                             <input
                                 id="title"
                                 v-model="form.title"
                                 type="text"
-                                required
-                                class="focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-1 focus:outline-none"
-                                :class="{ 'border-red-500': form.errors.title }"
-                                placeholder="Ex: Garde d'enfants le samedi soir"
+                                disabled
+                                class="w-full rounded-lg border border-gray-300 px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed"
+                                placeholder="Le titre sera généré automatiquement en fonction des dates et enfants"
                             />
-                            <p v-if="form.errors.title" class="mt-1 text-sm text-red-500">
-                                {{ form.errors.title }}
+                            <p class="mt-1 text-sm text-gray-500">
+                                Le titre est généré automatiquement à partir des dates et prénoms des enfants
                             </p>
                         </div>
 
@@ -254,18 +256,40 @@ const form = useForm({
     children: [...props.announcement.children],
 });
 
-// Watchers pour reconstruire les dates complètes
+// Fonction pour générer automatiquement le titre
+const generateTitle = () => {
+    if (dateOnly.value && timeStart.value && timeEnd.value && form.children.length > 0) {
+        const childrenNames = form.children
+            .filter(child => child.nom.trim() !== '')
+            .map(child => child.nom.trim())
+            .join(', ');
+        
+        if (childrenNames) {
+            const date = new Date(dateOnly.value).toLocaleDateString('fr-FR');
+            form.title = `Garde de ${childrenNames} le ${date} de ${timeStart.value} à ${timeEnd.value}`;
+        }
+    }
+};
+
+// Watchers pour reconstruire les dates complètes et régénérer le titre
 watch([dateOnly, timeStart], () => {
     if (dateOnly.value && timeStart.value) {
         form.date_start = `${dateOnly.value}T${timeStart.value}:00.000Z`;
+        generateTitle();
     }
 });
 
 watch([dateOnly, timeEnd], () => {
     if (dateOnly.value && timeEnd.value) {
         form.date_end = `${dateOnly.value}T${timeEnd.value}:00.000Z`;
+        generateTitle();
     }
 });
+
+// Watcher pour les noms d'enfants
+watch(() => form.children, () => {
+    generateTitle();
+}, { deep: true });
 
 // Gestion des enfants
 const addChild = () => {

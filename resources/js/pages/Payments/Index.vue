@@ -322,20 +322,6 @@
                                 </Select>
                             </div>
 
-                            <div>
-                                <Label for="type-filter">Type</Label>
-                                <Select v-model="tempTypeFilter">
-                                    <SelectTrigger id="type-filter">
-                                        <SelectValue placeholder="Tous les types" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Tous les types</SelectItem>
-                                        <SelectItem value="payment">Paiements</SelectItem>
-                                        <SelectItem value="refund">Remboursements</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
                             <div class="flex items-end">
                                 <Button @click="applyFilters" class="w-full"> Appliquer les filtres </Button>
                             </div>
@@ -530,7 +516,7 @@ const tempStatusFilter = ref(isParentMode(props) ? props.filters?.status || 'all
 const tempDateFilter = ref(
     isParentMode(props) ? props.filters?.date_filter || 'all' : isBabysitterMode(props) ? props.filters?.date_filter || 'all' : 'all',
 );
-const tempTypeFilter = ref(isParentMode(props) ? props.filters?.type || 'all' : 'all');
+// const tempTypeFilter = ref(isParentMode(props) ? props.filters?.type || 'all' : 'all'); // Supprimé
 
 // Fonction pour appliquer les filtres
 const applyFilters = () => {
@@ -538,10 +524,6 @@ const applyFilters = () => {
         status: tempStatusFilter.value !== 'all' ? tempStatusFilter.value : undefined,
         date_filter: tempDateFilter.value !== 'all' ? tempDateFilter.value : undefined,
     };
-
-    if (isParentMode(props)) {
-        params.type = tempTypeFilter.value !== 'all' ? tempTypeFilter.value : undefined;
-    }
 
     // Supprimer les paramètres undefined
     Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);

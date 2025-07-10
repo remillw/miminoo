@@ -936,7 +936,6 @@ class AnnouncementController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
             'additional_info' => 'nullable|string|max:2000',
             'date_start' => 'required|date|after_or_equal:today',
             'date_end' => 'required|date|after:date_start',
@@ -945,6 +944,12 @@ class AnnouncementController extends Controller
             'children.*.nom' => 'required|string|max:255',
             'children.*.age_range' => 'required|string',
         ]);
+
+        // Générer automatiquement le titre basé sur les dates et enfants
+        $startDate = new \Carbon\Carbon($validated['date_start']);
+        $endDate = new \Carbon\Carbon($validated['date_end']);
+        $childrenNames = collect($validated['children'])->pluck('nom')->join(', ');
+        $validated['title'] = "Garde de {$childrenNames} le " . $startDate->format('d/m/Y') . " de " . $startDate->format('H:i') . " à " . $endDate->format('H:i');
 
         // Convertir les données enfants du format composant vers le format DB
         $convertedChildren = collect($validated['children'])->map(function ($child) {
