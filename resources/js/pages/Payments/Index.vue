@@ -503,6 +503,15 @@ interface ParentProps {
 
 type Props = BabysitterProps | ParentProps;
 
+// Type guards - basés uniquement sur les props du serveur
+const isBabysitterMode = (props: Props): props is BabysitterProps => {
+    return props.mode === 'babysitter';
+};
+
+const isParentMode = (props: Props): props is ParentProps => {
+    return props.mode === 'parent';
+};
+
 const props = defineProps<Props>();
 
 // État local pour les transactions (incluant celles chargées via infinite scroll)
@@ -545,15 +554,6 @@ const handleLoadMoreParentTransactions = (data: any) => {
 const handleError = (error: string) => {
     console.error('Erreur infinite scroll:', error);
     showError('Erreur de chargement', 'Impossible de charger plus de données');
-};
-
-// Type guards - basés uniquement sur les props du serveur
-const isBabysitterMode = (props: Props): props is BabysitterProps => {
-    return props.mode === 'babysitter';
-};
-
-const isParentMode = (props: Props): props is ParentProps => {
-    return props.mode === 'parent';
 };
 
 // Variables pour les filtres
