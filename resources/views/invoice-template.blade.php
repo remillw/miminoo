@@ -46,18 +46,17 @@
         }
         
         .invoice-meta {
-            display: table;
-            margin: 0 auto;
-        }
-        
-        .invoice-meta div {
-            display: table-cell;
-            padding: 0 15px;
             text-align: center;
-            border-right: 1px solid rgba(255,255,255,0.3);
         }
         
-        .invoice-meta div:last-child {
+        .meta-item {
+            display: inline-block;
+            margin: 0 15px;
+            border-right: 1px solid rgba(255,255,255,0.3);
+            padding-right: 15px;
+        }
+        
+        .meta-item:last-child {
             border-right: none;
         }
         
@@ -66,11 +65,13 @@
             text-transform: uppercase;
             margin-bottom: 3px;
             opacity: 0.8;
+            display: block;
         }
         
         .meta-value {
             font-size: 14px;
             font-weight: bold;
+            display: block;
         }
         
         .content {
@@ -78,21 +79,20 @@
         }
         
         .details-section {
-            display: table;
-            width: 100%;
             margin-bottom: 30px;
+            overflow: hidden;
         }
         
         .detail-card {
-            display: table-cell;
-            width: 50%;
+            width: 48%;
+            float: left;
             padding: 20px;
             border: 1px solid #eee;
-            vertical-align: top;
+            margin-right: 2%;
         }
         
-        .detail-card:first-child {
-            border-right: none;
+        .detail-card:last-child {
+            margin-right: 0;
         }
         
         .detail-card-title {
@@ -154,21 +154,18 @@
         }
         
         .total-row {
-            display: table;
-            width: 100%;
             margin-bottom: 8px;
+            overflow: hidden;
         }
         
         .total-label {
-            display: table-cell;
             font-weight: bold;
-            padding-right: 20px;
+            float: left;
         }
         
         .total-amount {
-            display: table-cell;
-            text-align: right;
             font-weight: bold;
+            float: right;
         }
         
         .total-final {
@@ -211,17 +208,17 @@
             <div class="invoice-title">FACTURE DE SERVICE</div>
             
             <div class="invoice-meta">
-                <div>
-                    <div class="meta-label">Numéro</div>
-                    <div class="meta-value">{{ $invoiceNumber }}</div>
+                <div class="meta-item">
+                    <span class="meta-label">Numéro</span>
+                    <span class="meta-value">{{ $invoiceNumber }}</span>
                 </div>
-                <div>
-                    <div class="meta-label">Date</div>
-                    <div class="meta-value">{{ $invoiceDate }}</div>
+                <div class="meta-item">
+                    <span class="meta-label">Date</span>
+                    <span class="meta-value">{{ $invoiceDate }}</span>
                 </div>
-                <div>
-                    <div class="meta-label">Réservation</div>
-                    <div class="meta-value">#{{ $reservation->id }}</div>
+                <div class="meta-item">
+                    <span class="meta-label">Réservation</span>
+                    <span class="meta-value">#{{ $reservation->id }}</span>
                 </div>
             </div>
         </div>
@@ -273,6 +270,8 @@
                 </div>
             </div>
 
+            <div class="clear"></div>
+
             <table class="service-table">
                 <thead>
                     <tr>
@@ -298,16 +297,16 @@
 
             <div class="total-section">
                 <div class="total-row">
-                    <div class="total-label">Sous-total :</div>
-                    <div class="total-amount">{{ number_format($actualServiceAmount, 2, ',', ' ') }}€</div>
+                    <span class="total-label">Sous-total :</span>
+                    <span class="total-amount">{{ number_format($actualServiceAmount, 2, ',', ' ') }}€</span>
                 </div>
                 <div class="total-row">
-                    <div class="total-label">Frais plateforme :</div>
-                    <div class="total-amount">{{ number_format($actualServiceFee, 2, ',', ' ') }}€</div>
+                    <span class="total-label">Frais plateforme :</span>
+                    <span class="total-amount">{{ number_format($actualServiceFee, 2, ',', ' ') }}€</span>
                 </div>
                 <div class="total-row total-final">
-                    <div class="total-label">TOTAL PAYÉ :</div>
-                    <div class="total-amount">{{ number_format($actualTotalPaid, 2, ',', ' ') }}€</div>
+                    <span class="total-label">TOTAL PAYÉ :</span>
+                    <span class="total-amount">{{ number_format($actualTotalPaid, 2, ',', ' ') }}€</span>
                 </div>
             </div>
 
