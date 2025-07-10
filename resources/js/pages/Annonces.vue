@@ -197,10 +197,13 @@ const currentFilters = computed(() => {
     return filters;
 });
 
+// État local pour les annonces (incluant celles chargées via infinite scroll)
+const allAnnouncements = ref([...props.announcements.data]);
+
 // Transformer les annonces backend pour le composant CardAnnonce
 const annonces = computed(() => {
     // Filtrer d'abord les annonces passées côté frontend pour plus de sécurité
-    const filteredAnnouncements = props.announcements.data.filter((announcement) => {
+    const filteredAnnouncements = allAnnouncements.value.filter((announcement) => {
         const startDate = new Date(announcement.date_start);
         const now = new Date();
         return startDate > now; // Exclure les annonces dont la date/heure de début est déjà passée
@@ -273,6 +276,23 @@ const progressStyle = computed(() => {
         background: `linear-gradient(to right, #FF8359 ${percent}%, #E5E7EB ${percent}%)`,
     };
 });
+
+// Gestionnaires pour l'infinite scroll
+const handleLoadMore = (data: any) => {
+    if (data.announcements && data.announcements.data) {
+        // Ajouter les nouvelles annonces à la liste existante
+        allAnnouncements.value.push(...data.announcements.data);
+    }
+};
+
+const handleError = (error: string) => {
+    console.error('Erreur infinite scroll:', error);
+};
+
+// Watcher pour réinitialiser les données quand les filtres changent
+watch(() => props.announcements.data, (newData) => {
+    allAnnouncements.value = [...newData];
+}, { deep: true });
 
 // Charger la position au montage si elle existe
 onMounted(() => {
@@ -472,6 +492,8 @@ onMounted(() => {
                     :parameters="currentFilters"
                     loading-message="Chargement des annonces..."
                     end-message="Toutes les annonces ont été chargées"
+                    @load-more="handleLoadMore"
+                    @error="handleError"
                 >
                     <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:mt-10 lg:grid-cols-3 xl:gap-8">
                         <CardAnnonce v-for="annonce in annonces" :key="annonce.id" v-bind="annonce" />

@@ -171,74 +171,85 @@
                         </div>
                     </div>
 
-                    <!-- Historique des transactions -->
+                    <!-- Historique des transactions avec infinite scroll -->
                     <div v-if="isBabysitterMode(props) && props.accountStatus === 'active'" class="rounded-lg bg-white shadow">
                         <div class="border-b border-gray-200 p-6">
                             <h3 class="text-lg font-semibold text-gray-900">Historique des transactions</h3>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Date service</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Service</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Montant</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                            Statut des fonds
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Disponibilité</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200 bg-white">
-                                    <tr v-for="transaction in isBabysitterMode(props) ? props.recentTransactions.data : []" :key="transaction.id">
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ formatDate(transaction.service_date || transaction.created || transaction.created_at) }}
-                                        </td>
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            <div>{{ transaction.description || getTransactionType(transaction.type) }}</div>
-                                            <div v-if="transaction.parent_name" class="text-xs text-gray-500">
-                                                {{ transaction.parent_name }}
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm font-medium whitespace-nowrap" :class="getAmountClass(transaction.amount)">
-                                            {{ formatAmount(transaction.amount) }}€
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="space-y-1">
-                                                <span
-                                                    :class="getFundsStatusClass(transaction.funds_status)"
-                                                    class="block rounded-full px-2 py-1 text-xs font-medium"
-                                                >
-                                                    {{ getFundsStatusText(transaction.funds_status) }}
-                                                </span>
-                                                <div v-if="transaction.funds_message" class="text-xs text-gray-500">
-                                                    {{ transaction.funds_message }}
+                        <InfiniteScroll
+                            v-if="isBabysitterMode(props)"
+                            :pagination="props.recentTransactions"
+                            :route="'payments.index'"
+                            :parameters="{ status: tempStatusFilter, date_filter: tempDateFilter }"
+                            loading-message="Chargement des transactions..."
+                            end-message="Toutes les transactions ont été chargées"
+                            @load-more="handleLoadMoreBabysitterTransactions"
+                            @error="handleError"
+                        >
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                Date service
+                                            </th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Service</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Montant</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                Statut des fonds
+                                            </th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                                Disponibilité
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 bg-white">
+                                        <tr v-for="transaction in allBabysitterTransactions" :key="transaction.id">
+                                            <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                                                {{ formatDate(transaction.service_date || transaction.created || transaction.created_at) }}
+                                            </td>
+                                            <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                                                <div>{{ transaction.description || getTransactionType(transaction.type) }}</div>
+                                                <div v-if="transaction.parent_name" class="text-xs text-gray-500">
+                                                    {{ transaction.parent_name }}
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            <button
-                                                v-if="transaction.funds_release_date && transaction.funds_status === 'held_for_validation'"
-                                                class="text-xs text-blue-600 hover:text-blue-800"
-                                                disabled
-                                            >
-                                                Libéré le {{ formatDate(transaction.funds_release_date) }}
-                                            </button>
-                                            <span v-else-if="transaction.funds_status === 'released'" class="text-xs text-green-600">
-                                                ✓ Disponible
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-if="
-                                            isBabysitterMode(props) && (!props.recentTransactions.data || props.recentTransactions.data.length === 0)
-                                        "
-                                    >
-                                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucune transaction pour le moment</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm font-medium whitespace-nowrap" :class="getAmountClass(transaction.amount)">
+                                                {{ formatAmount(transaction.amount) }}€
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="space-y-1">
+                                                    <span
+                                                        :class="getFundsStatusClass(transaction.funds_status)"
+                                                        class="block rounded-full px-2 py-1 text-xs font-medium"
+                                                    >
+                                                        {{ getFundsStatusText(transaction.funds_status) }}
+                                                    </span>
+                                                    <div v-if="transaction.funds_message" class="text-xs text-gray-500">
+                                                        {{ transaction.funds_message }}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                <button
+                                                    v-if="transaction.funds_release_date && transaction.funds_status === 'held_for_validation'"
+                                                    class="text-xs text-blue-600 hover:text-blue-800"
+                                                    disabled
+                                                >
+                                                    Libéré le {{ formatDate(transaction.funds_release_date) }}
+                                                </button>
+                                                <span v-else-if="transaction.funds_status === 'released'" class="text-xs text-green-600">
+                                                    ✓ Disponible
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="!allBabysitterTransactions || allBabysitterTransactions.length === 0">
+                                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucune transaction pour le moment</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </InfiniteScroll>
                     </div>
                 </div>
 
@@ -328,80 +339,91 @@
                         </div>
                     </div>
 
-                    <!-- Historique des transactions -->
+                    <!-- Historique des transactions avec infinite scroll -->
                     <div class="rounded-lg bg-white shadow">
                         <div class="border-b border-gray-200 p-6">
                             <h3 class="text-lg font-semibold text-gray-900">Historique des paiements</h3>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Babysitter</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Service</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Montant</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Statut</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200 bg-white">
-                                    <tr
-                                        v-for="transaction in isParentMode(props) ? props.transactions.data : []"
-                                        :key="`${transaction.type}-${transaction.id}`"
-                                        :class="transaction.type === 'refund' ? 'bg-green-50' : ''"
-                                    >
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ formatDate(transaction.date || transaction.created_at) }}
-                                        </td>
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            {{ transaction.babysitter_name }}
-                                            <span v-if="transaction.type === 'refund'" class="ml-2 text-xs text-green-600">(Remboursement)</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
-                                            <span v-if="transaction.type === 'payment'">
-                                                {{ formatDate(transaction.service_date) }} - {{ formatServiceDuration(transaction.duration) }}
-                                            </span>
-                                            <span v-else-if="transaction.type === 'refund'" class="text-green-600">
-                                                {{ transaction.description || 'Remboursement' }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm font-medium whitespace-nowrap">
-                                            <span :class="transaction.type === 'refund' ? 'text-green-600' : 'text-gray-900'">
-                                                {{ transaction.type === 'refund' ? '+' : '' }}{{ formatAmount(transaction.amount) }}€
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                :class="
-                                                    transaction.type === 'refund'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : getReservationStatusClass(transaction.status)
-                                                "
-                                                class="rounded-full px-2 py-1 text-xs font-medium"
-                                            >
-                                                {{ transaction.type === 'refund' ? 'Remboursé' : getReservationStatusText(transaction.status) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            <button
-                                                v-if="transaction.type === 'payment' && transaction.can_download_invoice"
-                                                @click="downloadInvoice(transaction.id)"
-                                                class="text-blue-600 hover:text-blue-800"
-                                            >
-                                                Télécharger facture
-                                            </button>
-                                            <span v-if="transaction.type === 'refund'" class="text-xs text-gray-400">
-                                                Frais service/Stripe déduits
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="isParentMode(props) && (!props.transactions || props.transactions.data.length === 0)">
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">Aucune transaction pour le moment</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <InfiniteScroll
+                            v-if="isParentMode(props)"
+                            :pagination="props.transactions"
+                            :route="'payments.index'"
+                            :parameters="{ status: tempStatusFilter, date_filter: tempDateFilter }"
+                            loading-message="Chargement des transactions..."
+                            end-message="Toutes les transactions ont été chargées"
+                            @load-more="handleLoadMoreParentTransactions"
+                            @error="handleError"
+                        >
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Babysitter</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Service</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Montant</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Statut</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 bg-white">
+                                        <tr
+                                            v-for="transaction in allParentTransactions"
+                                            :key="`${transaction.type}-${transaction.id}`"
+                                            :class="transaction.type === 'refund' ? 'bg-green-50' : ''"
+                                        >
+                                            <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                                                {{ formatDate(transaction.date || transaction.created_at) }}
+                                            </td>
+                                            <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                                                {{ transaction.babysitter_name }}
+                                                <span v-if="transaction.type === 'refund'" class="ml-2 text-xs text-green-600">(Remboursement)</span>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
+                                                <span v-if="transaction.type === 'payment'">
+                                                    {{ formatDate(transaction.service_date) }} - {{ formatServiceDuration(transaction.duration) }}
+                                                </span>
+                                                <span v-else-if="transaction.type === 'refund'" class="text-green-600">
+                                                    {{ transaction.description || 'Remboursement' }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm font-medium whitespace-nowrap">
+                                                <span :class="transaction.type === 'refund' ? 'text-green-600' : 'text-gray-900'">
+                                                    {{ transaction.type === 'refund' ? '+' : '' }}{{ formatAmount(transaction.amount) }}€
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span
+                                                    :class="
+                                                        transaction.type === 'refund'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : getReservationStatusClass(transaction.status)
+                                                    "
+                                                    class="rounded-full px-2 py-1 text-xs font-medium"
+                                                >
+                                                    {{ transaction.type === 'refund' ? 'Remboursé' : getReservationStatusText(transaction.status) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                <button
+                                                    v-if="transaction.type === 'payment' && transaction.can_download_invoice"
+                                                    @click="downloadInvoice(transaction.id)"
+                                                    class="text-blue-600 hover:text-blue-800"
+                                                >
+                                                    Télécharger facture
+                                                </button>
+                                                <span v-if="transaction.type === 'refund'" class="text-xs text-gray-400">
+                                                    Frais service/Stripe déduits
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="!allParentTransactions || allParentTransactions.length === 0">
+                                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">Aucune transaction pour le moment</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </InfiniteScroll>
                     </div>
                 </div>
             </div>
@@ -410,6 +432,7 @@
 </template>
 
 <script setup lang="ts">
+import InfiniteScroll from '@/components/InfiniteScroll.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -482,6 +505,10 @@ type Props = BabysitterProps | ParentProps;
 
 const props = defineProps<Props>();
 
+// État local pour les transactions (incluant celles chargées via infinite scroll)
+const allBabysitterTransactions = ref(isBabysitterMode(props) ? [...(props.recentTransactions?.data || [])] : []);
+const allParentTransactions = ref(isParentMode(props) ? [...(props.transactions?.data || [])] : []);
+
 const page = usePage();
 const { handleApiResponse, showSuccess, showError } = useToast();
 const { getStatusText, getFundsStatusColor, getReservationStatusColor, getStripeAccountStatusColor, getPayoutStatusColor } = useStatusColors();
@@ -501,6 +528,24 @@ const transferSettings = ref({
 });
 
 const isProcessingPayout = ref(false);
+
+// Gestionnaires pour l'infinite scroll
+const handleLoadMoreBabysitterTransactions = (data: any) => {
+    if (data.recentTransactions && data.recentTransactions.data) {
+        allBabysitterTransactions.value.push(...data.recentTransactions.data);
+    }
+};
+
+const handleLoadMoreParentTransactions = (data: any) => {
+    if (data.transactions && data.transactions.data) {
+        allParentTransactions.value.push(...data.transactions.data);
+    }
+};
+
+const handleError = (error: string) => {
+    console.error('Erreur infinite scroll:', error);
+    showError('Erreur de chargement', 'Impossible de charger plus de données');
+};
 
 // Type guards - basés uniquement sur les props du serveur
 const isBabysitterMode = (props: Props): props is BabysitterProps => {
@@ -543,7 +588,11 @@ const canTriggerPayout = computed(() => {
 
 // Méthodes pour le formatage
 const formatAmount = (amount: number) => {
-    // Ne pas diviser par 100 - les montants sont déjà en euros dans l'application
+    // Pour les babysitters, les montants Stripe sont en centimes, donc diviser par 100
+    // Pour les parents, les montants sont déjà en euros
+    if (isBabysitterMode(props)) {
+        return (Number(amount) / 100).toFixed(2);
+    }
     return Number(amount).toFixed(2);
 };
 
@@ -728,7 +777,7 @@ const downloadInvoice = async (transactionId: string) => {
                 bytes[i] = binaryString.charCodeAt(i);
             }
             const blob = new Blob([bytes], { type: 'application/pdf' });
-            
+
             // Créer un lien de téléchargement
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -738,7 +787,7 @@ const downloadInvoice = async (transactionId: string) => {
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-            
+
             showSuccess('📄 Facture téléchargée', 'La facture a été téléchargée avec succès');
         } else {
             showError('📄 Erreur facture', 'Format de facture non valide');
@@ -765,6 +814,27 @@ const shouldShowTransferCard = computed(() => {
     const availableBalance = props.accountBalance.available[0]?.amount || 0;
     return availableBalance > 0;
 });
+
+// Watchers pour réinitialiser les données quand les props changent
+watch(
+    () => (isBabysitterMode(props) ? props.recentTransactions?.data : []),
+    (newData) => {
+        if (isBabysitterMode(props) && newData) {
+            allBabysitterTransactions.value = [...newData];
+        }
+    },
+    { deep: true },
+);
+
+watch(
+    () => (isParentMode(props) ? props.transactions?.data : []),
+    (newData) => {
+        if (isParentMode(props) && newData) {
+            allParentTransactions.value = [...newData];
+        }
+    },
+    { deep: true },
+);
 
 // Surveillance des flash messages
 onMounted(() => {

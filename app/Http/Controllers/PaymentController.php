@@ -349,8 +349,12 @@ class PaymentController extends Controller
         $endDate = new \Carbon\Carbon($reservation->service_end_at);
         $duration = $startDate->diffInHours($endDate);
         
-        // Calculer le montant du service (sans les frais)
-        $serviceAmount = $duration * $reservation->hourly_rate;
+        // Utiliser les vraies valeurs de transaction payées
+        // Le parent a payé un acompte pour 1 heure + frais de service
+        $actualHourlyRate = $reservation->hourly_rate; // Taux horaire négocié
+        $actualServiceAmount = $reservation->deposit_amount; // Montant pour 1 heure d'acompte
+        $actualServiceFee = $reservation->service_fee; // Frais de plateforme
+        $actualTotalPaid = $reservation->total_deposit; // Total réellement payé
 
         // Générer un numéro de facture unique
         $invoiceNumber = 'FAC-' . $reservation->id . '-' . date('Y') . '-' . str_pad($reservation->id, 6, '0', STR_PAD_LEFT);
@@ -362,8 +366,14 @@ class PaymentController extends Controller
             'invoiceDate' => now()->format('d/m/Y'),
             'serviceDate' => $startDate->format('d/m/Y'),
             'serviceTime' => $startDate->format('H:i') . ' - ' . $endDate->format('H:i'),
-            'duration' => $duration,
-            'serviceAmount' => $serviceAmount,
+            'duration' => 1, // Durée facturée (1 heure d'acompte)
+            // Valeurs réelles de transaction
+            'actualHourlyRate' => $actualHourlyRate,
+            'actualServiceAmount' => $actualServiceAmount,
+            'actualServiceFee' => $actualServiceFee,
+            'actualTotalPaid' => $actualTotalPaid,
+            // Anciennes valeurs pour compatibilité (optionnel)
+            'serviceAmount' => $actualServiceAmount,
         ];
 
         // Générer le PDF avec DOMPDF

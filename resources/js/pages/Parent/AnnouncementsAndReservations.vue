@@ -181,10 +181,12 @@
                         :parameters="currentFilters"
                         loading-message="Chargement des annonces..."
                         end-message="Toutes les annonces ont été chargées"
+                        @load-more="handleLoadMoreAnnouncements"
+                        @error="handleError"
                     >
-                        <div v-if="announcements.data.length > 0" class="space-y-6">
+                        <div v-if="allAnnouncements.length > 0" class="space-y-6">
                             <div
-                                v-for="announcement in announcements.data"
+                                v-for="announcement in allAnnouncements"
                                 :key="announcement.id"
                                 class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
                             >
@@ -313,10 +315,12 @@
                         :parameters="currentFilters"
                         loading-message="Chargement des réservations..."
                         end-message="Toutes les réservations ont été chargées"
+                        @load-more="handleLoadMoreReservations"
+                        @error="handleError"
                     >
-                        <div v-if="reservations.data.length > 0" class="space-y-6">
+                        <div v-if="allReservations.length > 0" class="space-y-6">
                             <div
-                                v-for="reservation in reservations.data"
+                                v-for="reservation in allReservations"
                                 :key="reservation.id"
                                 class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
                             >
@@ -443,7 +447,7 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import type { Announcement, Filters as BaseFilters, PaginatedData, Reservation } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
 import { Calendar, Check, Edit, Euro, Eye, FileText, Filter, MapPin, Plus, StarIcon, X } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
 interface ExtendedReservation extends Omit<Reservation, 'babysitter'> {
@@ -483,6 +487,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// État local pour les données (incluant celles chargées via infinite scroll)
+const allAnnouncements = ref([...props.announcements.data]);
+const allReservations = ref([...props.reservations.data]);
 
 const page = usePage();
 const { showSuccess, showError } = useToast();
@@ -565,6 +573,41 @@ const formatTime = (date: string) => {
 };
 
 // Toutes les fonctions de statut sont désormais dans useStatusColors
+
+// Gestionnaires pour l'infinite scroll
+const handleLoadMoreAnnouncements = (data: any) => {
+    if (data.announcements && data.announcements.data) {
+        allAnnouncements.value.push(...data.announcements.data);
+    }
+};
+
+const handleLoadMoreReservations = (data: any) => {
+    if (data.reservations && data.reservations.data) {
+        allReservations.value.push(...data.reservations.data);
+    }
+};
+
+const handleError = (error: string) => {
+    console.error('Erreur infinite scroll:', error);
+    showError('Erreur de chargement', 'Impossible de charger plus de données');
+};
+
+// Watchers pour réinitialiser les données quand les props changent
+watch(
+    () => props.announcements.data,
+    (newData) => {
+        allAnnouncements.value = [...newData];
+    },
+    { deep: true },
+);
+
+watch(
+    () => props.reservations.data,
+    (newData) => {
+        allReservations.value = [...newData];
+    },
+    { deep: true },
+);
 
 // Actions
 const viewMessaging = () => {
