@@ -720,12 +720,28 @@ const downloadInvoice = async (transactionId: string) => {
 
         const data = await response.json();
 
-        if (data.pdf_url) {
-            // Ouvrir la facture Stripe dans un nouvel onglet
-            window.open(data.pdf_url, '_blank');
-            showSuccess('📄 Facture ouverte', 'La facture a été ouverte dans un nouvel onglet');
+        if (data.pdf_base64 && data.filename) {
+            // Créer un blob à partir du base64 et télécharger
+            const binaryString = atob(data.pdf_base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            
+            // Créer un lien de téléchargement
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = data.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            showSuccess('📄 Facture téléchargée', 'La facture a été téléchargée avec succès');
         } else {
-            showError('📄 Erreur facture', 'URL de facture non disponible');
+            showError('📄 Erreur facture', 'Format de facture non valide');
         }
     } catch (error) {
         console.error('Erreur:', error);

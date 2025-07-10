@@ -302,7 +302,7 @@ const removeChild = (index: number) => {
 
 // Soumission du formulaire
 const submit = () => {
-    form.put(`/annonces/${props.announcement.id}`, {
+    form.put(`/parent/annonces/${props.announcement.id}`, {
         onSuccess: () => {
             router.visit('/parent/annonces-et-reservations');
         },

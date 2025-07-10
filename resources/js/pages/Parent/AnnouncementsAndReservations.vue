@@ -101,9 +101,9 @@
 
                 <!-- Filtres -->
                 <div class="mt-6">
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm mb-6">
+                    <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                         <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
-                        
+
                         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <!-- Filtre par date -->
                             <div class="space-y-2">
@@ -134,7 +134,7 @@
                                     </SelectContent>
                                 </Select>
                             </div>
-                            
+
                             <div v-else-if="activeTab === 'reservations'" class="space-y-2">
                                 <Label class="text-sm font-medium text-gray-700">Statut de réservation</Label>
                                 <Select v-model="tempReservationStatus">
@@ -152,12 +152,10 @@
                             <!-- Actions -->
                             <div class="flex items-end gap-2">
                                 <Button @click="applyFilters" class="flex-1">
-                                    <Filter class="h-4 w-4 mr-2" />
+                                    <Filter class="mr-2 h-4 w-4" />
                                     Appliquer
                                 </Button>
-                                <Button @click="resetFilters" variant="outline">
-                                    Réinitialiser
-                                </Button>
+                                <Button @click="resetFilters" variant="outline"> Réinitialiser </Button>
                             </div>
                         </div>
                     </div>
@@ -190,105 +188,108 @@
                                 :key="announcement.id"
                                 class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
                             >
-                            <div class="p-6">
-                                <!-- En-tête de l'annonce -->
-                                <div class="mb-4 flex items-start justify-between">
-                                    <div class="flex-1">
-                                        <h3 class="text-lg font-semibold text-gray-900">
-                                            {{ announcement.title }}
-                                        </h3>
-                                        <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
-                                            <Calendar class="h-4 w-4" />
-                                            {{ formatDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
-                                            {{ formatTime(announcement.date_end) }}
-                                        </p>
-                                        <p class="flex items-center gap-1 text-sm text-gray-600">
-                                            <MapPin class="h-4 w-4" />
-                                            {{ announcement.address.address }}, {{ announcement.address.postal_code }}
-                                        </p>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status).badge">
-                                            {{ getStatusText('announcement', announcement.status) }}
-                                        </Badge>
-                                        <div class="text-right">
-                                            <div class="text-primary text-lg font-bold">{{ announcement.hourly_rate }}€/h</div>
-                                            <div class="text-sm text-gray-600">
-                                                {{ announcement.estimated_duration }}h • {{ announcement.estimated_total }}€ total
-                                            </div>
+                                <div class="p-6">
+                                    <!-- En-tête de l'annonce -->
+                                    <div class="mb-4 flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <h3 class="text-lg font-semibold text-gray-900">
+                                                {{ announcement.title }}
+                                            </h3>
+                                            <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
+                                                <Calendar class="h-4 w-4" />
+                                                {{ formatDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
+                                                {{ formatTime(announcement.date_end) }}
+                                            </p>
+                                            <p class="flex items-center gap-1 text-sm text-gray-600">
+                                                <MapPin class="h-4 w-4" />
+                                                {{ announcement.address.address }}, {{ announcement.address.postal_code }}
+                                            </p>
                                         </div>
-                                    </div>
-                                </div>
-
-                                <!-- Actions de l'annonce -->
-                                <div class="mb-4 flex items-center gap-3">
-                                    <button
-                                        v-if="canEditAnnouncement(announcement)"
-                                        @click="editAnnouncement(announcement.id)"
-                                        class="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50"
-                                    >
-                                        <Edit class="h-4 w-4" />
-                                        Modifier
-                                    </button>
-                                    <button
-                                        @click="viewAnnouncement(announcement)"
-                                        class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                        <Eye class="h-4 w-4" />
-                                        Voir l'annonce
-                                    </button>
-                                    <button
-                                        v-if="canCancelAnnouncement(announcement)"
-                                        @click="showCancelAnnouncementModal(announcement)"
-                                        class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
-                                    >
-                                        <X class="h-4 w-4" />
-                                        Annuler l'annonce
-                                    </button>
-                                </div>
-
-                                <!-- Candidatures -->
-                                <div v-if="announcement.applications && announcement.applications.length > 0" class="border-t border-gray-200 pt-4">
-                                    <h4 class="mb-3 text-sm font-medium text-gray-900">
-                                        {{ announcement.applications.length }} candidature{{ announcement.applications.length > 1 ? 's' : '' }}
-                                    </h4>
-                                    <div class="space-y-3">
-                                        <div
-                                            v-for="application in announcement.applications"
-                                            :key="application.id"
-                                            class="flex items-center justify-between rounded-lg bg-gray-50 p-3"
-                                        >
-                                            <div class="flex items-center gap-3">
-                                                <img
-                                                    :src="application.babysitter.avatar || '/default-avatar.png'"
-                                                    :alt="application.babysitter.name"
-                                                    class="h-10 w-10 rounded-full object-cover"
-                                                />
-                                                <div>
-                                                    <p class="font-medium text-gray-900">{{ application.babysitter.name }}</p>
-                                                    <p class="text-sm text-gray-600">
-                                                        Propose {{ application.counter_rate || application.proposed_rate }}€/h
-                                                    </p>
+                                        <div class="flex items-center gap-3">
+                                            <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status).badge">
+                                                {{ getStatusText('announcement', announcement.status) }}
+                                            </Badge>
+                                            <div class="text-right">
+                                                <div class="text-primary text-lg font-bold">{{ announcement.hourly_rate }}€/h</div>
+                                                <div class="text-sm text-gray-600">
+                                                    {{ announcement.estimated_duration }}h • {{ announcement.estimated_total }}€ total
                                                 </div>
                                             </div>
-                                            <div class="flex items-center gap-3">
-                                                <Badge variant="outline" :class="getApplicationStatusColor(application.status).badge">
-                                                    {{ getStatusText('application', application.status) }}
-                                                </Badge>
-                                                <button @click="viewMessaging" class="text-primary hover:text-primary/80 text-sm font-medium">
-                                                    Voir la conversation
-                                                </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Actions de l'annonce -->
+                                    <div class="mb-4 flex items-center gap-3">
+                                        <button
+                                            v-if="canEditAnnouncement(announcement)"
+                                            @click="editAnnouncement(announcement.id)"
+                                            class="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50"
+                                        >
+                                            <Edit class="h-4 w-4" />
+                                            Modifier
+                                        </button>
+                                        <button
+                                            @click="viewAnnouncement(announcement)"
+                                            class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        >
+                                            <Eye class="h-4 w-4" />
+                                            Voir l'annonce
+                                        </button>
+                                        <button
+                                            v-if="canCancelAnnouncement(announcement)"
+                                            @click="showCancelAnnouncementModal(announcement)"
+                                            class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+                                        >
+                                            <X class="h-4 w-4" />
+                                            Annuler l'annonce
+                                        </button>
+                                    </div>
+
+                                    <!-- Candidatures -->
+                                    <div
+                                        v-if="announcement.applications && announcement.applications.length > 0"
+                                        class="border-t border-gray-200 pt-4"
+                                    >
+                                        <h4 class="mb-3 text-sm font-medium text-gray-900">
+                                            {{ announcement.applications.length }} candidature{{ announcement.applications.length > 1 ? 's' : '' }}
+                                        </h4>
+                                        <div class="space-y-3">
+                                            <div
+                                                v-for="application in announcement.applications"
+                                                :key="application.id"
+                                                class="flex items-center justify-between rounded-lg bg-gray-50 p-3"
+                                            >
+                                                <div class="flex items-center gap-3">
+                                                    <img
+                                                        :src="application.babysitter.avatar || '/default-avatar.png'"
+                                                        :alt="application.babysitter.name"
+                                                        class="h-10 w-10 rounded-full object-cover"
+                                                    />
+                                                    <div>
+                                                        <p class="font-medium text-gray-900">{{ application.babysitter.name }}</p>
+                                                        <p class="text-sm text-gray-600">
+                                                            Propose {{ application.counter_rate || application.proposed_rate }}€/h
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <Badge variant="outline" :class="getApplicationStatusColor(application.status).badge">
+                                                        {{ getStatusText('application', application.status) }}
+                                                    </Badge>
+                                                    <button @click="viewMessaging" class="text-primary hover:text-primary/80 text-sm font-medium">
+                                                        Voir la conversation
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <div v-else class="border-t border-gray-200 pt-4">
+                                        <p class="text-sm text-gray-500">Aucune candidature pour le moment</p>
+                                    </div>
                                 </div>
-                                <div v-else class="border-t border-gray-200 pt-4">
-                                    <p class="text-sm text-gray-500">Aucune candidature pour le moment</p>
-                                </div>
-                            </div>
                             </div>
                         </div>
-                        
+
                         <div v-if="announcements.data.length === 0" class="py-12 text-center">
                             <FileText class="mx-auto mb-4 h-12 w-12 text-gray-300" />
                             <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune annonce</h3>
@@ -319,85 +320,85 @@
                                 :key="reservation.id"
                                 class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
                             >
-                            <div class="p-6">
-                                <!-- En-tête de la réservation -->
-                                <div class="mb-4 flex items-start justify-between">
-                                    <div class="flex-1">
-                                        <h3 class="text-lg font-semibold text-gray-900">
-                                            {{ reservation.ad.title }}
-                                        </h3>
-                                        <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
-                                            <Calendar class="h-4 w-4" />
-                                            {{ formatDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
-                                            {{ formatTime(reservation.service_end_at) }}
-                                        </p>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <Badge variant="outline" :class="getReservationStatusColor(reservation.status).badge">
-                                            {{ getStatusText('reservation', reservation.status) }}
-                                        </Badge>
-                                        <div class="text-right">
-                                            <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.total_deposit) }}€</div>
-                                            <div class="text-sm text-gray-600">{{ reservation.hourly_rate }}€/h</div>
+                                <div class="p-6">
+                                    <!-- En-tête de la réservation -->
+                                    <div class="mb-4 flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <h3 class="text-lg font-semibold text-gray-900">
+                                                {{ reservation.ad.title }}
+                                            </h3>
+                                            <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
+                                                <Calendar class="h-4 w-4" />
+                                                {{ formatDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
+                                                {{ formatTime(reservation.service_end_at) }}
+                                            </p>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <Badge variant="outline" :class="getReservationStatusColor(reservation.status).badge">
+                                                {{ getStatusText('reservation', reservation.status) }}
+                                            </Badge>
+                                            <div class="text-right">
+                                                <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.total_deposit) }}€</div>
+                                                <div class="text-sm text-gray-600">{{ reservation.hourly_rate }}€/h</div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Informations babysitter -->
-                                <div class="mb-4 flex items-center gap-3 rounded-lg bg-gray-50 p-3">
-                                    <img
-                                        :src="reservation.babysitter.avatar || '/default-avatar.png'"
-                                        :alt="reservation.babysitter.name"
-                                        class="h-12 w-12 rounded-full object-cover"
-                                    />
-                                    <div class="flex-1">
-                                        <p class="font-medium text-gray-900">{{ reservation.babysitter.name }}</p>
-                                        <p class="text-sm text-gray-600">Babysitter</p>
+                                    <!-- Informations babysitter -->
+                                    <div class="mb-4 flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                                        <img
+                                            :src="reservation.babysitter.avatar || '/default-avatar.png'"
+                                            :alt="reservation.babysitter.name"
+                                            class="h-12 w-12 rounded-full object-cover"
+                                        />
+                                        <div class="flex-1">
+                                            <p class="font-medium text-gray-900">{{ reservation.babysitter.name }}</p>
+                                            <p class="text-sm text-gray-600">Babysitter</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="flex items-center gap-3">
+                                        <button
+                                            v-if="!isServicePast(reservation)"
+                                            @click="viewMessaging"
+                                            class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        >
+                                            <MessageCircle class="h-4 w-4" />
+                                            Message
+                                        </button>
+
+                                        <button
+                                            v-if="reservation.can_be_cancelled && reservation.status === 'paid'"
+                                            @click="cancelReservation(reservation.id)"
+                                            class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+                                        >
+                                            <X class="h-4 w-4" />
+                                            Annuler
+                                        </button>
+
+                                        <button
+                                            v-if="reservation.can_be_reviewed || reservation.status === 'service_completed'"
+                                            @click="leaveReview(reservation.id)"
+                                            class="flex items-center gap-2 rounded-lg border border-yellow-300 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50"
+                                        >
+                                            <StarIcon class="h-4 w-4" />
+                                            Laisser un avis
+                                        </button>
+
+                                        <button
+                                            v-if="reservation.status === 'pending_payment'"
+                                            @click="proceedToPayment(reservation.id)"
+                                            class="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white"
+                                        >
+                                            <Euro class="h-4 w-4" />
+                                            Payer
+                                        </button>
                                     </div>
                                 </div>
-
-                                <!-- Actions -->
-                                <div class="flex items-center gap-3">
-                                    <button
-                                        v-if="!isServicePast(reservation)"
-                                        @click="viewMessaging"
-                                        class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                        <MessageCircle class="h-4 w-4" />
-                                        Message
-                                    </button>
-
-                                    <button
-                                        v-if="reservation.can_be_cancelled && reservation.status === 'paid'"
-                                        @click="cancelReservation(reservation.id)"
-                                        class="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
-                                    >
-                                        <X class="h-4 w-4" />
-                                        Annuler
-                                    </button>
-
-                                    <button
-                                        v-if="reservation.can_be_reviewed || reservation.status === 'service_completed'"
-                                        @click="leaveReview(reservation.id)"
-                                        class="flex items-center gap-2 rounded-lg border border-yellow-300 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50"
-                                    >
-                                        <StarIcon class="h-4 w-4" />
-                                        Laisser un avis
-                                    </button>
-
-                                    <button
-                                        v-if="reservation.status === 'pending_payment'"
-                                        @click="proceedToPayment(reservation.id)"
-                                        class="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white"
-                                    >
-                                        <Euro class="h-4 w-4" />
-                                        Payer
-                                    </button>
-                                </div>
-                            </div>
                             </div>
                         </div>
-                        
+
                         <div v-if="reservations.data.length === 0" class="py-12 text-center">
                             <Calendar class="mx-auto mb-4 h-12 w-12 text-gray-300" />
                             <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune réservation</h3>
@@ -414,7 +415,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Modal d'annulation d'annonce -->
         <ConfirmModal
             :open="showCancelModal"
@@ -423,54 +424,27 @@
             type="danger"
             @confirm="confirmCancelAnnouncement"
             @cancel="closeCancelModal"
-            @update:open="(value) => showCancelModal = value"
+            @update:open="(value) => (showCancelModal = value)"
         />
     </DashboardLayout>
 </template>
 
 <script setup lang="ts">
 import InfiniteScroll from '@/components/InfiniteScroll.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/composables/useToast';
-import { useStatusColors } from '@/composables/useStatusColors';
 import { useDateFormat } from '@/composables/useDateFormat';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { router, usePage, Head } from '@inertiajs/vue3';
-import {
-    Calendar,
-    Check,
-    ChevronRight,
-    Clock,
-    Edit,
-    Euro,
-    Eye,
-    FileText,
-    Filter,
-    Heart,
-    MapPin,
-    MoreHorizontal,
-    Pause,
-    Play,
-    Plus,
-    StarIcon,
-    Users,
-    X,
-} from 'lucide-vue-next';
+import type { Announcement, Filters as BaseFilters, PaginatedData, Reservation } from '@/types';
+import { router, usePage } from '@inertiajs/vue3';
+import { Calendar, Check, Edit, Euro, Eye, FileText, Filter, MapPin, Plus, StarIcon, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
-import type { 
-    Announcement,
-    Reservation,
-    PaginatedData,
-    Filters as BaseFilters,
-    User
-} from '@/types';
 
 interface ExtendedReservation extends Omit<Reservation, 'babysitter'> {
     babysitter: {
@@ -627,14 +601,18 @@ const proceedToPayment = (reservationId: number) => {
 
 // Fonctions de filtrage
 const applyFilters = () => {
-    router.get(route('parent.announcements-reservations'), {
-        announcement_status: tempAnnouncementStatus.value,
-        reservation_status: tempReservationStatus.value,
-        date_filter: tempDateFilter.value,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+    router.get(
+        route('parent.announcements-reservations'),
+        {
+            announcement_status: tempAnnouncementStatus.value,
+            reservation_status: tempReservationStatus.value,
+            date_filter: tempDateFilter.value,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+        },
+    );
 };
 
 const resetFilters = () => {
@@ -664,7 +642,7 @@ const canEditAnnouncement = (announcement: Announcement) => {
 };
 
 const editAnnouncement = (announcementId: number) => {
-    router.visit(route('announcements.edit', { announcement: announcementId }));
+    router.visit(route('parent.announcements.edit', { announcement: announcementId }));
 };
 
 const viewAnnouncement = (announcement: Announcement) => {
@@ -690,35 +668,39 @@ const closeCancelModal = () => {
 
 const getCancelModalMessage = () => {
     if (!selectedAnnouncement.value) return '';
-    
+
     const hasApplications = (selectedAnnouncement.value.applications?.length || 0) > 0;
-    
+
     if (hasApplications) {
         return `Êtes-vous sûr de vouloir annuler l'annonce "${selectedAnnouncement.value.title}" ? Cela annulera également toutes les ${selectedAnnouncement.value.applications?.length || 0} candidature(s) associée(s) et les babysitters seront notifiées.`;
     }
-    
+
     return `Êtes-vous sûr de vouloir annuler l'annonce "${selectedAnnouncement.value.title}" ?`;
 };
 
 const confirmCancelAnnouncement = () => {
     if (!selectedAnnouncement.value) return;
-    
-    router.post(route('announcements.cancel', selectedAnnouncement.value.id), {
-        reason: 'no_longer_needed',
-        note: 'Annulation depuis la page mes annonces'
-    }, {
-        preserveState: true,
-        onSuccess: (response) => {
-            showSuccess('Annonce annulée avec succès');
-            closeCancelModal();
-            // Recharger la page pour mettre à jour les statuts
-            router.reload();
+
+    router.post(
+        route('announcements.cancel', selectedAnnouncement.value.id),
+        {
+            reason: 'no_longer_needed',
+            note: 'Annulation depuis la page mes annonces',
         },
-        onError: (errors) => {
-            console.error('Erreur lors de l\'annulation:', errors);
-            showError('Erreur lors de l\'annulation de l\'annonce');
-            closeCancelModal();
-        }
-    });
+        {
+            preserveState: true,
+            onSuccess: (response) => {
+                showSuccess('Annonce annulée avec succès');
+                closeCancelModal();
+                // Recharger la page pour mettre à jour les statuts
+                router.reload();
+            },
+            onError: (errors) => {
+                console.error("Erreur lors de l'annulation:", errors);
+                showError("Erreur lors de l'annulation de l'annonce");
+                closeCancelModal();
+            },
+        },
+    );
 };
 </script>

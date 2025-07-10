@@ -238,10 +238,10 @@ Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('ba
 Route::get('parent/{slug}', [ParentController::class, 'show'])->name('parent.show');
 Route::get('annonce/{slug}', [AnnouncementController::class, 'show'])->name('announcements.show');
 
-// Routes d'édition d'annonce pour les parents (unifiées)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/annonces/{announcement}/modifier', [AnnouncementController::class, 'edit'])->name('announcements.edit');
-    Route::put('/annonces/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+// Routes d'édition d'annonce pour les parents (avec préfixe parent pour éviter les conflits)
+Route::middleware(['auth'])->prefix('parent')->group(function () {
+    Route::get('/annonces/{announcement}/modifier', [AnnouncementController::class, 'edit'])->name('parent.announcements.edit');
+    Route::put('/annonces/{announcement}', [AnnouncementController::class, 'update'])->name('parent.announcements.update');
 });
 
 
