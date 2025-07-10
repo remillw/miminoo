@@ -34,6 +34,14 @@ interface RecentAd {
     status: string;
 }
 
+interface RecentReview {
+    id: number;
+    rating: number;
+    comment: string;
+    reviewer_name: string;
+    created_at: string;
+}
+
 interface Props {
     user: User;
     currentMode: string;
@@ -42,6 +50,7 @@ interface Props {
     nextReservation?: NextReservation;
     recentAds?: RecentAd[];
     notifications?: Notification[];
+    recentReviews?: RecentReview[];
     completedReservations?: CompletedReservation[];
 }
 
@@ -49,6 +58,7 @@ const props = withDefaults(defineProps<Props>(), {
     stats: () => ({ active_ads: 0, bookings_this_month: 0, average_babysitter_rating: 0 }),
     recentAds: () => [],
     notifications: () => [],
+    recentReviews: () => [],
     completedReservations: () => [],
 });
 
@@ -358,6 +368,32 @@ onMounted(() => {
                     <div v-else class="py-4 text-center text-gray-500">
                         <Bell class="mx-auto mb-2 h-8 w-8 text-gray-300" />
                         <p class="text-sm">Aucune notification</p>
+                    </div>
+                </div>
+
+                <!-- Derniers avis reçus -->
+                <div class="rounded-lg bg-white p-6 shadow-sm">
+                    <h2 class="mb-4 text-lg font-semibold text-gray-900">Derniers avis reçus</h2>
+
+                    <div v-if="props.recentReviews && props.recentReviews.length > 0" class="space-y-4">
+                        <div v-for="review in props.recentReviews.slice(0, 2)" :key="review.id" class="space-y-2">
+                            <div class="flex items-center gap-1">
+                                <Star
+                                    v-for="star in 5"
+                                    :key="star"
+                                    class="h-4 w-4"
+                                    :class="star <= review.rating ? 'fill-current text-yellow-400' : 'text-gray-300'"
+                                />
+                                <span class="ml-2 text-xs text-gray-500">Il y a {{ formatTimeAgo(review.created_at) }}</span>
+                            </div>
+                            <p class="text-sm text-gray-700">"{{ review.comment }}"</p>
+                            <p class="text-xs font-medium text-gray-900">{{ review.reviewer_name }}</p>
+                        </div>
+                    </div>
+
+                    <div v-else class="py-4 text-center text-gray-500">
+                        <Star class="mx-auto mb-2 h-8 w-8 text-gray-300" />
+                        <p class="text-sm">Aucun avis reçu pour le moment</p>
                     </div>
                 </div>
             </div>

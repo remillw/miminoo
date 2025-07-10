@@ -118,7 +118,7 @@ const viewAnnouncement = (announcement: ExtendedAnnouncement) => {
 };
 
 const editAnnouncement = (announcementId: number) => {
-    router.visit(`/admin/annonces/${announcementId}/modifier`);
+            router.visit(`/admin/admin-annonces/${announcementId}/modifier`);
 };
 
 const deleteAnnouncement = (announcement: ExtendedAnnouncement) => {

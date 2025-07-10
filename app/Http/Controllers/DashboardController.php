@@ -10,6 +10,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -247,6 +248,22 @@ class DashboardController extends Controller
                 ];
             });
         
+        // Derniers avis reçus par le parent (des babysitters)
+        $recentReviews = Review::where('reviewed_id', $user->id)
+            ->with('reviewer')
+            ->latest()
+            ->take(3)
+            ->get()
+            ->map(function ($review) {
+                return [
+                    'id' => $review->id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'reviewer_name' => $review->reviewer->firstname . ' ' . substr($review->reviewer->lastname, 0, 1) . '.',
+                    'created_at' => $review->created_at
+                ];
+            });
+
         // Réservations terminées nécessitant un avis
         $completedReservations = Reservation::where('parent_id', $user->id)
             ->whereIn('status', ['completed', 'service_completed'])
@@ -285,6 +302,7 @@ class DashboardController extends Controller
             ] : null,
             'recentAds' => $recentAds,
             'notifications' => $notifications,
+            'recentReviews' => $recentReviews,
             'completedReservations' => $completedReservations
         ];
     }

@@ -8,6 +8,8 @@ use App\Services\StripeService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PaymentController extends Controller
 {
@@ -299,18 +301,20 @@ class PaymentController extends Controller
         }
 
         try {
-            // Générer la facture via Stripe
-            $invoice = $this->generateInvoiceForReservation($reservation);
+            // Générer la facture en PDF directement
+            $pdfPath = $this->generateInvoicePdfForReservation($reservation);
 
-            // Si c'est une requête AJAX, retourner l'URL
+            // Si c'est une requête AJAX, retourner l'URL de téléchargement
             if ($request->wantsJson()) {
                 return response()->json([
-                    'pdf_url' => $invoice->invoice_pdf
+                    'download_url' => route('reservations.download-invoice', $reservation->id),
+                    'success' => true,
+                    'message' => 'Facture générée avec succès'
                 ]);
             }
 
-            // Sinon rediriger vers l'URL de téléchargement Stripe
-            return redirect($invoice->invoice_pdf);
+            // Sinon télécharger directement le PDF
+            return response()->download(storage_path('app/' . $pdfPath), 'facture-' . $reservation->id . '.pdf');
         } catch (\Exception $e) {
             Log::error('Erreur génération facture parent', [
                 'reservation_id' => $reservation->id,
@@ -329,71 +333,46 @@ class PaymentController extends Controller
     }
 
     /**
-     * Générer une facture pour une réservation
+     * Générer une facture PDF pour une réservation
      */
-    private function generateInvoiceForReservation(Reservation $reservation)
+    private function generateInvoicePdfForReservation(Reservation $reservation)
     {
-        $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+        // Charger les relations nécessaires
+        $reservation->load(['parent.address', 'babysitter', 'ad.address']);
 
-        // Créer un customer pour le parent s'il n'en a pas
-        if (!$reservation->parent->stripe_customer_id) {
-            $customer = $stripe->customers->create([
-                'email' => $reservation->parent->email,
-                'name' => $reservation->parent->firstname . ' ' . $reservation->parent->lastname,
-                'metadata' => [
-                    'user_id' => $reservation->parent->id,
-                    'platform' => 'TrouveTaBabysitter'
-                ]
-            ]);
-
-            $reservation->parent->update(['stripe_customer_id' => $customer->id]);
-            // Recharger la relation pour avoir le customer_id mis à jour
-            $reservation->load('parent');
-        }
-
-        // Vérifier que le customer_id existe maintenant
-        if (!$reservation->parent->stripe_customer_id) {
-            throw new \Exception('Impossible de créer ou récupérer le customer Stripe pour ce parent');
-        }
-
-        // Calculer la durée du service
+        // Calculer les données pour la facture
         $startDate = new \Carbon\Carbon($reservation->service_start_at);
         $endDate = new \Carbon\Carbon($reservation->service_end_at);
         $duration = $startDate->diffInHours($endDate);
+        
+        // Calculer le montant du service (sans les frais)
+        $serviceAmount = $duration * $reservation->hourly_rate;
 
-        // Créer la facture
-        $invoice = $stripe->invoices->create([
-            'customer' => $reservation->parent->stripe_customer_id,
-            'collection_method' => 'send_invoice',
-            'days_until_due' => 30,
-            'metadata' => [
-                'reservation_id' => $reservation->id,
-                'parent_id' => $reservation->parent->id,
-                'platform' => 'TrouveTaBabysitter'
-            ]
-        ]);
+        // Générer un numéro de facture unique
+        $invoiceNumber = 'FAC-' . $reservation->id . '-' . date('Y') . '-' . str_pad($reservation->id, 6, '0', STR_PAD_LEFT);
+        
+        // Préparer les données pour le template
+        $data = [
+            'reservation' => $reservation,
+            'invoiceNumber' => $invoiceNumber,
+            'invoiceDate' => now()->format('d/m/Y'),
+            'serviceDate' => $startDate->format('d/m/Y'),
+            'serviceTime' => $startDate->format('H:i') . ' - ' . $endDate->format('H:i'),
+            'duration' => $duration,
+            'serviceAmount' => $serviceAmount,
+        ];
 
-        // Ajouter l'élément de ligne
-        $stripe->invoiceItems->create([
-            'customer' => $reservation->parent->stripe_customer_id,
-            'invoice' => $invoice->id,
-            'price_data' => [
-                'currency' => 'eur',
-                'product_data' => [
-                    'name' => 'Service de garde - ' . $startDate->format('d/m/Y'),
-                    'description' => 'Garde de ' . $duration . 'h avec ' . 
-                                   $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname .
-                                   ' du ' . $startDate->format('d/m/Y à H:i') . ' au ' . $endDate->format('d/m/Y à H:i'),
-                ],
-                'unit_amount' => round($reservation->total_deposit * 100), // Convertir en centimes
-            ],
-            'quantity' => 1,
-        ]);
-
-        // Finaliser la facture
-        $stripe->invoices->finalizeInvoice($invoice->id);
-
-        return $invoice;
+        // Générer le PDF avec DOMPDF
+        $pdf = Pdf::loadView('invoice-template', $data);
+        
+        // Générer un nom de fichier unique
+        $fileName = 'invoices/facture-reservation-' . $reservation->id . '-' . time() . '.pdf';
+        
+        // Sauvegarder le PDF dans le stockage
+        Storage::put($fileName, $pdf->output());
+        
+        // Retourner le chemin du fichier
+        return $fileName;
     }
 
     /**

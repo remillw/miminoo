@@ -244,6 +244,47 @@
 
                 <!-- Mode Parent -->
                 <div v-if="isParentMode(props)">
+                    <!-- Cartes statistiques -->
+                    <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+                        <div class="rounded-lg bg-white p-6 shadow">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <CreditCard class="h-8 w-8 text-blue-600" />
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Total dépensé</p>
+                                    <p class="text-2xl font-bold text-gray-900">
+                                        {{ isParentMode(props) ? formatAmount(props.stats.total_spent) : '0' }}€
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg bg-white p-6 shadow">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <Calendar class="h-8 w-8 text-green-600" />
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Réservations totales</p>
+                                    <p class="text-2xl font-bold text-gray-900">{{ isParentMode(props) ? props.stats.total_reservations : 0 }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg bg-white p-6 shadow">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <Clock class="text-primary h-8 w-8" />
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Paiements en attente</p>
+                                    <p class="text-2xl font-bold text-gray-900">{{ isParentMode(props) ? props.stats.pending_payments : 0 }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Filtres pour les parents -->
                     <div class="mb-8 rounded-lg bg-white p-6 shadow">
                         <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
@@ -297,47 +338,6 @@
 
                             <div class="flex items-end">
                                 <Button @click="applyFilters" class="w-full"> Appliquer les filtres </Button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Cartes statistiques -->
-                    <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-                        <div class="rounded-lg bg-white p-6 shadow">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <CreditCard class="h-8 w-8 text-blue-600" />
-                                </div>
-                                <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">Total dépensé</p>
-                                    <p class="text-2xl font-bold text-gray-900">
-                                        {{ isParentMode(props) ? formatAmount(props.stats.total_spent) : '0' }}€
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="rounded-lg bg-white p-6 shadow">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <Calendar class="h-8 w-8 text-green-600" />
-                                </div>
-                                <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">Réservations totales</p>
-                                    <p class="text-2xl font-bold text-gray-900">{{ isParentMode(props) ? props.stats.total_reservations : 0 }}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="rounded-lg bg-white p-6 shadow">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <Clock class="text-primary h-8 w-8" />
-                                </div>
-                                <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">Paiements en attente</p>
-                                    <p class="text-2xl font-bold text-gray-900">{{ isParentMode(props) ? props.stats.pending_payments : 0 }}</p>
-                                </div>
                             </div>
                         </div>
                     </div>
