@@ -14,9 +14,9 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             color: #333;
-            line-height: 1.6;
+            line-height: 1.4;
             background: white;
         }
         
@@ -30,19 +30,19 @@
         .header {
             background: #ff8359;
             color: white;
-            padding: 30px;
+            padding: 20px;
             text-align: center;
         }
         
         .company-name {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         
         .invoice-title {
-            font-size: 18px;
-            margin-bottom: 15px;
+            font-size: 16px;
+            margin-bottom: 10px;
         }
         
         .invoice-meta {
@@ -51,9 +51,9 @@
         
         .meta-item {
             display: inline-block;
-            margin: 0 15px;
+            margin: 0 10px;
             border-right: 1px solid rgba(255,255,255,0.3);
-            padding-right: 15px;
+            padding-right: 10px;
         }
         
         .meta-item:last-child {
@@ -61,34 +61,35 @@
         }
         
         .meta-label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
             opacity: 0.8;
             display: block;
         }
         
         .meta-value {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             display: block;
         }
         
         .content {
-            padding: 30px;
+            padding: 20px;
         }
         
         .details-section {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             overflow: hidden;
         }
         
         .detail-card {
             width: 48%;
             float: left;
-            padding: 20px;
+            padding: 15px;
             border: 1px solid #eee;
             margin-right: 2%;
+            background: #f9f9f9;
         }
         
         .detail-card:last-child {
@@ -96,44 +97,46 @@
         }
         
         .detail-card-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             color: #ff8359;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             border-bottom: 2px solid #ff8359;
-            padding-bottom: 5px;
+            padding-bottom: 3px;
         }
         
         .detail-item {
-            margin-bottom: 8px;
-            font-size: 14px;
+            margin-bottom: 5px;
+            font-size: 12px;
         }
         
         .detail-label {
             font-weight: bold;
             display: inline-block;
-            width: 80px;
+            width: 70px;
         }
         
         .service-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border: 1px solid #ddd;
         }
         
         .service-table th {
             background: #f8f9fa;
             color: #333;
-            padding: 12px;
+            padding: 8px;
             text-align: left;
             font-weight: bold;
             border-bottom: 2px solid #ddd;
+            font-size: 12px;
         }
         
         .service-table td {
-            padding: 12px;
+            padding: 8px;
             border-bottom: 1px solid #eee;
+            font-size: 12px;
         }
         
         .service-table tr:last-child td {
@@ -147,15 +150,16 @@
         .total-section {
             background: #f8f9fa;
             border: 1px solid #ddd;
-            padding: 20px;
-            margin-top: 20px;
+            padding: 15px;
+            margin-top: 10px;
             float: right;
-            width: 300px;
+            width: 250px;
         }
         
         .total-row {
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             overflow: hidden;
+            font-size: 12px;
         }
         
         .total-label {
@@ -170,13 +174,13 @@
         
         .total-final {
             border-top: 2px solid #ff8359;
-            padding-top: 10px;
-            margin-top: 10px;
+            padding-top: 8px;
+            margin-top: 8px;
         }
         
         .total-final .total-label,
         .total-final .total-amount {
-            font-size: 16px;
+            font-size: 14px;
             color: #ff8359;
         }
         
@@ -187,17 +191,28 @@
         .footer {
             background: #333;
             color: white;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
-            font-size: 12px;
-            margin-top: 30px;
+            font-size: 10px;
+            margin-top: 15px;
         }
         
         .footer-title {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: #ff8359;
+        }
+        
+        .service-description {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .service-details {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.2;
         }
     </style>
 </head>
@@ -275,18 +290,20 @@
             <table class="service-table">
                 <thead>
                     <tr>
-                        <th>Description</th>
-                        <th>Durée</th>
-                        <th>Taux horaire</th>
-                        <th class="text-right">Montant</th>
+                        <th style="width: 50%;">Description</th>
+                        <th style="width: 15%;">Durée</th>
+                        <th style="width: 20%;">Taux horaire</th>
+                        <th style="width: 15%;" class="text-right">Montant</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>
-                            <strong>Service de garde d'enfants</strong><br>
-                            <small>{{ $serviceDate }} de {{ $serviceTime }}</small><br>
-                            <small>Avec {{ $reservation->babysitter->firstname }} {{ $reservation->babysitter->lastname }}</small>
+                            <div class="service-description">Service de garde d'enfants</div>
+                            <div class="service-details">
+                                {{ $serviceDate }} de {{ $serviceTime }}<br>
+                                Avec {{ $reservation->babysitter->firstname }} {{ $reservation->babysitter->lastname }}
+                            </div>
                         </td>
                         <td>{{ $duration }}h</td>
                         <td>{{ number_format($actualHourlyRate, 2, ',', ' ') }}€</td>
@@ -317,8 +334,7 @@
             <div class="footer-title">Trouve ta Babysitter</div>
             <div>
                 Plateforme de mise en relation pour services de garde d'enfants<br>
-                Contact : contact@trouvetababysitter.fr<br>
-                Facture générée automatiquement le {{ now()->format('d/m/Y à H:i') }}
+                Contact : contact@trouvetababysitter.fr | Facture générée le {{ now()->format('d/m/Y à H:i') }}
             </div>
         </div>
     </div>
