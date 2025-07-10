@@ -1145,13 +1145,16 @@ class AnnouncementController extends Controller
                 ];
             });
 
-        // Statistiques
+        // Statistiques globales (sans filtres)
+        $globalAnnouncementsQuery = Ad::where('parent_id', $user->id);
+        $globalReservationsQuery = Reservation::where('parent_id', $user->id);
+        
         $stats = [
-            'total_announcements' => $allAnnouncements->total(), // Total toutes pages
-            'active_announcements' => $announcements->where('status', 'active')->count(), // Seulement les actives/futures page courante
-            'total_reservations' => $allReservations->total(),
-            'completed_reservations' => $reservations->whereIn('status', ['completed', 'service_completed'])->count(),
-            'total_spent' => $reservations->whereIn('status', ['completed', 'service_completed', 'paid'])->sum('total_deposit'),
+            'total_announcements' => $globalAnnouncementsQuery->count(),
+            'active_announcements' => $globalAnnouncementsQuery->where('status', 'active')->count(),
+            'total_reservations' => $globalReservationsQuery->count(),
+            'completed_reservations' => $globalReservationsQuery->whereIn('status', ['completed', 'service_completed'])->count(),
+            'total_spent' => $globalReservationsQuery->whereIn('status', ['completed', 'service_completed', 'paid'])->sum('total_deposit'),
         ];
 
         return Inertia::render('Parent/AnnouncementsAndReservations', [

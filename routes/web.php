@@ -262,9 +262,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     
     // Gestion des annonces
     Route::get('/annonces', [App\Http\Controllers\Admin\AdminController::class, 'announcements'])->name('announcements');
-    Route::get('/annonces/{id}/modifier', [App\Http\Controllers\Admin\AdminController::class, 'editAnnouncement'])->name('announcements.edit');
-    Route::put('/annonces/{id}', [App\Http\Controllers\Admin\AdminController::class, 'updateAnnouncement'])->name('announcements.update');
-    Route::delete('/annonces/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroyAnnouncement'])->name('announcements.destroy');
+    Route::get('/annonces/{id}/modifier', [App\Http\Controllers\Admin\AdminController::class, 'editAnnouncement'])->name('admin.announcements.edit');
+    Route::put('/annonces/{id}', [App\Http\Controllers\Admin\AdminController::class, 'updateAnnouncement'])->name('admin.announcements.update');
+    Route::delete('/annonces/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroyAnnouncement'])->name('admin.announcements.destroy');
     
     // Gestion des avis
     Route::get('/avis', [App\Http\Controllers\Admin\AdminController::class, 'reviews'])->name('reviews');

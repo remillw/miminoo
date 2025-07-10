@@ -75,7 +75,17 @@ class BabysitterController extends Controller
             ->get();
 
         return Inertia::render('Babysitterprofile', [
-            'babysitter' => $babysitter,
+            'user' => $babysitter,
+            'profile' => array_merge($babysitter->babysitterProfile->toArray(), [
+                'user' => $babysitter,
+                'available_age_ranges' => $availableAgeRanges,
+                'review_stats' => [
+                    'average_rating' => $babysitter->averageRating(),
+                    'total_reviews' => $babysitter->totalReviews(),
+                ],
+                'reviews' => $reviews,
+                'additional_photos_urls' => $babysitter->babysitterProfile->additional_photos_urls ?? [],
+            ]),
             'available_age_ranges' => $availableAgeRanges,
             'reviews' => $reviews,
             'averageRating' => $babysitter->averageRating(),

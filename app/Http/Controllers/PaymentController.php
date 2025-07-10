@@ -347,6 +347,13 @@ class PaymentController extends Controller
             ]);
 
             $reservation->parent->update(['stripe_customer_id' => $customer->id]);
+            // Recharger la relation pour avoir le customer_id mis à jour
+            $reservation->load('parent');
+        }
+
+        // Vérifier que le customer_id existe maintenant
+        if (!$reservation->parent->stripe_customer_id) {
+            throw new \Exception('Impossible de créer ou récupérer le customer Stripe pour ce parent');
         }
 
         // Calculer la durée du service

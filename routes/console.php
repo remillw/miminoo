@@ -16,3 +16,6 @@ Schedule::command('announcements:update-statuses')->everyFifteenMinutes();
 
 // Libérer les fonds en attente vers les babysitters toutes les 10 minutes
 Schedule::command('funds:release')->everyTenMinutes();
+
+// Marquer les réservations en attente de paiement comme expirées toutes les 5 minutes
+Schedule::command('reservations:update-expired')->everyFiveMinutes();

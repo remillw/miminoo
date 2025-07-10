@@ -149,7 +149,7 @@
                                     </SelectContent>
                                 </Select>
                             </div>
-                            
+
                             <div>
                                 <Label for="babysitter-date-filter">Période</Label>
                                 <Select v-model="tempDateFilter">
@@ -164,11 +164,9 @@
                                     </SelectContent>
                                 </Select>
                             </div>
-                            
+
                             <div class="flex items-end">
-                                <Button @click="applyFilters" class="w-full">
-                                    Appliquer les filtres
-                                </Button>
+                                <Button @click="applyFilters" class="w-full"> Appliquer les filtres </Button>
                             </div>
                         </div>
                     </div>
@@ -185,7 +183,9 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Date service</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Service</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Montant</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Statut des fonds</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                            Statut des fonds
+                                        </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Disponibilité</th>
                                     </tr>
                                 </thead>
@@ -207,7 +207,7 @@
                                             <div class="space-y-1">
                                                 <span
                                                     :class="getFundsStatusClass(transaction.funds_status)"
-                                                    class="rounded-full px-2 py-1 text-xs font-medium block"
+                                                    class="block rounded-full px-2 py-1 text-xs font-medium"
                                                 >
                                                     {{ getFundsStatusText(transaction.funds_status) }}
                                                 </span>
@@ -219,17 +219,21 @@
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                                             <button
                                                 v-if="transaction.funds_release_date && transaction.funds_status === 'held_for_validation'"
-                                                class="text-blue-600 hover:text-blue-800 text-xs"
+                                                class="text-xs text-blue-600 hover:text-blue-800"
                                                 disabled
                                             >
                                                 Libéré le {{ formatDate(transaction.funds_release_date) }}
                                             </button>
-                                            <span v-else-if="transaction.funds_status === 'released'" class="text-green-600 text-xs">
+                                            <span v-else-if="transaction.funds_status === 'released'" class="text-xs text-green-600">
                                                 ✓ Disponible
                                             </span>
                                         </td>
                                     </tr>
-                                    <tr v-if="isBabysitterMode(props) && (!props.recentTransactions.data || props.recentTransactions.data.length === 0)">
+                                    <tr
+                                        v-if="
+                                            isBabysitterMode(props) && (!props.recentTransactions.data || props.recentTransactions.data.length === 0)
+                                        "
+                                    >
                                         <td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucune transaction pour le moment</td>
                                     </tr>
                                 </tbody>
@@ -261,7 +265,7 @@
                                     </SelectContent>
                                 </Select>
                             </div>
-                            
+
                             <div>
                                 <Label for="date-filter">Période</Label>
                                 <Select v-model="tempDateFilter">
@@ -276,7 +280,7 @@
                                     </SelectContent>
                                 </Select>
                             </div>
-                            
+
                             <div>
                                 <Label for="type-filter">Type</Label>
                                 <Select v-model="tempTypeFilter">
@@ -290,15 +294,13 @@
                                     </SelectContent>
                                 </Select>
                             </div>
-                            
+
                             <div class="flex items-end">
-                                <Button @click="applyFilters" class="w-full">
-                                    Appliquer les filtres
-                                </Button>
+                                <Button @click="applyFilters" class="w-full"> Appliquer les filtres </Button>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Cartes statistiques -->
                     <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
                         <div class="rounded-lg bg-white p-6 shadow">
@@ -358,8 +360,11 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 bg-white">
-                                    <tr v-for="transaction in isParentMode(props) ? props.transactions.data : []" :key="`${transaction.type}-${transaction.id}`"
-                                        :class="transaction.type === 'refund' ? 'bg-green-50' : ''">
+                                    <tr
+                                        v-for="transaction in isParentMode(props) ? props.transactions.data : []"
+                                        :key="`${transaction.type}-${transaction.id}`"
+                                        :class="transaction.type === 'refund' ? 'bg-green-50' : ''"
+                                    >
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             {{ formatDate(transaction.date || transaction.created_at) }}
                                         </td>
@@ -369,10 +374,10 @@
                                         </td>
                                         <td class="px-6 py-4 text-sm whitespace-nowrap text-gray-900">
                                             <span v-if="transaction.type === 'payment'">
-                                                {{ formatDate(transaction.service_date) }} - {{ transaction.duration || 0 }}h
+                                                {{ formatDate(transaction.service_date) }} - {{ formatServiceDuration(transaction.duration) }}
                                             </span>
                                             <span v-else-if="transaction.type === 'refund'" class="text-green-600">
-                                                {{ transaction.description }}
+                                                {{ transaction.description || 'Remboursement' }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-sm font-medium whitespace-nowrap">
@@ -382,7 +387,11 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span
-                                                :class="transaction.type === 'refund' ? 'bg-green-100 text-green-800' : getReservationStatusClass(transaction.status)"
+                                                :class="
+                                                    transaction.type === 'refund'
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : getReservationStatusClass(transaction.status)
+                                                "
                                                 class="rounded-full px-2 py-1 text-xs font-medium"
                                             >
                                                 {{ transaction.type === 'refund' ? 'Remboursé' : getReservationStatusText(transaction.status) }}
@@ -415,27 +424,17 @@
 </template>
 
 <script setup lang="ts">
-import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { useToast } from '@/composables/useToast';
-import { useStatusColors } from '@/composables/useStatusColors';
-import { router, usePage, Head } from '@inertiajs/vue3';
-import { 
-    AlertCircle, Building, Calendar, CheckCircle, Clock, CreditCard, 
-    Download, ExternalLink, Eye, Info, Minus, RefreshCw, Settings, 
-    Shield, TrendingDown, TrendingUp, UserIcon, Wallet 
-} from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
-import { route } from 'ziggy-js';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import type { 
-    User, 
-    Transaction, 
-    PaginatedData, 
-    Filters,
-    BabysitterProfile 
-} from '@/types';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import type { BabysitterProfile, Filters, PaginatedData, Transaction } from '@/types';
+import { router, usePage } from '@inertiajs/vue3';
+import { Calendar, Clock, CreditCard } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
+import { route } from 'ziggy-js';
 
 interface AccountDetails {
     id: string;
@@ -499,13 +498,7 @@ const props = defineProps<Props>();
 
 const page = usePage();
 const { handleApiResponse, showSuccess, showError } = useToast();
-const { 
-    getStatusText, 
-    getFundsStatusColor, 
-    getReservationStatusColor, 
-    getStripeAccountStatusColor,
-    getPayoutStatusColor
-} = useStatusColors();
+const { getStatusText, getFundsStatusColor, getReservationStatusColor, getStripeAccountStatusColor, getPayoutStatusColor } = useStatusColors();
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);
@@ -533,15 +526,11 @@ const isParentMode = (props: Props): props is ParentProps => {
 };
 
 // Variables pour les filtres
-const tempStatusFilter = ref(
-    isParentMode(props) ? (props.filters?.status || 'all') : 
-    isBabysitterMode(props) ? (props.filters?.status || 'all') : 'all'
-);
+const tempStatusFilter = ref(isParentMode(props) ? props.filters?.status || 'all' : isBabysitterMode(props) ? props.filters?.status || 'all' : 'all');
 const tempDateFilter = ref(
-    isParentMode(props) ? (props.filters?.date_filter || 'all') : 
-    isBabysitterMode(props) ? (props.filters?.date_filter || 'all') : 'all'
+    isParentMode(props) ? props.filters?.date_filter || 'all' : isBabysitterMode(props) ? props.filters?.date_filter || 'all' : 'all',
 );
-const tempTypeFilter = ref(isParentMode(props) ? (props.filters?.type || 'all') : 'all');
+const tempTypeFilter = ref(isParentMode(props) ? props.filters?.type || 'all' : 'all');
 
 // Fonction pour appliquer les filtres
 const applyFilters = () => {
@@ -549,14 +538,14 @@ const applyFilters = () => {
         status: tempStatusFilter.value !== 'all' ? tempStatusFilter.value : undefined,
         date_filter: tempDateFilter.value !== 'all' ? tempDateFilter.value : undefined,
     };
-    
+
     if (isParentMode(props)) {
         params.type = tempTypeFilter.value !== 'all' ? tempTypeFilter.value : undefined;
     }
-    
+
     // Supprimer les paramètres undefined
-    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
-    
+    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+
     router.get(route('payments.index'), params, {
         preserveState: false,
         preserveScroll: false,
@@ -581,6 +570,29 @@ const formatDate = (date: string | Date | null | undefined) => {
     const dateObj = new Date(date);
     if (isNaN(dateObj.getTime())) return '-';
     return dateObj.toLocaleDateString('fr-FR');
+};
+
+// Nouvelle fonction pour formater la durée du service
+const formatServiceDuration = (duration: number | string | null | undefined) => {
+    if (!duration) return '-';
+
+    const durationNumber = typeof duration === 'string' ? parseFloat(duration) : duration;
+
+    if (isNaN(durationNumber)) return '-';
+
+    // Convertir les heures décimales en heures et minutes
+    const hours = Math.floor(durationNumber);
+    const minutes = Math.round((durationNumber - hours) * 60);
+
+    if (hours === 0 && minutes === 0) return '-';
+
+    if (hours === 0) {
+        return `${minutes}min`;
+    } else if (minutes === 0) {
+        return `${hours}h`;
+    } else {
+        return `${hours}h${minutes}min`;
+    }
 };
 
 // Méthodes pour les statuts (mode babysitter)
@@ -707,12 +719,12 @@ const triggerManualPayout = () => {
 };
 
 // Méthodes pour les actions
-        const downloadInvoice = async (transactionId: string) => {
+const downloadInvoice = async (transactionId: string) => {
     try {
         const response = await fetch(`/reservations/${transactionId}/invoice`, {
             method: 'GET',
             headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
             },
         });
@@ -725,7 +737,7 @@ const triggerManualPayout = () => {
         }
 
         const data = await response.json();
-        
+
         if (data.pdf_url) {
             // Ouvrir la facture Stripe dans un nouvel onglet
             window.open(data.pdf_url, '_blank');
@@ -759,10 +771,14 @@ const shouldShowTransferCard = computed(() => {
 // Surveillance des flash messages
 onMounted(() => {
     // Gérer les flash messages d'Inertia
-    watch(() => page.props.flash, (flash) => {
-        if (flash) {
-            handleApiResponse({ props: { flash } });
-        }
-    }, { immediate: true });
+    watch(
+        () => page.props.flash,
+        (flash) => {
+            if (flash) {
+                handleApiResponse({ props: { flash } });
+            }
+        },
+        { immediate: true },
+    );
 });
 </script>
