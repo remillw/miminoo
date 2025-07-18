@@ -14,7 +14,7 @@ export function useRoutes() {
         passwordStore: () => route('password.store', undefined, false),
         passwordConfirm: () => route('password.confirm', undefined, false),
         verificationSend: () => route('verification.send', undefined, false),
-        home: () => route('home', undefined, false),
+        home: () => '/',
     };
 
     // Routes principales de l'application
