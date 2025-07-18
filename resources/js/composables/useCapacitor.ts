@@ -43,12 +43,9 @@ export function useCapacitor() {
             // Ajouter un paramètre pour identifier les requêtes mobiles
             const url = new URL(googleAuthUrl, window.location.origin);
             url.searchParams.set('mobile', '1');
-            
-            // Sur mobile, on utilise le navigateur intégré
-            await Browser.open({
-                url: url.toString(),
-                windowName: '_self',
-            });
+
+            // Sur mobile, navigation directe dans la même WebView au lieu d'ouvrir le navigateur
+            window.location.href = url.toString();
         } else {
             // Sur web, navigation normale
             window.location.href = googleAuthUrl;
@@ -59,10 +56,10 @@ export function useCapacitor() {
      * Configure les headers pour les requêtes Axios/HTTP quand on est dans Capacitor
      */
     const setupMobileHeaders = () => {
-        if (isCapacitor && window.axios) {
+        if (isCapacitor && (window as any).axios) {
             // Ajouter un header personnalisé pour identifier l'app mobile
-            window.axios.defaults.headers.common['X-Capacitor-App'] = 'true';
-            window.axios.defaults.headers.common['X-App-Platform'] = Capacitor.getPlatform();
+            (window as any).axios.defaults.headers.common['X-Capacitor-App'] = 'true';
+            (window as any).axios.defaults.headers.common['X-App-Platform'] = Capacitor.getPlatform();
         }
     };
 
@@ -72,6 +69,6 @@ export function useCapacitor() {
         isAndroid,
         openInAppBrowser,
         navigateToGoogleAuth,
-        setupMobileHeaders
+        setupMobileHeaders,
     };
 }

@@ -6,21 +6,18 @@ import ReassuranceSection from '@/components/ReassuranceSection.vue';
 import SectionReview from '@/components/SectionReview.vue';
 import TrustSection from '@/components/TrustSection.vue';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { useCapacitor } from '@/composables/useCapacitor';
+import { usePushNotifications } from '@/composables/usePushNotifications';
 import { onMounted } from 'vue';
 
 const { isCapacitor } = useCapacitor();
+const { initializePushNotifications } = usePushNotifications();
+const page = usePage();
 
 onMounted(() => {
-    // Gérer le fragment auth-success pour l'app mobile
-    if (isCapacitor && window.location.hash === '#auth-success') {
-        // Nettoyer l'URL
-        window.history.replaceState({}, '', window.location.pathname);
-        
-        // Rediriger vers le tableau de bord
-        router.visit('/tableau-de-bord');
-    }
+    // Plus besoin de gérer le fragment auth-success car nous redirigeons directement
+    // Les notifications push sont maintenant initialisées dans le Dashboard
 });
 </script>
 

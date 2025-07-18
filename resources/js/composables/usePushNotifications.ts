@@ -11,12 +11,43 @@ export function usePushNotifications() {
      * Initialiser les notifications push
      */
     const initializePushNotifications = async () => {
+        // Vérifier si on est dans un environnement mobile
+        if (typeof window === 'undefined' || !(window as any).Capacitor) {
+            console.log('Push notifications only available in Capacitor environment');
+            return;
+        }
+
+        const Capacitor = (window as any).Capacitor;
+
         // Vérifier si on est sur une plateforme native (pas web)
         if (!Capacitor.isNativePlatform()) {
             console.log('Push notifications only available on native platforms');
             return;
         }
 
+        // Charger dynamiquement PushNotifications
+        try {
+            const { PushNotifications } = await import('@capacitor/push-notifications');
+
+            // Demander les permissions
+            const permission = await PushNotifications.requestPermissions();
+
+            if (permission.receive === 'granted') {
+                permissionStatus.value = 'granted';
+                await registerForPushNotifications(PushNotifications, Capacitor);
+            } else {
+                permissionStatus.value = 'denied';
+                console.log('Push notification permission denied');
+            }
+        } catch (error) {
+            console.log('PushNotifications module not available:', error);
+        }
+    };
+
+    /**
+     * Enregistrer pour recevoir les notifications push
+     */
+    const registerForPushNotifications = async (PushNotifications: any, Capacitor: any) => {
         try {
             // Demander les permissions
             const permission = await PushNotifications.requestPermissions();

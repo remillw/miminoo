@@ -77,9 +77,9 @@ class MobileDetectionHelper
     public static function getRedirectUrl(Request $request, string $defaultUrl): string
     {
         if (self::isCapacitorApp($request)) {
-            // Pour l'app mobile, on redirige vers l'URL de base avec un fragment
-            // qui sera géré par l'app mobile
-            return config('app.url') . '/accueil#auth-success';
+            // Pour l'app mobile, on redirige directement vers le tableau de bord
+            // La WebView reste dans l'app
+            return '/tableau-de-bord';
         }
         
         return $defaultUrl;
