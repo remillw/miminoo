@@ -3,34 +3,6 @@ import { useUserMode } from '@/composables/useUserMode';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, PlusCircle, Settings, User, Users } from 'lucide-vue-next';
 import { computed, onMounted } from 'vue';
-import { route as ziggyRoute } from 'ziggy-js';
-
-// Fonction route sécurisée pour SSR
-const route = (name: string, params?: any) => {
-    try {
-        return ziggyRoute(name, params);
-    } catch {
-        console.warn(`Route "${name}" not found, using fallback`);
-        switch (name) {
-            case 'dashboard':
-                return '/tableau-de-bord';
-            case 'creer.une.annonce':
-                return '/creer-une-annonce';
-            case 'messaging.index':
-                return '/messagerie';
-            case 'announcements.index':
-                return '/annonces';
-            case 'profil':
-                return '/profil';
-            case 'parent.announcements-reservations':
-                return '/mes-annonces-et-reservations';
-            case 'home':
-                return '/';
-            default:
-                return '#';
-        }
-    }
-};
 
 interface Props {
     hasParentRole: boolean;
@@ -79,32 +51,27 @@ const switchMode = (mode: 'parent' | 'babysitter') => {
     setMode(mode);
 
     // Redirection avec le helper route de Ziggy
-    try {
-        window.location.href = route('dashboard', { mode });
-    } catch {
-        // Fallback si Ziggy n'est pas disponible
-        window.location.href = `/tableau-de-bord?mode=${mode}`;
-    }
+    window.location.href = `/tableau-de-bord?mode=${mode}`;
 };
 
 // Navigation avec routes correctes
 const links = computed(() => {
     const parentLinks = [
-        { name: 'Tableau de bord', href: route('dashboard', { mode: 'parent' }), icon: Home },
-        { name: 'Créer une annonce', href: route('creer.une.annonce'), icon: PlusCircle },
-        { name: 'Mes gardes', href: route('parent.announcements-reservations'), icon: Calendar },
-        { name: 'Messagerie', href: route('messaging.index', { mode: 'parent' }), icon: MessageCircle },
-        { name: 'Mon profil', href: route('profil', { mode: 'parent' }), icon: User },
+        { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
+        { name: 'Créer une annonce', href: '/creer-une-annonce', icon: PlusCircle },
+        { name: 'Mes gardes', href: '/mes-annonces-et-reservations', icon: Calendar },
+        { name: 'Messagerie', href: '/messagerie', icon: MessageCircle },
+        { name: 'Mon profil', href: '/profil', icon: User },
         { name: 'Paiements', href: '/paiements', icon: CreditCard },
         { name: 'Paramètres', href: '/parametres', icon: Settings },
     ];
 
     const babysitterLinks = [
-        { name: 'Tableau de bord', href: route('dashboard', { mode: 'babysitter' }), icon: Home },
+        { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
         { name: 'Annonces', href: '/annonces', icon: Briefcase },
         { name: 'Mes gardes', href: '/babysitting', icon: Calendar },
-        { name: 'Messagerie', href: route('messaging.index', { mode: 'babysitter' }), icon: MessageCircle },
-        { name: 'Mon profil', href: route('profil', { mode: 'babysitter' }), icon: User },
+        { name: 'Messagerie', href: '/messagerie', icon: MessageCircle },
+        { name: 'Mon profil', href: '/profil', icon: User },
         { name: 'Paiements', href: '/babysitter/paiements', icon: CreditCard },
         { name: 'Paramètres', href: '/parametres', icon: Settings },
     ];

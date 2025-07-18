@@ -75,14 +75,14 @@ const primaryButton = computed(() => {
     if (isBabysitter.value && !isParent.value) {
         return {
             text: 'Trouver un babysitting',
-            href: route('announcements.index'),
+            href: '/annonces',
             title: 'Voir les annonces disponibles',
         };
     }
     // Pour les parents ou utilisateurs avec les deux rôles (par défaut parent)
     return {
         text: 'Créer une annonce',
-        href: route('creer.une.annonce'),
+        href: '/creer-une-annonce',
         title: 'Publier une nouvelle annonce',
     };
 });
@@ -241,7 +241,7 @@ const formatDate = (dateString: string) => {
 
                     <!-- Messagerie - icône seule -->
                     <Link
-                        :href="route('messaging.index')"
+                        href="/messagerie"
                         class="hover:text-primary flex items-center gap-2 text-base font-medium text-gray-700 transition-colors"
                         title="Messagerie"
                     >
@@ -321,7 +321,7 @@ const formatDate = (dateString: string) => {
 
                     <!-- Avatar cliquable vers dashboard -->
                     <div class="ml-4 flex items-center gap-4">
-                        <Link :href="route('dashboard')" class="flex items-center gap-2" title="Mon dashboard">
+                        <Link href="/tableau-de-bord" class="flex items-center gap-2" title="Mon dashboard">
                             <img
                                 :src="user.avatar || '/storage/default-avatar.png'"
                                 :alt="`${user.firstname} ${user.lastname}`"
@@ -369,13 +369,13 @@ const formatDate = (dateString: string) => {
                                     </Link>
                                 </template>
                                 <Link
-                                    :href="route('messaging.index')"
+                                    href="/messagerie"
                                     class="hover:text-primary flex items-center gap-2 py-2 text-base font-medium text-gray-700 transition-colors"
                                 >
                                     <MessageSquare class="h-5 w-5" />
                                     Messagerie
                                 </Link>
-                                <Link :href="route('dashboard')" class="flex items-center gap-2 py-2">
+                                <Link href="/tableau-de-bord" class="flex items-center gap-2 py-2">
                                     <img
                                         :src="user.avatar || '/storage/default-avatar.png'"
                                         :alt="`${user.firstname} ${user.lastname}`"
