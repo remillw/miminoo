@@ -50,8 +50,7 @@ export function useCapacitor() {
             try {
                 await Browser.open({
                     url: url.toString(),
-                    windowName: '_system',
-                    presentationStyle: 'fullscreen',
+                    windowName: '_self',
                 });
             } catch {
                 console.log('Erreur Browser.open, fallback vers window.location');
