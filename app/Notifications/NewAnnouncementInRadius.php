@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use App\Models\Ad;
+use App\Services\PushNotificationService;
 
 class NewAnnouncementInRadius extends Notification implements ShouldQueue
 {
@@ -19,7 +20,14 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        $channels = ['mail', 'database'];
+        
+        // Ajouter les push notifications si l'utilisateur a un device token et les notifications activées
+        if ($notifiable->device_token && $notifiable->push_notifications) {
+            $channels[] = 'push';
+        }
+        
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -61,6 +69,15 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
             'distance' => $this->distance,
             'message' => 'Nouvelle annonce dans votre secteur'
         ];
+    }
+
+    /**
+     * Envoyer la notification push
+     */
+    public function toPush(object $notifiable)
+    {
+        $pushService = app(PushNotificationService::class);
+        return $pushService->sendAnnouncementNotification($notifiable, $this->ad, $this->distance);
     }
 
     private function createAdSlug(): string

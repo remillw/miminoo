@@ -51,6 +51,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'push_notifications',
         'sms_notifications',
         'language',
+        'device_token',
+        'device_type',
+        'device_token_updated_at',
     ];
 
     /**
@@ -74,15 +77,17 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
-            'identity_verified_at' => 'datetime',
-            'date_of_birth' => 'date',
             'password' => 'hashed',
+            'date_of_birth' => 'date',
+            'profile_photos' => 'array',
+            'is_verified' => 'boolean',
             'is_social_account' => 'boolean',
             'social_data_locked' => 'boolean',
             'email_notifications' => 'boolean',
             'push_notifications' => 'boolean',
             'sms_notifications' => 'boolean',
-            'profile_photos' => 'array',
+            'identity_verified_at' => 'datetime',
+            'device_token_updated_at' => 'datetime',
         ];
     }
 

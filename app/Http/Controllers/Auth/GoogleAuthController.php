@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Inertia\Inertia;
+use App\Http\Helpers\MobileDetectionHelper;
 
 class GoogleAuthController extends Controller
 {
@@ -100,10 +101,14 @@ class GoogleAuthController extends Controller
                     'user_id' => $existingUser->id,
                     'email' => $existingUser->email,
                     'roles' => $existingUser->roles()->pluck('name')->toArray(),
+                    'is_mobile' => MobileDetectionHelper::isCapacitorApp($request),
                 ]);
                 
                 Auth::login($existingUser);
-                return redirect()->intended('/tableau-de-bord')->with('success', 'Connexion réussie avec Google !');
+                
+                // Ajuster la redirection selon l'environnement
+                $redirectUrl = MobileDetectionHelper::getRedirectUrl($request, '/tableau-de-bord');
+                return redirect()->intended($redirectUrl)->with('success', 'Connexion réussie avec Google !');
             }
 
             // Nouvel utilisateur - créer le compte et demander les rôles
@@ -177,11 +182,13 @@ class GoogleAuthController extends Controller
                 session()->forget(['google_user', 'existing_user_id']);
                 Auth::login($user);
 
+                $redirectUrl = MobileDetectionHelper::getRedirectUrl($request, '/tableau-de-bord');
+                
                 if ($user->status === 'pending') {
-                    return redirect('/tableau-de-bord')->with('info', 'Votre email est vérifié ! Votre profil babysitter est en attente d\'approbation.');
+                    return redirect($redirectUrl)->with('info', 'Votre email est vérifié ! Votre profil babysitter est en attente d\'approbation.');
                 }
 
-                return redirect('/tableau-de-bord')->with('success', 'Profils configurés avec succès !');
+                return redirect($redirectUrl)->with('success', 'Profils configurés avec succès !');
             } else {
                 // Nouvel utilisateur
                 return $this->createUserWithRoles($googleUserData, $request->roles);
@@ -245,12 +252,14 @@ class GoogleAuthController extends Controller
         // Connexion automatique
         Auth::login($user);
 
-        // Redirection selon le statut
+        // Redirection selon le statut et l'environnement
+        $redirectUrl = MobileDetectionHelper::getRedirectUrl(request(), '/tableau-de-bord');
+        
         if ($user->status === 'pending') {
-            return redirect('/tableau-de-bord')->with('info', 'Votre profil babysitter est en attente d\'approbation. Votre email est déjà vérifié !');
+            return redirect($redirectUrl)->with('info', 'Votre profil babysitter est en attente d\'approbation. Votre email est déjà vérifié !');
         }
 
-        return redirect('/tableau-de-bord')->with('success', 'Compte créé avec succès !');
+        return redirect($redirectUrl)->with('success', 'Compte créé avec succès !');
     }
 }
     

@@ -7,7 +7,7 @@
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-gray-900">Mes candidatures et réservations</h1>
                 <p class="mt-2 text-gray-600">Suivez l'état de vos candidatures et gérez vos réservations</p>
-
+                
                 <!-- Statistiques -->
                 <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
                     <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
@@ -99,7 +99,7 @@
                             </SelectContent>
                         </Select>
                     </div>
-
+                    
                     <div>
                         <Label for="reservation-status">Statut des réservations</Label>
                         <Select v-model="tempReservationStatusFilter">
@@ -113,7 +113,7 @@
                             </SelectContent>
                         </Select>
                     </div>
-
+                    
                     <div>
                         <Label for="date-filter">Période</Label>
                         <Select v-model="tempDateFilter">
@@ -127,7 +127,7 @@
                             </SelectContent>
                         </Select>
                     </div>
-
+                    
                     <div class="flex items-end">
                         <Button @click="applyFilters" class="w-full"> Appliquer les filtres </Button>
                     </div>
@@ -191,7 +191,7 @@
                                 </option>
                             </select>
                         </div>
-
+                        
                         <div v-else-if="activeTab === 'reservations'" class="flex items-center gap-2">
                             <label class="text-sm font-medium text-gray-700">Statut :</label>
                             <select
@@ -320,12 +320,12 @@
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <span
-                                        :class="getReservationStatusColor(reservation.status).badge"
-                                        class="rounded-full px-2 py-1 text-xs font-medium"
-                                    >
-                                        {{ getStatusText('reservation', reservation.status) }}
-                                    </span>
+                                                                    <span
+                                    :class="getReservationStatusColor(reservation.status).badge"
+                                    class="rounded-full px-2 py-1 text-xs font-medium"
+                                >
+                                    {{ getStatusText('reservation', reservation.status) }}
+                                </span>
                                     <div class="text-right">
                                         <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.babysitter_amount) }}€</div>
                                         <div class="text-sm text-gray-600">{{ reservation.hourly_rate }}€/h</div>
@@ -490,10 +490,10 @@ const applyFilters = () => {
         reservation_status: tempReservationStatusFilter.value !== 'all' ? tempReservationStatusFilter.value : undefined,
         date_filter: tempDateFilter.value !== 'all' ? tempDateFilter.value : undefined,
     };
-
+    
     // Supprimer les paramètres undefined
     Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
-
+    
     router.get('/babysitting', params, {
         preserveState: false,
         preserveScroll: false,

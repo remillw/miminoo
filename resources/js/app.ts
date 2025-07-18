@@ -7,6 +7,7 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { waitForEcho } from './echo';
+import { useCapacitor } from '@/composables/useCapacitor';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -50,6 +51,12 @@ createInertiaApp({
         });
 
         app.use(plugin).use(ZiggyVue).mount(el);
+
+        // Configurer les headers mobiles si on est dans Capacitor
+        if (typeof window !== 'undefined') {
+            const { setupMobileHeaders } = useCapacitor();
+            setupMobileHeaders();
+        }
 
         // Rendre Echo disponible globalement seulement côté client
        if (typeof window !== 'undefined') {
