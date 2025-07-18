@@ -44,8 +44,19 @@ export function useCapacitor() {
             const url = new URL(googleAuthUrl, window.location.origin);
             url.searchParams.set('mobile', '1');
 
-            // Sur mobile, navigation directe dans la même WebView au lieu d'ouvrir le navigateur
-            window.location.href = url.toString();
+            console.log("🔄 Ouverture URL Google dans l'app mobile:", url.toString());
+
+            // Sur mobile, forcer l'ouverture dans la même WebView
+            try {
+                await Browser.open({
+                    url: url.toString(),
+                    windowName: '_system',
+                    presentationStyle: 'fullscreen',
+                });
+            } catch {
+                console.log('Erreur Browser.open, fallback vers window.location');
+                window.location.href = url.toString();
+            }
         } else {
             // Sur web, navigation normale
             window.location.href = googleAuthUrl;
