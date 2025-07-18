@@ -106,8 +106,25 @@
 import { router } from '@inertiajs/vue3';
 import { AlertTriangle, Bell, DollarSign, MessageCircle, Star } from 'lucide-vue-next';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { route } from 'ziggy-js';
+import { route as ziggyRoute } from 'ziggy-js';
 import { Link } from '@inertiajs/vue3';
+
+// Fonction route sécurisée pour SSR
+const route = (name: string, params?: any) => {
+    try {
+        return ziggyRoute(name, params);
+    } catch {
+        console.warn(`Route "${name}" not found, using fallback`);
+        switch (name) {
+            case 'notifications.mark-as-read':
+                return `/notifications/${params}/mark-as-read`;
+            case 'notifications.mark-all-as-read':
+                return '/notifications/mark-all-as-read';
+            default:
+                return '#';
+        }
+    }
+};
 
 interface User {
     id: number;

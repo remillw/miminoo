@@ -244,7 +244,7 @@ async function submit() {
     error.value = '';
 
     try {
-        const response = await fetch(route('announcements.apply', { announcement: props.announcementId }), {
+        const response = await fetch(`/annonces/${props.announcementId}/apply`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

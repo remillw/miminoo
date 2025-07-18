@@ -6,32 +6,32 @@ import { route } from 'ziggy-js';
 export function useRoutes() {
     // Routes d'authentification
     const authRoutes = {
-        login: () => route('login', undefined, false),
-        register: () => route('register', undefined, false),
-        logout: () => route('logout', undefined, false),
-        passwordRequest: () => route('password.request', undefined, false),
-        passwordEmail: () => route('password.email', undefined, false),
-        passwordStore: () => route('password.store', undefined, false),
-        passwordConfirm: () => route('password.confirm', undefined, false),
-        verificationSend: () => route('verification.send', undefined, false),
+        login: () => '/connexion',
+        register: () => '/inscription',
+        logout: () => '/deconnexion',
+        passwordRequest: () => '/forgot-password',
+        passwordEmail: () => '/password/email',
+        passwordStore: () => '/password/store',
+        passwordConfirm: () => '/password/confirm',
+        verificationSend: () => '/email/verification-notification',
         home: () => '/',
     };
 
     // Routes principales de l'application
     const appRoutes = {
-        dashboard: () => route('dashboard', undefined, false),
-        profile: () => route('profile.edit', undefined, false),
+        dashboard: () => '/tableau-de-bord',
+        profile: () => '/profil',
     };
 
     
 
     // Routes pour les paramètres
     const settingsRoutes = {
-        profile: () => route('profile.edit', undefined, false),
-        update: () => route('profile.update', undefined, false),
-        destroy: () => route('profile.destroy', undefined, false),
-        security: () => route('password.update', undefined, false),
-        appearance: () => route('appearance', undefined, false),
+        profile: () => '/profil',
+        update: () => '/profil',
+        destroy: () => '/profil',
+        security: () => '/password/update',
+        appearance: () => '/appearance',
     };
 
     // Fonction utilitaire pour vérifier si une route existe

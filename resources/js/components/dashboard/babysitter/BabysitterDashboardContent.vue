@@ -300,7 +300,7 @@ const { getAnnouncementStatusColor, getStatusText } = useStatusColors();
 // Méthodes
 const toggleAvailability = async () => {
     try {
-        const response = await fetch(route('babysitter.toggle-availability'), {
+        const response = await fetch('/babysitter/toggle-availability', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -370,17 +370,17 @@ const formatTimeAgo = (dateString) => {
 // Fonctions de statut maintenant dans useStatusColors
 
 const viewReservationDetails = (id) => {
-    router.visit(route('messaging.index'));
+    router.visit('/messagerie');
 };
 
 const viewAdDetails = (id) => {
-    router.visit(route('messaging.index'));
+    router.visit('/messagerie');
 };
 
 const markAsRead = async (notificationId) => {
     try {
         await router.post(
-            route('notifications.mark-as-read', notificationId),
+            `/notifications/${notificationId}/mark-as-read`,
             {},
             {
                 preserveState: true,

@@ -2,6 +2,26 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
 import type { Message, User } from '@/types/global';
+import { route as ziggyRoute } from 'ziggy-js';
+
+// Fonction route sécurisée pour SSR
+const route = (name: string, params?: any) => {
+    try {
+        return ziggyRoute(name, params);
+    } catch {
+        console.warn(`Route "${name}" not found, using fallback`);
+        switch (name) {
+            case 'conversations.send-message':
+                return `/conversations/${params.conversation}/send-message`;
+            case 'conversations.typing':
+                return `/conversations/${params.conversation}/typing`;
+            case 'conversations.messages':
+                return `/conversations/${params.conversation}/messages`;
+            default:
+                return '#';
+        }
+    }
+};
 
 interface TypingUser {
     user_id: number;

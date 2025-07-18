@@ -56,7 +56,7 @@ const isCurrentRoute = (href: string) => {
             </Link>
         </nav>
         <div class="border-t p-4">
-            <Link :href="route('deconnexion')" method="post" as="button" class="hover:text-primary flex items-center gap-2 text-gray-500">
+            <Link href="/deconnexion" method="post" as="button" class="hover:text-primary flex items-center gap-2 text-gray-500">
                 <LogOut class="h-5 w-5" /> Déconnexion
             </Link>
         </div>

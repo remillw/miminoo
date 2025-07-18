@@ -7,7 +7,7 @@
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-gray-900">Mes candidatures et réservations</h1>
                 <p class="mt-2 text-gray-600">Suivez l'état de vos candidatures et gérez vos réservations</p>
-                
+
                 <!-- Statistiques -->
                 <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
                     <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
@@ -99,7 +99,7 @@
                             </SelectContent>
                         </Select>
                     </div>
-                    
+
                     <div>
                         <Label for="reservation-status">Statut des réservations</Label>
                         <Select v-model="tempReservationStatusFilter">
@@ -113,7 +113,7 @@
                             </SelectContent>
                         </Select>
                     </div>
-                    
+
                     <div>
                         <Label for="date-filter">Période</Label>
                         <Select v-model="tempDateFilter">
@@ -127,11 +127,9 @@
                             </SelectContent>
                         </Select>
                     </div>
-                    
+
                     <div class="flex items-end">
-                        <Button @click="applyFilters" class="w-full">
-                            Appliquer les filtres
-                        </Button>
+                        <Button @click="applyFilters" class="w-full"> Appliquer les filtres </Button>
                     </div>
                 </div>
             </div>
@@ -172,7 +170,7 @@
                             <select
                                 v-model="selectedDateFilter"
                                 @change="onDateFilterChange"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                class="focus:border-primary focus:ring-primary rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                             >
                                 <option v-for="option in dateFilterOptions" :key="option.value" :value="option.value">
                                     {{ option.label }}
@@ -186,20 +184,20 @@
                             <select
                                 v-model="selectedApplicationStatus"
                                 @change="onApplicationStatusChange"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                class="focus:border-primary focus:ring-primary rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                             >
                                 <option v-for="option in applicationStatusOptions" :key="option.value" :value="option.value">
                                     {{ option.label }}
                                 </option>
                             </select>
                         </div>
-                        
+
                         <div v-else-if="activeTab === 'reservations'" class="flex items-center gap-2">
                             <label class="text-sm font-medium text-gray-700">Statut :</label>
                             <select
                                 v-model="selectedReservationStatus"
                                 @change="onReservationStatusChange"
-                                class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                                class="focus:border-primary focus:ring-primary rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                             >
                                 <option v-for="option in reservationStatusOptions" :key="option.value" :value="option.value">
                                     {{ option.label }}
@@ -240,7 +238,9 @@
                                         {{ getStatusText('application', application.status) }}
                                     </span>
                                     <div class="text-right">
-                                        <div class="text-primary text-lg font-bold">{{ application.counter_rate || application.proposed_rate || application.ad.hourly_rate }}€/h</div>
+                                        <div class="text-primary text-lg font-bold">
+                                            {{ application.counter_rate || application.proposed_rate || application.ad.hourly_rate }}€/h
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -320,12 +320,12 @@
                                     </p>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                                                    <span
-                                    :class="getReservationStatusColor(reservation.status).badge"
-                                    class="rounded-full px-2 py-1 text-xs font-medium"
-                                >
-                                    {{ getStatusText('reservation', reservation.status) }}
-                                </span>
+                                    <span
+                                        :class="getReservationStatusColor(reservation.status).badge"
+                                        class="rounded-full px-2 py-1 text-xs font-medium"
+                                    >
+                                        {{ getStatusText('reservation', reservation.status) }}
+                                    </span>
                                     <div class="text-right">
                                         <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.babysitter_amount) }}€</div>
                                         <div class="text-sm text-gray-600">{{ reservation.hourly_rate }}€/h</div>
@@ -387,17 +387,17 @@
 </template>
 
 <script setup lang="ts">
-import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { useToast } from '@/composables/useToast';
-import { useStatusColors } from '@/composables/useStatusColors';
-import { router, usePage, Head } from '@inertiajs/vue3';
-import { Calendar, CheckCircle, Clock, Briefcase, MessageCircle, Search, Star, Eye, DollarSign } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { route } from 'ziggy-js';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import type { User, Application, Reservation, PaginatedData, Filters } from '@/types';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import type { Application, Filters, Reservation } from '@/types';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { Briefcase, Calendar, CheckCircle, Clock, DollarSign, Eye, MessageCircle, Search, Star } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Stats {
     total_applications: number;
@@ -441,7 +441,7 @@ const applicationStatusOptions = [
     { value: 'accepted', label: 'Acceptée' },
     { value: 'declined', label: 'Refusée' },
     { value: 'cancelled', label: 'Annulée' },
-    { value: 'archived', label: 'Archivée' }
+    { value: 'archived', label: 'Archivée' },
 ];
 
 const reservationStatusOptions = [
@@ -451,14 +451,14 @@ const reservationStatusOptions = [
     { value: 'active', label: 'En cours' },
     { value: 'service_completed', label: 'Service terminé' },
     { value: 'completed', label: 'Terminé' },
-    { value: 'cancelled', label: 'Annulé' }
+    { value: 'cancelled', label: 'Annulé' },
 ];
 
 const dateFilterOptions = [
     { value: 'all', label: 'Toutes les périodes' },
     { value: 'week', label: 'Cette semaine' },
     { value: 'month', label: 'Ce mois' },
-    { value: 'year', label: 'Cette année' }
+    { value: 'year', label: 'Cette année' },
 ];
 
 // État local
@@ -490,11 +490,11 @@ const applyFilters = () => {
         reservation_status: tempReservationStatusFilter.value !== 'all' ? tempReservationStatusFilter.value : undefined,
         date_filter: tempDateFilter.value !== 'all' ? tempDateFilter.value : undefined,
     };
-    
+
     // Supprimer les paramètres undefined
-    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
-    
-    router.get(route('babysitter.babysitting.index'), params, {
+    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+
+    router.get('/babysitting', params, {
         preserveState: false,
         preserveScroll: false,
     });
@@ -516,6 +516,6 @@ const viewDetails = (application: Application) => {
 };
 
 const leaveReview = (reservationId: number) => {
-    router.visit(route('reviews.create', reservationId));
+    router.visit(`/avis/creer/${reservationId}`);
 };
 </script>

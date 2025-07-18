@@ -9,7 +9,7 @@ import { route as ziggyRoute } from 'ziggy-js';
 const route = (name: string, params?: any) => {
     try {
         return ziggyRoute(name, params);
-    } catch (error) {
+    } catch {
         console.warn(`Route "${name}" not found, using fallback`);
         switch (name) {
             case 'dashboard':
@@ -83,7 +83,7 @@ const switchMode = (mode: 'parent' | 'babysitter') => {
         window.location.href = route('dashboard', { mode });
     } catch {
         // Fallback si Ziggy n'est pas disponible
-        window.location.href = `/dashboard?mode=${mode}`;
+        window.location.href = `/tableau-de-bord?mode=${mode}`;
     }
 };
 
@@ -193,7 +193,7 @@ const isActive = (href: string) => {
             <!-- Footer -->
             <div class="border-t p-4">
                 <Link
-                    :href="route('deconnexion')"
+                    href="/deconnexion"
                     method="post"
                     class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700"
                 >
