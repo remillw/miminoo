@@ -3,9 +3,53 @@ import createServer from '@inertiajs/vue3/server';
 import { renderToString } from '@vue/server-renderer';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createSSRApp, h } from 'vue';
-import { route as ziggyRoute } from 'ziggy-js';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// Helper pour gérer les routes Ziggy côté serveur
+const createSafeRoute = (ziggyData: any) => {
+    return (name: string, params?: any) => {
+        try {
+            if (!ziggyData?.routes?.[name]) {
+                console.warn(`Route "${name}" not found in SSR context, using fallback`);
+                switch (name) {
+                    case 'dashboard':
+                        return '/tableau-de-bord';
+                    case 'creer.une.annonce':
+                        return '/creer-une-annonce';
+                    case 'messaging.index':
+                        return '/messagerie';
+                    case 'announcements.index':
+                        return '/annonces';
+                    case 'profil':
+                        return '/profil';
+                    case 'parent.announcements-reservations':
+                        return '/mes-annonces-et-reservations';
+                    case 'home':
+                        return '/';
+                    default:
+                        return '#';
+                }
+            }
+
+            const routeConfig = ziggyData.routes[name];
+            if (routeConfig && routeConfig.uri) {
+                let url = routeConfig.uri;
+                if (params && typeof params === 'object') {
+                    Object.keys(params).forEach((key) => {
+                        url = url.replace(`{${key}}`, params[key]);
+                    });
+                }
+                return url.startsWith('http') ? url : `/${url.replace(/^\//, '')}`;
+            }
+
+            return '#';
+        } catch (error) {
+            console.warn(`Error generating route "${name}":`, error);
+            return '#';
+        }
+    };
+};
 
 createServer(
     (page) =>
@@ -13,33 +57,22 @@ createServer(
             page,
             render: renderToString,
             title: (title) => `${title} - ${appName}`,
-            resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue', { eager: true })),
+            resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue', { eager: true }) as any),
             setup({ App, props, plugin }) {
                 const app = createSSRApp({ render: () => h(App, props) });
 
-                // Configure Ziggy for SSR...
-                const ziggyConfig = {
-                    ...page.props.ziggy,
-                    location: new URL(page.props.ziggy.location),
-                };
-
-                // Create route function...
-                const route = (name: string, params?: any, absolute?: boolean) => ziggyRoute(name, params, absolute, ziggyConfig);
-
-                // Make route function available globally...
-                app.config.globalProperties.route = route;
-
-                // Make route function available globally for SSR...
-                if (typeof window === 'undefined') {
-                    global.route = route;
-                }
-
                 app.use(plugin);
+
+                const ziggyData = props.initialPage?.props?.ziggy || {};
+                const safeRoute = createSafeRoute(ziggyData);
+
+                app.config.globalProperties.route = safeRoute as any;
+                app.provide('route', safeRoute);
 
                 return app;
             },
         }),
     {
-        port: 13715,
+        port: 13715, // 👈 Port SSR explicitement défini ici
     },
 );

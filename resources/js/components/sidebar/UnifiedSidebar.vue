@@ -3,7 +3,34 @@ import { useUserMode } from '@/composables/useUserMode';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, PlusCircle, Settings, User, Users } from 'lucide-vue-next';
 import { computed, onMounted } from 'vue';
-import { route } from 'ziggy-js';
+import { route as ziggyRoute } from 'ziggy-js';
+
+// Fonction route sécurisée pour SSR
+const route = (name: string, params?: any) => {
+    try {
+        return ziggyRoute(name, params);
+    } catch (error) {
+        console.warn(`Route "${name}" not found, using fallback`);
+        switch (name) {
+            case 'dashboard':
+                return '/tableau-de-bord';
+            case 'creer.une.annonce':
+                return '/creer-une-annonce';
+            case 'messaging.index':
+                return '/messagerie';
+            case 'announcements.index':
+                return '/annonces';
+            case 'profil':
+                return '/profil';
+            case 'parent.announcements-reservations':
+                return '/mes-annonces-et-reservations';
+            case 'home':
+                return '/';
+            default:
+                return '#';
+        }
+    }
+};
 
 interface Props {
     hasParentRole: boolean;

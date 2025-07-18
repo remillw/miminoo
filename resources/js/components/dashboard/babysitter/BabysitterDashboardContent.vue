@@ -397,11 +397,11 @@ const markAsRead = async (notificationId) => {
 };
 
 const createReview = (reservationId) => {
-    router.visit(route('reviews.create', reservationId));
+    router.visit(`/avis/creer/${reservationId}`);
 };
 
 const viewAllPendingReviews = () => {
-    router.visit(route('reviews.index'));
+    router.visit('/avis');
 };
 
 // Charger les données au montage

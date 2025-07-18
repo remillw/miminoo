@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { useStatusColors } from '@/composables/useStatusColors';
+import type { DashboardStats, Notification, User } from '@/types';
 import { router } from '@inertiajs/vue3';
 import { Bell, Calendar, Clock, FileText, MessageCircle, Plus, Star, Users } from 'lucide-vue-next';
 import { onMounted } from 'vue';
 import { route } from 'ziggy-js';
-import { useStatusColors } from '@/composables/useStatusColors';
-import type { User, DashboardStats, Announcement, Reservation, Notification } from '@/types';
 
 interface CompletedReservation {
     id: number;
@@ -116,21 +116,21 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 const viewReservationDetails = (id: number) => {
-    router.visit(route('messaging.index'));
+    router.visit('/messagerie');
 };
 
 const viewAdDetails = (id: number) => {
-    router.visit(route('messaging.index'));
+    router.visit('/messagerie');
 };
 
 const createReview = (reservationId: number) => {
-    router.visit(route('reviews.create', reservationId));
+    router.visit(`/avis/creer/${reservationId}`);
 };
 
 const markAsRead = async (notificationId: string) => {
     try {
         await router.post(
-            route('notifications.mark-as-read', notificationId),
+            `/notifications/${notificationId}/mark-as-read`,
             {},
             {
                 preserveState: true,

@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { AlertTriangle, Bell, DollarSign, Menu, MessageSquare, Star } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { route } from 'ziggy-js';
+import { route as ziggyRoute } from 'ziggy-js';
 
 interface User {
     id: number;
@@ -23,6 +23,27 @@ interface Notification {
     created_at: string;
     read_at?: string;
 }
+
+// Fonction route sécurisée pour SSR
+const route = (name: string, params?: any) => {
+    try {
+        return ziggyRoute(name, params);
+    } catch (error) {
+        console.warn(`Route "${name}" not found, using fallback`);
+        switch (name) {
+            case 'creer.une.annonce':
+                return '/creer-une-annonce';
+            case 'announcements.index':
+                return '/annonces';
+            case 'messaging.index':
+                return '/messagerie';
+            case 'dashboard':
+                return '/tableau-de-bord';
+            default:
+                return '#';
+        }
+    }
+};
 
 // Plus besoin de props pour les notifications, on utilise les props globales
 
