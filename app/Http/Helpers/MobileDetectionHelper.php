@@ -77,9 +77,8 @@ class MobileDetectionHelper
     public static function getRedirectUrl(Request $request, string $defaultUrl): string
     {
         if (self::isCapacitorApp($request)) {
-            // Pour l'app mobile, on redirige directement vers le tableau de bord
-            // La WebView reste dans l'app
-            return '/tableau-de-bord';
+            // Pour l'app mobile, rediriger vers le custom scheme
+            return 'trouvetababysitter://auth/callback?success=1';
         }
         
         return $defaultUrl;

@@ -1,5 +1,7 @@
+import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
+import { router } from '@inertiajs/vue3';
 
 export function useCapacitor() {
     /**
@@ -25,12 +27,33 @@ export function useCapacitor() {
         if (isCapacitor) {
             await Browser.open({
                 url,
-                windowName: '_self',
-                presentationStyle: 'popover',
+                windowName: '_blank',
             });
         } else {
             // Fallback pour le web
             window.location.href = url;
+        }
+    };
+
+    /**
+     * Configure le listener pour intercepter les custom URL schemes
+     */
+    const setupAppUrlListener = () => {
+        if (isCapacitor) {
+            App.addListener('appUrlOpen', (event) => {
+                console.log('🔗 URL interceptée:', event.url);
+
+                // Vérifier si c'est notre URL d'auth callback
+                if (event.url.startsWith('trouvetababysitter://auth/callback')) {
+                    console.log('✅ Authentification réussie, redirection vers dashboard...');
+
+                    // Fermer le navigateur ouvert
+                    Browser.close();
+
+                    // Rediriger vers le dashboard
+                    router.visit('/tableau-de-bord');
+                }
+            });
         }
     };
 
@@ -44,18 +67,16 @@ export function useCapacitor() {
             const url = new URL(googleAuthUrl, window.location.origin);
             url.searchParams.set('mobile', '1');
 
-            console.log("🔄 Ouverture URL Google dans l'app mobile:", url.toString());
+            console.log('🔄 Ouverture URL Google dans navigateur externe:', url.toString());
 
-            // Sur mobile, forcer l'ouverture dans la même WebView
-            try {
-                await Browser.open({
-                    url: url.toString(),
-                    windowName: '_self',
-                });
-            } catch {
-                console.log('Erreur Browser.open, fallback vers window.location');
-                window.location.href = url.toString();
-            }
+            // Configurer le listener avant d'ouvrir le navigateur
+            setupAppUrlListener();
+
+            // Ouvrir l'authentification Google dans un navigateur externe
+            await Browser.open({
+                url: url.toString(),
+                windowName: '_blank',
+            });
         } else {
             // Sur web, navigation normale
             window.location.href = googleAuthUrl;
@@ -80,5 +101,6 @@ export function useCapacitor() {
         openInAppBrowser,
         navigateToGoogleAuth,
         setupMobileHeaders,
+        setupAppUrlListener,
     };
 }

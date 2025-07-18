@@ -52,10 +52,11 @@ createInertiaApp({
 
         app.use(plugin).use(ZiggyVue).mount(el);
 
-        // Configurer les headers mobiles si on est dans Capacitor
+        // Configurer les headers mobiles et listeners si on est dans Capacitor
         if (typeof window !== 'undefined') {
-            const { setupMobileHeaders } = useCapacitor();
+            const { setupMobileHeaders, setupAppUrlListener } = useCapacitor();
             setupMobileHeaders();
+            setupAppUrlListener();
         }
 
         // Rendre Echo disponible globalement seulement côté client
