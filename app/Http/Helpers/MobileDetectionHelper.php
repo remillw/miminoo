@@ -77,8 +77,8 @@ class MobileDetectionHelper
     public static function getRedirectUrl(Request $request, string $defaultUrl): string
     {
         if (self::isCapacitorApp($request)) {
-            // Pour l'app mobile, rediriger vers le custom scheme
-            return 'trouvetababysitter://auth/callback?success=1';
+            // Pour l'app mobile, rediriger vers la page de transition
+            return '/auth/mobile/callback';
         }
         
         return $defaultUrl;

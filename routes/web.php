@@ -38,6 +38,11 @@ Route::prefix('auth')->group(function () {
     Route::post('/google/complete', [GoogleAuthController::class, 'completeRegistration'])
         ->name('google.complete');
     
+    // Page de transition pour l'app mobile après auth Google
+    Route::get('/mobile/callback', function () {
+        return view('mobile-auth-callback');
+    })->name('mobile.auth.callback');
+    
     // Apple - Commenté pour implémentation future
     /*
     Route::get('/apple', [SocialAuthController::class, 'redirectToProvider'])
