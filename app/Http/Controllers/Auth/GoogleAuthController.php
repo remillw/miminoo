@@ -152,7 +152,7 @@ class GoogleAuthController extends Controller
                 if ($isMobileAuth) {
                     // Pour mobile : toujours rediriger vers le callback mobile
                     Log::info('Redirecting to mobile callback for authenticated user');
-                    return redirect('/auth/mobile/callback')->with('success', 'Connexion réussie avec Google !');
+                    return redirect('/mobile/callback')->with('success', 'Connexion réussie avec Google !');
                 } else {
                     // Pour web : redirection normale
                     return redirect()->intended('/tableau-de-bord')->with('success', 'Connexion réussie avec Google !');

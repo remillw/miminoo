@@ -84,7 +84,7 @@ class MobileDetectionHelper
     {
         if (self::isCapacitorApp($request)) {
             // Pour l'app mobile, rediriger vers la page de transition
-            return '/auth/mobile/callback';
+            return '/mobile/callback';
         }
         
         return $defaultUrl;
