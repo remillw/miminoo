@@ -31,21 +31,60 @@ export function useMobileAuth() {
 
                 console.log('🔗 URL générée avec Ziggy:', authUrl);
 
-                // Pour mobile : ouvrir dans navigateur externe
+                // Utiliser le navigateur intégré
                 await Browser.open({
                     url: authUrl,
-                    windowName: '_system',
+                    windowName: '_blank', // Navigateur intégré
                 });
-                console.log('✅ Navigateur externe ouvert');
+                console.log('✅ Navigateur intégré ouvert');
 
-                // Le flag isAuthenticating sera remis à false quand l'app reviendra au premier plan
-                // ou après un timeout
+                // Écouter les événements de retour à l'app
+                const handleAppResume = () => {
+                    console.log("📱 App revenue au premier plan - possible fin d'auth");
+
+                    // Petite pause pour laisser les callbacks se traiter
+                    setTimeout(async () => {
+                        try {
+                            // Tenter de fermer le navigateur au cas où il serait encore ouvert
+                            await Browser.close();
+                            console.log('🔧 Navigateur fermé automatiquement');
+                        } catch (error) {
+                            console.log('ℹ️ Navigateur déjà fermé ou erreur:', error);
+                        }
+
+                        // Réinitialiser le flag d'authentification
+                        if (isAuthenticating.value) {
+                            console.log("🔄 Remise à zéro du flag d'authentification");
+                            isAuthenticating.value = false;
+                        }
+                    }, 1000);
+                };
+
+                // Écouter la visibilité de la page pour détecter le retour
+                const handleVisibilityChange = () => {
+                    if (!document.hidden && isAuthenticating.value) {
+                        console.log('👀 Page visible - App probablement revenue');
+                        handleAppResume();
+                    }
+                };
+
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                window.addEventListener('focus', handleAppResume);
+
+                // Timeout de sécurité
                 setTimeout(() => {
                     if (isAuthenticating.value) {
                         console.log('⏰ Timeout authentification, remise à zéro');
                         isAuthenticating.value = false;
+
+                        // Nettoyer les listeners
+                        document.removeEventListener('visibilitychange', handleVisibilityChange);
+                        window.removeEventListener('focus', handleAppResume);
+
+                        // Tenter de fermer le navigateur
+                        Browser.close().catch(() => {});
                     }
-                }, 30000); // 30 secondes
+                }, 60000); // 60 secondes
             } else {
                 console.log('🌐 Mode web - redirection normale');
                 const authUrl = route('google.redirect');

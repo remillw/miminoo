@@ -1,23 +1,25 @@
 import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
 
-// Variable globale pour éviter les initialisations multiples
+// Variable globale pour éviter les multiples initialisations
 let isCapacitorInitialized = false;
 
 export function useCapacitor() {
-    const isNative = ref(Capacitor.isNativePlatform());
-    const platform = ref(Capacitor.getPlatform());
+    const isNative = ref(false);
+    const platform = ref('');
+    const appStateChangeListener = ref<any>(null);
+    const appUrlOpenListener = ref<any>(null);
 
     /**
-     * Gérer les URL d'entrée dans l'app (deep links)
+     * Gestion des deep links entrants
      */
     const handleAppUrlOpen = (event: any) => {
         console.log('🔗 Deep link reçu:', event.url);
 
         try {
-            // Parser l'URL reçue
             const url = new URL(event.url);
             console.log('📍 URL parsée:', {
                 scheme: url.protocol,
@@ -26,7 +28,6 @@ export function useCapacitor() {
                 search: url.search,
             });
 
-            // Gérer les callbacks d'authentification
             if (url.pathname === '/auth/callback') {
                 handleAuthCallback(url);
             } else {
@@ -38,93 +39,116 @@ export function useCapacitor() {
     };
 
     /**
-     * Gérer spécifiquement les callbacks d'authentification
+     * Gestion du callback d'authentification
      */
-    const handleAuthCallback = (url: URL) => {
+    const handleAuthCallback = async (url: URL) => {
         const success = url.searchParams.get('success');
-
         console.log("🔐 Callback d'authentification détecté, success:", success);
 
-        if (success === '1') {
-            console.log('✅ Authentification réussie via deep link');
+        // Fermer le navigateur intégré AVANT la redirection
+        try {
+            await Browser.close();
+            console.log('✅ Navigateur fermé avec succès');
+        } catch (error) {
+            console.warn('⚠️ Impossible de fermer le navigateur:', error);
+        }
 
-            // Rediriger vers le tableau de bord avec flag pour déclencher l'enregistrement du device token
-            router.visit('/tableau-de-bord?mobile_auth=success&register_device_token=1', {
-                onSuccess: () => {
-                    console.log('🏠 Redirection vers tableau de bord terminée');
-                },
-                onError: (errors) => {
-                    console.error('❌ Erreur redirection:', errors);
-                },
-            });
-        } else {
-            console.log('❌ Authentification échouée via deep link');
-            router.visit('/connexion?error=auth_failed');
+        // Petite pause pour laisser le navigateur se fermer
+        setTimeout(() => {
+            if (success === '1') {
+                console.log('🏠 Redirection vers dashboard avec params mobile');
+                router.visit('/tableau-de-bord?mobile_auth=success&register_device_token=1', {
+                    replace: true,
+                    preserveState: false,
+                });
+            } else {
+                console.log('❌ Redirection vers login avec erreur');
+                router.visit('/connexion?error=auth_failed');
+            }
+        }, 100);
+    };
+
+    /**
+     * Fermer le navigateur intégré (pour usage externe)
+     */
+    const closeBrowser = async () => {
+        try {
+            await Browser.close();
+            console.log('✅ Navigateur fermé manuellement');
+            return true;
+        } catch (error) {
+            console.warn('⚠️ Impossible de fermer le navigateur:', error);
+            return false;
         }
     };
 
     /**
-     * Initialiser les listeners Capacitor
+     * Initialisation de Capacitor
      */
-    const initializeCapacitor = () => {
-        if (!isNative.value) {
-            console.log('📱 Non-native platform, skipping Capacitor initialization');
-            return;
-        }
-
+    const initializeCapacitor = async () => {
         if (isCapacitorInitialized) {
-            console.log('⚠️ Capacitor déjà initialisé, ignoré');
+            console.log('⚠️ Capacitor déjà initialisé, skip');
             return;
         }
 
-        console.log('🚀 Initialisation des listeners Capacitor...');
-        isCapacitorInitialized = true;
+        if (!Capacitor.isNativePlatform()) {
+            console.log('🌐 Pas sur plateforme native, skip init Capacitor');
+            return;
+        }
 
         try {
-            // Écouter les URLs d'entrée (deep links)
-            App.addListener('appUrlOpen', handleAppUrlOpen);
+            console.log('🚀 Initialisation Capacitor...');
+            isCapacitorInitialized = true;
+
+            isNative.value = true;
+            platform.value = Capacitor.getPlatform();
+
+            console.log('📱 Plateforme détectée:', platform.value);
 
             // Écouter les changements d'état de l'app
-            App.addListener('appStateChange', (state) => {
-                console.log('📱 App state changed:', state.isActive ? 'active' : 'background');
+            appStateChangeListener.value = await App.addListener('appStateChange', (state) => {
+                console.log('📱 App state changed:', state.isActive);
             });
 
-            // Log de l'état initial
-            App.getInfo()
-                .then((info) => {
-                    console.log('📋 App Info:', info);
-                })
-                .catch((error) => {
-                    console.error('❌ Erreur récupération App Info:', error);
-                });
+            // Écouter les deep links
+            appUrlOpenListener.value = await App.addListener('appUrlOpen', handleAppUrlOpen);
 
-            console.log('✅ Listeners Capacitor configurés');
+            console.log('✅ Capacitor initialisé avec succès');
         } catch (error) {
-            console.error('❌ Erreur configuration listeners Capacitor:', error);
+            console.error('❌ Erreur initialisation Capacitor:', error);
+            isCapacitorInitialized = false;
         }
     };
 
     /**
-     * Nettoyer les listeners
+     * Nettoyage des listeners
      */
     const cleanupCapacitor = () => {
-        if (!isNative.value) return;
+        if (!isCapacitorInitialized) return;
 
-        console.log('🧹 Nettoyage des listeners Capacitor...');
         try {
-            App.removeAllListeners();
-            isCapacitorInitialized = false;
+            if (appStateChangeListener.value) {
+                appStateChangeListener.value.remove();
+                appStateChangeListener.value = null;
+            }
+
+            if (appUrlOpenListener.value) {
+                appUrlOpenListener.value.remove();
+                appUrlOpenListener.value = null;
+            }
+
+            console.log('🧹 Listeners Capacitor nettoyés');
         } catch (error) {
-            console.error('❌ Erreur nettoyage listeners:', error);
+            console.error('❌ Erreur nettoyage Capacitor:', error);
         }
     };
 
-    // Initialiser automatiquement
+    // Initialisation au montage
     onMounted(() => {
         initializeCapacitor();
     });
 
-    // Nettoyer lors du démontage
+    // Nettoyage au démontage
     onUnmounted(() => {
         cleanupCapacitor();
     });
@@ -132,8 +156,8 @@ export function useCapacitor() {
     return {
         isNative,
         platform,
+        closeBrowser, // Exposer la fonction de fermeture
         initializeCapacitor,
         cleanupCapacitor,
-        handleAppUrlOpen, // Exposer pour les tests
     };
 }

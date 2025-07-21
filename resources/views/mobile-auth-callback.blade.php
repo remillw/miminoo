@@ -1,55 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Authentification réussie</title>
     <style>
         body {
-            font-family: system-ui, -apple-system, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            text-align: center;
         }
         .container {
-            max-width: 500px;
+            text-align: center;
+            max-width: 400px;
             padding: 2rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
+            margin: 0 auto 20px;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .debug {
-            font-size: 0.7rem;
-            margin-top: 1rem;
+        h1 {
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        p {
+            margin: 0 0 1.5rem 0;
             opacity: 0.9;
-            text-align: left;
-            background: rgba(0,0,0,0.3);
-            padding: 1rem;
+            font-size: 1rem;
+        }
+        .debug-info {
+            background: rgba(0,0,0,0.2);
             border-radius: 8px;
-            max-height: 300px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            text-align: left;
+            max-height: 200px;
             overflow-y: auto;
         }
         .button-group {
-            margin: 1rem 0;
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
             justify-content: center;
+            margin-top: 1rem;
         }
         .test-button {
             background: rgba(255,255,255,0.2);
@@ -69,155 +84,103 @@
     <div class="container">
         <div class="spinner"></div>
         <h1>🔐 Authentification réussie !</h1>
-        <p>Tentative de retour vers l'application mobile...</p>
+        <p>Retour vers l'application mobile en cours...</p>
         
         <div class="button-group">
-            <button class="test-button" onclick="testScheme1()">🧪 Test Scheme 1</button>
-            <button class="test-button" onclick="testScheme2()">🧪 Test Scheme 2</button>
-            <button class="test-button" onclick="testScheme3()">🧪 Test Scheme 3</button>
+            <button class="test-button" onclick="testScheme()">🧪 Test Scheme</button>
             <button class="test-button" onclick="goToDashboard()">🏠 Web Dashboard</button>
         </div>
         
-        <div class="debug" id="debug-info"></div>
+        <div id="debug-info" class="debug-info"></div>
     </div>
 
     <script>
         console.log('🔄 Page callback mobile chargée');
-        
         const debugEl = document.getElementById('debug-info');
         let debugSteps = [];
-        
+
         function addDebug(step) {
-            const timestamp = new Date().toLocaleTimeString();
-            const message = `${timestamp}: ${step}`;
-            debugSteps.push(message);
-            
-            // Garder seulement les 20 derniers messages
-            if (debugSteps.length > 20) {
-                debugSteps = debugSteps.slice(-20);
+            console.log(step);
+            debugSteps.push(`${new Date().toLocaleTimeString()}: ${step}`);
+            if (debugEl) {
+                debugEl.innerHTML = debugSteps.slice(-10).join('<br>');
+                debugEl.scrollTop = debugEl.scrollHeight;
             }
-            
-            debugEl.innerHTML = debugSteps.join('<br>');
-            console.log(message);
         }
-        
+
         addDebug('🔄 Début du processus de redirection mobile');
-        addDebug('🌐 User Agent: ' + navigator.userAgent.substring(0, 50) + '...');
+        addDebug('📱 User Agent: ' + navigator.userAgent.substring(0, 50) + '...');
         addDebug('📍 URL actuelle: ' + window.location.href);
-        addDebug('🕒 Timestamp: ' + Date.now());
-        
-        // Détecter l'environnement
+
         const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
         addDebug('📱 Environnement Capacitor: ' + (isCapacitor ? 'OUI' : 'NON'));
-        
-        if (window.Capacitor) {
-            addDebug('🔧 Capacitor détecté, platform: ' + (window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'unknown'));
+
+        function testScheme() {
+            addDebug('🧪 Test manuel du scheme...');
+            const testUrl = 'trouvetababysitter://auth/callback?success=1';
+            addDebug('🔗 Tentative: ' + testUrl);
+            window.location.href = testUrl;
         }
-        
-        // Tests manuels de schemes
-        function testScheme1() {
-            const scheme = 'trouvetababysitter://auth/callback?success=1&test=1&t=' + Date.now();
-            addDebug('🧪 Test Scheme 1: ' + scheme);
-            try {
-                window.location.href = scheme;
-                addDebug('✅ Scheme 1 lancé');
-            } catch (error) {
-                addDebug('❌ Erreur Scheme 1: ' + error.message);
-            }
-        }
-        
-        function testScheme2() {
-            const scheme = 'fr.trouvetababysitter.mobile://auth/callback?success=1&test=2&t=' + Date.now();
-            addDebug('🧪 Test Scheme 2: ' + scheme);
-            try {
-                window.location.href = scheme;
-                addDebug('✅ Scheme 2 lancé');
-            } catch (error) {
-                addDebug('❌ Erreur Scheme 2: ' + error.message);
-            }
-        }
-        
-        function testScheme3() {
-            const scheme = 'capacitor://trouvetababysitter?path=/auth/callback&success=1&test=3&t=' + Date.now();
-            addDebug('🧪 Test Scheme 3: ' + scheme);
-            try {
-                window.location.href = scheme;
-                addDebug('✅ Scheme 3 lancé');
-            } catch (error) {
-                addDebug('❌ Erreur Scheme 3: ' + error.message);
-            }
-        }
-        
-        // Fonction pour aller au tableau de bord web
+
         function goToDashboard() {
-            addDebug('🏠 Redirection vers tableau de bord web...');
-            window.location.href = '/tableau-de-bord?mobile_auth=success&register_device_token=1';
+            addDebug('🏠 Redirection web vers dashboard...');
+            window.location.href = '/tableau-de-bord';
         }
-        
-        // Fonction principale de redirection automatique
+
         function attemptAppRedirect() {
-            addDebug('📱 Tentative de redirection automatique vers l\'app...');
+            addDebug('🚀 Tentative de redirection vers l\'app...');
             
-            // Essayer le scheme principal
-            const customScheme = 'trouvetababysitter://auth/callback?success=1&auto=1&timestamp=' + Date.now();
-            
-            addDebug('🔗 Tentative automatique avec: ' + customScheme);
+            // Essayer le custom scheme
+            const appUrl = 'trouvetababysitter://auth/callback?success=1';
+            addDebug('🔗 URL app: ' + appUrl);
             
             try {
-                // Créer un événement de redirection
-                window.location.href = customScheme;
-                addDebug('✅ window.location.href exécuté pour redirection automatique');
+                window.location.href = appUrl;
+                addDebug('✅ Redirection tentée');
                 
-                // Marquer qu'on a tenté la redirection
-                sessionStorage.setItem('redirect_attempted', 'true');
+                // Vérifier si on est toujours là après un délai
+                setTimeout(() => {
+                    addDebug('⏰ Vérification retour - toujours sur la page');
+                    
+                    // Si on est toujours là, c'est que l'app ne s'est pas ouverte
+                    if (isCapacitor) {
+                        addDebug('📱 Capacitor détecté - l\'app devrait gérer la fermeture');
+                    } else {
+                        addDebug('🌐 Mode web - redirection fallback vers dashboard');
+                        setTimeout(() => goToDashboard(), 2000);
+                    }
+                }, 3000);
                 
             } catch (error) {
-                addDebug('❌ Erreur redirection automatique: ' + error.message);
+                addDebug('❌ Erreur redirection: ' + error.message);
+                setTimeout(() => goToDashboard(), 2000);
             }
         }
-        
-        // Redirection automatique après 3 secondes
+
+        // Redirection automatique rapide
         setTimeout(() => {
             addDebug('⏰ Déclenchement redirection automatique...');
             attemptAppRedirect();
-        }, 3000);
-        
-        // Fallback vers le tableau de bord web après 10 secondes
+        }, 1000); // Réduit à 1 seconde
+
+        // Fallback après 10 secondes
         setTimeout(() => {
-            if (!sessionStorage.getItem('page_left')) {
-                addDebug('⚠️ Timeout 10s atteint, redirection vers le web...');
-                goToDashboard();
-            }
+            addDebug('⏰ Timeout - redirection fallback vers web');
+            goToDashboard();
         }, 10000);
-        
-        // Détection si l'utilisateur quitte la page
-        let pageLeft = false;
-        
+
+        // Écouter les changements de visibilité
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden' && !pageLeft) {
-                pageLeft = true;
-                sessionStorage.setItem('page_left', 'true');
-                addDebug('✅ Page cachée - App probablement ouverte !');
-            } else if (document.visibilityState === 'visible' && pageLeft) {
-                addDebug('⚠️ Retour sur la page - Redirection app a échoué');
+            if (document.hidden) {
+                addDebug('👁️ Page cachée - possible retour app');
+            } else {
+                addDebug('👁️ Page visible - retour possible');
             }
         });
-        
-        // Détection de focus/blur
-        window.addEventListener('blur', () => {
-            if (!pageLeft) {
-                addDebug('👁️ Page perdue le focus');
-            }
-        });
-        
-        window.addEventListener('focus', () => {
-            if (pageLeft) {
-                addDebug('🔄 Page récupérée le focus - retour inattendu');
-            }
-        });
-        
-        // Log de performance
-        addDebug('⚡ Page callback chargée en ' + Math.round(performance.now()) + 'ms');
+
+        // Écouter focus/blur
+        window.addEventListener('blur', () => addDebug('🔄 Window blur - app possiblement ouverte'));
+        window.addEventListener('focus', () => addDebug('🔄 Window focus - retour du navigateur'));
     </script>
 </body>
 </html> 

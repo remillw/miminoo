@@ -18,17 +18,40 @@ class GoogleAuthController extends Controller
      */
     public function redirect(Request $request)
     {
-        // Si c'est une requête mobile, marquer la session
-        if ($request->get('mobile') === '1' || MobileDetectionHelper::isCapacitorApp($request)) {
-            session(['google_mobile_auth' => true]);
-            Log::info('Google auth redirect from mobile app', [
+        try {
+            Log::info('Google auth redirect requested', [
                 'mobile_param' => $request->get('mobile'),
-                'is_capacitor' => MobileDetectionHelper::isCapacitorApp($request),
                 'user_agent' => $request->header('User-Agent'),
+                'is_capacitor' => MobileDetectionHelper::isCapacitorApp($request),
+                'request_url' => $request->fullUrl(),
+                'session_id' => session()->getId(),
             ]);
+
+            // Si c'est une requête mobile, marquer la session
+            if ($request->get('mobile') === '1' || MobileDetectionHelper::isCapacitorApp($request)) {
+                session(['google_mobile_auth' => true]);
+                Log::info('Google auth redirect from mobile app', [
+                    'mobile_param' => $request->get('mobile'),
+                    'is_capacitor' => MobileDetectionHelper::isCapacitorApp($request),
+                    'user_agent' => $request->header('User-Agent'),
+                ]);
+            }
+            
+            $redirectUrl = Socialite::driver('google')->redirect();
+            Log::info('Google redirect URL generated', [
+                'redirect_url' => $redirectUrl->getTargetUrl(),
+            ]);
+            
+            return $redirectUrl;
+            
+        } catch (\Exception $e) {
+            Log::error('Error in Google auth redirect', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return redirect('/connexion')->with('error', 'Erreur lors de la redirection Google');
         }
-        
-        return Socialite::driver('google')->redirect();
     }
 
     /**
