@@ -1,4 +1,3 @@
-import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { ref } from 'vue';
 
@@ -7,7 +6,7 @@ export function useMobileAuth() {
     const authError = ref<string | null>(null);
 
     /**
-     * Ouvrir l'authentification Google pour mobile avec gestion d'erreurs améliorée
+     * Ouvrir l'authentification Google avec méthode simplifiée
      */
     const authenticateWithGoogle = async () => {
         console.log('🚀 Démarrage authentification Google mobile...');
@@ -28,18 +27,20 @@ export function useMobileAuth() {
             const authUrl = new URL('/auth/google', window.location.origin);
             authUrl.searchParams.set('mobile', '1');
 
-            console.log('🔄 Ouverture URL Google dans navigateur externe:', authUrl.toString());
+            console.log('🔄 URL Google à ouvrir:', authUrl.toString());
 
-            // MÉTHODE SIMPLIFIÉE : Ouvrir simplement le navigateur externe
-            // Le callback sera géré par le composable useCapacitor
-            await Browser.open({
-                url: authUrl.toString(),
-                windowName: '_system',
-            });
+            // MÉTHODE ULTRA-SIMPLIFIÉE : Utiliser window.open au lieu du plugin Browser
+            console.log('🌐 Ouverture avec window.open...');
+            const authWindow = window.open(authUrl.toString(), '_system');
 
-            console.log('✅ Navigateur externe ouvert');
+            if (authWindow) {
+                console.log("✅ Fenêtre d'authentification ouverte");
+            } else {
+                console.log("❌ Impossible d'ouvrir la fenêtre d'authentification");
+                throw new Error("Impossible d'ouvrir la fenêtre d'authentification");
+            }
 
-            // Timeout de sécurité plus long (60 secondes)
+            // Timeout de sécurité (60 secondes)
             setTimeout(() => {
                 if (isAuthenticating.value) {
                     console.log('⏰ Timeout authentification (60s)');
@@ -88,16 +89,9 @@ export function useMobileAuth() {
     /**
      * Annuler l'authentification en cours
      */
-    const cancelAuthentication = async () => {
+    const cancelAuthentication = () => {
         console.log('🚫 Annulation authentification');
         isAuthenticating.value = false;
-
-        try {
-            await Browser.close();
-        } catch {
-            // Ignorer l'erreur si le navigateur n'est pas ouvert
-            console.log('ℹ️ Navigateur déjà fermé');
-        }
     };
 
     return {

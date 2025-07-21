@@ -1,5 +1,4 @@
 import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
@@ -38,18 +37,10 @@ export function useCapacitor() {
     /**
      * Gérer spécifiquement les callbacks d'authentification
      */
-    const handleAuthCallback = async (url: URL) => {
+    const handleAuthCallback = (url: URL) => {
         const success = url.searchParams.get('success');
 
         console.log("🔐 Callback d'authentification détecté, success:", success);
-
-        try {
-            // Fermer le navigateur externe en premier
-            await Browser.close();
-            console.log('🌐 Navigateur externe fermé');
-        } catch {
-            console.log('ℹ️ Navigateur déjà fermé ou erreur fermeture');
-        }
 
         if (success === '1') {
             console.log('✅ Authentification réussie via deep link');
