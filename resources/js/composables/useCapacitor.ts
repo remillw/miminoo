@@ -3,6 +3,9 @@ import { Capacitor } from '@capacitor/core';
 import { router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
 
+// Variable globale pour éviter les initialisations multiples
+let isCapacitorInitialized = false;
+
 export function useCapacitor() {
     const isNative = ref(Capacitor.isNativePlatform());
     const platform = ref(Capacitor.getPlatform());
@@ -69,7 +72,13 @@ export function useCapacitor() {
             return;
         }
 
+        if (isCapacitorInitialized) {
+            console.log('⚠️ Capacitor déjà initialisé, ignoré');
+            return;
+        }
+
         console.log('🚀 Initialisation des listeners Capacitor...');
+        isCapacitorInitialized = true;
 
         try {
             // Écouter les URLs d'entrée (deep links)
@@ -104,6 +113,7 @@ export function useCapacitor() {
         console.log('🧹 Nettoyage des listeners Capacitor...');
         try {
             App.removeAllListeners();
+            isCapacitorInitialized = false;
         } catch (error) {
             console.error('❌ Erreur nettoyage listeners:', error);
         }
