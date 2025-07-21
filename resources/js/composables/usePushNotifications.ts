@@ -34,16 +34,33 @@ export function usePushNotifications() {
     };
 
     /**
+     * Vérifier si l'enregistrement du device token a été demandé après connexion
+     */
+    const checkForTriggeredRegistration = async () => {
+        // Vérifier s'il y a un flag dans l'URL ou session pour déclencher l'enregistrement
+        const urlParams = new URLSearchParams(window.location.search);
+        const shouldRegister = urlParams.get('register_device_token') === '1' || urlParams.get('mobile_auth') === 'success';
+
+        if (shouldRegister && Capacitor.isNativePlatform()) {
+            console.log("🔔 Déclenchement de l'enregistrement device token après connexion");
+            await initializePushNotifications();
+        }
+    };
+
+    /**
      * Enregistrer pour recevoir les notifications push
      */
     const registerForPushNotifications = async () => {
         try {
-            await PushNotifications.register();
+            console.log('🔔 Enregistrement pour les notifications push...');
 
-            // Configurer les listeners pour les notifications push
+            // Configurer les listeners AVANT l'enregistrement
             setupPushListeners();
+
+            await PushNotifications.register();
+            console.log('✅ PushNotifications.register() terminé');
         } catch (error) {
-            console.error('Error registering for push notifications:', error);
+            console.error("❌ Erreur lors de l'enregistrement:", error);
         }
     };
 
@@ -51,25 +68,27 @@ export function usePushNotifications() {
      * Configurer les listeners pour les notifications push
      */
     const setupPushListeners = () => {
+        console.log('🔧 Configuration des listeners push...');
+
         // Token reçu - l'envoyer au backend
         PushNotifications.addListener('registration', async (token) => {
-            console.log('Push registration success, token: ' + token.value);
+            console.log('🎯 Token reçu!', token.value);
             await sendTokenToBackend(token.value);
         });
 
         // Erreur d'enregistrement
         PushNotifications.addListener('registrationError', (error) => {
-            console.error('Error on registration: ' + JSON.stringify(error));
+            console.error('❌ Erreur registration:', JSON.stringify(error));
         });
 
         // Notification reçue quand l'app est ouverte
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
-            console.log('Push notification received: ', notification);
+            console.log('📱 Notification reçue:', notification);
         });
 
         // Notification cliquée - action utilisateur
         PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-            console.log('Push notification action performed', notification);
+            console.log('👆 Notification cliquée:', notification);
 
             // Gérer les actions selon le type de notification
             const data = notification.notification.data;
@@ -80,6 +99,8 @@ export function usePushNotifications() {
                 router.visit('/annonces');
             }
         });
+
+        console.log('✅ Listeners configurés');
     };
 
     /**
@@ -89,6 +110,11 @@ export function usePushNotifications() {
         try {
             // Détecter le type d'appareil
             const deviceType = Capacitor.getPlatform(); // 'ios' ou 'android'
+
+            console.log('📤 Envoi token au backend...', {
+                device_type: deviceType,
+                token_preview: token.substring(0, 20) + '...',
+            });
 
             await router.post(
                 '/device-token',
@@ -100,16 +126,16 @@ export function usePushNotifications() {
                     preserveState: true,
                     preserveScroll: true,
                     onSuccess: () => {
-                        console.log('Device token sent to backend successfully');
+                        console.log('✅ Token envoyé avec succès au backend');
                         isRegistered.value = true;
                     },
                     onError: (errors) => {
-                        console.error('Error sending device token to backend:', errors);
+                        console.error('❌ Erreur envoi token au backend:', errors);
                     },
                 },
             );
         } catch (error) {
-            console.error('Error sending token to backend:', error);
+            console.error('❌ Erreur envoi token:', error);
         }
     };
 
@@ -156,6 +182,10 @@ export function usePushNotifications() {
 
     // Initialiser automatiquement quand le composable est utilisé
     onMounted(() => {
+        // Vérifier d'abord si on doit s'enregistrer suite à une connexion
+        checkForTriggeredRegistration();
+
+        // Puis initialiser normalement
         initializePushNotifications();
     });
 
@@ -165,5 +195,6 @@ export function usePushNotifications() {
         initializePushNotifications,
         disablePushNotifications,
         updateNotificationPreferences,
+        checkForTriggeredRegistration,
     };
 }
