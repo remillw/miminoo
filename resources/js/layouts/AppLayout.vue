@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCapacitor } from '@/composables/useCapacitor';
 import { usePushNotifications } from '@/composables/usePushNotifications';
 import AppLayout from '@/layouts/app/AppSidebarLayout.vue';
 import type { BreadcrumbItemType } from '@/types';
@@ -13,6 +14,16 @@ withDefaults(defineProps<Props>(), {
 
 // Initialiser les notifications push
 const { isRegistered, permissionStatus } = usePushNotifications();
+
+// Initialiser Capacitor pour gérer les deep links
+const { isNative, platform } = useCapacitor();
+
+// Debug logs pour vérifier l'initialisation
+console.log('🏗️ AppLayout initialisé', {
+    isNative: isNative.value,
+    platform: platform.value,
+    pushPermission: permissionStatus.value,
+});
 </script>
 
 <template>

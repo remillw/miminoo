@@ -17,7 +17,7 @@
             text-align: center;
         }
         .container {
-            max-width: 400px;
+            max-width: 500px;
             padding: 2rem;
         }
         .spinner {
@@ -34,118 +34,190 @@
             100% { transform: rotate(360deg); }
         }
         .debug {
-            margin-top: 2rem;
+            font-size: 0.7rem;
+            margin-top: 1rem;
+            opacity: 0.9;
+            text-align: left;
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .button-group {
+            margin: 1rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        .test-button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
             font-size: 0.8rem;
-            opacity: 0.7;
+        }
+        .test-button:hover {
+            background: rgba(255,255,255,0.3);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="spinner"></div>
-        <h1>Connexion réussie !</h1>
-        <p>Retour vers l'application...</p>
+        <h1>🔐 Authentification réussie !</h1>
+        <p>Tentative de retour vers l'application mobile...</p>
         
-        <div class="debug">
-            <p id="status">Initialisation...</p>
-            <p id="attempts">Tentatives: 0</p>
+        <div class="button-group">
+            <button class="test-button" onclick="testScheme1()">🧪 Test Scheme 1</button>
+            <button class="test-button" onclick="testScheme2()">🧪 Test Scheme 2</button>
+            <button class="test-button" onclick="testScheme3()">🧪 Test Scheme 3</button>
+            <button class="test-button" onclick="goToDashboard()">🏠 Web Dashboard</button>
         </div>
+        
+        <div class="debug" id="debug-info"></div>
     </div>
 
     <script>
-        // ✅ AMÉLIORATION: Callback mobile plus robuste
-        console.log('🔄 Page de callback mobile chargée');
+        console.log('🔄 Page callback mobile chargée');
         
-        const statusEl = document.getElementById('status');
-        const attemptsEl = document.getElementById('attempts');
-        let attempts = 0;
-        let redirected = false;
-
-        function updateStatus(message) {
-            console.log(message);
-            if (statusEl) statusEl.textContent = message;
-        }
-
-        function updateAttempts() {
-            attempts++;
-            if (attemptsEl) attemptsEl.textContent = `Tentatives: ${attempts}`;
-        }
-
-        // Fonction pour tenter la redirection vers l'app
-        function attemptAppRedirect() {
-            if (redirected) return;
+        const debugEl = document.getElementById('debug-info');
+        let debugSteps = [];
+        
+        function addDebug(step) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = `${timestamp}: ${step}`;
+            debugSteps.push(message);
             
-            updateAttempts();
-            updateStatus(`Tentative ${attempts}: Redirection vers l'app...`);
+            // Garder seulement les 20 derniers messages
+            if (debugSteps.length > 20) {
+                debugSteps = debugSteps.slice(-20);
+            }
+            
+            debugEl.innerHTML = debugSteps.join('<br>');
+            console.log(message);
+        }
+        
+        addDebug('🔄 Début du processus de redirection mobile');
+        addDebug('🌐 User Agent: ' + navigator.userAgent.substring(0, 50) + '...');
+        addDebug('📍 URL actuelle: ' + window.location.href);
+        addDebug('🕒 Timestamp: ' + Date.now());
+        
+        // Détecter l'environnement
+        const isCapacitor = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+        addDebug('📱 Environnement Capacitor: ' + (isCapacitor ? 'OUI' : 'NON'));
+        
+        if (window.Capacitor) {
+            addDebug('🔧 Capacitor détecté, platform: ' + (window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'unknown'));
+        }
+        
+        // Tests manuels de schemes
+        function testScheme1() {
+            const scheme = 'trouvetababysitter://auth/callback?success=1&test=1&t=' + Date.now();
+            addDebug('🧪 Test Scheme 1: ' + scheme);
+            try {
+                window.location.href = scheme;
+                addDebug('✅ Scheme 1 lancé');
+            } catch (error) {
+                addDebug('❌ Erreur Scheme 1: ' + error.message);
+            }
+        }
+        
+        function testScheme2() {
+            const scheme = 'fr.trouvetababysitter.mobile://auth/callback?success=1&test=2&t=' + Date.now();
+            addDebug('🧪 Test Scheme 2: ' + scheme);
+            try {
+                window.location.href = scheme;
+                addDebug('✅ Scheme 2 lancé');
+            } catch (error) {
+                addDebug('❌ Erreur Scheme 2: ' + error.message);
+            }
+        }
+        
+        function testScheme3() {
+            const scheme = 'capacitor://trouvetababysitter?path=/auth/callback&success=1&test=3&t=' + Date.now();
+            addDebug('🧪 Test Scheme 3: ' + scheme);
+            try {
+                window.location.href = scheme;
+                addDebug('✅ Scheme 3 lancé');
+            } catch (error) {
+                addDebug('❌ Erreur Scheme 3: ' + error.message);
+            }
+        }
+        
+        // Fonction pour aller au tableau de bord web
+        function goToDashboard() {
+            addDebug('🏠 Redirection vers tableau de bord web...');
+            window.location.href = '/tableau-de-bord?mobile_auth=success&register_device_token=1';
+        }
+        
+        // Fonction principale de redirection automatique
+        function attemptAppRedirect() {
+            addDebug('📱 Tentative de redirection automatique vers l\'app...');
+            
+            // Essayer le scheme principal
+            const customScheme = 'trouvetababysitter://auth/callback?success=1&auto=1&timestamp=' + Date.now();
+            
+            addDebug('🔗 Tentative automatique avec: ' + customScheme);
             
             try {
-                // Construire l'URL avec des paramètres pour le debug
-                const appUrl = 'trouvetababysitter://auth/callback?success=1&timestamp=' + Date.now();
-                console.log('🔗 Tentative de redirection vers:', appUrl);
+                // Créer un événement de redirection
+                window.location.href = customScheme;
+                addDebug('✅ window.location.href exécuté pour redirection automatique');
                 
-                window.location.href = appUrl;
-                
-                // Marquer comme tenté
-                setTimeout(() => {
-                    if (!redirected && attempts < 3) {
-                        updateStatus('Nouvelle tentative...');
-                        attemptAppRedirect();
-                    }
-                }, 2000);
+                // Marquer qu'on a tenté la redirection
+                sessionStorage.setItem('redirect_attempted', 'true');
                 
             } catch (error) {
-                console.error('❌ Erreur lors de la redirection:', error);
-                updateStatus('Erreur, redirection vers le web...');
-                fallbackToWeb();
+                addDebug('❌ Erreur redirection automatique: ' + error.message);
             }
         }
-
-        // Fallback vers la version web
-        function fallbackToWeb() {
-            if (redirected) return;
-            redirected = true;
-            
-            updateStatus('Redirection vers le tableau de bord web...');
-            console.log('⚠️ Fallback vers le tableau de bord web');
-            
-            setTimeout(() => {
-                window.location.href = '/tableau-de-bord';
-            }, 1000);
-        }
-
-        // Démarrer la séquence de redirection
-        updateStatus('Préparation de la redirection...');
         
-        // Attendre un peu que la page soit complètement chargée
+        // Redirection automatique après 3 secondes
         setTimeout(() => {
+            addDebug('⏰ Déclenchement redirection automatique...');
             attemptAppRedirect();
-            
-            // Fallback automatique après 8 secondes
-            setTimeout(() => {
-                if (!redirected) {
-                    updateStatus('Timeout atteint, redirection web...');
-                    fallbackToWeb();
-                }
-            }, 8000);
-        }, 500);
-
-        // Écouter les événements de visibilité pour détecter si l'app s'ouvre
+        }, 3000);
+        
+        // Fallback vers le tableau de bord web après 10 secondes
+        setTimeout(() => {
+            if (!sessionStorage.getItem('page_left')) {
+                addDebug('⚠️ Timeout 10s atteint, redirection vers le web...');
+                goToDashboard();
+            }
+        }, 10000);
+        
+        // Détection si l'utilisateur quitte la page
+        let pageLeft = false;
+        
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                console.log('✅ Page cachée - L\'app mobile s\'est probablement ouverte');
-                redirected = true;
-                updateStatus('App ouverte avec succès!');
+            if (document.visibilityState === 'hidden' && !pageLeft) {
+                pageLeft = true;
+                sessionStorage.setItem('page_left', 'true');
+                addDebug('✅ Page cachée - App probablement ouverte !');
+            } else if (document.visibilityState === 'visible' && pageLeft) {
+                addDebug('⚠️ Retour sur la page - Redirection app a échoué');
             }
         });
-
-        // Détecter si l'utilisateur revient sur la page (échec de redirection)
+        
+        // Détection de focus/blur
+        window.addEventListener('blur', () => {
+            if (!pageLeft) {
+                addDebug('👁️ Page perdue le focus');
+            }
+        });
+        
         window.addEventListener('focus', () => {
-            if (!redirected && attempts > 0) {
-                console.log('⚠️ Retour sur la page - la redirection a échoué');
-                updateStatus('Redirection échouée, tentative web...');
-                setTimeout(fallbackToWeb, 1000);
+            if (pageLeft) {
+                addDebug('🔄 Page récupérée le focus - retour inattendu');
             }
         });
+        
+        // Log de performance
+        addDebug('⚡ Page callback chargée en ' + Math.round(performance.now()) + 'ms');
     </script>
 </body>
 </html> 

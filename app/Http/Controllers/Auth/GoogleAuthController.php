@@ -18,10 +18,14 @@ class GoogleAuthController extends Controller
      */
     public function redirect(Request $request)
     {
-        // ✅ AMÉLIORATION: Marquer les sessions mobiles pour une meilleure détection
-        if ($request->get('mobile') === '1') {
+        // Si c'est une requête mobile, marquer la session
+        if ($request->get('mobile') === '1' || MobileDetectionHelper::isCapacitorApp($request)) {
             session(['google_mobile_auth' => true]);
-            Log::info('🔧 Session mobile marquée pour Google Auth');
+            Log::info('Google auth redirect from mobile app', [
+                'mobile_param' => $request->get('mobile'),
+                'is_capacitor' => MobileDetectionHelper::isCapacitorApp($request),
+                'user_agent' => $request->header('User-Agent'),
+            ]);
         }
         
         return Socialite::driver('google')->redirect();
@@ -103,30 +107,42 @@ class GoogleAuthController extends Controller
                 }
 
                 // Utilisateur avec rôles configurés - connexion directe
+                $isMobileAuth = session('google_mobile_auth', false) || MobileDetectionHelper::isCapacitorApp($request);
+                
                 Log::info('User has roles, logging in directly:', [
                     'user_id' => $existingUser->id,
                     'email' => $existingUser->email,
                     'roles' => $existingUser->roles()->pluck('name')->toArray(),
-                    'is_mobile' => MobileDetectionHelper::isCapacitorApp($request),
+                    'is_mobile' => $isMobileAuth,
+                    'session_mobile' => session('google_mobile_auth', false),
                 ]);
                 
                 Auth::login($existingUser);
                 
-                // ✅ AMÉLIORATION: Nettoyer la session mobile après usage
-                $isMobile = MobileDetectionHelper::isCapacitorApp($request);
-                if ($isMobile) {
-                    session()->forget('google_mobile_auth');
+                // Déclencher l'enregistrement du device token pour les apps mobiles
+                if ($isMobileAuth) {
+                    session(['trigger_device_token_registration' => true]);
+                    session()->forget('google_mobile_auth'); // Nettoyer après usage
                 }
                 
                 // Ajuster la redirection selon l'environnement
-                $redirectUrl = MobileDetectionHelper::getRedirectUrl($request, '/tableau-de-bord');
-                return redirect()->intended($redirectUrl)->with('success', 'Connexion réussie avec Google !');
+                if ($isMobileAuth) {
+                    // Pour mobile : toujours rediriger vers le callback mobile
+                    Log::info('Redirecting to mobile callback for authenticated user');
+                    return redirect('/auth/mobile/callback')->with('success', 'Connexion réussie avec Google !');
+                } else {
+                    // Pour web : redirection normale
+                    return redirect()->intended('/tableau-de-bord')->with('success', 'Connexion réussie avec Google !');
+                }
             }
 
             // Nouvel utilisateur - créer le compte et demander les rôles
+            $isMobileAuth = session('google_mobile_auth', false) || MobileDetectionHelper::isCapacitorApp($request);
+            
             Log::info('New Google user, redirecting to role selection:', [
                 'email' => $googleUser->getEmail(),
                 'name' => $googleUser->getName(),
+                'is_mobile' => $isMobileAuth,
             ]);
             
             session([

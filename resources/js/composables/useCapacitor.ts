@@ -1,141 +1,110 @@
 import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { router } from '@inertiajs/vue3';
-
-// Variable pour éviter les listeners multiples
-let listenerSetup = false;
+import { onMounted, onUnmounted, ref } from 'vue';
 
 export function useCapacitor() {
-    /**
-     * Vérifie si l'application s'exécute dans un environnement Capacitor (mobile)
-     */
-    const isCapacitor = Capacitor.isNativePlatform();
+    const isNative = ref(Capacitor.isNativePlatform());
+    const platform = ref(Capacitor.getPlatform());
 
     /**
-     * Vérifie si l'application s'exécute sur iOS
+     * Gérer les URL d'entrée dans l'app (deep links)
      */
-    const isIOS = Capacitor.getPlatform() === 'ios';
+    const handleAppUrlOpen = (event: any) => {
+        console.log('🔗 Deep link reçu:', event.url);
 
-    /**
-     * Vérifie si l'application s'exécute sur Android
-     */
-    const isAndroid = Capacitor.getPlatform() === 'android';
-
-    /**
-     * Ouvre une URL dans le navigateur en utilisant le plugin Browser de Capacitor
-     * Cela maintient l'utilisateur dans l'application au lieu d'ouvrir le navigateur système
-     */
-    const openInAppBrowser = async (url: string) => {
-        if (isCapacitor) {
-            await Browser.open({
-                url,
-                windowName: '_blank',
+        try {
+            // Parser l'URL reçue
+            const url = new URL(event.url);
+            console.log('📍 URL parsée:', {
+                scheme: url.protocol,
+                host: url.hostname,
+                pathname: url.pathname,
+                search: url.search,
             });
-        } else {
-            // Fallback pour le web
-            window.location.href = url;
-        }
-    };
 
-    /**
-     * Configure le listener pour intercepter les custom URL schemes
-     * ✅ AMÉLIORATION: Éviter les listeners multiples
-     */
-    const setupAppUrlListener = () => {
-        if (isCapacitor && !listenerSetup) {
-            listenerSetup = true;
-            
-            App.addListener('appUrlOpen', (event) => {
-                console.log('🔗 URL interceptée dans l\'app:', event.url);
+            // Gérer les callbacks d'authentification
+            if (url.pathname === '/auth/callback') {
+                const success = url.searchParams.get('success');
 
-                // Vérifier si c'est notre URL d'auth callback
-                if (event.url.startsWith('trouvetababysitter://auth/callback')) {
-                    console.log('✅ Callback d\'authentification détecté!');
-                    
-                    // Attendre un peu pour laisser le temps au browser de se fermer
-                    setTimeout(async () => {
-                        try {
-                            // Fermer le navigateur ouvert s'il existe
-                            await Browser.close().catch(() => {
-                                console.log('ℹ️ Navigateur déjà fermé ou non ouvert');
-                            });
-                            
-                            console.log('🔄 Redirection vers le dashboard...');
-                            
-                            // Rediriger vers le dashboard avec rechargement complet
-                            router.visit('/tableau-de-bord', {
-                                method: 'get',
-                                preserveState: false,
-                                preserveScroll: false,
-                                replace: true
-                            });
-                        } catch (error) {
-                            console.error('❌ Erreur lors de la redirection:', error);
-                            // Fallback: utiliser window.location
-                            window.location.href = '/tableau-de-bord';
-                        }
-                    }, 500);
+                console.log("🔐 Callback d'authentification détecté, success:", success);
+
+                if (success === '1') {
+                    console.log('✅ Authentification réussie via deep link');
+
+                    // Rediriger vers le tableau de bord avec flag pour déclencher l'enregistrement du device token
+                    router.visit('/tableau-de-bord?mobile_auth=success&register_device_token=1', {
+                        onSuccess: () => {
+                            console.log('🏠 Redirection vers tableau de bord terminée');
+                        },
+                        onError: (errors) => {
+                            console.error('❌ Erreur redirection:', errors);
+                        },
+                    });
+                } else {
+                    console.log('❌ Authentification échouée via deep link');
+                    router.visit('/connexion?error=auth_failed');
                 }
-
-                // Gestion d'autres types de deep links si nécessaire
-                if (event.url.startsWith('trouvetababysitter://')) {
-                    console.log('🔗 Deep link détecté:', event.url);
-                    // Ici vous pouvez ajouter d'autres handlers pour différents deep links
-                }
-            });
-            
-            console.log('✅ Listener appUrlOpen configuré');
-        } else if (listenerSetup) {
-            console.log('ℹ️ Listener déjà configuré, évitement de doublons');
+            } else {
+                console.log('🔗 Deep link non géré:', url.pathname);
+            }
+        } catch (error) {
+            console.error('❌ Erreur parsing deep link:', error);
         }
     };
 
     /**
-     * Navigue vers une URL d'authentification Google de manière appropriée
-     * selon l'environnement (mobile vs web)
-     * ✅ AMÉLIORATION: Ne pas reconfigurer le listener à chaque fois
+     * Initialiser les listeners Capacitor
      */
-    const navigateToGoogleAuth = async (googleAuthUrl: string) => {
-        if (isCapacitor) {
-            // Ajouter un paramètre pour identifier les requêtes mobiles
-            const url = new URL(googleAuthUrl, window.location.origin);
-            url.searchParams.set('mobile', '1');
-
-            console.log('🔄 Ouverture URL Google dans navigateur externe:', url.toString());
-
-            // Le listener est déjà configuré au démarrage de l'app
-            // Pas besoin de le reconfigurer ici
-
-            // Ouvrir l'authentification Google dans un navigateur externe
-            await Browser.open({
-                url: url.toString(),
-                windowName: '_blank',
-            });
-        } else {
-            // Sur web, navigation normale
-            window.location.href = googleAuthUrl;
+    const initializeCapacitor = () => {
+        if (!isNative.value) {
+            console.log('📱 Non-native platform, skipping Capacitor initialization');
+            return;
         }
+
+        console.log('🚀 Initialisation des listeners Capacitor...');
+
+        // Écouter les URLs d'entrée (deep links)
+        App.addListener('appUrlOpen', handleAppUrlOpen);
+
+        // Écouter les changements d'état de l'app
+        App.addListener('appStateChange', (state) => {
+            console.log('📱 App state changed:', state.isActive ? 'active' : 'background');
+        });
+
+        // Log de l'état initial
+        App.getInfo().then((info) => {
+            console.log('📋 App Info:', info);
+        });
+
+        console.log('✅ Listeners Capacitor configurés');
     };
 
     /**
-     * Configure les headers pour les requêtes Axios/HTTP quand on est dans Capacitor
+     * Nettoyer les listeners
      */
-    const setupMobileHeaders = () => {
-        if (isCapacitor && (window as any).axios) {
-            // Ajouter un header personnalisé pour identifier l'app mobile
-            (window as any).axios.defaults.headers.common['X-Capacitor-App'] = 'true';
-            (window as any).axios.defaults.headers.common['X-App-Platform'] = Capacitor.getPlatform();
-        }
+    const cleanupCapacitor = () => {
+        if (!isNative.value) return;
+
+        console.log('🧹 Nettoyage des listeners Capacitor...');
+        App.removeAllListeners();
     };
+
+    // Initialiser automatiquement
+    onMounted(() => {
+        initializeCapacitor();
+    });
+
+    // Nettoyer lors du démontage
+    onUnmounted(() => {
+        cleanupCapacitor();
+    });
 
     return {
-        isCapacitor,
-        isIOS,
-        isAndroid,
-        openInAppBrowser,
-        navigateToGoogleAuth,
-        setupMobileHeaders,
-        setupAppUrlListener,
+        isNative,
+        platform,
+        initializeCapacitor,
+        cleanupCapacitor,
+        handleAppUrlOpen, // Exposer pour les tests
     };
 }
