@@ -1,4 +1,5 @@
 import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
@@ -25,31 +26,46 @@ export function useCapacitor() {
 
             // Gérer les callbacks d'authentification
             if (url.pathname === '/auth/callback') {
-                const success = url.searchParams.get('success');
-
-                console.log("🔐 Callback d'authentification détecté, success:", success);
-
-                if (success === '1') {
-                    console.log('✅ Authentification réussie via deep link');
-
-                    // Rediriger vers le tableau de bord avec flag pour déclencher l'enregistrement du device token
-                    router.visit('/tableau-de-bord?mobile_auth=success&register_device_token=1', {
-                        onSuccess: () => {
-                            console.log('🏠 Redirection vers tableau de bord terminée');
-                        },
-                        onError: (errors) => {
-                            console.error('❌ Erreur redirection:', errors);
-                        },
-                    });
-                } else {
-                    console.log('❌ Authentification échouée via deep link');
-                    router.visit('/connexion?error=auth_failed');
-                }
+                handleAuthCallback(url);
             } else {
                 console.log('🔗 Deep link non géré:', url.pathname);
             }
         } catch (error) {
             console.error('❌ Erreur parsing deep link:', error);
+        }
+    };
+
+    /**
+     * Gérer spécifiquement les callbacks d'authentification
+     */
+    const handleAuthCallback = async (url: URL) => {
+        const success = url.searchParams.get('success');
+
+        console.log("🔐 Callback d'authentification détecté, success:", success);
+
+        try {
+            // Fermer le navigateur externe en premier
+            await Browser.close();
+            console.log('🌐 Navigateur externe fermé');
+        } catch {
+            console.log('ℹ️ Navigateur déjà fermé ou erreur fermeture');
+        }
+
+        if (success === '1') {
+            console.log('✅ Authentification réussie via deep link');
+
+            // Rediriger vers le tableau de bord avec flag pour déclencher l'enregistrement du device token
+            router.visit('/tableau-de-bord?mobile_auth=success&register_device_token=1', {
+                onSuccess: () => {
+                    console.log('🏠 Redirection vers tableau de bord terminée');
+                },
+                onError: (errors) => {
+                    console.error('❌ Erreur redirection:', errors);
+                },
+            });
+        } else {
+            console.log('❌ Authentification échouée via deep link');
+            router.visit('/connexion?error=auth_failed');
         }
     };
 
@@ -64,20 +80,28 @@ export function useCapacitor() {
 
         console.log('🚀 Initialisation des listeners Capacitor...');
 
-        // Écouter les URLs d'entrée (deep links)
-        App.addListener('appUrlOpen', handleAppUrlOpen);
+        try {
+            // Écouter les URLs d'entrée (deep links)
+            App.addListener('appUrlOpen', handleAppUrlOpen);
 
-        // Écouter les changements d'état de l'app
-        App.addListener('appStateChange', (state) => {
-            console.log('📱 App state changed:', state.isActive ? 'active' : 'background');
-        });
+            // Écouter les changements d'état de l'app
+            App.addListener('appStateChange', (state) => {
+                console.log('📱 App state changed:', state.isActive ? 'active' : 'background');
+            });
 
-        // Log de l'état initial
-        App.getInfo().then((info) => {
-            console.log('📋 App Info:', info);
-        });
+            // Log de l'état initial
+            App.getInfo()
+                .then((info) => {
+                    console.log('📋 App Info:', info);
+                })
+                .catch((error) => {
+                    console.error('❌ Erreur récupération App Info:', error);
+                });
 
-        console.log('✅ Listeners Capacitor configurés');
+            console.log('✅ Listeners Capacitor configurés');
+        } catch (error) {
+            console.error('❌ Erreur configuration listeners Capacitor:', error);
+        }
     };
 
     /**
@@ -87,7 +111,11 @@ export function useCapacitor() {
         if (!isNative.value) return;
 
         console.log('🧹 Nettoyage des listeners Capacitor...');
-        App.removeAllListeners();
+        try {
+            App.removeAllListeners();
+        } catch (error) {
+            console.error('❌ Erreur nettoyage listeners:', error);
+        }
     };
 
     // Initialiser automatiquement
