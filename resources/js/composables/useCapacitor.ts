@@ -3,6 +3,9 @@ import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { router } from '@inertiajs/vue3';
 
+// Variable pour éviter les listeners multiples
+let listenerSetup = false;
+
 export function useCapacitor() {
     /**
      * Vérifie si l'application s'exécute dans un environnement Capacitor (mobile)
@@ -37,29 +40,61 @@ export function useCapacitor() {
 
     /**
      * Configure le listener pour intercepter les custom URL schemes
+     * ✅ AMÉLIORATION: Éviter les listeners multiples
      */
     const setupAppUrlListener = () => {
-        if (isCapacitor) {
+        if (isCapacitor && !listenerSetup) {
+            listenerSetup = true;
+            
             App.addListener('appUrlOpen', (event) => {
-                console.log('🔗 URL interceptée:', event.url);
+                console.log('🔗 URL interceptée dans l\'app:', event.url);
 
                 // Vérifier si c'est notre URL d'auth callback
                 if (event.url.startsWith('trouvetababysitter://auth/callback')) {
-                    console.log('✅ Authentification réussie, redirection vers dashboard...');
+                    console.log('✅ Callback d\'authentification détecté!');
+                    
+                    // Attendre un peu pour laisser le temps au browser de se fermer
+                    setTimeout(async () => {
+                        try {
+                            // Fermer le navigateur ouvert s'il existe
+                            await Browser.close().catch(() => {
+                                console.log('ℹ️ Navigateur déjà fermé ou non ouvert');
+                            });
+                            
+                            console.log('🔄 Redirection vers le dashboard...');
+                            
+                            // Rediriger vers le dashboard avec rechargement complet
+                            router.visit('/tableau-de-bord', {
+                                method: 'get',
+                                preserveState: false,
+                                preserveScroll: false,
+                                replace: true
+                            });
+                        } catch (error) {
+                            console.error('❌ Erreur lors de la redirection:', error);
+                            // Fallback: utiliser window.location
+                            window.location.href = '/tableau-de-bord';
+                        }
+                    }, 500);
+                }
 
-                    // Fermer le navigateur ouvert
-                    Browser.close();
-
-                    // Rediriger vers le dashboard
-                    router.visit('/tableau-de-bord');
+                // Gestion d'autres types de deep links si nécessaire
+                if (event.url.startsWith('trouvetababysitter://')) {
+                    console.log('🔗 Deep link détecté:', event.url);
+                    // Ici vous pouvez ajouter d'autres handlers pour différents deep links
                 }
             });
+            
+            console.log('✅ Listener appUrlOpen configuré');
+        } else if (listenerSetup) {
+            console.log('ℹ️ Listener déjà configuré, évitement de doublons');
         }
     };
 
     /**
      * Navigue vers une URL d'authentification Google de manière appropriée
      * selon l'environnement (mobile vs web)
+     * ✅ AMÉLIORATION: Ne pas reconfigurer le listener à chaque fois
      */
     const navigateToGoogleAuth = async (googleAuthUrl: string) => {
         if (isCapacitor) {
@@ -69,8 +104,8 @@ export function useCapacitor() {
 
             console.log('🔄 Ouverture URL Google dans navigateur externe:', url.toString());
 
-            // Configurer le listener avant d'ouvrir le navigateur
-            setupAppUrlListener();
+            // Le listener est déjà configuré au démarrage de l'app
+            // Pas besoin de le reconfigurer ici
 
             // Ouvrir l'authentification Google dans un navigateur externe
             await Browser.open({

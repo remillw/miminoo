@@ -9,8 +9,10 @@ import { Eye, EyeOff, LoaderCircle, Lock, Mail, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
 import { z } from 'zod';
+import { useCapacitor } from '@/composables/useCapacitor';
 
 const { showSuccess, showError } = useToast();
+const { navigateToGoogleAuth } = useCapacitor();
 
 const isPasswordVisible = ref(false);
 const isPasswordConfirmVisible = ref(false);
@@ -195,6 +197,11 @@ const onSubmit = () => {
         },
     });
 };
+
+const handleGoogleAuth = async () => {
+    const googleAuthUrl = route('google.redirect');
+    await navigateToGoogleAuth(googleAuthUrl);
+};
 </script>
 
 <template>
@@ -210,8 +217,9 @@ const onSubmit = () => {
             <!-- Boutons de connexion sociale -->
             <div class="mb-6 space-y-3">
                 <!-- Bouton Google -->
-                <a
-                    :href="route('google.redirect')"
+                <button
+                    @click="handleGoogleAuth"
+                    type="button"
                     class="focus:ring-primary inline-flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none"
                 >
                     <svg class="h-5 w-5" viewBox="0 0 24 24">
@@ -233,7 +241,7 @@ const onSubmit = () => {
                         />
                     </svg>
                     Continuer avec Google
-                </a>
+                </button>
 
                 <!-- Bouton Apple - Commenté pour l'instant -->
                 <!--

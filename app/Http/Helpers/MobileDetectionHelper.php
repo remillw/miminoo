@@ -43,6 +43,12 @@ class MobileDetectionHelper
             stripos($referer, 'fr.trouvetababysitter.mobile') !== false) {
             return true;
         }
+
+        // ✅ AMÉLIORATION: Détecter si on vient d'un callback Google Auth mobile
+        // En vérifiant la session ou des paramètres spécifiques
+        if ($request->session()->has('google_mobile_auth')) {
+            return true;
+        }
         
         return false;
     }

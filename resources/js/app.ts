@@ -54,9 +54,14 @@ createInertiaApp({
 
         // Configurer les headers mobiles et listeners si on est dans Capacitor
         if (typeof window !== 'undefined') {
-            const { setupMobileHeaders, setupAppUrlListener } = useCapacitor();
+            const { setupMobileHeaders, setupAppUrlListener, isCapacitor } = useCapacitor();
             setupMobileHeaders();
-            setupAppUrlListener();
+            
+            // ✅ IMPORTANT: Configurer le listener dès le démarrage de l'app
+            if (isCapacitor) {
+                setupAppUrlListener();
+                console.log('🔧 Listener URL scheme configuré au démarrage');
+            }
         }
 
         // Rendre Echo disponible globalement seulement côté client

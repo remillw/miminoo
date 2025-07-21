@@ -18,6 +18,12 @@ class GoogleAuthController extends Controller
      */
     public function redirect(Request $request)
     {
+        // ✅ AMÉLIORATION: Marquer les sessions mobiles pour une meilleure détection
+        if ($request->get('mobile') === '1') {
+            session(['google_mobile_auth' => true]);
+            Log::info('🔧 Session mobile marquée pour Google Auth');
+        }
+        
         return Socialite::driver('google')->redirect();
     }
 
@@ -106,6 +112,12 @@ class GoogleAuthController extends Controller
                 
                 Auth::login($existingUser);
                 
+                // ✅ AMÉLIORATION: Nettoyer la session mobile après usage
+                $isMobile = MobileDetectionHelper::isCapacitorApp($request);
+                if ($isMobile) {
+                    session()->forget('google_mobile_auth');
+                }
+                
                 // Ajuster la redirection selon l'environnement
                 $redirectUrl = MobileDetectionHelper::getRedirectUrl($request, '/tableau-de-bord');
                 return redirect()->intended($redirectUrl)->with('success', 'Connexion réussie avec Google !');
@@ -180,6 +192,13 @@ class GoogleAuthController extends Controller
                 $user->update(['status' => $status]);
 
                 session()->forget(['google_user', 'existing_user_id']);
+                
+                // ✅ AMÉLIORATION: Nettoyer la session mobile après usage
+                $isMobile = MobileDetectionHelper::isCapacitorApp($request);
+                if ($isMobile) {
+                    session()->forget('google_mobile_auth');
+                }
+                
                 Auth::login($user);
 
                 $redirectUrl = MobileDetectionHelper::getRedirectUrl($request, '/tableau-de-bord');
@@ -248,6 +267,12 @@ class GoogleAuthController extends Controller
 
         // Supprimer les données de session
         session()->forget(['google_user', 'existing_user_id']);
+
+        // ✅ AMÉLIORATION: Nettoyer la session mobile après usage
+        $isMobile = MobileDetectionHelper::isCapacitorApp(request());
+        if ($isMobile) {
+            session()->forget('google_mobile_auth');
+        }
 
         // Connexion automatique
         Auth::login($user);
