@@ -15,29 +15,9 @@ declare global {
 // Variable globale pour éviter les multiples initialisations
 let isPushNotificationsInitialized = false;
 
-// Fonction pour charger Capacitor dynamiquement
-const loadCapacitor = async () => {
-    if (Capacitor) return Capacitor;
-    
-    try {
-        // Vérifier si on est dans un environnement web
-        if (typeof window === 'undefined' || !window.location.protocol.startsWith('capacitor')) {
-            return null;
-        }
-        
-        const capacitorModule = await import('@capacitor/core');
-        Capacitor = capacitorModule.Capacitor;
-        return Capacitor;
-    } catch (error) {
-        console.log('🌐 Capacitor non disponible, environnement web détecté');
-        return null;
-    }
-};
-
-// Fonction helper pour vérifier si on est sur mobile
-const isNativePlatform = async () => {
-    const capacitor = await loadCapacitor();
-    return capacitor?.isNativePlatform() ?? false;
+// Helper pour vérifier si on est sur mobile
+const isNativePlatform = () => {
+    return typeof window !== 'undefined' && !!(window as any).Capacitor;
 };
 
 export function usePushNotifications() {
@@ -49,8 +29,7 @@ export function usePushNotifications() {
      */
     const initializePushNotifications = async () => {
         // Vérifier si on est sur une plateforme native (pas web)
-        const isNative = await isNativePlatform();
-        if (!isNative) {
+        if (!isNativePlatform()) {
             console.log('🌐 OneSignal uniquement disponible sur mobile');
             return;
         }
@@ -169,9 +148,8 @@ export function usePushNotifications() {
         const shouldRegisterFromSession = (page.props as any).triggerDeviceTokenRegistration;
 
         const shouldRegister = shouldRegisterFromUrl || shouldRegisterFromSession;
-        const isNative = await isNativePlatform();
 
-        if (shouldRegister && isNative) {
+        if (shouldRegister && (window as any).Capacitor) {
             console.log("🔔 Déclenchement de l'enregistrement device token après connexion", {
                 from_url: shouldRegisterFromUrl,
                 from_session: shouldRegisterFromSession
@@ -195,9 +173,8 @@ export function usePushNotifications() {
      */
     const sendTokenToBackend = async (playerId: string) => {
         try {
-            // Détecter le type d'appareil
-            const capacitor = await loadCapacitor();
-            const deviceType = capacitor?.getPlatform() ?? 'web'; // 'ios' ou 'android'
+            // Détecter le type d'appareil via window.Capacitor
+            const deviceType = (window as any).Capacitor?.getPlatform() ?? 'unknown';
 
             console.log('📤 Envoi OneSignal Player ID au backend...', {
                 device_type: deviceType,
@@ -277,22 +254,15 @@ export function usePushNotifications() {
             return;
         }
 
-        try {
-            // Charger Capacitor maintenant qu'on sait qu'on est en natif
-            const { Capacitor: CapacitorModule } = await import('@capacitor/core');
-            
-            console.log('📱 Plateforme native détectée pour OneSignal:', CapacitorModule.getPlatform());
+        console.log('📱 Environnement Capacitor détecté, plateforme:', (window as any).Capacitor.getPlatform());
 
-            // Vérifier d'abord si on doit s'enregistrer suite à une connexion
-            await checkForTriggeredRegistration();
+        // Vérifier d'abord si on doit s'enregistrer suite à une connexion
+        await checkForTriggeredRegistration();
 
-            // Initialisation normale seulement si pas déjà fait
-            if (!isPushNotificationsInitialized) {
-                console.log('🔔 Initialisation automatique de OneSignal');
-                initializePushNotifications();
-            }
-        } catch (error) {
-            console.log('❌ Erreur chargement modules OneSignal:', error);
+        // Initialisation normale seulement si pas déjà fait
+        if (!isPushNotificationsInitialized) {
+            console.log('🔔 Initialisation automatique de OneSignal');
+            initializePushNotifications();
         }
     });
 
