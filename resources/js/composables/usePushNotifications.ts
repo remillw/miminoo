@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/vue3';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 
 // Déclaration globale pour Capacitor
 declare global {
@@ -215,10 +215,7 @@ const initializePushNotifications = async (): Promise<void> => {
  * Hook de composition pour les notifications push
  */
 export function usePushNotifications() {
-    // Initialiser automatiquement au montage
-    onMounted(() => {
-        initializePushNotifications();
-    });
+    // Plus d'initialisation automatique - elle se fera explicitement depuis AppLayout
 
     return {
         isRegistered,

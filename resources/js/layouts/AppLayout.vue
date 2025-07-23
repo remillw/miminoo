@@ -3,6 +3,7 @@ import { useCapacitor } from '@/composables/useCapacitor';
 import { usePushNotifications } from '@/composables/usePushNotifications';
 import AppLayout from '@/layouts/app/AppSidebarLayout.vue';
 import type { BreadcrumbItemType } from '@/types';
+import { onMounted } from 'vue';
 
 interface Props {
     breadcrumbs?: BreadcrumbItemType[];
@@ -13,16 +14,29 @@ withDefaults(defineProps<Props>(), {
 });
 
 // Initialiser les notifications push
-const { isRegistered, permissionStatus } = usePushNotifications();
+const { isRegistered, permissionStatus, initializePushNotifications } = usePushNotifications();
 
 // Initialiser Capacitor pour gérer les deep links
 const { isNative, platform } = useCapacitor();
 
-// Debug logs pour vérifier l'initialisation
-console.log('🏗️ AppLayout initialisé', {
-    isNative: isNative.value,
-    platform: platform.value,
-    pushPermission: permissionStatus.value,
+// Initialisation explicite au montage
+onMounted(async () => {
+    console.log('🏗️ AppLayout monté, initialisation...');
+
+    // Debug logs pour vérifier l'initialisation
+    console.log('🔧 État initial:', {
+        isNative: isNative.value,
+        platform: platform.value,
+        pushPermission: permissionStatus.value,
+    });
+
+    // Appeler explicitement l'initialisation des push notifications
+    if (isNative.value) {
+        console.log('📱 Plateforme native détectée, initialisation push notifications...');
+        await initializePushNotifications();
+    } else {
+        console.log('🌐 Plateforme web, skip push notifications');
+    }
 });
 </script>
 
