@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useUserMode } from '@/composables/useUserMode';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, PlusCircle, Settings, User, Users } from 'lucide-vue-next';
-import { computed, onMounted } from 'vue';
+import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, MoreHorizontal, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
 
 interface Props {
     hasParentRole: boolean;
@@ -12,6 +12,9 @@ interface Props {
 
 const props = defineProps<Props>();
 const { currentMode, initializeMode, setMode } = useUserMode();
+
+// État pour le menu mobile étendu
+const showMobileMenu = ref(false);
 
 // Initialiser le mode au montage
 onMounted(() => {
@@ -175,8 +178,9 @@ const isActive = (href: string) => {
     <div class="fixed right-0 bottom-0 left-0 z-50 lg:hidden">
         <div class="border-t bg-white px-4 py-2 shadow-lg">
             <div class="flex items-center justify-around">
+                <!-- Les 3 premiers liens principaux -->
                 <Link
-                    v-for="link in links.slice(0, 4)"
+                    v-for="link in links.slice(0, 3)"
                     :key="link.name"
                     :href="link.href"
                     :class="['flex flex-col items-center gap-1 p-2 transition-colors', isActive(link.href) ? 'text-primary' : 'text-gray-500']"
@@ -184,6 +188,67 @@ const isActive = (href: string) => {
                     <component :is="link.icon" class="h-5 w-5" />
                     <span class="text-xs font-medium">{{ link.name.split(' ')[0] }}</span>
                 </Link>
+                
+                <!-- Bouton Plus pour ouvrir le menu complet -->
+                <button 
+                    @click="showMobileMenu = true"
+                    class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors"
+                >
+                    <MoreHorizontal class="h-5 w-5" />
+                    <span class="text-xs font-medium">Plus</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Menu mobile étendu en overlay -->
+        <div 
+            v-if="showMobileMenu" 
+            class="fixed inset-0 z-50 bg-black bg-opacity-50"
+            @click="showMobileMenu = false"
+        >
+            <div 
+                class="absolute bottom-0 left-0 right-0 max-h-96 overflow-y-auto bg-white rounded-t-xl shadow-lg"
+                @click.stop
+            >
+                <div class="p-4">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">Menu</h3>
+                        <button @click="showMobileMenu = false" class="text-gray-400 hover:text-gray-600">
+                            <X class="h-5 w-5" />
+                        </button>
+                    </div>
+                    
+                    <nav class="space-y-2">
+                        <!-- Tous les liens du menu -->
+                        <Link
+                            v-for="link in links"
+                            :key="link.name"
+                            :href="link.href"
+                            @click="showMobileMenu = false"
+                            :class="[
+                                isActive(link.href) ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50',
+                                'group flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors',
+                            ]"
+                        >
+                            <component :is="link.icon" :class="[isActive(link.href) ? 'text-white' : 'text-gray-400', 'mr-3 h-5 w-5']" />
+                            {{ link.name }}
+                        </Link>
+                        
+                        <!-- Séparateur -->
+                        <div class="border-t border-gray-200 my-2"></div>
+                        
+                        <!-- Lien de déconnexion -->
+                        <Link
+                            href="/deconnexion"
+                            method="post"
+                            @click="showMobileMenu = false"
+                            class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <LogOut class="mr-3 h-5 w-5 text-red-500" />
+                            Déconnexion
+                        </Link>
+                    </nav>
+                </div>
             </div>
         </div>
     </div>

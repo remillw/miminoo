@@ -12,7 +12,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Modifier l'enum pour ajouter 'expired'
+        // Première étape : nettoyer les données existantes qui ont des statuts invalides
+        // Convertir les statuts 'expired' existants vers 'cancelled_by_parent' temporairement
+        DB::statement("UPDATE reservations SET status = 'cancelled_by_parent' WHERE status NOT IN (
+            'pending_payment',
+            'paid',
+            'active',
+            'completed',
+            'cancelled_by_parent',
+            'cancelled_by_babysitter',
+            'disputed'
+        )");
+
+        // Deuxième étape : modifier l'enum pour ajouter 'expired'
         DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM(
             'pending_payment',
             'paid',
@@ -23,6 +35,12 @@ return new class extends Migration
             'disputed',
             'expired'
         ) DEFAULT 'pending_payment'");
+
+        // Troisième étape : remettre les statuts 'expired' là où c'est approprié
+        // (réservations annulées avec une raison de timeout de paiement)
+        DB::statement("UPDATE reservations SET status = 'expired' WHERE 
+            status = 'cancelled_by_parent' AND 
+            cancellation_reason = 'payment_timeout'");
     }
 
     /**
@@ -30,6 +48,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Avant de supprimer le statut 'expired', convertir les enregistrements vers un statut valide
+        DB::statement("UPDATE reservations SET status = 'cancelled_by_parent' WHERE status = 'expired'");
+
         // Remettre l'enum à son état original
         DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM(
             'pending_payment',

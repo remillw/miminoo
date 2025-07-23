@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, PlusCircle, Settings, User, X } from 'lucide-vue-next';
+import { Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, MoreHorizontal, PlusCircle, Settings, User, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const showFullMenu = ref(false);
@@ -64,9 +64,10 @@ const isCurrentRoute = (href: string) => {
 
     <!-- Mobile Bottom Navigation -->
     <div class="fixed right-0 bottom-0 left-0 z-50 border-t border-gray-200 bg-white lg:hidden">
-        <div class="grid grid-cols-4 gap-1 px-2 py-2">
+        <div class="flex items-center justify-around px-2 py-2">
+            <!-- Les 3 premiers liens principaux -->
             <Link
-                v-for="item in mobileLinks"
+                v-for="item in mobileLinks.slice(0, 3)"
                 :key="item.label"
                 :href="item.href"
                 :class="[
@@ -77,12 +78,14 @@ const isCurrentRoute = (href: string) => {
                 <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-600' : 'text-gray-400', 'mb-1 h-5 w-5']" />
                 <span class="text-xs font-medium">{{ item.label }}</span>
             </Link>
-        </div>
-
-        <!-- Menu complet accessible via un bouton -->
-        <div class="absolute top-0 right-4 -translate-y-full transform">
-            <button @click="showFullMenu = !showFullMenu" class="rounded-t-lg bg-blue-600 p-2 text-white shadow-lg">
-                <Menu class="h-5 w-5" />
+            
+            <!-- Bouton Plus pour ouvrir le menu complet -->
+            <button 
+                @click="showFullMenu = !showFullMenu" 
+                class="flex flex-col items-center justify-center rounded-lg px-1 py-2 text-gray-600 transition-colors"
+            >
+                <MoreHorizontal class="mb-1 h-5 w-5 text-gray-400" />
+                <span class="text-xs font-medium">Plus</span>
             </button>
         </div>
 
@@ -108,6 +111,20 @@ const isCurrentRoute = (href: string) => {
                     >
                         <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-500' : 'text-gray-400', 'mr-3 h-5 w-5']" />
                         {{ item.label }}
+                    </Link>
+                    
+                    <!-- Séparateur -->
+                    <div class="border-t border-gray-200 my-2"></div>
+                    
+                    <!-- Lien de déconnexion -->
+                    <Link
+                        href="/deconnexion"
+                        method="post"
+                        @click="showFullMenu = false"
+                        class="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                        <LogOut class="mr-3 h-5 w-5 text-red-500" />
+                        Déconnexion
                     </Link>
                 </nav>
             </div>
