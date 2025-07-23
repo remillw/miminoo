@@ -1,8 +1,10 @@
-import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
-import { Capacitor } from '@capacitor/core';
 import { router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
+
+// Variables pour les imports dynamiques
+let App: any = null;
+let Browser: any = null;
+let Capacitor: any = null;
 
 // Variable globale pour éviter les multiples initialisations
 let isCapacitorInitialized = false;
@@ -83,11 +85,44 @@ export function useCapacitor() {
     };
 
     /**
+     * Charger les modules Capacitor dynamiquement
+     */
+    const loadCapacitorModules = async () => {
+        if (typeof window === 'undefined' || !window.location.protocol.startsWith('capacitor')) {
+            return false;
+        }
+
+        try {
+            const [appModule, browserModule, coreModule] = await Promise.all([
+                import('@capacitor/app'),
+                import('@capacitor/browser'),
+                import('@capacitor/core')
+            ]);
+            
+            App = appModule.App;
+            Browser = browserModule.Browser;
+            Capacitor = coreModule.Capacitor;
+            
+            return true;
+        } catch (error) {
+            console.log('🌐 Capacitor non disponible, environnement web détecté');
+            return false;
+        }
+    };
+
+    /**
      * Initialisation de Capacitor
      */
     const initializeCapacitor = async () => {
         if (isCapacitorInitialized) {
             console.log('⚠️ Capacitor déjà initialisé, skip');
+            return;
+        }
+
+        // Charger les modules d'abord
+        const modulesLoaded = await loadCapacitorModules();
+        if (!modulesLoaded) {
+            console.log('🌐 Pas sur plateforme native, skip init Capacitor');
             return;
         }
 
@@ -106,7 +141,7 @@ export function useCapacitor() {
             console.log('📱 Plateforme détectée:', platform.value);
 
             // Écouter les changements d'état de l'app
-            appStateChangeListener.value = await App.addListener('appStateChange', (state) => {
+            appStateChangeListener.value = await App.addListener('appStateChange', (state: any) => {
                 console.log('📱 App state changed:', state.isActive);
             });
 
@@ -144,8 +179,14 @@ export function useCapacitor() {
     };
 
     // Initialisation au montage
-    onMounted(() => {
-        initializeCapacitor();
+    onMounted(async () => {
+        // Skip complètement sur web
+        if (typeof window !== 'undefined' && !window.location.protocol.startsWith('capacitor')) {
+            console.log('🌐 Environment web détecté - Capacitor désactivé');
+            return;
+        }
+        
+        await initializeCapacitor();
     });
 
     // Nettoyage au démontage
