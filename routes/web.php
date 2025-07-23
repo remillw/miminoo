@@ -365,6 +365,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/device-token', [App\Http\Controllers\DeviceTokenController::class, 'store'])->name('device-token.store');
     Route::delete('/device-token', [App\Http\Controllers\DeviceTokenController::class, 'destroy'])->name('device-token.destroy');
     Route::put('/device-token/preferences', [App\Http\Controllers\DeviceTokenController::class, 'updatePreferences'])->name('device-token.preferences');
+    Route::post('/clear-device-token-flag', [App\Http\Controllers\DeviceTokenController::class, 'clearRegistrationFlag'])->name('device-token.clear-flag');
 });
 
 // Support pour le broadcasting (authentification WebSocket)

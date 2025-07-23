@@ -85,6 +85,8 @@ class HandleInertiaRequests extends Middleware
             // Notifications globales disponibles sur toutes les pages
             'unreadNotifications' => $unreadNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
+            // Device token registration flag pour mobile
+            'triggerDeviceTokenRegistration' => $request->session()->get('trigger_device_token_registration', false),
         ];
     }
 

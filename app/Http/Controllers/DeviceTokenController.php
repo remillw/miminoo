@@ -100,4 +100,20 @@ class DeviceTokenController extends Controller
             'message' => 'Préférences mises à jour'
         ]);
     }
+
+    /**
+     * Nettoyer le flag de session pour l'enregistrement du device token
+     */
+    public function clearRegistrationFlag(Request $request)
+    {
+        $request->session()->forget('trigger_device_token_registration');
+        
+        Log::info('Flag d\'enregistrement device token nettoyé', [
+            'user_id' => Auth::id()
+        ]);
+
+        return response()->json([
+            'message' => 'Flag nettoyé avec succès'
+        ]);
+    }
 }

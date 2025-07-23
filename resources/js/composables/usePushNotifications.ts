@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
 export function usePushNotifications() {
@@ -37,13 +37,31 @@ export function usePushNotifications() {
      * Vérifier si l'enregistrement du device token a été demandé après connexion
      */
     const checkForTriggeredRegistration = async () => {
-        // Vérifier s'il y a un flag dans l'URL ou session pour déclencher l'enregistrement
+        // Vérifier s'il y a un flag dans l'URL pour déclencher l'enregistrement
         const urlParams = new URLSearchParams(window.location.search);
-        const shouldRegister = urlParams.get('register_device_token') === '1' || urlParams.get('mobile_auth') === 'success';
+        const shouldRegisterFromUrl = urlParams.get('register_device_token') === '1' || urlParams.get('mobile_auth') === 'success';
+
+        // Vérifier aussi s'il y a une session Laravel qui indique qu'on doit s'enregistrer
+        // Cela sera automatiquement disponible via les props Inertia
+        const page = usePage();
+        const shouldRegisterFromSession = (page.props as any).triggerDeviceTokenRegistration;
+
+        const shouldRegister = shouldRegisterFromUrl || shouldRegisterFromSession;
 
         if (shouldRegister && Capacitor.isNativePlatform()) {
-            console.log("🔔 Déclenchement de l'enregistrement device token après connexion");
+            console.log("🔔 Déclenchement de l'enregistrement device token après connexion", {
+                from_url: shouldRegisterFromUrl,
+                from_session: shouldRegisterFromSession
+            });
             await initializePushNotifications();
+            
+            // Nettoyer le flag de session après usage
+            if (shouldRegisterFromSession) {
+                await router.post('/clear-device-token-flag', {}, {
+                    preserveState: true,
+                    preserveScroll: true,
+                });
+            }
         }
     };
 

@@ -38,6 +38,21 @@ class AuthenticatedSessionController extends Controller
         // Associer les annonces guests existantes avec cet email
         $this->associateGuestAnnouncements(Auth::user());
 
+        // Vérifier si c'est une connexion mobile pour déclencher l'enregistrement du device token
+        $isMobileAuth = $request->header('X-Mobile-App') === 'true' || 
+                       $request->input('mobile_auth') === 'true' ||
+                       session('mobile_auth', false);
+
+        if ($isMobileAuth) {
+            session(['trigger_device_token_registration' => true]);
+            Log::info('Mobile auth detected, device token registration triggered', [
+                'user_id' => Auth::id(),
+                'mobile_auth_header' => $request->header('X-Mobile-App'),
+                'mobile_auth_input' => $request->input('mobile_auth'),
+                'session_mobile' => session('mobile_auth', false),
+            ]);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
