@@ -15,7 +15,8 @@ class DeviceTokenController extends Controller
     {
         $request->validate([
             'device_token' => 'required|string',
-            'device_type' => 'required|in:ios,android,web'
+            'device_type' => 'required|in:ios,android,web',
+            'notification_provider' => 'nullable|string|in:onesignal,native'
         ]);
 
         $user = Auth::user();
@@ -28,6 +29,7 @@ class DeviceTokenController extends Controller
         $user->update([
             'device_token' => $request->device_token,
             'device_type' => $request->device_type,
+            'notification_provider' => $request->notification_provider ?? 'native',
             'device_token_updated_at' => now(),
             'push_notifications' => true, // Activer les push par défaut quand on enregistre un token
         ]);

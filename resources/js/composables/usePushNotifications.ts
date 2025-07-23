@@ -1,7 +1,14 @@
 import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
 import { router, usePage } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
+
+// Déclaration globale pour OneSignal
+declare global {
+    interface Window {
+        OneSignal: any;
+        plugins: any;
+    }
+}
 
 // Variable globale pour éviter les multiples initialisations
 let isPushNotificationsInitialized = false;
@@ -11,41 +18,92 @@ export function usePushNotifications() {
     const permissionStatus = ref<'prompt' | 'granted' | 'denied'>('prompt');
 
     /**
-     * Initialiser les notifications push
+     * Initialiser les notifications push avec OneSignal
      */
     const initializePushNotifications = async () => {
         // Vérifier si on est sur une plateforme native (pas web)
         if (!Capacitor.isNativePlatform()) {
-            console.log('Push notifications only available on native platforms');
+            console.log('🌐 Push notifications avec OneSignal uniquement sur mobile');
             return;
         }
 
         // Éviter les initialisations multiples
         if (isPushNotificationsInitialized) {
-            console.log('⚠️ Push notifications déjà initialisées, skip');
+            console.log('⚠️ OneSignal déjà initialisé, skip');
             return;
         }
 
         try {
-            console.log('🔔 Initialisation des notifications push...');
+            console.log('🔔 Initialisation de OneSignal...');
             isPushNotificationsInitialized = true;
 
-            // Demander les permissions
-            console.log('📱 Demande des permissions push...');
-            const permission = await PushNotifications.requestPermissions();
-            console.log('🔐 Permissions reçues:', permission);
+            // Attendre que OneSignal soit disponible
+            await waitForOneSignal();
 
-            if (permission.receive === 'granted') {
+            // Récupérer l'ID du joueur OneSignal (équivalent du device token)
+            const playerId = await getOneSignalPlayerId();
+            
+            if (playerId) {
+                console.log('🎯 OneSignal Player ID reçu:', playerId);
+                await sendTokenToBackend(playerId);
+                isRegistered.value = true;
                 permissionStatus.value = 'granted';
-                console.log('✅ Permissions accordées, enregistrement...');
-                await registerForPushNotifications();
             } else {
+                console.warn('⚠️ Impossible de récupérer le Player ID OneSignal');
                 permissionStatus.value = 'denied';
-                console.log('❌ Push notification permission denied:', permission);
             }
+
         } catch (error) {
-            console.error('❌ Error initializing push notifications:', error);
+            console.error('❌ Erreur initialisation OneSignal:', error);
             isPushNotificationsInitialized = false; // Reset en cas d'erreur
+        }
+    };
+
+    /**
+     * Attendre que OneSignal soit disponible
+     */
+    const waitForOneSignal = async (): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 20; // 10 secondes max
+            
+            const checkOneSignal = () => {
+                attempts++;
+                
+                if (window.OneSignal) {
+                    console.log('✅ OneSignal disponible');
+                    resolve();
+                    return;
+                }
+                
+                if (attempts >= maxAttempts) {
+                    reject(new Error('OneSignal non disponible après 10 secondes'));
+                    return;
+                }
+                
+                console.log(`🔄 Attente OneSignal... (${attempts}/${maxAttempts})`);
+                setTimeout(checkOneSignal, 500);
+            };
+            
+            checkOneSignal();
+        });
+    };
+
+    /**
+     * Récupérer l'ID du joueur OneSignal
+     */
+    const getOneSignalPlayerId = async (): Promise<string | null> => {
+        try {
+            return new Promise((resolve) => {
+                window.OneSignal.getDeviceState((deviceState: any) => {
+                    console.log('📱 OneSignal Device State:', deviceState);
+                    const playerId = deviceState?.userId || deviceState?.playerId;
+                    resolve(playerId || null);
+                });
+            });
+        } catch (error) {
+            console.error('❌ Erreur récupération Player ID OneSignal:', error);
+            return null;
         }
     };
 
@@ -82,69 +140,21 @@ export function usePushNotifications() {
     };
 
     /**
-     * Enregistrer pour recevoir les notifications push
+     * Configurer les listeners OneSignal
      */
-    const registerForPushNotifications = async () => {
-        try {
-            console.log('🔔 Enregistrement pour les notifications push...');
-
-            // Configurer les listeners AVANT l'enregistrement
-            setupPushListeners();
-
-            console.log('📝 Appel de PushNotifications.register()...');
-            await PushNotifications.register();
-            console.log('✅ PushNotifications.register() terminé');
-            
-            // Attendre un peu pour voir si le token arrive
-            setTimeout(() => {
-                if (!isRegistered.value) {
-                    console.warn('⚠️ Aucun token reçu après 3 secondes, possible problème de configuration push');
-                }
-            }, 3000);
-            
-        } catch (error) {
-            console.error("❌ Erreur lors de l'enregistrement:", error);
+    const setupOneSignalListeners = () => {
+        if (!window.OneSignal) {
+            console.warn('⚠️ OneSignal non disponible pour configurer les listeners');
+            return;
         }
-    };
 
-    /**
-     * Configurer les listeners pour les notifications push
-     */
-    const setupPushListeners = () => {
-        console.log('🔧 Configuration des listeners push...');
+        console.log('🔧 Configuration des listeners OneSignal...');
 
-        // Token reçu - l'envoyer au backend
-        PushNotifications.addListener('registration', async (token) => {
-            console.log('🎯 Token reçu!', {
-                token: token.value,
-                tokenLength: token.value?.length,
-                tokenType: typeof token.value
-            });
+        // Notification cliquée
+        window.OneSignal.setNotificationOpenedHandler((result: any) => {
+            console.log('👆 Notification OneSignal cliquée:', result);
             
-            if (token.value) {
-                await sendTokenToBackend(token.value);
-            } else {
-                console.error('❌ Token vide ou undefined reçu');
-            }
-        });
-
-        // Erreur d'enregistrement
-        PushNotifications.addListener('registrationError', (error) => {
-            console.error('❌ Erreur registration:', JSON.stringify(error));
-        });
-
-        // Notification reçue quand l'app est ouverte
-        PushNotifications.addListener('pushNotificationReceived', (notification) => {
-            console.log('📱 Notification reçue:', notification);
-        });
-
-        // Notification cliquée - action utilisateur
-        PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-            console.log('👆 Notification cliquée:', notification);
-
-            // Gérer les actions selon le type de notification
-            const data = notification.notification.data;
-
+            const data = result.notification?.payload?.additionalData;
             if (data?.action_url) {
                 router.visit(data.action_url);
             } else if (data?.type === 'new_announcement') {
@@ -152,42 +162,50 @@ export function usePushNotifications() {
             }
         });
 
-        console.log('✅ Listeners configurés');
+        // Notification reçue
+        window.OneSignal.setNotificationWillShowInForegroundHandler((notification: any) => {
+            console.log('📱 Notification OneSignal reçue:', notification);
+            // Afficher la notification même en premier plan
+            window.OneSignal.showNotification(notification);
+        });
+
+        console.log('✅ Listeners OneSignal configurés');
     };
 
     /**
-     * Envoyer le device token au backend Laravel
+     * Envoyer le OneSignal Player ID au backend Laravel
      */
-    const sendTokenToBackend = async (token: string) => {
+    const sendTokenToBackend = async (playerId: string) => {
         try {
             // Détecter le type d'appareil
             const deviceType = Capacitor.getPlatform(); // 'ios' ou 'android'
 
-            console.log('📤 Envoi token au backend...', {
+            console.log('📤 Envoi OneSignal Player ID au backend...', {
                 device_type: deviceType,
-                token_preview: token.substring(0, 20) + '...',
+                player_id_preview: playerId.substring(0, 20) + '...',
             });
 
             await router.post(
                 '/device-token',
                 {
-                    device_token: token,
+                    device_token: playerId, // OneSignal Player ID comme device token
                     device_type: deviceType,
+                    notification_provider: 'onesignal', // Indiquer qu'on utilise OneSignal
                 },
                 {
                     preserveState: true,
                     preserveScroll: true,
                     onSuccess: () => {
-                        console.log('✅ Token envoyé avec succès au backend');
+                        console.log('✅ OneSignal Player ID envoyé avec succès au backend');
                         isRegistered.value = true;
                     },
                     onError: (errors) => {
-                        console.error('❌ Erreur envoi token au backend:', errors);
+                        console.error('❌ Erreur envoi Player ID au backend:', errors);
                     },
                 },
             );
         } catch (error) {
-            console.error('❌ Erreur envoi token:', error);
+            console.error('❌ Erreur envoi Player ID:', error);
         }
     };
 
@@ -239,7 +257,10 @@ export function usePushNotifications() {
 
         // Initialisation normale seulement si pas déjà fait
         if (!isPushNotificationsInitialized && Capacitor.isNativePlatform()) {
-            console.log('🔔 Initialisation automatique des push notifications');
+            console.log('🔔 Initialisation automatique de OneSignal');
+            // Configurer les listeners d'abord
+            setupOneSignalListeners();
+            // Puis initialiser
             initializePushNotifications();
         }
     });

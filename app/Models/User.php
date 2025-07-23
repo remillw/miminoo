@@ -53,6 +53,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'language',
         'device_token',
         'device_type',
+        'notification_provider',
         'device_token_updated_at',
     ];
 
