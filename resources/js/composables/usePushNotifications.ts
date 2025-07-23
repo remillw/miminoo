@@ -271,15 +271,16 @@ export function usePushNotifications() {
 
     // Initialiser automatiquement quand le composable est utilisé
     onMounted(async () => {
+        // Détecter l'environnement Capacitor via window.Capacitor (injecté globalement)
+        if (typeof window === 'undefined' || !(window as any).Capacitor) {
+            console.log('🌐 Environment web détecté - Push notifications désactivées');
+            return;
+        }
+
         try {
-            // Charger Capacitor dynamiquement pour tester la plateforme
+            // Charger Capacitor maintenant qu'on sait qu'on est en natif
             const { Capacitor: CapacitorModule } = await import('@capacitor/core');
             
-            if (!CapacitorModule.isNativePlatform()) {
-                console.log('🌐 Environment web détecté - Push notifications désactivées');
-                return;
-            }
-
             console.log('📱 Plateforme native détectée pour OneSignal:', CapacitorModule.getPlatform());
 
             // Vérifier d'abord si on doit s'enregistrer suite à une connexion
@@ -291,7 +292,7 @@ export function usePushNotifications() {
                 initializePushNotifications();
             }
         } catch (error) {
-            console.log('🌐 Capacitor non disponible - Push notifications désactivées');
+            console.log('❌ Erreur chargement modules OneSignal:', error);
         }
     });
 

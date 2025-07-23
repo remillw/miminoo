@@ -88,6 +88,12 @@ export function useCapacitor() {
      * Charger les modules Capacitor dynamiquement
      */
     const loadCapacitorModules = async () => {
+        // Vérifier d'abord si window.Capacitor existe (injecté dans la WebView)
+        if (typeof window === 'undefined' || !(window as any).Capacitor) {
+            console.log('🌐 Environnement web détecté, skip Capacitor');
+            return false;
+        }
+
         try {
             const [appModule, browserModule, coreModule] = await Promise.all([
                 import('@capacitor/app'),
@@ -99,16 +105,10 @@ export function useCapacitor() {
             Browser = browserModule.Browser;
             Capacitor = coreModule.Capacitor;
             
-            // Vérifier si on est vraiment sur une plateforme native
-            if (!Capacitor.isNativePlatform()) {
-                console.log('🌐 Capacitor chargé mais environnement web détecté');
-                return false;
-            }
-            
             console.log('📱 Capacitor chargé, plateforme native détectée:', Capacitor.getPlatform());
             return true;
         } catch (error) {
-            console.log('🌐 Capacitor non disponible, environnement web détecté');
+            console.log('❌ Erreur chargement modules Capacitor:', error);
             return false;
         }
     };
