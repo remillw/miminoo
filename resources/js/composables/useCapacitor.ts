@@ -88,10 +88,6 @@ export function useCapacitor() {
      * Charger les modules Capacitor dynamiquement
      */
     const loadCapacitorModules = async () => {
-        if (typeof window === 'undefined' || !window.location.protocol.startsWith('capacitor')) {
-            return false;
-        }
-
         try {
             const [appModule, browserModule, coreModule] = await Promise.all([
                 import('@capacitor/app'),
@@ -103,6 +99,13 @@ export function useCapacitor() {
             Browser = browserModule.Browser;
             Capacitor = coreModule.Capacitor;
             
+            // Vérifier si on est vraiment sur une plateforme native
+            if (!Capacitor.isNativePlatform()) {
+                console.log('🌐 Capacitor chargé mais environnement web détecté');
+                return false;
+            }
+            
+            console.log('📱 Capacitor chargé, plateforme native détectée:', Capacitor.getPlatform());
             return true;
         } catch (error) {
             console.log('🌐 Capacitor non disponible, environnement web détecté');
@@ -180,12 +183,6 @@ export function useCapacitor() {
 
     // Initialisation au montage
     onMounted(async () => {
-        // Skip complètement sur web
-        if (typeof window !== 'undefined' && !window.location.protocol.startsWith('capacitor')) {
-            console.log('🌐 Environment web détecté - Capacitor désactivé');
-            return;
-        }
-        
         await initializeCapacitor();
     });
 
