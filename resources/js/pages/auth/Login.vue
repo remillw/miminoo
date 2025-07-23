@@ -35,7 +35,6 @@ const form = useForm({
 });
 
 const submit = () => {
-    // Ajouter l'information mobile directement dans le formulaire
     const formData = {
         ...form.data(),
         mobile_auth: isNative.value ? 'true' : 'false'

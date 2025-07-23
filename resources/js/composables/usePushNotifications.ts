@@ -31,17 +31,20 @@ export function usePushNotifications() {
             isPushNotificationsInitialized = true;
 
             // Demander les permissions
+            console.log('📱 Demande des permissions push...');
             const permission = await PushNotifications.requestPermissions();
+            console.log('🔐 Permissions reçues:', permission);
 
             if (permission.receive === 'granted') {
                 permissionStatus.value = 'granted';
+                console.log('✅ Permissions accordées, enregistrement...');
                 await registerForPushNotifications();
             } else {
                 permissionStatus.value = 'denied';
-                console.log('Push notification permission denied');
+                console.log('❌ Push notification permission denied:', permission);
             }
         } catch (error) {
-            console.error('Error initializing push notifications:', error);
+            console.error('❌ Error initializing push notifications:', error);
             isPushNotificationsInitialized = false; // Reset en cas d'erreur
         }
     };
@@ -88,8 +91,17 @@ export function usePushNotifications() {
             // Configurer les listeners AVANT l'enregistrement
             setupPushListeners();
 
+            console.log('📝 Appel de PushNotifications.register()...');
             await PushNotifications.register();
             console.log('✅ PushNotifications.register() terminé');
+            
+            // Attendre un peu pour voir si le token arrive
+            setTimeout(() => {
+                if (!isRegistered.value) {
+                    console.warn('⚠️ Aucun token reçu après 3 secondes, possible problème de configuration push');
+                }
+            }, 3000);
+            
         } catch (error) {
             console.error("❌ Erreur lors de l'enregistrement:", error);
         }
@@ -103,8 +115,17 @@ export function usePushNotifications() {
 
         // Token reçu - l'envoyer au backend
         PushNotifications.addListener('registration', async (token) => {
-            console.log('🎯 Token reçu!', token.value);
-            await sendTokenToBackend(token.value);
+            console.log('🎯 Token reçu!', {
+                token: token.value,
+                tokenLength: token.value?.length,
+                tokenType: typeof token.value
+            });
+            
+            if (token.value) {
+                await sendTokenToBackend(token.value);
+            } else {
+                console.error('❌ Token vide ou undefined reçu');
+            }
         });
 
         // Erreur d'enregistrement
