@@ -3,6 +3,9 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { router, usePage } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
+// Variable globale pour éviter les multiples initialisations
+let isPushNotificationsInitialized = false;
+
 export function usePushNotifications() {
     const isRegistered = ref(false);
     const permissionStatus = ref<'prompt' | 'granted' | 'denied'>('prompt');
@@ -17,7 +20,16 @@ export function usePushNotifications() {
             return;
         }
 
+        // Éviter les initialisations multiples
+        if (isPushNotificationsInitialized) {
+            console.log('⚠️ Push notifications déjà initialisées, skip');
+            return;
+        }
+
         try {
+            console.log('🔔 Initialisation des notifications push...');
+            isPushNotificationsInitialized = true;
+
             // Demander les permissions
             const permission = await PushNotifications.requestPermissions();
 
@@ -30,6 +42,7 @@ export function usePushNotifications() {
             }
         } catch (error) {
             console.error('Error initializing push notifications:', error);
+            isPushNotificationsInitialized = false; // Reset en cas d'erreur
         }
     };
 
@@ -203,8 +216,11 @@ export function usePushNotifications() {
         // Vérifier d'abord si on doit s'enregistrer suite à une connexion
         checkForTriggeredRegistration();
 
-        // Puis initialiser normalement
-        initializePushNotifications();
+        // Initialisation normale seulement si pas déjà fait
+        if (!isPushNotificationsInitialized && Capacitor.isNativePlatform()) {
+            console.log('🔔 Initialisation automatique des push notifications');
+            initializePushNotifications();
+        }
     });
 
     return {

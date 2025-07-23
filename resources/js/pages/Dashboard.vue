@@ -42,7 +42,7 @@ interface Props {
 const props = defineProps<Props>();
 const { currentMode, initializeMode } = useUserMode();
 const { initializePushNotifications } = usePushNotifications();
-const { isCapacitor } = useCapacitor();
+const { isNative } = useCapacitor();
 
 // Initialiser le mode au montage du composant
 onMounted(() => {
@@ -50,12 +50,12 @@ onMounted(() => {
         hasParentRole: props.hasParentRole,
         hasBabysitterRole: props.hasBabysitterRole,
         requestedMode: props.requestedMode,
-        isCapacitor: isCapacitor,
+        isNative: isNative.value,
     });
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
     
     // Initialiser les notifications push sur mobile après connexion
-    if (isCapacitor && props.user) {
+    if (isNative.value && props.user) {
         console.log('🔔 Initialisation des notifications push pour l\'utilisateur connecté');
         initializePushNotifications();
     }

@@ -6,14 +6,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useMobileAuth } from '@/composables/useMobileAuth';
+import { useCapacitor } from '@/composables/useCapacitor';
+import { usePushNotifications } from '@/composables/usePushNotifications';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import { Eye, EyeOff, LoaderCircle, Lock, Mail } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { route } from 'ziggy-js';
 
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
+const { isNative } = useCapacitor();
+const { initializePushNotifications } = usePushNotifications();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -31,8 +35,39 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post(route('connexion'), {
+    // Ajouter l'information mobile directement dans le formulaire
+    const formData = {
+        ...form.data(),
+        mobile_auth: isNative.value ? 'true' : 'false'
+    };
+
+    console.log('🔐 Connexion avec données:', {
+        isNative: isNative.value,
+        mobile_auth: formData.mobile_auth
+    });
+
+    form.transform((data) => ({
+        ...data,
+        mobile_auth: isNative.value ? 'true' : 'false'
+    })).post(route('connexion'), {
         onFinish: () => form.reset('password'),
+        onSuccess: async () => {
+            console.log('✅ Connexion réussie');
+            
+            // Si on est sur mobile, déclencher l'enregistrement des notifications push
+            if (isNative.value) {
+                console.log('📱 Déclenchement manuel des notifications push après connexion');
+                try {
+                    await initializePushNotifications();
+                    console.log('✅ Notifications push initialisées après connexion');
+                } catch (error) {
+                    console.error('❌ Erreur lors de l\'initialisation des push notifications:', error);
+                }
+            }
+        },
+        onError: (errors) => {
+            console.error('❌ Erreur de connexion:', errors);
+        }
     });
 };
 
