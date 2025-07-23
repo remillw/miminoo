@@ -85,7 +85,7 @@ export function useCapacitor() {
     };
 
     /**
-     * Charger les modules Capacitor dynamiquement
+     * Initialiser les modules Capacitor via les objets globaux
      */
     const loadCapacitorModules = async () => {
         // Vérifier d'abord si window.Capacitor existe (injecté dans la WebView)
@@ -95,15 +95,15 @@ export function useCapacitor() {
         }
 
         try {
-            const [appModule, browserModule, coreModule] = await Promise.all([
-                import('@capacitor/app'),
-                import('@capacitor/browser'),
-                import('@capacitor/core')
-            ]);
+            // Utiliser les objets globaux injectés par Capacitor
+            Capacitor = (window as any).Capacitor;
+            App = (window as any).CapacitorApp || Capacitor.Plugins?.App;
+            Browser = (window as any).CapacitorBrowser || Capacitor.Plugins?.Browser;
             
-            App = appModule.App;
-            Browser = browserModule.Browser;
-            Capacitor = coreModule.Capacitor;
+            if (!App || !Browser) {
+                console.log('⚠️ Plugins Capacitor non disponibles');
+                return false;
+            }
             
             console.log('📱 Capacitor chargé, plateforme native détectée:', Capacitor.getPlatform());
             return true;

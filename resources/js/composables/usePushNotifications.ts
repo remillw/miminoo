@@ -60,62 +60,81 @@ export function usePushNotifications() {
      */
     const initializeOneSignalPlugin = async (): Promise<void> => {
         return new Promise((resolve, reject) => {
-            // Vérifier si OneSignal est disponible
-            if (!(window as any).plugins?.OneSignal) {
-                reject(new Error('Plugin OneSignal non disponible'));
-                return;
-            }
+            // Attendre que les plugins Cordova soient prêts
+            const checkOneSignal = () => {
+                if ((window as any).plugins?.OneSignal) {
+                    console.log('✅ Plugin OneSignal trouvé');
+                    setupOneSignal();
+                } else if ((window as any).OneSignal) {
+                    console.log('✅ OneSignal global trouvé');
+                    setupOneSignalGlobal();
+                } else {
+                    console.log('⏳ Attente OneSignal...');
+                    setTimeout(checkOneSignal, 100);
+                }
+            };
 
-            const OneSignal = (window as any).plugins.OneSignal;
-            
-            // Initialiser OneSignal
-            OneSignal.setAppId("fa561331-c9a6-496e-8218-3897dd3a04a2");
-            
-            console.log('🔧 Configuration des listeners OneSignal...');
-            
-            // Listener pour quand l'utilisateur accepte les notifications
-            OneSignal.setNotificationOpenedHandler((jsonData: any) => {
-                console.log('👆 Notification OneSignal cliquée:', jsonData);
-                handleNotificationOpened(jsonData);
-            });
-
-            // Listener pour les notifications reçues
-            OneSignal.setNotificationWillShowInForegroundHandler((notification: any) => {
-                console.log('📱 Notification OneSignal reçue:', notification);
-                OneSignal.completeNotification(notification);
-            });
-
-            // Listener pour les changements de subscription
-            OneSignal.setSubscriptionObserver((state: any) => {
-                console.log('🔄 OneSignal subscription changed:', state);
+            const setupOneSignal = () => {
+                const OneSignal = (window as any).plugins.OneSignal;
                 
-                if (state.to.isSubscribed) {
-                    const playerId = state.to.userId;
-                    console.log('🎯 OneSignal Player ID reçu:', playerId);
+                // Initialiser OneSignal
+                OneSignal.setAppId("fa561331-c9a6-496e-8218-3897dd3a04a2");
+                
+                console.log('🔧 Configuration des listeners OneSignal...');
+                
+                // Listener pour quand l'utilisateur accepte les notifications
+                OneSignal.setNotificationOpenedHandler((jsonData: any) => {
+                    console.log('👆 Notification OneSignal cliquée:', jsonData);
+                    handleNotificationOpened(jsonData);
+                });
+
+                // Listener pour les notifications reçues
+                OneSignal.setNotificationWillShowInForegroundHandler((notification: any) => {
+                    console.log('📱 Notification OneSignal reçue:', notification);
+                    OneSignal.completeNotification(notification);
+                });
+
+                // Listener pour les changements de subscription
+                OneSignal.setSubscriptionObserver((state: any) => {
+                    console.log('🔄 OneSignal subscription changed:', state);
                     
-                    if (playerId) {
-                        sendTokenToBackend(playerId);
-                        isRegistered.value = true;
-                        permissionStatus.value = 'granted';
+                    if (state.to.isSubscribed) {
+                        const playerId = state.to.userId;
+                        console.log('🎯 OneSignal Player ID reçu:', playerId);
+                        
+                        if (playerId) {
+                            sendTokenToBackend(playerId);
+                            isRegistered.value = true;
+                            permissionStatus.value = 'granted';
+                        }
+                    } else {
+                        console.log('⚠️ Utilisateur non abonné aux notifications');
+                        permissionStatus.value = 'denied';
                     }
-                } else {
-                    console.log('⚠️ Utilisateur non abonné aux notifications');
-                    permissionStatus.value = 'denied';
-                }
-            });
+                });
 
-            // Demander les permissions
-            OneSignal.promptForPushNotificationsWithUserResponse((accepted: boolean) => {
-                console.log('🔐 Permissions OneSignal:', accepted ? 'Acceptées' : 'Refusées');
-                if (accepted) {
-                    permissionStatus.value = 'granted';
-                } else {
-                    permissionStatus.value = 'denied';
-                }
-            });
+                // Demander les permissions
+                OneSignal.promptForPushNotificationsWithUserResponse((accepted: boolean) => {
+                    console.log('🔐 Permissions OneSignal:', accepted ? 'Acceptées' : 'Refusées');
+                    if (accepted) {
+                        permissionStatus.value = 'granted';
+                    } else {
+                        permissionStatus.value = 'denied';
+                    }
+                });
 
-            console.log('✅ OneSignal configuré');
-            resolve();
+                console.log('✅ OneSignal configuré');
+                resolve();
+            };
+
+            const setupOneSignalGlobal = () => {
+                // Alternative si OneSignal est global
+                console.log('⚠️ OneSignal global non encore implémenté');
+                reject(new Error('OneSignal global non supporté'));
+            };
+
+            // Démarrer la vérification
+            checkOneSignal();
         });
     };
 
