@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PushNotificationService
 {
@@ -41,34 +42,118 @@ class PushNotificationService
     }
 
     /**
-     * Envoyer une notification push via Firebase FCM
+     * Obtenir un token d'accès OAuth2 pour Firebase
+     */
+    private function getAccessToken(): ?string
+    {
+        try {
+            $serviceAccountPath = config('services.firebase.service_account_path');
+            
+            if (!$serviceAccountPath || !file_exists($serviceAccountPath)) {
+                Log::error('Firebase service account file not found', [
+                    'path' => $serviceAccountPath
+                ]);
+                return null;
+            }
+
+            $serviceAccount = json_decode(file_get_contents($serviceAccountPath), true);
+            
+            // Créer le JWT pour l'authentification
+            $header = json_encode(['typ' => 'JWT', 'alg' => 'RS256']);
+            $now = time();
+            $payload = json_encode([
+                'iss' => $serviceAccount['client_email'],
+                'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+                'aud' => 'https://oauth2.googleapis.com/token',
+                'exp' => $now + 3600,
+                'iat' => $now
+            ]);
+
+            $base64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+            $base64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+
+            // Signature avec la clé privée
+            $signature = '';
+            openssl_sign(
+                $base64Header . '.' . $base64Payload,
+                $signature,
+                $serviceAccount['private_key'],
+                'SHA256'
+            );
+            $base64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+
+            $jwt = $base64Header . '.' . $base64Payload . '.' . $base64Signature;
+
+            // Échanger le JWT contre un access token
+            $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
+                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                'assertion' => $jwt
+            ]);
+
+            if ($response->successful()) {
+                return $response->json()['access_token'];
+            }
+
+            Log::error('Failed to get Firebase access token', [
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Exception while getting Firebase access token', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Envoyer une notification push via Firebase FCM HTTP v1
      */
     private function sendNotification(string $deviceToken, string $title, string $body, array $data = []): bool
     {
-        $serverKey = config('services.firebase.server_key');
+        $projectId = config('services.firebase.project_id');
+        $accessToken = $this->getAccessToken();
         
-        if (!$serverKey) {
-            Log::error('Firebase server key not configured');
+        if (!$projectId || !$accessToken) {
+            Log::error('Firebase configuration missing', [
+                'project_id' => !!$projectId,
+                'access_token' => !!$accessToken
+            ]);
             return false;
         }
 
         $payload = [
-            'to' => $deviceToken,
-            'notification' => [
-                'title' => $title,
-                'body' => $body,
-                'sound' => 'default',
-                'badge' => 1,
-            ],
-            'data' => $data,
-            'priority' => 'high',
+            'message' => [
+                'token' => $deviceToken,
+                'notification' => [
+                    'title' => $title,
+                    'body' => $body,
+                ],
+                'data' => array_map('strval', $data), // FCM requires string values
+                'android' => [
+                    'notification' => [
+                        'sound' => 'default',
+                        'priority' => 'high'
+                    ]
+                ],
+                'apns' => [
+                    'payload' => [
+                        'aps' => [
+                            'sound' => 'default',
+                            'badge' => 1
+                        ]
+                    ]
+                ]
+            ]
         ];
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'key=' . $serverKey,
+                'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
-            ])->post('https://fcm.googleapis.com/fcm/send', $payload);
+            ])->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", $payload);
 
             if ($response->successful()) {
                 Log::info('Push notification sent successfully', [

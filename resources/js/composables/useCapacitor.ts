@@ -99,12 +99,12 @@ export function useCapacitor() {
             Capacitor = (window as any).Capacitor;
             App = (window as any).CapacitorApp || Capacitor.Plugins?.App;
             Browser = (window as any).CapacitorBrowser || Capacitor.Plugins?.Browser;
-            
+
             if (!App || !Browser) {
                 console.log('⚠️ Plugins Capacitor non disponibles');
                 return false;
             }
-            
+
             console.log('📱 Capacitor chargé, plateforme native détectée:', Capacitor.getPlatform());
             return true;
         } catch (error) {

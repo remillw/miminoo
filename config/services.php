@@ -36,33 +36,35 @@ return [
     ],
 
     'stripe' => [
-        'secret' => env('STRIPE_SECRET'),
+        'model' => App\Models\User::class,
         'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
         'webhook' => [
             'secret' => env('STRIPE_WEBHOOK_SECRET'),
             'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
         ],
     ],
 
+    'reverb' => [
+        'key' => env('REVERB_APP_KEY'),
+        'secret' => env('REVERB_APP_SECRET'),
+        'app_id' => env('REVERB_APP_ID'),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => env('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback'),
-        'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
+        'redirect' => '/auth/google/callback',
     ],
 
-    'apple' => [
-        'client_id' => env('APPLE_CLIENT_ID'),
-        'client_secret' => env('APPLE_CLIENT_SECRET'),
-        'redirect' => env('APPLE_REDIRECT_URI', 'http://localhost:8000/auth/apple/callback'),
-        'key_id' => env('APPLE_KEY_ID'),
-        'team_id' => env('APPLE_TEAM_ID'),
-        'private_key' => env('APPLE_PRIVATE_KEY'),
+    'stripe_connect' => [
+        'client_id' => env('STRIPE_CONNECT_CLIENT_ID'),
+        'platform_account_id' => env('STRIPE_CONNECT_PLATFORM_ACCOUNT_ID'),
     ],
 
     'firebase' => [
-        'server_key' => env('FIREBASE_SERVER_KEY'),
         'project_id' => env('FIREBASE_PROJECT_ID'),
+        'service_account_path' => env('FIREBASE_SERVICE_ACCOUNT_PATH', storage_path('app/firebase-service-account.json')),
     ],
 
 ];
