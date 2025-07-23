@@ -60,7 +60,37 @@ export function usePushNotifications() {
                 console.log(`🔍 Tentative ${attempt}/${maxAttempts} - Recherche OneSignal...`);
 
                 if ((window as any).plugins?.OneSignal) {
+                    const OneSignal = (window as any).plugins.OneSignal;
                     console.log('✅ Plugin OneSignal trouvé');
+
+                    // Vérifier que toutes les méthodes nécessaires sont disponibles
+                    const requiredMethods = [
+                        'setAppId',
+                        'setNotificationOpenedHandler',
+                        'setNotificationWillShowInForegroundHandler',
+                        'setSubscriptionObserver',
+                    ];
+                    const missingMethods = requiredMethods.filter((method) => typeof OneSignal[method] !== 'function');
+
+                    if (missingMethods.length > 0) {
+                        console.log(`⏳ Méthodes OneSignal manquantes: ${missingMethods.join(', ')} - Tentative ${attempt + 1}`);
+                        if (attempt < maxAttempts) {
+                            setTimeout(() => checkOneSignal(attempt + 1, maxAttempts), 300);
+                        } else {
+                            console.error('❌ OneSignal - méthodes toujours manquantes après', maxAttempts, 'tentatives');
+                            reject(
+                                new Error(
+                                    'OneSignal plugin incomplet après ' +
+                                        maxAttempts +
+                                        ' tentatives. Méthodes manquantes: ' +
+                                        missingMethods.join(', '),
+                                ),
+                            );
+                        }
+                        return;
+                    }
+
+                    console.log('✅ Toutes les méthodes OneSignal sont disponibles');
                     setupOneSignal();
                 } else if ((window as any).OneSignal) {
                     console.log('✅ OneSignal global trouvé');
@@ -78,16 +108,7 @@ export function usePushNotifications() {
                 try {
                     const OneSignal = (window as any).plugins.OneSignal;
 
-                    if (!OneSignal) {
-                        throw new Error('Plugin OneSignal non disponible');
-                    }
-
                     console.log('🔧 Configuration des listeners OneSignal...');
-
-                    // Vérifier que toutes les méthodes nécessaires existent
-                    if (!OneSignal.setAppId || !OneSignal.setNotificationOpenedHandler) {
-                        throw new Error('Méthodes OneSignal manquantes - plugin pas complètement chargé');
-                    }
 
                     // Initialiser OneSignal avec l'App ID - avec gestion d'erreur
                     try {
