@@ -271,6 +271,12 @@ export function usePushNotifications() {
 
     // Initialiser automatiquement quand le composable est utilisé
     onMounted(async () => {
+        // Skip complètement sur web pour éviter les erreurs d'import
+        if (typeof window !== 'undefined' && !window.location.protocol.startsWith('capacitor')) {
+            console.log('🌐 Environment web détecté - Push notifications désactivées');
+            return;
+        }
+
         // Vérifier d'abord si on doit s'enregistrer suite à une connexion
         await checkForTriggeredRegistration();
 
