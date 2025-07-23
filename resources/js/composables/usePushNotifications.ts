@@ -1,6 +1,8 @@
-import { Capacitor } from '@capacitor/core';
 import { router, usePage } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
+
+// Import Capacitor dynamiquement seulement pour mobile
+let Capacitor: any = null;
 
 // Déclaration globale pour OneSignal
 declare global {
@@ -13,6 +15,31 @@ declare global {
 // Variable globale pour éviter les multiples initialisations
 let isPushNotificationsInitialized = false;
 
+// Fonction pour charger Capacitor dynamiquement
+const loadCapacitor = async () => {
+    if (Capacitor) return Capacitor;
+    
+    try {
+        // Vérifier si on est dans un environnement web
+        if (typeof window === 'undefined' || !window.location.protocol.startsWith('capacitor')) {
+            return null;
+        }
+        
+        const capacitorModule = await import('@capacitor/core');
+        Capacitor = capacitorModule.Capacitor;
+        return Capacitor;
+    } catch (error) {
+        console.log('🌐 Capacitor non disponible, environnement web détecté');
+        return null;
+    }
+};
+
+// Fonction helper pour vérifier si on est sur mobile
+const isNativePlatform = async () => {
+    const capacitor = await loadCapacitor();
+    return capacitor?.isNativePlatform() ?? false;
+};
+
 export function usePushNotifications() {
     const isRegistered = ref(false);
     const permissionStatus = ref<'prompt' | 'granted' | 'denied'>('prompt');
@@ -22,7 +49,8 @@ export function usePushNotifications() {
      */
     const initializePushNotifications = async () => {
         // Vérifier si on est sur une plateforme native (pas web)
-        if (!Capacitor.isNativePlatform()) {
+        const isNative = await isNativePlatform();
+        if (!isNative) {
             console.log('🌐 OneSignal uniquement disponible sur mobile');
             return;
         }
@@ -141,8 +169,9 @@ export function usePushNotifications() {
         const shouldRegisterFromSession = (page.props as any).triggerDeviceTokenRegistration;
 
         const shouldRegister = shouldRegisterFromUrl || shouldRegisterFromSession;
+        const isNative = await isNativePlatform();
 
-        if (shouldRegister && Capacitor.isNativePlatform()) {
+        if (shouldRegister && isNative) {
             console.log("🔔 Déclenchement de l'enregistrement device token après connexion", {
                 from_url: shouldRegisterFromUrl,
                 from_session: shouldRegisterFromSession
@@ -167,7 +196,8 @@ export function usePushNotifications() {
     const sendTokenToBackend = async (playerId: string) => {
         try {
             // Détecter le type d'appareil
-            const deviceType = Capacitor.getPlatform(); // 'ios' ou 'android'
+            const capacitor = await loadCapacitor();
+            const deviceType = capacitor?.getPlatform() ?? 'web'; // 'ios' ou 'android'
 
             console.log('📤 Envoi OneSignal Player ID au backend...', {
                 device_type: deviceType,
@@ -240,12 +270,13 @@ export function usePushNotifications() {
     };
 
     // Initialiser automatiquement quand le composable est utilisé
-    onMounted(() => {
+    onMounted(async () => {
         // Vérifier d'abord si on doit s'enregistrer suite à une connexion
-        checkForTriggeredRegistration();
+        await checkForTriggeredRegistration();
 
         // Initialisation normale seulement si pas déjà fait
-        if (!isPushNotificationsInitialized && Capacitor.isNativePlatform()) {
+        const isNative = await isNativePlatform();
+        if (!isPushNotificationsInitialized && isNative) {
             console.log('🔔 Initialisation automatique de OneSignal');
             initializePushNotifications();
         }
