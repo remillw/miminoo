@@ -28,4 +28,14 @@ export default defineConfig({
             'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
         },
     },
+    build: {
+        rollupOptions: {
+            external: [
+                '@capacitor/core',
+                '@capacitor/app',
+                '@capacitor/browser',
+                '@capacitor/push-notifications'
+            ]
+        }
+    }
 });

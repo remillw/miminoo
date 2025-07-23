@@ -23,7 +23,7 @@ export function usePushNotifications() {
     const initializePushNotifications = async () => {
         // Vérifier si on est sur une plateforme native (pas web)
         if (!Capacitor.isNativePlatform()) {
-            console.log('🌐 Push notifications avec OneSignal uniquement sur mobile');
+            console.log('🌐 OneSignal uniquement disponible sur mobile');
             return;
         }
 
@@ -37,21 +37,10 @@ export function usePushNotifications() {
             console.log('🔔 Initialisation de OneSignal...');
             isPushNotificationsInitialized = true;
 
-            // Attendre que OneSignal soit disponible
-            await waitForOneSignal();
+            // Initialiser OneSignal via le plugin Cordova
+            await initializeOneSignalPlugin();
 
-            // Récupérer l'ID du joueur OneSignal (équivalent du device token)
-            const playerId = await getOneSignalPlayerId();
-            
-            if (playerId) {
-                console.log('🎯 OneSignal Player ID reçu:', playerId);
-                await sendTokenToBackend(playerId);
-                isRegistered.value = true;
-                permissionStatus.value = 'granted';
-            } else {
-                console.warn('⚠️ Impossible de récupérer le Player ID OneSignal');
-                permissionStatus.value = 'denied';
-            }
+            console.log('✅ OneSignal initialisé avec succès');
 
         } catch (error) {
             console.error('❌ Erreur initialisation OneSignal:', error);
@@ -60,50 +49,81 @@ export function usePushNotifications() {
     };
 
     /**
-     * Attendre que OneSignal soit disponible
+     * Initialiser le plugin OneSignal Cordova
      */
-    const waitForOneSignal = async (): Promise<void> => {
+    const initializeOneSignalPlugin = async (): Promise<void> => {
         return new Promise((resolve, reject) => {
-            let attempts = 0;
-            const maxAttempts = 20; // 10 secondes max
+            // Vérifier si OneSignal est disponible
+            if (!(window as any).plugins?.OneSignal) {
+                reject(new Error('Plugin OneSignal non disponible'));
+                return;
+            }
+
+            const OneSignal = (window as any).plugins.OneSignal;
             
-            const checkOneSignal = () => {
-                attempts++;
-                
-                if (window.OneSignal) {
-                    console.log('✅ OneSignal disponible');
-                    resolve();
-                    return;
-                }
-                
-                if (attempts >= maxAttempts) {
-                    reject(new Error('OneSignal non disponible après 10 secondes'));
-                    return;
-                }
-                
-                console.log(`🔄 Attente OneSignal... (${attempts}/${maxAttempts})`);
-                setTimeout(checkOneSignal, 500);
-            };
+            // Initialiser OneSignal
+            OneSignal.setAppId("fa561331-c9a6-496e-8218-3897dd3a04a2");
             
-            checkOneSignal();
+            console.log('🔧 Configuration des listeners OneSignal...');
+            
+            // Listener pour quand l'utilisateur accepte les notifications
+            OneSignal.setNotificationOpenedHandler((jsonData: any) => {
+                console.log('👆 Notification OneSignal cliquée:', jsonData);
+                handleNotificationOpened(jsonData);
+            });
+
+            // Listener pour les notifications reçues
+            OneSignal.setNotificationWillShowInForegroundHandler((notification: any) => {
+                console.log('📱 Notification OneSignal reçue:', notification);
+                OneSignal.completeNotification(notification);
+            });
+
+            // Listener pour les changements de subscription
+            OneSignal.setSubscriptionObserver((state: any) => {
+                console.log('🔄 OneSignal subscription changed:', state);
+                
+                if (state.to.isSubscribed) {
+                    const playerId = state.to.userId;
+                    console.log('🎯 OneSignal Player ID reçu:', playerId);
+                    
+                    if (playerId) {
+                        sendTokenToBackend(playerId);
+                        isRegistered.value = true;
+                        permissionStatus.value = 'granted';
+                    }
+                } else {
+                    console.log('⚠️ Utilisateur non abonné aux notifications');
+                    permissionStatus.value = 'denied';
+                }
+            });
+
+            // Demander les permissions
+            OneSignal.promptForPushNotificationsWithUserResponse((accepted: boolean) => {
+                console.log('🔐 Permissions OneSignal:', accepted ? 'Acceptées' : 'Refusées');
+                if (accepted) {
+                    permissionStatus.value = 'granted';
+                } else {
+                    permissionStatus.value = 'denied';
+                }
+            });
+
+            console.log('✅ OneSignal configuré');
+            resolve();
         });
     };
 
     /**
-     * Récupérer l'ID du joueur OneSignal
+     * Gérer l'ouverture d'une notification
      */
-    const getOneSignalPlayerId = async (): Promise<string | null> => {
-        try {
-            return new Promise((resolve) => {
-                window.OneSignal.getDeviceState((deviceState: any) => {
-                    console.log('📱 OneSignal Device State:', deviceState);
-                    const playerId = deviceState?.userId || deviceState?.playerId;
-                    resolve(playerId || null);
-                });
-            });
-        } catch (error) {
-            console.error('❌ Erreur récupération Player ID OneSignal:', error);
-            return null;
+    const handleNotificationOpened = (jsonData: any) => {
+        const additionalData = jsonData.notification?.payload?.additionalData;
+        
+        if (additionalData?.action_url) {
+            router.visit(additionalData.action_url);
+        } else if (additionalData?.type === 'new_announcement') {
+            router.visit('/annonces');
+        } else if (additionalData?.type === 'new_message') {
+            router.visit('/messagerie');
         }
     };
 
@@ -139,38 +159,7 @@ export function usePushNotifications() {
         }
     };
 
-    /**
-     * Configurer les listeners OneSignal
-     */
-    const setupOneSignalListeners = () => {
-        if (!window.OneSignal) {
-            console.warn('⚠️ OneSignal non disponible pour configurer les listeners');
-            return;
-        }
 
-        console.log('🔧 Configuration des listeners OneSignal...');
-
-        // Notification cliquée
-        window.OneSignal.setNotificationOpenedHandler((result: any) => {
-            console.log('👆 Notification OneSignal cliquée:', result);
-            
-            const data = result.notification?.payload?.additionalData;
-            if (data?.action_url) {
-                router.visit(data.action_url);
-            } else if (data?.type === 'new_announcement') {
-                router.visit('/annonces');
-            }
-        });
-
-        // Notification reçue
-        window.OneSignal.setNotificationWillShowInForegroundHandler((notification: any) => {
-            console.log('📱 Notification OneSignal reçue:', notification);
-            // Afficher la notification même en premier plan
-            window.OneSignal.showNotification(notification);
-        });
-
-        console.log('✅ Listeners OneSignal configurés');
-    };
 
     /**
      * Envoyer le OneSignal Player ID au backend Laravel
@@ -258,9 +247,6 @@ export function usePushNotifications() {
         // Initialisation normale seulement si pas déjà fait
         if (!isPushNotificationsInitialized && Capacitor.isNativePlatform()) {
             console.log('🔔 Initialisation automatique de OneSignal');
-            // Configurer les listeners d'abord
-            setupOneSignalListeners();
-            // Puis initialiser
             initializePushNotifications();
         }
     });
