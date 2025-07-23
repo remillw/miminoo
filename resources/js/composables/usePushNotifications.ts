@@ -1,9 +1,6 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
-// Import Capacitor Push Notifications natif
-import { PushNotifications } from '@capacitor/push-notifications';
-
 // Déclaration globale pour Capacitor
 declare global {
     interface Window {
@@ -18,13 +15,33 @@ const permissionStatus = ref<'prompt' | 'prompt-with-rationale' | 'granted' | 'd
 const deviceToken = ref<string | null>(null);
 
 /**
+ * Import dynamique de Capacitor Push Notifications
+ */
+const importPushNotifications = async () => {
+    try {
+        // Vérifier si Capacitor est disponible et si on est sur mobile
+        if (!(window as any).Capacitor?.isNativePlatform()) {
+            console.log('🌐 Push notifications uniquement disponibles sur mobile');
+            return null;
+        }
+
+        // Import dynamique pour éviter l'erreur sur web
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        return PushNotifications;
+    } catch (error) {
+        console.error('❌ Erreur import PushNotifications:', error);
+        return null;
+    }
+};
+
+/**
  * Initialiser les notifications push avec Capacitor natif
  */
 const initializeNativePushNotifications = async (): Promise<void> => {
     try {
-        // Vérifier si on est sur mobile
-        if (!(window as any).Capacitor?.isNativePlatform()) {
-            console.log('🌐 Push notifications uniquement disponibles sur mobile');
+        // Import dynamique de PushNotifications
+        const PushNotifications = await importPushNotifications();
+        if (!PushNotifications) {
             return;
         }
 
@@ -51,7 +68,7 @@ const initializeNativePushNotifications = async (): Promise<void> => {
             isRegistered.value = true;
 
             // Configurer les listeners
-            setupPushNotificationListeners();
+            setupPushNotificationListeners(PushNotifications);
         }
     } catch (error) {
         console.error('❌ Erreur initialisation push notifications:', error);
@@ -61,26 +78,26 @@ const initializeNativePushNotifications = async (): Promise<void> => {
 /**
  * Configurer les listeners pour les notifications
  */
-const setupPushNotificationListeners = () => {
+const setupPushNotificationListeners = (PushNotifications: any) => {
     // Listener pour le token de registration
-    PushNotifications.addListener('registration', (token) => {
+    PushNotifications.addListener('registration', (token: any) => {
         console.log('🎯 Token reçu:', token.value);
         deviceToken.value = token.value;
         sendTokenToBackend(token.value);
     });
 
     // Listener pour les erreurs
-    PushNotifications.addListener('registrationError', (error) => {
+    PushNotifications.addListener('registrationError', (error: any) => {
         console.error('❌ Erreur registration:', error);
     });
 
     // Listener pour les notifications reçues (app en premier plan)
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    PushNotifications.addListener('pushNotificationReceived', (notification: any) => {
         console.log('📱 Notification reçue:', notification);
     });
 
     // Listener pour les notifications cliquées
-    PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+    PushNotifications.addListener('pushNotificationActionPerformed', (notification: any) => {
         console.log('👆 Notification cliquée:', notification);
         handleNotificationOpened(notification);
     });
