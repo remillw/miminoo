@@ -19,14 +19,27 @@ const deviceToken = ref<string | null>(null);
  */
 const importPushNotifications = async () => {
     try {
-        // Vérifier si Capacitor est disponible et si on est sur mobile
-        if (!(window as any).Capacitor?.isNativePlatform()) {
-            console.log('🌐 Push notifications uniquement disponibles sur mobile');
+        console.log('🔍 Vérification environnement Capacitor...');
+        console.log('🔧 window.Capacitor:', (window as any).Capacitor);
+        console.log('🔧 isNativePlatform:', (window as any).Capacitor?.isNativePlatform?.());
+        console.log('🔧 getPlatform:', (window as any).Capacitor?.getPlatform?.());
+
+        // Vérifier si Capacitor est disponible
+        if (!(window as any).Capacitor) {
+            console.log('⚠️ Capacitor non disponible (environnement web)');
             return null;
+        }
+
+        // Vérifier si on est sur une plateforme native
+        const isNative = (window as any).Capacitor?.isNativePlatform?.();
+        if (!isNative) {
+            console.log('🌐 Pas sur plateforme native, mais Capacitor présent');
+            console.log("🔧 Tentative d'import PushNotifications quand même...");
         }
 
         // Import dynamique pour éviter l'erreur sur web
         const { PushNotifications } = await import('@capacitor/push-notifications');
+        console.log('✅ PushNotifications importé avec succès');
         return PushNotifications;
     } catch (error) {
         console.error('❌ Erreur import PushNotifications:', error);
@@ -39,39 +52,51 @@ const importPushNotifications = async () => {
  */
 const initializeNativePushNotifications = async (): Promise<void> => {
     try {
+        console.log('🚀 Début initializeNativePushNotifications...');
+
         // Import dynamique de PushNotifications
         const PushNotifications = await importPushNotifications();
         if (!PushNotifications) {
+            console.log('❌ Échec import PushNotifications, arrêt initialisation');
             return;
         }
 
         console.log('🔔 Initialisation des notifications push natives...');
 
         // Vérifier les permissions actuelles
+        console.log('📋 Vérification des permissions...');
         const permissionCheck = await PushNotifications.checkPermissions();
-        console.log('📋 Permissions actuelles:', permissionCheck);
+        console.log('📋 Permissions actuelles:', JSON.stringify(permissionCheck, null, 2));
 
         permissionStatus.value = permissionCheck.receive;
 
-        if (permissionCheck.receive === 'prompt') {
+        if (permissionCheck.receive === 'prompt' || permissionCheck.receive === 'prompt-with-rationale') {
             // Demander les permissions
             console.log('🔐 Demande de permissions...');
             const permissionRequest = await PushNotifications.requestPermissions();
-            console.log('✅ Permissions accordées:', permissionRequest);
+            console.log('✅ Réponse permissions:', JSON.stringify(permissionRequest, null, 2));
             permissionStatus.value = permissionRequest.receive;
         }
 
+        console.log('🔍 Statut final permissions:', permissionStatus.value);
+
         if (permissionStatus.value === 'granted') {
+            console.log("✅ Permissions accordées, tentative d'enregistrement...");
+
+            // Configurer les listeners AVANT l'enregistrement
+            setupPushNotificationListeners(PushNotifications);
+
             // Enregistrer pour les notifications
+            console.log('📝 Appel PushNotifications.register()...');
             await PushNotifications.register();
             console.log('✅ Enregistrement pour notifications effectué');
             isRegistered.value = true;
-
-            // Configurer les listeners
-            setupPushNotificationListeners(PushNotifications);
+        } else {
+            console.log('❌ Permissions non accordées:', permissionStatus.value);
         }
     } catch (error) {
         console.error('❌ Erreur initialisation push notifications:', error);
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     }
 };
 
