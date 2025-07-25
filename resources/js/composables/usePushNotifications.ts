@@ -84,7 +84,6 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         // Configurer les listeners EN PREMIER
         console.log('🔄 Étape 2: Configuration des listeners...');
         setupPushNotificationListeners(PushNotifications);
-        setupCustomFCMListener(); // Ajouter le listener FCM personnalisé
         console.log('✅ Étape 2 terminée: Listeners configurés');
 
         // Vérifier les permissions actuelles
@@ -212,30 +211,6 @@ const setupPushNotificationListeners = (PushNotifications: any) => {
     });
 
     console.log('✅ Tous les listeners push notifications configurés');
-};
-
-/**
- * Configurer un listener pour l'événement FCM personnalisé
- */
-const setupCustomFCMListener = () => {
-    console.log('🔧 Configuration du listener FCM personnalisé...');
-
-    // Écouter l'événement personnalisé envoyé depuis iOS
-  window.addEventListener('fcmTokenReceived', (event: any) => {
-    console.log('📦 Contenu brut de l’event:', event.detail);
-
-      const token = event.detail?.value; 
-      if (token) {
-          console.log('🎯 Token FCM reçu via JS event:', token);
-          deviceToken.value = token;
-          sendTokenToBackend(token);
-      } else {
-          console.warn('⚠️ Aucun token trouvé dans event.detail');
-      }
-  });
-
-
-    console.log('✅ Listener FCM personnalisé configuré');
 };
 
 /**
@@ -416,9 +391,6 @@ const sendTokenWithLogin = (formData: any) => {
  * Hook de composition pour les notifications push
  */
 export function usePushNotifications() {
-    // Configurer le listener FCM personnalisé immédiatement
-    setupCustomFCMListener();
-
     // Initialiser automatiquement au montage
     onMounted(() => {
         initializePushNotifications();
