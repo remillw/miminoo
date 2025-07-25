@@ -222,18 +222,13 @@ const setupCustomFCMListener = () => {
 
     // Écouter l'événement personnalisé envoyé depuis iOS
    window.addEventListener('fcmTokenReceived', (event: any) => {
-       try {
-           console.log('🎯 Token FCM brut reçu via événement personnalisé:', event.detail);
-           const parsed = JSON.parse(event.detail);
-           const token = parsed.value;
-
-           if (token) {
-               console.log('🔑 Token FCM value:', token);
-               deviceToken.value = token;
-               sendTokenToBackend(token);
-           }
-       } catch (e) {
-           console.error('❌ Erreur parsing token FCM:', e);
+       const token = event.detail;
+       if (token) {
+           console.log('🎯 Token FCM reçu via JS event:', token);
+           deviceToken.value = token;
+           sendTokenToBackend(token);
+       } else {
+           console.warn('⚠️ Aucun token trouvé dans event.detail');
        }
    });
 
