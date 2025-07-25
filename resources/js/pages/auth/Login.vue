@@ -17,7 +17,7 @@ import { route } from 'ziggy-js';
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
 const { isNative } = useCapacitor();
-const { initializePushNotifications, sendTokenWithLogin, deviceToken, forceReinitPushNotifications } = usePushNotifications();
+const { initializePushNotifications, sendTokenWithLogin, deviceToken, forceReinitPushNotifications, getTokenFromPlugin } = usePushNotifications();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -107,9 +107,12 @@ onMounted(async () => {
                         <span>🔔 Token:</span>
                         <span class="font-mono">{{ deviceToken ? '✅ ' + deviceToken.substring(0, 10) + '...' : '❌ Aucun' }}</span>
                     </div>
-                    <div class="mt-2">
+                    <div class="mt-2 space-x-2">
                         <button @click="forceReinitPushNotifications" type="button" class="rounded bg-red-500 px-2 py-1 text-xs text-white">
                             🔄 Force Reinit
+                        </button>
+                        <button @click="getTokenFromPlugin" type="button" class="rounded bg-blue-500 px-2 py-1 text-xs text-white">
+                            🔍 Get Token
                         </button>
                     </div>
                 </div>
