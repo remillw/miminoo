@@ -11,7 +11,7 @@ import { usePushNotifications } from '@/composables/usePushNotifications';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { Eye, EyeOff, LoaderCircle, Lock, Mail } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { route } from 'ziggy-js';
 
 const isPasswordVisible = ref(false);
@@ -72,6 +72,19 @@ const submit = () => {
 const handleGoogleAuth = async () => {
     await authenticateWithGoogle();
 };
+
+// Initialiser les push notifications dès le chargement de la page de login si on est sur mobile
+onMounted(async () => {
+    if (isNative.value) {
+        console.log('📱 Page de login chargée sur mobile - initialisation des push notifications');
+        try {
+            await initializePushNotifications();
+            console.log('✅ Push notifications initialisées avant login');
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'initialisation des push notifications avant login:', error);
+        }
+    }
+});
 </script>
 
 <template>
@@ -83,6 +96,18 @@ const handleGoogleAuth = async () => {
             <div class="mx-auto my-20 mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
                 <h2 class="mb-1 text-center text-2xl font-bold">Connexion</h2>
                 <p class="mb-6 text-center text-gray-500">Bienvenue sur la plateforme de babysitting</p>
+                
+                <!-- DEBUG: Statut push notifications (mobile seulement) -->
+                <div v-if="isNative" class="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                    <div class="flex justify-between">
+                        <span>📱 Mobile:</span>
+                        <span class="font-mono">{{ isNative ? 'OUI' : 'NON' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>🔔 Token:</span>
+                        <span class="font-mono">{{ deviceToken ? '✅ ' + deviceToken.substring(0, 10) + '...' : '❌ Aucun' }}</span>
+                    </div>
+                </div>
 
                 <!-- Boutons de connexion sociale -->
                 <div class="mb-6 space-y-3">
