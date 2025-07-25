@@ -89,7 +89,7 @@ onMounted(async () => {
 
 <template>
     <GlobalLayout>
-        <div class="bg-secondary flex flex-col justify-between">
+        <div class="bg-secondary flex flex-col justify-between min-h-screen">
             <Head title="Connexion" />
 
             <!-- Form container -->
@@ -110,14 +110,14 @@ onMounted(async () => {
                 </div>
 
                 <!-- Boutons de connexion sociale -->
-                <div class="mb-6 space-y-3">
+                <div class="mb-4 space-y-2.5 sm:mb-6 sm:space-y-3">
                     <!-- Bouton Google -->
                     <button
                         @click="handleGoogleAuth"
                         type="button"
-                        class="focus:ring-primary inline-flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none"
+                        class="focus:ring-primary inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none sm:gap-3 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm"
                     >
-                        <svg class="h-5 w-5" viewBox="0 0 24 24">
+                        <svg class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">
                             <path
                                 fill="#4285F4"
                                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -135,7 +135,8 @@ onMounted(async () => {
                                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                             />
                         </svg>
-                        Continuer avec Google
+                        <span class="hidden sm:inline">Continuer avec Google</span>
+                        <span class="sm:hidden">Google</span>
                     </button>
 
                     <!-- Bouton Apple - Commenté pour l'instant -->
@@ -152,24 +153,24 @@ onMounted(async () => {
                 --></div>
 
                 <!-- Séparateur -->
-                <div class="mb-6 flex items-center">
+                <div class="mb-4 flex items-center sm:mb-6">
                     <div class="flex-1 border-t border-gray-300"></div>
-                    <div class="mx-4 text-sm text-gray-500">ou</div>
+                    <div class="mx-3 text-xs text-gray-500 sm:mx-4 sm:text-sm">ou</div>
                     <div class="flex-1 border-t border-gray-300"></div>
                 </div>
 
-                <form @submit.prevent="submit" class="space-y-4">
+                <form @submit.prevent="submit" class="space-y-3 sm:space-y-4">
                     <div>
-                        <Label for="email" class="mb-1 block text-sm font-medium">Email</Label>
+                        <Label for="email" class="mb-1 block text-xs font-medium sm:text-sm">Email</Label>
                         <div class="relative">
-                            <Mail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <Mail class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                             <Input
                                 id="email"
                                 type="email"
                                 v-model="form.email"
                                 autocomplete="email"
                                 required
-                                class="pl-10"
+                                class="pl-8 py-2.5 text-sm sm:pl-10 sm:py-3 sm:text-base"
                                 placeholder="votre@email.com"
                             />
                         </div>
@@ -177,39 +178,39 @@ onMounted(async () => {
                     </div>
 
                     <div>
-                        <Label for="password" class="mb-1 block text-sm font-medium">Mot de passe</Label>
+                        <Label for="password" class="mb-1 block text-xs font-medium sm:text-sm">Mot de passe</Label>
                         <div class="relative">
-                            <Lock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <Lock class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                             <Input
                                 id="password"
                                 :type="isPasswordVisible ? 'text' : 'password'"
                                 v-model="form.password"
                                 required
                                 autocomplete="current-password"
-                                class="pr-10 pl-10"
+                                class="pr-8 pl-8 py-2.5 text-sm sm:pr-10 sm:pl-10 sm:py-3 sm:text-base"
                                 placeholder="••••••••"
                             />
-                            <button type="button" class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500" @click="togglePasswordVisibility">
-                                <component :is="isPasswordVisible ? EyeOff : Eye" class="h-4 w-4" />
+                            <button type="button" class="absolute top-1/2 right-2.5 -translate-y-1/2 text-gray-500 sm:right-3" @click="togglePasswordVisibility">
+                                <component :is="isPasswordVisible ? EyeOff : Eye" class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </button>
                         </div>
                         <InputError :message="form.errors.password" />
                     </div>
 
-                    <div class="flex items-center justify-between text-sm">
-                        <label class="flex items-center gap-2">
+                    <div class="flex items-center justify-between text-xs sm:text-sm">
+                        <label class="flex items-center gap-1.5 sm:gap-2">
                             <Checkbox id="remember" v-model="form.remember" />
                             <span>Se souvenir de moi</span>
                         </label>
                         <TextLink v-if="canResetPassword" :href="route('password.request')">Mot de passe oublié ?</TextLink>
                     </div>
 
-                    <Button type="submit" class="bg-primary hover:bg-primary w-full py-5 text-base font-bold text-white" :disabled="form.processing">
-                        <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+                    <Button type="submit" class="bg-primary hover:bg-primary w-full py-3 text-sm font-bold text-white sm:py-5 sm:text-base" :disabled="form.processing">
+                        <LoaderCircle v-if="form.processing" class="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" />
                         <span v-else>Se connecter</span>
                     </Button>
 
-                    <div class="text-center text-sm">
+                    <div class="text-center text-xs sm:text-sm">
                         Pas encore de compte ?
                         <TextLink :href="route('inscription')" class="text-primary">S'inscrire</TextLink>
                     </div>

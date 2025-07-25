@@ -1,35 +1,35 @@
 <template>
-  <section class="w-full bg-secondary py-16">
+  <section class="w-full bg-secondary py-8 sm:py-12 md:py-16">
     <div class="mx-auto max-w-5xl px-4">
       <!-- Titre -->
-      <h2 class="text-center text-2xl font-bold md:text-3xl mb-2">
+      <h2 class="text-center text-xl font-bold sm:text-2xl md:text-3xl mb-2">
         Ce que les parents disent de nous
       </h2>
-      <p class="text-center text-gray-600 mb-10">
+      <p class="text-center text-sm text-gray-600 sm:text-base mb-6 sm:mb-8 md:mb-10">
         Découvrez les témoignages des parents qui nous font confiance pour la garde de leurs enfants.
       </p>
 
       <!-- Carte avec navigation interne -->
       <ReviewCard v-bind="reviews[current]">
         <template #navigation>
-          <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-4">
+          <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:bottom-5 sm:gap-4">
             <!-- Flèche gauche -->
             <button
               @click="prev"
-              class="rounded-full border border-gray-200 p-2 bg-white shadow-sm hover:bg-gray-50 transition"
+              class="rounded-full border border-gray-200 p-1.5 bg-white shadow-sm hover:bg-gray-50 transition sm:p-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-900" fill="none" viewBox="0 0 24 24"
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-900 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24"
                    stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
             <!-- Dots -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2">
               <span
                 v-for="(_, i) in reviews"
                 :key="i"
-                class="h-3 w-3 rounded-full transition"
+                class="h-2 w-2 rounded-full transition sm:h-3 sm:w-3"
                 :class="i === current ? 'bg-primary' : 'bg-gray-100'"
               ></span>
             </div>
@@ -37,9 +37,9 @@
             <!-- Flèche droite -->
             <button
               @click="next"
-              class="rounded-full border border-gray-200 p-2 bg-white shadow-sm hover:bg-gray-50 transition"
+              class="rounded-full border border-gray-200 p-1.5 bg-white shadow-sm hover:bg-gray-50 transition sm:p-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-900" fill="none" viewBox="0 0 24 24"
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-900 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24"
                    stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>

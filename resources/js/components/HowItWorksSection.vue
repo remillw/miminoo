@@ -30,27 +30,27 @@ const steps = [
 
 </script>
 <template>
-    <section class="w-full bg-white py-12">
+    <section class="w-full bg-white py-8 sm:py-10 md:py-12">
       <div class="mx-auto max-w-5xl px-4">
-        <h2 class="mb-2 text-center text-2xl font-bold md:text-3xl">Comment ça marche ?</h2>
-        <p class="mb-10 text-center text-gray-600">
+        <h2 class="mb-2 text-center text-xl font-bold sm:text-2xl md:text-3xl">Comment ça marche ?</h2>
+        <p class="mb-6 text-center text-sm text-gray-600 sm:text-base sm:mb-8 md:mb-10">
           En quelques étapes simples, trouvez la babysitter idéale pour vos enfants
         </p>
-        <div class="grid grid-cols-1 gap-10 md:grid-cols-4">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 md:grid-cols-4 md:gap-10">
           <div
             v-for="step in steps"
             :key="step.title"
             class="flex flex-col items-center text-center"
           >
             <div
-              :class="['mb-4 flex h-20 w-20 items-center justify-center rounded-full shadow-md', step.bgColor]"
+              :class="['mb-3 flex h-16 w-16 items-center justify-center rounded-full shadow-md sm:mb-4 sm:h-20 sm:w-20', step.bgColor]"
             >
-              <component :is="step.icon" class="h-8 w-8 text-white" />
+              <component :is="step.icon" class="h-6 w-6 text-white sm:h-8 sm:w-8" />
             </div>
-            <h3 class="mb-2 text-base font-semibold text-gray-900">
+            <h3 class="mb-2 text-sm font-semibold text-gray-900 sm:text-base">
               {{ step.title }}
             </h3>
-            <p class="text-sm text-gray-600">{{ step.desc }}</p>
+            <p class="text-xs text-gray-600 sm:text-sm">{{ step.desc }}</p>
           </div>
         </div>
       </div>

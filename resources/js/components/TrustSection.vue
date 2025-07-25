@@ -26,28 +26,28 @@ const items = [
 
 </script>
 <template>
-    <section class="w-full bg-secondary py-12">
+    <section class="w-full bg-secondary py-8 sm:py-10 md:py-12">
       <div class="mx-auto max-w-6xl px-4">
-        <h2 class="mb-2 text-center text-2xl font-bold md:text-3xl">
+        <h2 class="mb-2 text-center text-xl font-bold sm:text-2xl md:text-3xl">
           Votre tranquillité d'esprit est notre priorité
         </h2>
-        <p class="mb-10 text-center text-gray-600">
+        <p class="mb-6 text-center text-sm text-gray-600 sm:text-base sm:mb-8 md:mb-10">
           Nous réinventons la garde d'enfants en proposant un service simple, sûr et adapté aux besoins des familles modernes.
         </p>
   
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
           <div
             v-for="item in items"
             :key="item.title"
-            class="flex flex-col rounded-2xl bg-white p-6 shadow-md text-left"
+            class="flex flex-col rounded-2xl bg-white p-4 shadow-md text-left sm:p-6"
           >
-            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary">
-              <component :is="item.icon" class="h-6 w-6" />
+            <div class="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-primary sm:mb-4 sm:h-12 sm:w-12">
+              <component :is="item.icon" class="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <h3 class="mb-2 text-base font-semibold text-gray-900">
+            <h3 class="mb-2 text-sm font-semibold text-gray-900 sm:text-base">
               {{ item.title }}
             </h3>
-            <p class="text-sm text-gray-700">
+            <p class="text-xs text-gray-700 sm:text-sm">
               {{ item.desc }}
             </p>
           </div>

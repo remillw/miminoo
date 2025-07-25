@@ -62,7 +62,7 @@ const links = computed(() => {
     const parentLinks = [
         { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
         { name: 'Créer une annonce', href: '/creer-une-annonce', icon: PlusCircle },
-        { name: 'Mes gardes', href: '/mes-annonces-et-reservations', icon: Calendar },
+        { name: 'Mes annonces', href: '/mes-annonces-et-reservations', icon: Calendar },
         { name: 'Messagerie', href: '/messagerie', icon: MessageCircle },
         { name: 'Mon profil', href: '/profil', icon: User },
         { name: 'Paiements', href: '/paiements', icon: CreditCard },

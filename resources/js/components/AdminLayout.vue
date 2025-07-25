@@ -65,7 +65,7 @@ const getNavItemClass = (section: string) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-secondary">
         <!-- Header -->
         <header class="bg-white shadow">
             <div class="flex h-16 items-center justify-between px-6">
