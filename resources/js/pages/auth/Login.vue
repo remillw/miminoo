@@ -5,19 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCapacitor } from '@/composables/useCapacitor';
+import { useDeviceToken } from '@/composables/useDeviceToken';
 import { useMobileAuth } from '@/composables/useMobileAuth';
-import { usePushNotifications } from '@/composables/usePushNotifications';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Eye, EyeOff, LoaderCircle, Lock, Mail } from 'lucide-vue-next';
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { route } from 'ziggy-js';
 
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
-const { isNative } = useCapacitor();
-const { initializePushNotifications, sendTokenWithLogin, deviceToken, getToken } = usePushNotifications();
+const { getDeviceTokenData, isMobileApp } = useDeviceToken();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -35,41 +33,43 @@ const form = useForm({
 });
 
 const submit = () => {
-    // Préparer les données de base
-    const baseData = form.data();
+    // Ajouter les données du device token si on est dans une app mobile
+    const deviceTokenData = getDeviceTokenData();
 
-    // Intégrer le token de device si on est sur mobile
-    const formData = isNative.value ? sendTokenWithLogin(baseData) : baseData;
+    if (isMobileApp() && deviceTokenData) {
+        console.log('Login: Ajout du device token à la connexion:', {
+            platform: deviceTokenData.platform,
+            provider: deviceTokenData.notification_provider,
+            tokenPreview: deviceTokenData.device_token.substring(0, 20) + '...',
+        });
 
-    form.transform(() => formData).post(route('connexion'), {
+        // Utiliser transform pour ajouter les données du device token
+        form.transform((data) => ({
+            ...data,
+            ...deviceTokenData,
+            mobile_auth: true,
+        }));
+    }
+
+    form.post(route('connexion'), {
         onFinish: () => form.reset('password'),
-        onSuccess: async () => {
-            // Si on est sur mobile, déclencher l'enregistrement des notifications push
-            if (isNative.value) {
-                try {
-                    await initializePushNotifications();
-                } catch (error) {
-                    console.error("Erreur lors de l'initialisation des push notifications:", error);
-                }
-            }
-        },
     });
 };
 
 const handleGoogleAuth = async () => {
-    await authenticateWithGoogle();
-};
+    // Récupérer les données du device token si on est dans une app mobile
+    const deviceTokenData = isMobileApp() ? getDeviceTokenData() : null;
 
-// Initialiser les push notifications dès le chargement de la page de login si on est sur mobile
-onMounted(async () => {
-    if (isNative.value) {
-        try {
-            await initializePushNotifications();
-        } catch (error) {
-            console.error("Erreur lors de l'initialisation des push notifications avant login:", error);
-        }
+    if (deviceTokenData) {
+        console.log('Google Auth: Utilisation du device token:', {
+            platform: deviceTokenData.platform,
+            provider: deviceTokenData.notification_provider,
+            tokenPreview: deviceTokenData.device_token.substring(0, 20) + '...',
+        });
     }
-});
+
+    await authenticateWithGoogle(deviceTokenData);
+};
 </script>
 
 <template>
@@ -81,21 +81,6 @@ onMounted(async () => {
             <div class="mx-auto my-20 mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
                 <h2 class="mb-1 text-center text-2xl font-bold">Connexion</h2>
                 <p class="mb-6 text-center text-gray-500">Bienvenue sur la plateforme de babysitting</p>
-
-                <!-- DEBUG: Statut push notifications (mobile seulement) -->
-                <div v-if="isNative" class="mb-4 rounded border border-blue-200 bg-blue-50 p-2 text-xs">
-                    <div class="flex justify-between">
-                        <span>📱 Mobile:</span>
-                        <span class="font-mono">{{ isNative ? 'OUI' : 'NON' }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>🔔 Token:</span>
-                        <span class="font-mono">{{ deviceToken ? '✅ ' + deviceToken.substring(0, 10) + '...' : '❌ Aucun' }}</span>
-                    </div>
-                    <div class="mt-2">
-                        <button @click="getToken" type="button" class="rounded bg-blue-500 px-2 py-1 text-xs text-white">📱 Get Token</button>
-                    </div>
-                </div>
 
                 <!-- Boutons de connexion sociale -->
                 <div class="mb-4 space-y-2.5 sm:mb-6 sm:space-y-3">

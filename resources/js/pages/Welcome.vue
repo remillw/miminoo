@@ -7,12 +7,10 @@ import SectionReview from '@/components/SectionReview.vue';
 import TrustSection from '@/components/TrustSection.vue';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { useCapacitor } from '@/composables/useCapacitor';
-import { usePushNotifications } from '@/composables/usePushNotifications';
+
 import { onMounted } from 'vue';
 
-const { isCapacitor } = useCapacitor();
-const { initializePushNotifications } = usePushNotifications();
+
 const page = usePage();
 
 onMounted(() => {

@@ -13,8 +13,6 @@ import { z } from 'zod';
 
 const { showSuccess, showError } = useToast();
 const { authenticateWithGoogle } = useMobileAuth();
-const { isNative } = useCapacitor();
-const { initializePushNotifications, sendTokenWithLogin } = usePushNotifications();
 
 const isPasswordVisible = ref(false);
 const isPasswordConfirmVisible = ref(false);
