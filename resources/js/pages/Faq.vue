@@ -134,7 +134,7 @@ const faqs = [
   category: 'parents',
 },
 {
-  question: "Comment voir l’historique de mes gardes ?",
+  question: "Comment voir l’historique de mes annonces de babysitting ?",
   answer: "Vous retrouvez toutes vos anciennes réservations dans votre espace personnel, avec les profils, les avis et les détails de chaque garde.",
   category: 'parents',
 },

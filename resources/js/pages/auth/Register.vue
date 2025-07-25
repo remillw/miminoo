@@ -202,22 +202,22 @@ const handleGoogleAuth = async () => {
 
 <template>
     <GlobalLayout>
-        <div class="bg-secondary flex flex-col justify-between">
+        <div class="bg-secondary flex flex-col justify-between min-h-screen">
         <Head title="Inscription" />
 
-        <div class="mx-auto my-20 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
-            <h2 class="mb-1 text-center text-2xl font-bold">Inscription</h2>
-            <p class="mb-6 text-center text-gray-500">Vous pourrez choisir votre rôle (Parent ou Babysitter) à la prochaine étape.</p>
+        <div class="mx-auto my-8 w-full max-w-xs rounded-2xl bg-white p-6 shadow-md sm:my-12 sm:max-w-sm sm:rounded-3xl sm:p-8 md:my-20 md:max-w-md">
+            <h2 class="mb-1 text-center text-xl font-bold sm:text-2xl">Inscription</h2>
+            <p class="mb-4 text-center text-sm text-gray-500 sm:mb-6 sm:text-base">Vous pourrez choisir votre rôle (Parent ou Babysitter) à la prochaine étape.</p>
 
             <!-- Boutons de connexion sociale -->
-            <div class="mb-6 space-y-3">
+            <div class="mb-4 space-y-2.5 sm:mb-6 sm:space-y-3">
                 <!-- Bouton Google -->
                 <button
                     @click="handleGoogleAuth"
                     type="button"
-                    class="focus:ring-primary inline-flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none"
+                    class="focus:ring-primary inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none sm:gap-3 sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm"
                 >
-                    <svg class="h-5 w-5" viewBox="0 0 24 24">
+                    <svg class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24">
                         <path
                             fill="#4285F4"
                             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -235,7 +235,8 @@ const handleGoogleAuth = async () => {
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                     </svg>
-                    Continuer avec Google
+                    <span class="hidden sm:inline">Continuer avec Google</span>
+                    <span class="sm:hidden">Google</span>
                 </button>
 
                 <!-- Bouton Apple - Commenté pour l'instant -->
@@ -252,21 +253,21 @@ const handleGoogleAuth = async () => {
                 --></div>
 
             <!-- Séparateur -->
-            <div class="mb-6 flex items-center">
+            <div class="mb-4 flex items-center sm:mb-6">
                 <div class="flex-1 border-t border-gray-300"></div>
-                <div class="mx-4 text-sm text-gray-500">ou créer avec email</div>
+                <div class="mx-3 text-xs text-gray-500 sm:mx-4 sm:text-sm">ou créer avec email</div>
                 <div class="flex-1 border-t border-gray-300"></div>
             </div>
 
-            <form @submit.prevent="onSubmit" class="space-y-4">
-                <div class="flex gap-4">
+            <form @submit.prevent="onSubmit" class="space-y-3 sm:space-y-4">
+                <div class="flex gap-2 sm:gap-4">
                     <div class="w-1/2">
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Prénom</label>
+                        <label class="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Prénom</label>
                         <div class="relative">
-                            <User class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <User class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                             <Input
                                 v-model="firstname"
-                                class="pl-10"
+                                class="pl-8 py-2.5 text-sm sm:pl-10 sm:py-3 sm:text-base"
                                 placeholder="Prénom"
                                 @input="clearFieldError('firstname')"
                                 @blur="
@@ -275,15 +276,15 @@ const handleGoogleAuth = async () => {
                                 "
                             />
                         </div>
-                        <p v-if="errors.firstname" class="mt-1 text-sm text-red-500">{{ errors.firstname }}</p>
+                        <p v-if="errors.firstname" class="mt-1 text-xs text-red-500 sm:text-sm">{{ errors.firstname }}</p>
                     </div>
                     <div class="w-1/2">
-                        <label class="mb-1 block text-sm font-medium text-gray-700">Nom</label>
+                        <label class="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Nom</label>
                         <div class="relative">
-                            <User class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <User class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                             <Input
                                 v-model="lastname"
-                                class="pl-10"
+                                class="pl-8 py-2.5 text-sm sm:pl-10 sm:py-3 sm:text-base"
                                 placeholder="Nom"
                                 @input="clearFieldError('lastname')"
                                 @blur="
@@ -292,18 +293,18 @@ const handleGoogleAuth = async () => {
                                 "
                             />
                         </div>
-                        <p v-if="errors.lastname" class="mt-1 text-sm text-red-500">{{ errors.lastname }}</p>
+                        <p v-if="errors.lastname" class="mt-1 text-xs text-red-500 sm:text-sm">{{ errors.lastname }}</p>
                     </div>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Email</label>
+                    <label class="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Email</label>
                     <div class="relative">
-                        <Mail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Mail class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                         <Input
                             v-model="email"
                             type="email"
-                            class="pl-10"
+                            class="pl-8 py-2.5 text-sm sm:pl-10 sm:py-3 sm:text-base"
                             placeholder="votre@email.com"
                             @input="clearFieldError('email')"
                             @blur="
@@ -312,17 +313,17 @@ const handleGoogleAuth = async () => {
                             "
                         />
                     </div>
-                    <p v-if="errors.email" class="mt-1 text-sm text-red-500">{{ errors.email }}</p>
+                    <p v-if="errors.email" class="mt-1 text-xs text-red-500 sm:text-sm">{{ errors.email }}</p>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Mot de passe</label>
+                    <label class="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Mot de passe</label>
                     <div class="relative">
-                        <Lock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Lock class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                         <Input
                             v-model="password"
                             :type="isPasswordVisible ? 'text' : 'password'"
-                            class="pr-10 pl-10"
+                            class="pr-8 pl-8 py-2.5 text-sm sm:pr-10 sm:pl-10 sm:py-3 sm:text-base"
                             placeholder="••••••••"
                             @input="clearFieldError('password')"
                             @blur="
@@ -332,23 +333,23 @@ const handleGoogleAuth = async () => {
                         />
                         <button
                             type="button"
-                            class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
+                            class="absolute top-1/2 right-2.5 -translate-y-1/2 text-gray-500 sm:right-3"
                             @click="isPasswordVisible = !isPasswordVisible"
                         >
-                            <component :is="isPasswordVisible ? EyeOff : Eye" class="h-4 w-4" />
+                            <component :is="isPasswordVisible ? EyeOff : Eye" class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                     </div>
-                    <p v-if="errors.password" class="mt-1 text-sm text-red-500">{{ errors.password }}</p>
+                    <p v-if="errors.password" class="mt-1 text-xs text-red-500 sm:text-sm">{{ errors.password }}</p>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+                    <label class="mb-1 block text-xs font-medium text-gray-700 sm:text-sm">Confirmer le mot de passe</label>
                     <div class="relative">
-                        <Lock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <Lock class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                         <Input
                             v-model="password_confirmation"
                             :type="isPasswordConfirmVisible ? 'text' : 'password'"
-                            class="pr-10 pl-10"
+                            class="pr-8 pl-8 py-2.5 text-sm sm:pr-10 sm:pl-10 sm:py-3 sm:text-base"
                             placeholder="••••••••"
                             @input="clearFieldError('password_confirmation')"
                             @blur="
@@ -358,17 +359,17 @@ const handleGoogleAuth = async () => {
                         />
                         <button
                             type="button"
-                            class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
+                            class="absolute top-1/2 right-2.5 -translate-y-1/2 text-gray-500 sm:right-3"
                             @click="isPasswordConfirmVisible = !isPasswordConfirmVisible"
                         >
-                            <component :is="isPasswordConfirmVisible ? EyeOff : Eye" class="h-4 w-4" />
+                            <component :is="isPasswordConfirmVisible ? EyeOff : Eye" class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                     </div>
-                    <p v-if="errors.password_confirmation" class="mt-1 text-sm text-red-500">{{ errors.password_confirmation }}</p>
+                    <p v-if="errors.password_confirmation" class="mt-1 text-xs text-red-500 sm:text-sm">{{ errors.password_confirmation }}</p>
                 </div>
 
                 <div>
-                    <div class="flex items-start gap-2 text-sm">
+                    <div class="flex items-start gap-1.5 text-xs sm:gap-2 sm:text-sm">
                         <input
                             type="checkbox"
                             v-model="accepted"
@@ -376,7 +377,7 @@ const handleGoogleAuth = async () => {
                                 markFieldAsTouched('accepted');
                                 validateForm(true);
                             "
-                            class="text-primary focus:ring-primary mt-1 h-4 w-4 rounded border-gray-300 focus:ring-2"
+                            class="text-primary focus:ring-primary mt-0.5 h-3.5 w-3.5 rounded border-gray-300 focus:ring-2 sm:mt-1 sm:h-4 sm:w-4"
                         />
                         <label class="text-gray-700">
                             J'accepte les
@@ -385,20 +386,20 @@ const handleGoogleAuth = async () => {
                             <a href="/politique-de-confidentialite" class="text-primary underline">politique de confidentialité</a>
                         </label>
                     </div>
-                    <p v-if="errors.accepted" class="mt-1 text-sm text-red-500">{{ errors.accepted }}</p>
+                    <p v-if="errors.accepted" class="mt-1 text-xs text-red-500 sm:text-sm">{{ errors.accepted }}</p>
                 </div>
 
                 <Button
                     type="submit"
-                    class="w-full font-semibold text-white transition"
+                    class="w-full font-semibold text-white transition py-3 text-sm sm:py-4 sm:text-base"
                     :class="isFormValid ? 'bg-primary hover:bg-primary' : 'cursor-not-allowed bg-[#FFA789] opacity-80'"
                     :disabled="!isFormValid || inertiaForm.processing"
                 >
-                    <LoaderCircle v-if="inertiaForm.processing" class="mr-2 h-4 w-4 animate-spin" />
+                    <LoaderCircle v-if="inertiaForm.processing" class="mr-2 h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" />
                     {{ inertiaForm.processing ? 'Création en cours...' : 'Créer un compte' }}
                 </Button>
 
-                <div class="text-center text-sm">
+                <div class="text-center text-xs sm:text-sm">
                     Déjà inscrit ?
                     <TextLink :href="route('connexion')" class="text-primary">Se connecter</TextLink>
                 </div>

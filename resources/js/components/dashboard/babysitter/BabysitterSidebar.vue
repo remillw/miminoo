@@ -16,12 +16,12 @@ const links = [
     { icon: Settings, label: 'Paramètres', href: '/parametres' },
 ];
 
-// Liens principaux pour la navigation mobile (4 plus importants)
+// Liens principaux pour la navigation mobile (selon spécifications)
 const mobileLinks = [
     { icon: Home, label: 'Accueil', href: '/tableau-de-bord' },
-    { icon: Calendar, label: 'Résa', href: '/reservations' },
+    { icon: Briefcase, label: 'Annonces', href: '/annonces' },
+    { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
     { icon: MessageCircle, label: 'Messages', href: '/messagerie' },
-    { icon: User, label: 'Profil', href: '/profil' },
 ];
 
 // Récupération de l'URL courante
@@ -65,9 +65,9 @@ const isCurrentRoute = (href: string) => {
     <!-- Mobile Bottom Navigation -->
     <div class="fixed right-0 bottom-0 left-0 z-50 border-t border-gray-200 bg-white lg:hidden">
         <div class="flex items-center justify-around px-2 py-2">
-            <!-- Les 3 premiers liens principaux -->
+            <!-- Les 4 liens principaux -->
             <Link
-                v-for="item in mobileLinks.slice(0, 3)"
+                v-for="item in mobileLinks"
                 :key="item.label"
                 :href="item.href"
                 :class="[
@@ -79,13 +79,13 @@ const isCurrentRoute = (href: string) => {
                 <span class="text-xs font-medium">{{ item.label }}</span>
             </Link>
             
-            <!-- Bouton Plus pour ouvrir le menu complet -->
+            <!-- Bouton Menu pour ouvrir le menu complet -->
             <button 
                 @click="showFullMenu = !showFullMenu" 
                 class="flex flex-col items-center justify-center rounded-lg px-1 py-2 text-gray-600 transition-colors"
             >
-                <MoreHorizontal class="mb-1 h-5 w-5 text-gray-400" />
-                <span class="text-xs font-medium">Plus</span>
+                <Menu class="mb-1 h-5 w-5 text-gray-400" />
+                <span class="text-xs font-medium">Menu</span>
             </button>
         </div>
 

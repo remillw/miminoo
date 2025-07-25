@@ -5,7 +5,7 @@ import LandingHeader from '@/components/LandingHeader.vue';
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-gray-50">
+    <div class="flex min-h-screen flex-col bg-white">
         <LandingHeader />
 
         <div class="flex flex-1">

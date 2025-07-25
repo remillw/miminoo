@@ -785,24 +785,24 @@ initializeChildren();
 
 <template>
     <GlobalLayout>
-        <div class="mx-auto max-w-4xl pt-10 pb-10">
+        <div class="mx-auto max-w-xs px-4 pt-6 pb-6 sm:max-w-2xl sm:px-6 sm:pt-8 sm:pb-8 md:max-w-3xl md:px-8 md:pt-10 md:pb-10 lg:max-w-4xl">
             <!-- Header -->
-            <div class="mb-8">
-                <h1 class="text-2xl font-bold text-gray-800">Créer une annonce</h1>
-                <p class="text-gray-500">Trouvez la babysitter parfaite pour vos enfants</p>
+            <div class="mb-6 text-center sm:mb-8 sm:text-left">
+                <h1 class="text-xl font-bold text-gray-800 sm:text-2xl">Créer une annonce</h1>
+                <p class="text-sm text-gray-500 sm:text-base">Trouvez la babysitter parfaite pour vos enfants</p>
             </div>
 
             <!-- Stepper Modern UX 2025 -->
-            <div class="mb-8">
+            <div class="mb-6 sm:mb-8">
                 <!-- Barre de progression principale -->
-                <div class="mb-6">
-                    <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                <div class="mb-4 sm:mb-6">
+                    <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 sm:h-2">
                         <div
                             class="to-primary h-full rounded-full bg-gradient-to-r from-orange-400 transition-all duration-500 ease-out"
                             :style="{ width: `${progressPercentage}%` }"
                         ></div>
                     </div>
-                    <div class="mt-2 flex justify-between text-xs text-gray-500">
+                    <div class="mt-1.5 flex justify-between text-xs text-gray-500 sm:mt-2">
                         <span>Étape {{ currentStep }} sur {{ totalSteps }}</span>
                         <span>{{ Math.round(progressPercentage) }}% complété</span>
                     </div>
@@ -813,14 +813,14 @@ initializeChildren();
                     <div v-for="step in totalSteps" :key="step" class="z-10 flex flex-col items-center">
                         <!-- Cercle de l'étape avec animations et états -->
                         <div
-                            class="group flex h-14 w-14 transform cursor-pointer items-center justify-center rounded-full border-3 transition-all duration-300 hover:scale-105"
+                            class="group flex h-10 w-10 transform cursor-pointer items-center justify-center rounded-full border-2 transition-all duration-300 hover:scale-105 sm:h-12 sm:w-12 sm:border-3 md:h-14 md:w-14"
                             :class="{
                                 // Étape actuelle
-                                'border-primary bg-primary scale-110 text-white shadow-lg shadow-orange-200': getStepState(step) === 'current',
+                                'border-primary bg-primary scale-105 text-white shadow-md shadow-orange-200 sm:scale-110 sm:shadow-lg': getStepState(step) === 'current',
                                 // Étape complétée sans erreur
-                                'border-green-500 bg-green-500 text-white shadow-lg shadow-green-200': getStepState(step) === 'completed',
+                                'border-green-500 bg-green-500 text-white shadow-md shadow-green-200 sm:shadow-lg': getStepState(step) === 'completed',
                                 // Étape avec erreurs
-                                'animate-pulse border-red-500 bg-red-500 text-white shadow-lg shadow-red-200': getStepState(step) === 'error',
+                                'animate-pulse border-red-500 bg-red-500 text-white shadow-md shadow-red-200 sm:shadow-lg': getStepState(step) === 'error',
                                 // Étape accessible
                                 'bg-secondary text-primary border-orange-200 hover:border-orange-300 hover:bg-orange-100':
                                     getStepState(step) === 'available',
@@ -831,11 +831,11 @@ initializeChildren();
                         >
                             <!-- Icône check pour les étapes complétées -->
                             <div v-if="getStepState(step) === 'completed'" class="animate-in zoom-in duration-300">
-                                <Check class="h-6 w-6" />
+                                <Check class="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
                             </div>
                             <!-- Icône X pour les étapes avec erreurs -->
                             <div v-else-if="getStepState(step) === 'error'" class="animate-in zoom-in duration-300">
-                                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         fill-rule="evenodd"
                                         d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -844,13 +844,13 @@ initializeChildren();
                                 </svg>
                             </div>
                             <!-- Icône de l'étape pour les autres -->
-                            <component v-else :is="stepIcons[step - 1]" class="h-6 w-6 transition-all duration-200" />
+                            <component v-else :is="stepIcons[step - 1]" class="h-4 w-4 transition-all duration-200 sm:h-5 sm:w-5 md:h-6 md:w-6" />
                         </div>
 
                         <!-- Titre de l'étape avec meilleur styling -->
-                        <div class="mt-3 text-center">
+                        <div class="mt-2 text-center sm:mt-3">
                             <span
-                                class="text-sm font-medium transition-all duration-200"
+                                class="text-xs font-medium transition-all duration-200 sm:text-sm"
                                 :class="{
                                     'text-primary font-semibold': getStepState(step) === 'current',
                                     'font-medium text-green-600': getStepState(step) === 'completed',
@@ -858,17 +858,19 @@ initializeChildren();
                                     'text-gray-500': getStepState(step) === 'disabled' || getStepState(step) === 'available',
                                 }"
                             >
-                                {{ stepTitles[step - 1] }}
+                                <span class="hidden sm:inline">{{ stepTitles[step - 1] }}</span>
+                                <span class="sm:hidden">{{ step }}</span>
                             </span>
 
                             <!-- Indicateur d'erreurs sous le titre -->
                             <div v-if="hasStepErrors(step)" class="mt-1 text-xs text-red-600">
-                                {{ stepErrors[step]?.length }} erreur{{ stepErrors[step]?.length > 1 ? 's' : '' }}
+                                <span class="hidden sm:inline">{{ stepErrors[step]?.length }} erreur{{ stepErrors[step]?.length > 1 ? 's' : '' }}</span>
+                                <span class="sm:hidden">!</span>
                             </div>
 
                             <!-- Indicateur de progression sous le titre -->
                             <div
-                                class="mx-auto mt-1 h-1 w-16 rounded-full transition-all duration-300"
+                                class="mx-auto mt-1 h-0.5 w-8 rounded-full transition-all duration-300 sm:h-1 sm:w-16"
                                 :class="{
                                     'bg-primary': getStepState(step) === 'current',
                                     'bg-green-500': getStepState(step) === 'completed',
@@ -880,11 +882,11 @@ initializeChildren();
                     </div>
 
                     <!-- Ligne de connexion entre les étapes -->
-                    <div class="absolute top-7 right-0 left-0 -z-10 flex items-center">
+                    <div class="absolute top-5 right-0 left-0 -z-10 flex items-center sm:top-6 md:top-7">
                         <div class="flex flex-1 items-center">
                             <div v-for="i in totalSteps - 1" :key="i" class="flex flex-1 items-center">
                                 <div
-                                    class="h-1 w-full transition-all duration-500"
+                                    class="h-0.5 w-full transition-all duration-500 sm:h-1"
                                     :class="{
                                         'bg-green-500': completedSteps.has(i) && !hasStepErrors(i),
                                         'bg-red-500': hasStepErrors(i),
@@ -892,7 +894,7 @@ initializeChildren();
                                         'bg-gray-200': currentStep <= i && !completedSteps.has(i) && !hasStepErrors(i),
                                     }"
                                 ></div>
-                                <div class="w-14"></div>
+                                <div class="w-10 sm:w-12 md:w-14"></div>
                                 <!-- Espace pour le cercle suivant -->
                             </div>
                         </div>
@@ -901,41 +903,41 @@ initializeChildren();
             </div>
 
             <!-- Contenu des étapes -->
-            <Card class="mb-6 border-0 shadow-lg">
-                <CardContent class="p-8">
+            <Card class="mb-4 border-0 shadow-md sm:mb-6 sm:shadow-lg">
+                <CardContent class="p-4 sm:p-6 md:p-8">
                     <!-- Étape 0: Email pour guests -->
-                    <div v-if="props.isGuest && currentStep === 1" class="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4">
-                        <div class="mb-4">
+                    <div v-if="props.isGuest && currentStep === 1" class="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3 sm:mb-6 sm:p-4">
+                        <div class="mb-3 sm:mb-4">
                             <div class="flex items-center gap-2">
-                                <svg class="h-5 w-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="h-4 w-4 text-orange-600 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                                 </svg>
-                                <h3 class="text-sm font-medium text-orange-800">Adresse email requise</h3>
+                                <h3 class="text-xs font-medium text-orange-800 sm:text-sm">Adresse email requise</h3>
                             </div>
-                            <p class="mt-1 text-sm text-orange-700">Renseignez votre email pour recevoir les candidatures et gérer votre annonce.</p>
+                            <p class="mt-1 text-xs text-orange-700 sm:text-sm">Renseignez votre email pour recevoir les candidatures et gérer votre annonce.</p>
                         </div>
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                             <div>
-                                <Label for="guest-firstname">Votre prénom</Label>
+                                <Label for="guest-firstname" class="text-xs sm:text-sm">Votre prénom</Label>
                                 <Input
                                     id="guest-firstname"
                                     v-model="form.guest_firstname"
                                     type="text"
                                     placeholder="Ex: Marie"
                                     required
-                                    class="mt-1"
+                                    class="mt-1 text-sm sm:text-base"
                                 />
                             </div>
                             <div>
-                                <Label for="guest-email">Votre adresse email</Label>
+                                <Label for="guest-email" class="text-xs sm:text-sm">Votre adresse email</Label>
                                 <Input
                                     id="guest-email"
                                     v-model="form.email"
                                     type="email"
                                     placeholder="votre.email@exemple.com"
                                     required
-                                    class="mt-1"
+                                    class="mt-1 text-sm sm:text-base"
                                 />
                             </div>
                         </div>
@@ -946,35 +948,35 @@ initializeChildren();
 
                     <!-- Étape 1: Date et horaires -->
                     <div v-if="currentStep === 1">
-                        <h2 class="mb-6 text-xl font-semibold">Quand avez-vous besoin d'une babysitter ?</h2>
+                        <h2 class="mb-4 text-lg font-semibold sm:mb-6 sm:text-xl">Quand avez-vous besoin d'une babysitter ?</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4 sm:space-y-6">
                             <!-- Date -->
                             <div class="space-y-2">
-                                <Label for="date">Date</Label>
+                                <Label for="date" class="text-xs sm:text-sm">Date</Label>
                                 <Datepicker v-model="form.date" placeholder="Sélectionner une date" locale="fr-FR" />
-                           
                             </div>
 
                             <!-- Horaires avec mode de saisie -->
-                            <div class="space-y-4">
+                            <div class="space-y-3 sm:space-y-4">
                                 <!-- Bouton pour basculer entre sélection et saisie manuelle -->
                                 <div class="flex items-center justify-between">
-                                    <Label class="text-base font-medium">Horaires</Label>
+                                    <Label class="text-sm font-medium sm:text-base">Horaires</Label>
                                     <Button type="button" variant="outline" size="sm" @click="toggleTimeInputType" class="text-xs">
                                         <Clock class="mr-1 h-3 w-3" />
-                                        {{ timeInputType === 'select' ? 'Saisie manuelle' : 'Sélection rapide' }}
+                                        <span class="hidden sm:inline">{{ timeInputType === 'select' ? 'Saisie manuelle' : 'Sélection rapide' }}</span>
+                                        <span class="sm:hidden">{{ timeInputType === 'select' ? 'Manuel' : 'Rapide' }}</span>
                                     </Button>
                                 </div>
 
                                 <!-- Mode sélection (par défaut) -->
-                                <div v-if="timeInputType === 'select'" class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div v-if="timeInputType === 'select'" class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                                     <div class="space-y-2">
-                                        <Label for="start_time">Heure de début</Label>
+                                        <Label for="start_time" class="text-xs sm:text-sm">Heure de début</Label>
                                         <Select v-model="form.start_time" required>
                                             <SelectTrigger class="w-full">
                                                 <div class="flex items-center gap-2">
-                                                    <Clock class="h-4 w-4 text-gray-400" />
+                                                    <Clock class="h-3.5 w-3.5 text-gray-400 sm:h-4 sm:w-4" />
                                                     <SelectValue placeholder="Sélectionner l'heure" />
                                                 </div>
                                             </SelectTrigger>
@@ -987,11 +989,11 @@ initializeChildren();
                                     </div>
 
                                     <div class="space-y-2">
-                                        <Label for="end_time">Heure de fin</Label>
+                                        <Label for="end_time" class="text-xs sm:text-sm">Heure de fin</Label>
                                         <Select v-model="form.end_time" required>
                                             <SelectTrigger class="w-full">
                                                 <div class="flex items-center gap-2">
-                                                    <Clock class="h-4 w-4 text-gray-400" />
+                                                    <Clock class="h-3.5 w-3.5 text-gray-400 sm:h-4 sm:w-4" />
                                                     <SelectValue placeholder="Sélectionner l'heure" />
                                                 </div>
                                             </SelectTrigger>
@@ -1005,11 +1007,11 @@ initializeChildren();
                                 </div>
 
                                 <!-- Mode saisie manuelle -->
-                                <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
                                     <div class="space-y-2">
-                                        <Label for="start_time_manual">Heure de début</Label>
+                                        <Label for="start_time_manual" class="text-xs sm:text-sm">Heure de début</Label>
                                         <div class="relative">
-                                            <Clock class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                            <Clock class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                                             <Input
                                                 id="start_time_manual"
                                                 type="time"
@@ -1017,7 +1019,7 @@ initializeChildren();
                                                 min="06:00"
                                                 max="23:59"
                                                 step="900"
-                                                class="pl-10"
+                                                class="pl-8 text-sm sm:pl-10 sm:text-base"
                                                 required
                                                 placeholder="HH:MM"
                                                 @input="formatTimeInput"
@@ -1026,9 +1028,9 @@ initializeChildren();
                                     </div>
 
                                     <div class="space-y-2">
-                                        <Label for="end_time_manual">Heure de fin</Label>
+                                        <Label for="end_time_manual" class="text-xs sm:text-sm">Heure de fin</Label>
                                         <div class="relative">
-                                            <Clock class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                            <Clock class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                                             <Input
                                                 id="end_time_manual"
                                                 type="time"
@@ -1036,7 +1038,7 @@ initializeChildren();
                                                 min="06:00"
                                                 max="23:59"
                                                 step="900"
-                                                class="pl-10"
+                                                class="pl-8 text-sm sm:pl-10 sm:text-base"
                                                 required
                                                 placeholder="HH:MM"
                                                 @input="formatTimeInput"
@@ -1046,26 +1048,26 @@ initializeChildren();
                                 </div>
 
                                 <p class="text-xs text-gray-500">
-                                    ⏰
+                                   
                                     {{
                                         timeInputType === 'select'
-                                            ? 'Créneaux par tranches de 15 minutes'
+                                            ? ''
                                             : "Saisissez l'heure au format HH:MM (ex: 14:30)"
                                     }}
                                 </p>
                             </div>
 
                             <!-- Durée estimée avec avertissement pour garde de nuit -->
-                            <div v-if="estimatedDuration > 0" class="space-y-3">
-                                <div class="rounded-lg bg-blue-50 p-4">
-                                    <p class="text-sm text-blue-800"><strong>Durée estimée:</strong> {{ durationDisplayText }}</p>
+                            <div v-if="estimatedDuration > 0" class="space-y-2 sm:space-y-3">
+                                <div class="rounded-lg bg-blue-50 p-3 sm:p-4">
+                                    <p class="text-xs text-blue-800 sm:text-sm"><strong>Durée estimée:</strong> {{ durationDisplayText }}</p>
                                 </div>
 
                                 <!-- Avertissement pour garde de nuit -->
-                                <div v-if="spansNextDay" class="rounded-lg border border-orange-200 bg-orange-50 p-4">
-                                    <div class="flex items-start gap-3">
+                                <div v-if="spansNextDay" class="rounded-lg border border-orange-200 bg-orange-50 p-3 sm:p-4">
+                                    <div class="flex items-start gap-2 sm:gap-3">
                                         <div class="flex-shrink-0">
-                                            <svg class="h-5 w-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <svg class="h-4 w-4 text-orange-600 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20">
                                                 <path
                                                     fill-rule="evenodd"
                                                     d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -1074,8 +1076,8 @@ initializeChildren();
                                             </svg>
                                         </div>
                                         <div class="flex-1">
-                                            <h3 class="text-sm font-medium text-orange-800">Garde de nuit détectée</h3>
-                                            <p class="mt-1 text-sm text-orange-700">
+                                            <h3 class="text-xs font-medium text-orange-800 sm:text-sm">Garde de nuit détectée</h3>
+                                            <p class="mt-1 text-xs text-orange-700 sm:text-sm">
                                                 Cette annonce s'étend sur deux jours (se termine le lendemain). Assurez-vous que c'est bien ce que
                                                 vous souhaitez et que le tarif proposé correspond à une garde de nuit.
                                             </p>
@@ -1088,12 +1090,12 @@ initializeChildren();
 
                     <!-- Étape 2: Enfants -->
                     <div v-if="currentStep === 2">
-                        <h2 class="mb-6 text-xl font-semibold">Informations sur vos enfants</h2>
+                        <h2 class="mb-4 text-lg font-semibold sm:mb-6 sm:text-xl">Informations sur vos enfants</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4 sm:space-y-6">
                             <!-- Nombre d'enfants -->
                             <div class="space-y-2">
-                                <Label>Nombre d'enfants</Label>
+                                <Label class="text-xs sm:text-sm">Nombre d'enfants</Label>
                                 <Select
                                     :model-value="String(form.children.length)"
                                     @update:model-value="
@@ -1118,24 +1120,24 @@ initializeChildren();
                             </div>
 
                             <!-- Détails des enfants -->
-                            <div class="space-y-4">
+                            <div class="space-y-3 sm:space-y-4">
                                 <div
                                     v-for="(child, index) in form.children"
                                     :key="index"
-                                    class="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-2"
+                                    class="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:gap-4 sm:p-4 md:grid-cols-2"
                                 >
                                     <div class="space-y-2">
-                                        <Label :for="`child-name-${index}`">Prénom de l'enfant {{ index + 1 }}</Label>
-                                        <Input :id="`child-name-${index}`" v-model="child.nom" placeholder="ex: Sophie" required />
+                                        <Label :for="`child-name-${index}`" class="text-xs sm:text-sm">Prénom de l'enfant {{ index + 1 }}</Label>
+                                        <Input :id="`child-name-${index}`" v-model="child.nom" placeholder="ex: Sophie" required class="text-sm sm:text-base" />
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="space-y-2">
-                                            <Label :for="`child-age-${index}`">Âge</Label>
-                                            <Input :id="`child-age-${index}`" v-model="child.age" type="number" min="1" max="18" required />
+                                            <Label :for="`child-age-${index}`" class="text-xs sm:text-sm">Âge</Label>
+                                            <Input :id="`child-age-${index}`" v-model="child.age" type="number" min="1" max="18" required class="text-sm sm:text-base" />
                                         </div>
                                         <div class="space-y-2">
-                                            <Label :for="`child-unit-${index}`">Âge en </Label>
+                                            <Label :for="`child-unit-${index}`" class="text-xs sm:text-sm">Âge en </Label>
                                             <Select v-model="child.unite">
                                                 <SelectTrigger>
                                                     <SelectValue />
@@ -1154,23 +1156,23 @@ initializeChildren();
 
                     <!-- Étape 3: Lieu -->
                     <div v-if="currentStep === 3">
-                        <h2 class="mb-6 text-xl font-semibold">Où se déroule le babysitting ?</h2>
+                        <h2 class="mb-4 text-lg font-semibold sm:mb-6 sm:text-xl">Où se déroule le babysitting ?</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4 sm:space-y-6">
                             <div class="space-y-2">
-                                <Label for="address">Adresse</Label>
+                                <Label for="address" class="text-xs sm:text-sm">Adresse</Label>
                                 <div class="relative">
-                                    <MapPin class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                    <MapPin class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                                     <Input
                                         id="address-input"
                                         v-model="form.address"
                                         placeholder="Entrez une adresse complète"
-                                        class="pl-10"
+                                        class="pl-8 text-sm sm:pl-10 sm:text-base"
                                         required
                                     />
                                 </div>
                                 <p class="text-xs text-gray-500">
-                                    📍 Adresse permettant de géolocaliser et prévenir les babysitters les plus proches. Seuls la ville et le code
+                                    Adresse permettant de géolocaliser et prévenir les babysitters les plus proches. Seuls la ville et le code
                                     postal seront affichés publiquement.
                                 </p>
                             </div>
@@ -1179,16 +1181,17 @@ initializeChildren();
 
                     <!-- Étape 4: Détails (optionnel) -->
                     <div v-if="currentStep === 4">
-                        <h2 class="mb-6 text-xl font-semibold">Informations complémentaires (optionnel)</h2>
+                        <h2 class="mb-4 text-lg font-semibold sm:mb-6 sm:text-xl">Informations complémentaires (optionnel)</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4 sm:space-y-6">
                             <div class="space-y-2">
-                                <Label for="additional_info">Informations supplémentaires</Label>
+                                <Label for="additional_info" class="text-xs sm:text-sm">Informations supplémentaires</Label>
                                 <Textarea
                                     id="additional_info"
                                     v-model="form.additional_info"
                                     placeholder="Allergies, routines, activités préférées, consignes particulières, autres informations utiles pour les babysitters..."
-                                    rows="6"
+                                    rows="4"
+                                    class="text-sm sm:rows-6 sm:text-base"
                                 />
                                 <p class="text-xs text-gray-500">
                                     ℹ️ Ce champ est optionnel. Vous pouvez passer cette étape si vous n'avez pas d'informations particulières à
@@ -1200,11 +1203,11 @@ initializeChildren();
 
                     <!-- Étape 5: Tarif -->
                     <div v-if="currentStep === 5">
-                        <h2 class="mb-6 text-xl font-semibold">Quel est votre budget ?</h2>
+                        <h2 class="mb-4 text-lg font-semibold sm:mb-6 sm:text-xl">Quel est votre budget ?</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4 sm:space-y-6">
                             <div class="space-y-2">
-                                <Label for="hourly_rate">Tarif horaire (€/h)</Label>
+                                <Label for="hourly_rate" class="text-xs sm:text-sm">Tarif horaire (€/h)</Label>
                                 <Input
                                     id="hourly_rate"
                                     v-model="form.hourly_rate"
@@ -1213,6 +1216,7 @@ initializeChildren();
                                     step="0.50"
                                     placeholder="ex: 12.50"
                                     required
+                                    class="text-sm sm:text-base"
                                 />
                                 <p class="text-xs text-gray-500">
                                     Ce tarif est indicatif. Les babysitters ont la liberté de proposer leur propre tarif. Vous pourrez l'accepter ou
@@ -1221,10 +1225,10 @@ initializeChildren();
                             </div>
 
                             <!-- Estimation totale -->
-                            <div v-if="parseFloat(estimatedTotal) > 0" class="rounded-lg bg-green-50 p-4">
+                            <div v-if="parseFloat(estimatedTotal) > 0" class="rounded-lg bg-green-50 p-3 sm:p-4">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-sm text-green-800">Coût estimé total:</span>
-                                    <span class="text-lg font-semibold text-green-800">{{ estimatedTotal }}€</span>
+                                    <span class="text-xs text-green-800 sm:text-sm">Coût estimé total:</span>
+                                    <span class="text-base font-semibold text-green-800 sm:text-lg">{{ estimatedTotal }}€</span>
                                 </div>
                                 <div class="mt-1 flex items-center justify-between text-xs">
                                     <span class="text-green-600">{{ durationDisplayText }} à {{ form.hourly_rate }}€/h</span>
@@ -1242,9 +1246,10 @@ initializeChildren();
                     v-if="currentStep > 1"
                     variant="outline"
                     @click="prevStep"
-                    class="flex items-center gap-2 px-6 py-3 transition-all duration-200 hover:bg-gray-50"
+                    class="flex items-center gap-1.5 px-4 py-2.5 text-sm transition-all duration-200 hover:bg-gray-50 sm:gap-2 sm:px-6 sm:py-3 sm:text-base"
                 >
-                    ← Précédent
+                    <span class="hidden sm:inline">← Précédent</span>
+                    <span class="sm:hidden">←</span>
                 </Button>
                 <div v-else></div>
 
@@ -1253,19 +1258,26 @@ initializeChildren();
                     v-if="currentStep < totalSteps"
                     @click="nextStep"
                     :disabled="currentStep !== 4 && !canProceedToNext"
-                    class="bg-primary hover:bg-primary flex transform items-center gap-2 px-6 py-3 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
+                    class="bg-primary hover:bg-primary flex transform items-center gap-1.5 px-4 py-2.5 text-sm shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 sm:gap-2 sm:px-6 sm:py-3 sm:text-base sm:shadow-lg sm:hover:shadow-xl"
                 >
-                    <span v-if="currentStep === 4 && !form.additional_info.trim()"> Ignorer cette étape → </span>
-                    <span v-else> Suivant → </span>
+                    <span v-if="currentStep === 4 && !form.additional_info.trim()">
+                        <span class="hidden sm:inline">Ignorer cette étape →</span>
+                        <span class="sm:hidden">Ignorer →</span>
+                    </span>
+                    <span v-else>
+                        <span class="hidden sm:inline">Suivant →</span>
+                        <span class="sm:hidden">→</span>
+                    </span>
                 </Button>
 
                 <Button
                     v-else
                     @click="submitAnnouncement"
                     :disabled="!canProceedToNext"
-                    class="bg-primary hover:bg-primary flex transform items-center gap-2 px-6 py-3 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
+                    class="bg-primary hover:bg-primary flex transform items-center gap-1.5 px-4 py-2.5 text-sm shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 sm:gap-2 sm:px-6 sm:py-3 sm:text-base sm:shadow-lg sm:hover:shadow-xl"
                 >
-                    Publier l'annonce →
+                    <span class="hidden sm:inline">Publier l'annonce →</span>
+                    <span class="sm:hidden">Publier →</span>
                 </Button>
             </div>
         </div>
