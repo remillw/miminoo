@@ -101,19 +101,23 @@ const initializeNativePushNotifications = async (): Promise<void> => {
             console.log('⏭️ Étape 3 sautée: Permissions déjà accordées');
         }
 
-        // ÉTAPE 4: S'enregistrer si permissions accordées
+        // S'enregistrer si permissions accordées
         if (permissionStatus.value === 'granted') {
-            console.log('🔄 Étape 4: Enregistrement pour notifications...');
-            console.log('📝 Appel PushNotifications.register()...');
-            
-            // L'enregistrement déclenchera automatiquement le listener 'registration' avec le token
-            await PushNotifications.register();
+            // Utiliser le plugin natif sur iOS pour éviter les problèmes de timing
+            if ((window as any).Capacitor?.getPlatform() === 'ios') {
+                console.log('📱 iOS détecté - Utilisation du plugin natif');
+                try {
+                    // @ts-expect-error - Plugin natif custom
+                    const result = await (window as any).Capacitor.Plugins.PushNotificationPlugin.initializeFirebasePushNotifications();
+                    console.log('✅ Plugin natif iOS appelé avec succès');
+                } catch (nativeError) {
+                    console.log('⚠️ Plugin natif échoué, fallback vers Capacitor standard');
+                    await PushNotifications.register();
+                }
+            } else {
+                await PushNotifications.register();
+            }
             isRegistered.value = true;
-            console.log('✅ Étape 4 terminée: Enregistrement effectué');
-            console.log('⏳ Attente du token via le listener "registration"...');
-        } else {
-            console.log('❌ Permissions non accordées:', permissionStatus.value);
-            console.log("⏹️ Arrêt de l'initialisation: permissions requises");
         }
 
         console.log('🎯 Initialisation push notifications terminée avec succès');
@@ -140,46 +144,29 @@ const callNativeGetToken = async (): Promise<string | null> => {
             return null;
         }
 
-        // Configurer les listeners au cas où
         if (!listenersConfigured) {
             setupPushNotificationListeners(PushNotifications);
         }
 
-        console.log('🔄 Force nouveau registration...');
         await PushNotifications.register();
 
-        // Attendre avec plus de patience
         return new Promise((resolve) => {
-            let attempts = 0;
-            const maxAttempts = 10;
-
             const timeout = setTimeout(() => {
-                console.log('⏰ Timeout méthode alternative après 5s');
                 resolve(deviceToken.value);
             }, 5000);
 
             const checkToken = () => {
-                attempts++;
-                console.log(`🔍 Tentative ${attempts}/${maxAttempts} - Token: ${deviceToken.value ? '✅ Présent' : '❌ Absent'}`);
-
                 if (deviceToken.value) {
                     clearTimeout(timeout);
-                    console.log('🎯 Token récupéré avec succès !');
                     resolve(deviceToken.value);
-                } else if (attempts < maxAttempts) {
-                    setTimeout(checkToken, 500);
                 } else {
-                    clearTimeout(timeout);
-                    console.log('❌ Échec après toutes les tentatives');
-                    resolve(null);
+                    setTimeout(checkToken, 500);
                 }
             };
 
-            // Commencer immédiatement la vérification
             checkToken();
         });
     } catch (error) {
-        console.log('⚠️ Erreur méthode alternative:', error);
         return null;
     }
 };
@@ -189,55 +176,41 @@ const callNativeGetToken = async (): Promise<string | null> => {
  */
 const getFirebaseTokenDirect = async (): Promise<string | null> => {
     try {
-        console.log('🔍 Récupération token Firebase directement...');
 
         // Option 1: Utiliser @capacitor-community/fcm si disponible
         try {
             // @ts-expect-error - Le plugin FCM peut ne pas être disponible au build
             const { FCM } = await import('@capacitor-community/fcm');
-            console.log('✅ Plugin FCM trouvé, récupération du token...');
 
             const result = await FCM.getToken();
             if (result && result.token) {
-                console.log('🎯 Token FCM récupéré via plugin:', result.token.substring(0, 20) + '...');
                 deviceToken.value = result.token;
                 await sendTokenToBackend(result.token);
                 return result.token;
             }
         } catch (fcmError) {
-            console.log('⚠️ Plugin FCM non disponible, fallback vers Capacitor:', fcmError);
+            // Fallback vers Capacitor standard
         }
 
-        // Option 2: Fallback vers les push notifications Capacitor
         const PushNotifications = await importPushNotifications();
         if (!PushNotifications) {
-            console.log('❌ PushNotifications non disponible');
             return null;
         }
 
-        // Vérifier les permissions
         const permissions = await PushNotifications.checkPermissions();
-        console.log('📋 Permissions actuelles:', permissions);
 
         if (permissions.receive === 'granted') {
-            console.log('✅ Permissions OK, demande du token...');
 
-            // Configurer les listeners s'ils ne le sont pas déjà
             if (!listenersConfigured) {
                 setupPushNotificationListeners(PushNotifications);
             }
 
-            // Déclencher l'enregistrement pour obtenir le token
             await PushNotifications.register();
 
-            // Attendre un peu pour voir si le token arrive
             return new Promise((resolve) => {
                 const timeout = setTimeout(() => {
-                    console.log('⏰ Timeout récupération token');
                     resolve(deviceToken.value);
-                }, 3000); // 3 secondes pour laisser plus de temps
-
-                // Observer les changements du token
+                }, 3000);
                 const checkToken = () => {
                     if (deviceToken.value) {
                         clearTimeout(timeout);
@@ -249,11 +222,9 @@ const getFirebaseTokenDirect = async (): Promise<string | null> => {
                 checkToken();
             });
         } else {
-            console.log('❌ Permissions non accordées');
             return null;
         }
     } catch (error) {
-        console.log('⚠️ Erreur récupération token direct:', error);
         return null;
     }
 };
