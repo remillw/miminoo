@@ -17,8 +17,7 @@ import { route } from 'ziggy-js';
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
 const { isNative } = useCapacitor();
-const { initializePushNotifications, sendTokenWithLogin, deviceToken, forceReinitPushNotifications, getFirebaseTokenDirect, callNativeGetToken } =
-    usePushNotifications();
+const { initializePushNotifications, sendTokenWithLogin, deviceToken, getToken } = usePushNotifications();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -42,30 +41,17 @@ const submit = () => {
     // Intégrer le token de device si on est sur mobile
     const formData = isNative.value ? sendTokenWithLogin(baseData) : baseData;
 
-    console.log('🔐 Connexion avec données:', {
-        isNative: isNative.value,
-        hasDeviceToken: !!deviceToken.value,
-        formData: formData,
-    });
-
     form.transform(() => formData).post(route('connexion'), {
         onFinish: () => form.reset('password'),
         onSuccess: async () => {
-            console.log('✅ Connexion réussie');
-
             // Si on est sur mobile, déclencher l'enregistrement des notifications push
             if (isNative.value) {
-                console.log('📱 Déclenchement manuel des notifications push après connexion');
                 try {
                     await initializePushNotifications();
-                    console.log('✅ Notifications push initialisées après connexion');
                 } catch (error) {
-                    console.error("❌ Erreur lors de l'initialisation des push notifications:", error);
+                    console.error("Erreur lors de l'initialisation des push notifications:", error);
                 }
             }
-        },
-        onError: (errors) => {
-            console.error('❌ Erreur de connexion:', errors);
         },
     });
 };
@@ -77,12 +63,10 @@ const handleGoogleAuth = async () => {
 // Initialiser les push notifications dès le chargement de la page de login si on est sur mobile
 onMounted(async () => {
     if (isNative.value) {
-        console.log('📱 Page de login chargée sur mobile - initialisation des push notifications');
         try {
             await initializePushNotifications();
-            console.log('✅ Push notifications initialisées avant login');
         } catch (error) {
-            console.error("❌ Erreur lors de l'initialisation des push notifications avant login:", error);
+            console.error("Erreur lors de l'initialisation des push notifications avant login:", error);
         }
     }
 });
@@ -108,14 +92,8 @@ onMounted(async () => {
                         <span>🔔 Token:</span>
                         <span class="font-mono">{{ deviceToken ? '✅ ' + deviceToken.substring(0, 10) + '...' : '❌ Aucun' }}</span>
                     </div>
-                    <div class="mt-2 space-x-2">
-                        <button @click="forceReinitPushNotifications" type="button" class="rounded bg-red-500 px-2 py-1 text-xs text-white">
-                            🔄 Force Reinit
-                        </button>
-                        <button @click="getFirebaseTokenDirect" type="button" class="rounded bg-blue-500 px-2 py-1 text-xs text-white">
-                            📱 Get Token
-                        </button>
-                        <button @click="callNativeGetToken" type="button" class="rounded bg-green-500 px-2 py-1 text-xs text-white">🔥 Native</button>
+                    <div class="mt-2">
+                        <button @click="getToken" type="button" class="rounded bg-blue-500 px-2 py-1 text-xs text-white">📱 Get Token</button>
                     </div>
                 </div>
 
