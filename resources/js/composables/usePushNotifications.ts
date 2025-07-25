@@ -164,24 +164,6 @@ const checkExistingToken = async (PushNotifications: any): Promise<void> => {
     try {
         console.log('🔍 Vérification token existant...');
 
-        // Essayer de récupérer le token via notre plugin personnalisé
-        if ((window as any).Capacitor?.Plugins?.FCMTokenPlugin) {
-            console.log('🔍 Tentative récupération token via plugin personnalisé...');
-            try {
-                const result = await (window as any).Capacitor.Plugins.FCMTokenPlugin.getFCMToken();
-                console.log('📱 Résultat plugin personnalisé:', result);
-
-                if (result.success && result.token) {
-                    console.log('✅ Token récupéré via plugin personnalisé:', result.token.substring(0, 20) + '...');
-                    deviceToken.value = result.token;
-                    sendTokenToBackend(result.token);
-                    return; // Sortir si on a trouvé le token
-                }
-            } catch (pluginError) {
-                console.log('⚠️ Erreur plugin personnalisé:', pluginError);
-            }
-        }
-
         // Tenter d'obtenir les notifications livrées (peut contenir des infos de token)
         const deliveredNotifications = await PushNotifications.getDeliveredNotifications();
         console.log('📱 Notifications livrées:', deliveredNotifications);
@@ -239,15 +221,21 @@ const setupCustomFCMListener = () => {
     console.log('🔧 Configuration du listener FCM personnalisé...');
 
     // Écouter l'événement personnalisé envoyé depuis iOS
-    window.addEventListener('fcmTokenReceived', (event: any) => {
-        console.log('🎯 Token FCM reçu via événement personnalisé:', event.detail);
-        const token = event.detail?.value;
-        if (token) {
-            console.log('🔑 Token FCM value:', token);
-            deviceToken.value = token;
-            sendTokenToBackend(token);
-        }
-    });
+   window.addEventListener('fcmTokenReceived', (event: any) => {
+       try {
+           console.log('🎯 Token FCM brut reçu via événement personnalisé:', event.detail);
+           const parsed = JSON.parse(event.detail);
+           const token = parsed.value;
+
+           if (token) {
+               console.log('🔑 Token FCM value:', token);
+               deviceToken.value = token;
+               sendTokenToBackend(token);
+           }
+       } catch (e) {
+           console.error('❌ Erreur parsing token FCM:', e);
+       }
+   });
 
     console.log('✅ Listener FCM personnalisé configuré');
 };
@@ -395,32 +383,6 @@ const forceReinitPushNotifications = async (): Promise<void> => {
 };
 
 /**
- * Récupérer manuellement le token FCM via le plugin personnalisé (debug)
- */
-const getTokenFromPlugin = async (): Promise<void> => {
-    console.log('🔍 Récupération manuelle token via plugin...');
-
-    if ((window as any).Capacitor?.Plugins?.FCMTokenPlugin) {
-        try {
-            const result = await (window as any).Capacitor.Plugins.FCMTokenPlugin.getFCMToken();
-            console.log('📱 Résultat récupération manuelle:', result);
-
-            if (result.success && result.token) {
-                console.log('✅ Token récupéré manuellement:', result.token.substring(0, 20) + '...');
-                deviceToken.value = result.token;
-                sendTokenToBackend(result.token);
-            } else {
-                console.log('❌ Échec récupération manuelle:', result.message);
-            }
-        } catch (error) {
-            console.error('❌ Erreur récupération manuelle:', error);
-        }
-    } else {
-        console.log('❌ Plugin FCMTokenPlugin non disponible');
-    }
-};
-
-/**
  * Préparer les données du device token pour inclusion dans les requêtes de login
  */
 const getDeviceTokenData = () => {
@@ -472,7 +434,6 @@ export function usePushNotifications() {
         sendTokenToBackend,
         testTokenSaving, // Pour debug uniquement
         forceReinitPushNotifications, // Pour debug uniquement
-        getTokenFromPlugin, // Pour debug uniquement
         getDeviceTokenData,
         sendTokenWithLogin,
     };
