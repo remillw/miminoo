@@ -319,6 +319,38 @@ const testTokenSaving = async (): Promise<void> => {
 };
 
 /**
+ * Préparer les données du device token pour inclusion dans les requêtes de login
+ */
+const getDeviceTokenData = () => {
+    const platform = (window as any).Capacitor?.getPlatform() || 'unknown';
+    
+    return {
+        device_token: deviceToken.value,
+        platform: platform,
+        notification_provider: 'capacitor',
+        mobile_auth: 'true' // Flag pour indiquer que c'est un login mobile
+    };
+};
+
+/**
+ * Envoyer le token de façon intégrée au login
+ */
+const sendTokenWithLogin = (formData: any) => {
+    if (deviceToken.value) {
+        const tokenData = getDeviceTokenData();
+        console.log('🔗 Intégration token au login:', tokenData);
+        return { ...formData, ...tokenData };
+    }
+    
+    // Si pas de token, marquer quand même comme mobile auth
+    return { 
+        ...formData, 
+        mobile_auth: 'true',
+        platform: (window as any).Capacitor?.getPlatform() || 'unknown'
+    };
+};
+
+/**
  * Hook de composition pour les notifications push
  */
 export function usePushNotifications() {
@@ -334,5 +366,7 @@ export function usePushNotifications() {
         initializePushNotifications,
         sendTokenToBackend,
         testTokenSaving, // Pour debug uniquement
+        getDeviceTokenData,
+        sendTokenWithLogin,
     };
 }

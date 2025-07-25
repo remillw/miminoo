@@ -144,7 +144,49 @@ class GoogleAuthController extends Controller
                 
                 // Déclencher l'enregistrement du device token pour les apps mobiles
                 if ($isMobileAuth) {
-                    session(['trigger_device_token_registration' => true]);
+                    Log::info('Google OAuth mobile auth - Full request data', [
+                        'user_id' => $existingUser->id,
+                        'device_token' => $request->input('device_token'),
+                        'platform' => $request->input('platform'),
+                        'notification_provider' => $request->input('notification_provider'),
+                        'all_request_data' => $request->all(),
+                        'user_agent' => $request->header('User-Agent'),
+                    ]);
+
+                    // Save device token directly if provided
+                    $deviceToken = $request->input('device_token');
+                    if ($deviceToken) {
+                        try {
+                            $existingUser->update([
+                                'device_token' => $deviceToken,
+                                'device_type' => $request->input('platform', 'unknown'),
+                                'notification_provider' => $request->input('notification_provider', 'capacitor'),
+                                'device_token_updated_at' => now(),
+                                'push_notifications' => true,
+                            ]);
+
+                            Log::info('Device token saved during Google OAuth login', [
+                                'user_id' => $existingUser->id,
+                                'device_type' => $request->input('platform', 'unknown'),
+                                'notification_provider' => $request->input('notification_provider', 'capacitor'),
+                                'token_preview' => substr($deviceToken, 0, 20) . '...'
+                            ]);
+
+                        } catch (\Exception $e) {
+                            Log::error('Failed to save device token during Google OAuth login', [
+                                'user_id' => $existingUser->id,
+                                'error' => $e->getMessage(),
+                                'trace' => $e->getTraceAsString()
+                            ]);
+                        }
+                    } else {
+                        // Fallback: set session flag for frontend to handle
+                        session(['trigger_device_token_registration' => true]);
+                        Log::info('No device token in Google OAuth request, setting session flag for frontend handling', [
+                            'user_id' => $existingUser->id
+                        ]);
+                    }
+
                     session()->forget('google_mobile_auth'); // Nettoyer après usage
                 }
                 
@@ -323,7 +365,48 @@ class GoogleAuthController extends Controller
         
         // Déclencher l'enregistrement du device token pour les apps mobiles
         if ($isMobile) {
-            session(['trigger_device_token_registration' => true]);
+            Log::info('Google OAuth new user creation - Full request data', [
+                'user_id' => $user->id,
+                'device_token' => request()->input('device_token'),
+                'platform' => request()->input('platform'),
+                'notification_provider' => request()->input('notification_provider'),
+                'all_request_data' => request()->all(),
+                'user_agent' => request()->header('User-Agent'),
+            ]);
+
+            // Save device token directly if provided
+            $deviceToken = request()->input('device_token');
+            if ($deviceToken) {
+                try {
+                    $user->update([
+                        'device_token' => $deviceToken,
+                        'device_type' => request()->input('platform', 'unknown'),
+                        'notification_provider' => request()->input('notification_provider', 'capacitor'),
+                        'device_token_updated_at' => now(),
+                        'push_notifications' => true,
+                    ]);
+
+                    Log::info('Device token saved during Google OAuth new user creation', [
+                        'user_id' => $user->id,
+                        'device_type' => request()->input('platform', 'unknown'),
+                        'notification_provider' => request()->input('notification_provider', 'capacitor'),
+                        'token_preview' => substr($deviceToken, 0, 20) . '...'
+                    ]);
+
+                } catch (\Exception $e) {
+                    Log::error('Failed to save device token during Google OAuth new user creation', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            } else {
+                // Fallback: set session flag for frontend to handle
+                session(['trigger_device_token_registration' => true]);
+                Log::info('No device token in Google OAuth new user request, setting session flag for frontend handling', [
+                    'user_id' => $user->id
+                ]);
+            }
         }
 
         // Redirection selon le statut et l'environnement
