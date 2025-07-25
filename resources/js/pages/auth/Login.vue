@@ -33,26 +33,33 @@ const form = useForm({
 });
 
 const submit = () => {
-    // Ajouter les données du device token si on est dans une app mobile
-    const deviceTokenData = getDeviceTokenData();
+    // Version simplifiée sans transform pour éviter les conflits
+    const baseData = {
+        email: form.email,
+        password: form.password,
+        remember: form.remember,
+    };
 
+    const deviceTokenData = getDeviceTokenData();
     if (isMobileApp() && deviceTokenData) {
         console.log('Login: Ajout du device token à la connexion:', {
             platform: deviceTokenData.platform,
             provider: deviceTokenData.notification_provider,
             tokenPreview: deviceTokenData.device_token.substring(0, 20) + '...',
         });
-
-        // Utiliser transform pour ajouter les données du device token
-        form.transform((data) => ({
-            ...data,
-            ...deviceTokenData,
-            mobile_auth: true,
-        }));
+        
+        // Ajouter les données mobile directement
+        Object.assign(baseData, deviceTokenData, { mobile_auth: 'true' });
     }
 
+    // Soumission directe avec les données
     form.post(route('connexion'), {
+        data: baseData,
         onFinish: () => form.reset('password'),
+        onError: (errors) => {
+            console.log('Login: Erreurs de validation reçues:', errors);
+        },
+        preserveScroll: true,
     });
 };
 

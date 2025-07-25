@@ -29,7 +29,11 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'remember' => ['nullable', 'boolean'],
             'mobile_auth' => ['nullable', 'string', 'in:true,false'],
+            'device_token' => ['nullable', 'string'],
+            'platform' => ['nullable', 'string'],
+            'notification_provider' => ['nullable', 'string'],
         ];
     }
 
