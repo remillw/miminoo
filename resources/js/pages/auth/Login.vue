@@ -17,7 +17,7 @@ import { route } from 'ziggy-js';
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
 const { isNative } = useCapacitor();
-const { initializePushNotifications } = usePushNotifications();
+const { initializePushNotifications, sendTokenWithLogin, deviceToken } = usePushNotifications();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -35,20 +35,19 @@ const form = useForm({
 });
 
 const submit = () => {
-    const formData = {
-        ...form.data(),
-        mobile_auth: isNative.value ? 'true' : 'false'
-    };
+    // Préparer les données de base
+    const baseData = form.data();
+    
+    // Intégrer le token de device si on est sur mobile
+    const formData = isNative.value ? sendTokenWithLogin(baseData) : baseData;
 
     console.log('🔐 Connexion avec données:', {
         isNative: isNative.value,
-        mobile_auth: formData.mobile_auth
+        hasDeviceToken: !!deviceToken.value,
+        formData: formData
     });
 
-    form.transform((data) => ({
-        ...data,
-        mobile_auth: isNative.value ? 'true' : 'false'
-    })).post(route('connexion'), {
+    form.transform(() => formData).post(route('connexion'), {
         onFinish: () => form.reset('password'),
         onSuccess: async () => {
             console.log('✅ Connexion réussie');
