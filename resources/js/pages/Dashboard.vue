@@ -7,7 +7,7 @@ import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { useUserMode } from '@/composables/useUserMode';
 import { usePushNotifications } from '@/composables/usePushNotifications';
 import { useCapacitor } from '@/composables/useCapacitor';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import { computed, onMounted } from 'vue';
 
 interface User {
@@ -41,11 +41,12 @@ interface Props {
 
 const props = defineProps<Props>();
 const { currentMode, initializeMode } = useUserMode();
-const { initializePushNotifications } = usePushNotifications();
+const { initializePushNotifications, testTokenSaving } = usePushNotifications();
 const { isNative } = useCapacitor();
+const page = usePage();
 
 // Initialiser le mode au montage du composant
-onMounted(() => {
+onMounted(async () => {
     console.log('🔄 Dashboard mounted with roles:', {
         hasParentRole: props.hasParentRole,
         hasBabysitterRole: props.hasBabysitterRole,
@@ -54,10 +55,37 @@ onMounted(() => {
     });
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
     
-    // Initialiser les notifications push sur mobile après connexion
-    if (isNative.value && props.user) {
+    // Vérifier le flag de déclenchement des notifications push
+    const triggerDeviceTokenRegistration = (page.props as any).triggerDeviceTokenRegistration;
+    
+    console.log('🔍 Checking push notification triggers:', {
+        triggerDeviceTokenRegistration,
+        isNative: isNative.value,
+        hasUser: !!props.user,
+    });
+    
+    // Initialiser les notifications push si :
+    // 1. L'utilisateur est connecté
+    // 2. ET (on est sur mobile natif OU le flag de déclenchement est activé)
+    if (props.user && (isNative.value || triggerDeviceTokenRegistration)) {
         console.log('🔔 Initialisation des notifications push pour l\'utilisateur connecté');
-        initializePushNotifications();
+        await initializePushNotifications();
+        
+        // Nettoyer le flag après utilisation
+        if (triggerDeviceTokenRegistration) {
+            try {
+                await fetch('/clear-device-token-flag', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': (page.props as any).csrf_token || '',
+                    },
+                });
+                console.log('✅ Flag de déclenchement nettoyé');
+            } catch (error) {
+                console.error('❌ Erreur lors du nettoyage du flag:', error);
+            }
+        }
     }
 });
 

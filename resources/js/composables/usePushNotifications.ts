@@ -61,10 +61,11 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         return;
     }
 
-    if (initializationComplete) {
-        console.log('✅ Initialisation déjà terminée, skip...');
-        return;
-    }
+    // TEMPORAIRE: désactiver le check d'initialisation terminée pour debug
+    // if (initializationComplete) {
+    //     console.log('✅ Initialisation déjà terminée, skip...');
+    //     return;
+    // }
 
     try {
         console.log('🚀 Début initializeNativePushNotifications...');
@@ -115,10 +116,27 @@ const initializeNativePushNotifications = async (): Promise<void> => {
             // Enregistrer pour les notifications
             console.log('🔄 Étape 5: Enregistrement pour notifications...');
             console.log('📝 Appel PushNotifications.register()...');
-            await PushNotifications.register();
-            console.log('✅ Enregistrement pour notifications effectué');
-            console.log('✅ Étape 5 terminée: Enregistrement effectué');
-            isRegistered.value = true;
+            
+            try {
+                const registerResult = await PushNotifications.register();
+                console.log('✅ PushNotifications.register() retourné:', registerResult);
+                console.log('✅ Enregistrement pour notifications effectué');
+                console.log('✅ Étape 5 terminée: Enregistrement effectué');
+                isRegistered.value = true;
+                
+                // Attendre un peu pour voir si les listeners se déclenchent
+                setTimeout(() => {
+                    console.log('⏰ Timeout 3s: Vérification token après registration');
+                    console.log('📱 Device token actuel:', deviceToken.value);
+                    if (!deviceToken.value) {
+                        console.log('⚠️ Aucun token reçu après 3 secondes - possibilité de problème de configuration');
+                    }
+                }, 3000);
+                
+            } catch (registerError) {
+                console.error('❌ Erreur lors du register():', registerError);
+                throw registerError;
+            }
         } else {
             console.log('❌ Permissions non accordées:', permissionStatus.value);
             console.log("⏹️ Arrêt de l'initialisation: permissions requises");
@@ -139,30 +157,38 @@ const initializeNativePushNotifications = async (): Promise<void> => {
  * Configurer les listeners pour les notifications
  */
 const setupPushNotificationListeners = (PushNotifications: any) => {
+    console.log('🔧 Configuration des listeners push notifications...');
+    
     // Listener pour le token de registration
+    console.log('📝 Ajout listener: registration');
     PushNotifications.addListener('registration', (token: any) => {
-        console.log('🎯 Token reçu:', token.value);
+        console.log('🎯 Token reçu via listener registration:', JSON.stringify(token, null, 2));
+        console.log('🔑 Token value:', token.value);
         deviceToken.value = token.value;
         sendTokenToBackend(token.value);
     });
 
     // Listener pour les erreurs
+    console.log('📝 Ajout listener: registrationError');
     PushNotifications.addListener('registrationError', (error: any) => {
-        console.error('❌ Erreur registration:', error);
+        console.error('❌ Erreur registration détaillée:', JSON.stringify(error, null, 2));
+        console.error('❌ Message erreur:', error.message || error);
     });
 
     // Listener pour les notifications reçues (app en premier plan)
+    console.log('📝 Ajout listener: pushNotificationReceived');
     PushNotifications.addListener('pushNotificationReceived', (notification: any) => {
         console.log('📱 Notification reçue:', notification);
     });
 
     // Listener pour les notifications cliquées
+    console.log('📝 Ajout listener: pushNotificationActionPerformed');
     PushNotifications.addListener('pushNotificationActionPerformed', (notification: any) => {
         console.log('👆 Notification cliquée:', notification);
         handleNotificationOpened(notification);
     });
 
-    console.log('✅ Listeners configurés');
+    console.log('✅ Tous les listeners push notifications configurés');
 };
 
 /**
@@ -205,26 +231,63 @@ const sendTokenToBackend = async (token: string): Promise<void> => {
         console.log('📤 Envoi device token au backend...', {
             token: token.substring(0, 20) + '...',
             length: token.length,
+            fullToken: token, // Debug: afficher token complet temporairement
         });
 
-        const response = await fetch('/api/device-token', {
+        // Récupérer le CSRF token depuis la meta tag ou Inertia
+        let csrfToken = (usePage().props as any).csrf_token;
+        
+        // Si pas de token depuis Inertia, essayer depuis les meta tags
+        if (!csrfToken) {
+            const metaToken = document.querySelector('meta[name="csrf-token"]');
+            csrfToken = metaToken ? metaToken.getAttribute('content') : null;
+        }
+        
+        const platform = (window as any).Capacitor?.getPlatform() || 'unknown';
+        
+        console.log('🔧 Données envoi:', {
+            url: '/device-token',
+            platform,
+            csrfToken: csrfToken ? 'Present' : 'Missing',
+            csrfTokenValue: csrfToken, // Debug: voir token complet
+            notification_provider: 'capacitor'
+        });
+
+        // Utiliser fetch avec gestion CSRF pour mobile
+        const response = await fetch('/device-token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': (usePage().props as any).csrf_token || '',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'Accept': 'application/json',
             },
+            credentials: 'include', // Important pour les cookies de session
             body: JSON.stringify({
                 device_token: token,
-                platform: (window as any).Capacitor?.getPlatform() || 'unknown',
-                notification_provider: 'capacitor', // Indiquer qu'on utilise Capacitor
+                platform: platform,
+                notification_provider: 'capacitor',
             }),
         });
 
+        console.log('📥 Réponse backend:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            url: response.url
+        });
+
         if (response.ok) {
-            console.log('✅ Device token envoyé avec succès au backend');
+            const responseData = await response.json();
+            console.log('✅ Device token envoyé avec succès au backend:', responseData);
         } else {
             const errorData = await response.text();
-            console.error('❌ Erreur envoi token au backend:', response.status, errorData);
+            console.error('❌ Erreur envoi token au backend:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorData,
+                url: response.url
+            });
+            throw new Error(`Failed to save token: ${response.status} ${response.statusText}`);
         }
     } catch (error) {
         console.error("❌ Erreur lors de l'envoi du token:", error);
@@ -247,6 +310,47 @@ const initializePushNotifications = async (): Promise<void> => {
 };
 
 /**
+ * Test manuel pour sauvegarder un token fictif (debug uniquement)
+ */
+const testTokenSaving = async (): Promise<void> => {
+    console.log('🧪 Test manuel: envoi token fictif pour debug');
+    const fakeToken = 'test_token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    await sendTokenToBackend(fakeToken);
+};
+
+/**
+ * Préparer les données du device token pour inclusion dans les requêtes de login
+ */
+const getDeviceTokenData = () => {
+    const platform = (window as any).Capacitor?.getPlatform() || 'unknown';
+    
+    return {
+        device_token: deviceToken.value,
+        platform: platform,
+        notification_provider: 'capacitor',
+        mobile_auth: 'true' // Flag pour indiquer que c'est un login mobile
+    };
+};
+
+/**
+ * Envoyer le token de façon intégrée au login
+ */
+const sendTokenWithLogin = (formData: any) => {
+    if (deviceToken.value) {
+        const tokenData = getDeviceTokenData();
+        console.log('🔗 Intégration token au login:', tokenData);
+        return { ...formData, ...tokenData };
+    }
+    
+    // Si pas de token, marquer quand même comme mobile auth
+    return { 
+        ...formData, 
+        mobile_auth: 'true',
+        platform: (window as any).Capacitor?.getPlatform() || 'unknown'
+    };
+};
+
+/**
  * Hook de composition pour les notifications push
  */
 export function usePushNotifications() {
@@ -261,5 +365,8 @@ export function usePushNotifications() {
         deviceToken,
         initializePushNotifications,
         sendTokenToBackend,
+        testTokenSaving, // Pour debug uniquement
+        getDeviceTokenData,
+        sendTokenWithLogin,
     };
 }

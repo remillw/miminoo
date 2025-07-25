@@ -11,13 +11,13 @@ import { usePushNotifications } from '@/composables/usePushNotifications';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { Eye, EyeOff, LoaderCircle, Lock, Mail } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { route } from 'ziggy-js';
 
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
 const { isNative } = useCapacitor();
-const { initializePushNotifications } = usePushNotifications();
+const { initializePushNotifications, sendTokenWithLogin, deviceToken } = usePushNotifications();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -35,20 +35,19 @@ const form = useForm({
 });
 
 const submit = () => {
-    const formData = {
-        ...form.data(),
-        mobile_auth: isNative.value ? 'true' : 'false'
-    };
+    // Préparer les données de base
+    const baseData = form.data();
+    
+    // Intégrer le token de device si on est sur mobile
+    const formData = isNative.value ? sendTokenWithLogin(baseData) : baseData;
 
     console.log('🔐 Connexion avec données:', {
         isNative: isNative.value,
-        mobile_auth: formData.mobile_auth
+        hasDeviceToken: !!deviceToken.value,
+        formData: formData
     });
 
-    form.transform((data) => ({
-        ...data,
-        mobile_auth: isNative.value ? 'true' : 'false'
-    })).post(route('connexion'), {
+    form.transform(() => formData).post(route('connexion'), {
         onFinish: () => form.reset('password'),
         onSuccess: async () => {
             console.log('✅ Connexion réussie');
@@ -73,6 +72,19 @@ const submit = () => {
 const handleGoogleAuth = async () => {
     await authenticateWithGoogle();
 };
+
+// Initialiser les push notifications dès le chargement de la page de login si on est sur mobile
+onMounted(async () => {
+    if (isNative.value) {
+        console.log('📱 Page de login chargée sur mobile - initialisation des push notifications');
+        try {
+            await initializePushNotifications();
+            console.log('✅ Push notifications initialisées avant login');
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'initialisation des push notifications avant login:', error);
+        }
+    }
+});
 </script>
 
 <template>
@@ -81,9 +93,9 @@ const handleGoogleAuth = async () => {
             <Head title="Connexion" />
 
             <!-- Form container -->
-            <div class="mx-auto my-8 mb-6 w-full max-w-xs rounded-2xl bg-white p-6 shadow-md sm:my-12 sm:mb-8 sm:max-w-sm sm:rounded-3xl sm:p-8 md:my-20 md:mb-10 md:max-w-md">
-                <h2 class="mb-1 text-center text-xl font-bold sm:text-2xl">Connexion</h2>
-                <p class="mb-4 text-center text-sm text-gray-500 sm:mb-6 sm:text-base">Bienvenue sur la plateforme de babysitting</p>
+            <div class="mx-auto my-20 mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
+                <h2 class="mb-1 text-center text-2xl font-bold">Connexion</h2>
+                <p class="mb-6 text-center text-gray-500">Bienvenue sur la plateforme de babysitting</p>
 
                 <!-- Boutons de connexion sociale -->
                 <div class="mb-4 space-y-2.5 sm:mb-6 sm:space-y-3">
