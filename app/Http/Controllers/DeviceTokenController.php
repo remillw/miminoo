@@ -13,6 +13,12 @@ class DeviceTokenController extends Controller
      */
     public function store(Request $request)
     {
+        Log::info('DeviceTokenController->store() appelé', [
+            'request_data' => $request->all(),
+            'user_id' => Auth::id(),
+            'is_authenticated' => Auth::check(),
+        ]);
+
         $request->validate([
             'device_token' => 'required|string',
             'platform' => 'required|in:ios,android,web',
@@ -22,29 +28,53 @@ class DeviceTokenController extends Controller
         $user = Auth::user();
         
         if (!$user) {
+            Log::error('DeviceTokenController: Utilisateur non authentifié');
             return response()->json(['error' => 'Non authentifié'], 401);
         }
 
-        // Mettre à jour le device token
-        $user->update([
-            'device_token' => $request->device_token,
-            'device_type' => $request->platform,
-            'notification_provider' => $request->notification_provider ?? 'capacitor',
-            'device_token_updated_at' => now(),
-            'push_notifications' => true, // Activer les push par défaut quand on enregistre un token
-        ]);
-
-        Log::info('Device token enregistré', [
+        Log::info('DeviceTokenController: Début mise à jour device token', [
             'user_id' => $user->id,
-            'device_type' => $request->platform,
-            'notification_provider' => $request->notification_provider ?? 'capacitor',
-            'token_preview' => substr($request->device_token, 0, 20) . '...'
+            'token_length' => strlen($request->device_token),
+            'platform' => $request->platform,
+            'provider' => $request->notification_provider ?? 'capacitor'
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Device token enregistré avec succès'
-        ]);
+        try {
+            // Mettre à jour le device token
+            $updateResult = $user->update([
+                'device_token' => $request->device_token,
+                'device_type' => $request->platform,
+                'notification_provider' => $request->notification_provider ?? 'capacitor',
+                'device_token_updated_at' => now(),
+                'push_notifications' => true, // Activer les push par défaut quand on enregistre un token
+            ]);
+
+            Log::info('DeviceTokenController: Mise à jour terminée', [
+                'update_success' => $updateResult,
+                'user_id' => $user->id,
+                'device_type' => $request->platform,
+                'notification_provider' => $request->notification_provider ?? 'capacitor',
+                'token_preview' => substr($request->device_token, 0, 20) . '...',
+                'device_token_updated_at' => $user->fresh()->device_token_updated_at
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Device token enregistré avec succès'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('DeviceTokenController: Erreur lors de la mise à jour', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'enregistrement du token'
+            ], 500);
+        }
     }
 
     /**

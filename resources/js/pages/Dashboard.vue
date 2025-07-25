@@ -41,7 +41,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const { currentMode, initializeMode } = useUserMode();
-const { initializePushNotifications } = usePushNotifications();
+const { initializePushNotifications, testTokenSaving } = usePushNotifications();
 const { isNative } = useCapacitor();
 const page = usePage();
 
@@ -108,6 +108,17 @@ const currentContent = computed(() => {
             <!-- Contenu principal dynamique -->
             <main class="flex-1 p-6 pb-20 lg:pb-6">
                 <div class="mx-auto max-w-7xl">
+                    <!-- DEBUG: Bouton de test pour le token (temporaire) -->
+                    <div v-if="isNative" class="mb-4 p-4 bg-yellow-100 border border-yellow-300 rounded">
+                        <h3 class="font-bold text-yellow-800">🧪 Debug Push Notifications</h3>
+                        <button 
+                            @click="testTokenSaving"
+                            class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                            Test Token Saving
+                        </button>
+                    </div>
+                    
                     <component :is="currentContent" :currentMode="currentMode" v-bind="$props" />
                 </div>
             </main>
