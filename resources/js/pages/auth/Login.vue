@@ -42,22 +42,27 @@ const submit = () => {
 
     const deviceTokenData = getDeviceTokenData();
     if (isMobileApp() && deviceTokenData) {
-        console.log('Login: Ajout du device token à la connexion:', {
-            platform: deviceTokenData.platform,
-            provider: deviceTokenData.notification_provider,
-            tokenPreview: deviceTokenData.device_token.substring(0, 20) + '...',
-        });
+        console.log('=== FRONTEND - DEVICE TOKEN DÉTECTÉ ===');
+        console.log('Device Token Data:', deviceTokenData);
+        console.log('Is Mobile App:', isMobileApp());
         
         // Ajouter les données mobile directement
         Object.assign(baseData, deviceTokenData, { mobile_auth: 'true' });
     }
+
+    console.log('=== FRONTEND - DONNÉES ENVOYÉES AU SERVEUR ===');
+    console.log('Final Data:', {
+        ...baseData,
+        password: '[HIDDEN]' // Ne pas logger le mot de passe
+    });
 
     // Soumission directe avec les données
     form.post(route('connexion'), {
         data: baseData,
         onFinish: () => form.reset('password'),
         onError: (errors) => {
-            console.log('Login: Erreurs de validation reçues:', errors);
+            console.log('=== FRONTEND - ERREURS REÇUES ===');
+            console.log('Validation Errors:', errors);
         },
         preserveScroll: true,
     });
