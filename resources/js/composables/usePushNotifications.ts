@@ -234,46 +234,47 @@ const sendTokenToBackend = async (token: string): Promise<void> => {
             fullToken: token, // Debug: afficher token complet temporairement
         });
 
-        const csrfToken = (usePage().props as any).csrf_token;
+        // Récupérer le CSRF token depuis la meta tag ou Inertia
+        let csrfToken = (usePage().props as any).csrf_token;
+        
+        // Si pas de token depuis Inertia, essayer depuis les meta tags
+        if (!csrfToken) {
+            const metaToken = document.querySelector('meta[name="csrf-token"]');
+            csrfToken = metaToken ? metaToken.getAttribute('content') : null;
+        }
+        
         const platform = (window as any).Capacitor?.getPlatform() || 'unknown';
         
         console.log('🔧 Données envoi:', {
             url: '/device-token',
             platform,
             csrfToken: csrfToken ? 'Present' : 'Missing',
+            csrfTokenValue: csrfToken, // Debug: voir token complet
             notification_provider: 'capacitor'
         });
 
-        const response = await fetch('/device-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-            },
-            body: JSON.stringify({
+        // Utiliser Inertia router pour gérer automatiquement CSRF
+        return new Promise((resolve, reject) => {
+            router.post('/device-token', {
                 device_token: token,
                 platform: platform,
                 notification_provider: 'capacitor',
-            }),
-        });
-
-        console.log('📥 Réponse backend:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-        });
-
-        if (response.ok) {
-            const responseData = await response.json();
-            console.log('✅ Device token envoyé avec succès au backend:', responseData);
-        } else {
-            const errorData = await response.text();
-            console.error('❌ Erreur envoi token au backend:', {
-                status: response.status,
-                statusText: response.statusText,
-                errorData
+            }, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: (page) => {
+                    console.log('✅ Device token envoyé avec succès au backend via Inertia');
+                    resolve(undefined);
+                },
+                onError: (errors) => {
+                    console.error('❌ Erreur envoi token au backend via Inertia:', errors);
+                    reject(new Error(JSON.stringify(errors)));
+                },
+                onFinish: () => {
+                    console.log('🏁 Requête device token terminée');
+                }
             });
-        }
+        });
     } catch (error) {
         console.error("❌ Erreur lors de l'envoi du token:", error);
     }
