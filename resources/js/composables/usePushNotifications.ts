@@ -61,10 +61,11 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         return;
     }
 
-    if (initializationComplete) {
-        console.log('✅ Initialisation déjà terminée, skip...');
-        return;
-    }
+    // TEMPORAIRE: désactiver le check d'initialisation terminée pour debug
+    // if (initializationComplete) {
+    //     console.log('✅ Initialisation déjà terminée, skip...');
+    //     return;
+    // }
 
     try {
         console.log('🚀 Début initializeNativePushNotifications...');
@@ -207,7 +208,7 @@ const sendTokenToBackend = async (token: string): Promise<void> => {
             length: token.length,
         });
 
-        const response = await fetch('/api/device-token', {
+        const response = await fetch('/device-token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

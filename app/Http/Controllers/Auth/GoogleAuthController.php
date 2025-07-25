@@ -239,6 +239,11 @@ class GoogleAuthController extends Controller
                 }
                 
                 Auth::login($user);
+                
+                // Déclencher l'enregistrement du device token pour les apps mobiles
+                if ($isMobile) {
+                    session(['trigger_device_token_registration' => true]);
+                }
 
                 $redirectUrl = MobileDetectionHelper::getRedirectUrl($request, '/tableau-de-bord');
                 
@@ -315,6 +320,11 @@ class GoogleAuthController extends Controller
 
         // Connexion automatique
         Auth::login($user);
+        
+        // Déclencher l'enregistrement du device token pour les apps mobiles
+        if ($isMobile) {
+            session(['trigger_device_token_registration' => true]);
+        }
 
         // Redirection selon le statut et l'environnement
         $redirectUrl = MobileDetectionHelper::getRedirectUrl(request(), '/tableau-de-bord');
