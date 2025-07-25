@@ -127,8 +127,8 @@ const initializeNativePushNotifications = async (): Promise<void> => {
                     console.log('⏰ Timeout 3s: Vérification token après registration');
                     console.log('📱 Device token actuel:', deviceToken.value);
                     if (!deviceToken.value) {
-                        console.log('⚠️ Aucun token reçu après 3 secondes - tentative récupération à la demande');
-                        await getTokenOnDemand();
+                        console.log('⚠️ Aucun token reçu après 3 secondes - tentative récupération directe');
+                        await getFirebaseTokenDirect();
                     }
                 }, 3000);
             } catch (registerError) {
@@ -151,12 +151,88 @@ const initializeNativePushNotifications = async (): Promise<void> => {
 };
 
 /**
- * Récupérer le token à la demande via Capacitor
+ * Appeler la méthode native pour récupérer le token FCM
  */
-const getTokenOnDemand = async (): Promise<string | null> => {
+const callNativeGetToken = async (): Promise<string | null> => {
     try {
-        console.log('🔍 Récupération token à la demande...');
+        console.log('🔥 Méthode alternative de récupération token...');
 
+        // Méthode simple : re-enregistrement forcé
+        const PushNotifications = await importPushNotifications();
+        if (!PushNotifications) {
+            console.log('❌ PushNotifications non disponible');
+            return null;
+        }
+
+        // Configurer les listeners au cas où
+        if (!listenersConfigured) {
+            setupPushNotificationListeners(PushNotifications);
+        }
+
+        console.log('🔄 Force nouveau registration...');
+        await PushNotifications.register();
+
+        // Attendre avec plus de patience
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 10;
+
+            const timeout = setTimeout(() => {
+                console.log('⏰ Timeout méthode alternative après 5s');
+                resolve(deviceToken.value);
+            }, 5000);
+
+            const checkToken = () => {
+                attempts++;
+                console.log(`🔍 Tentative ${attempts}/${maxAttempts} - Token: ${deviceToken.value ? '✅ Présent' : '❌ Absent'}`);
+
+                if (deviceToken.value) {
+                    clearTimeout(timeout);
+                    console.log('🎯 Token récupéré avec succès !');
+                    resolve(deviceToken.value);
+                } else if (attempts < maxAttempts) {
+                    setTimeout(checkToken, 500);
+                } else {
+                    clearTimeout(timeout);
+                    console.log('❌ Échec après toutes les tentatives');
+                    resolve(null);
+                }
+            };
+
+            // Commencer immédiatement la vérification
+            checkToken();
+        });
+    } catch (error) {
+        console.log('⚠️ Erreur méthode alternative:', error);
+        return null;
+    }
+};
+
+/**
+ * Récupérer le token FCM directement depuis le côté natif
+ */
+const getFirebaseTokenDirect = async (): Promise<string | null> => {
+    try {
+        console.log('🔍 Récupération token Firebase directement...');
+
+        // Option 1: Utiliser @capacitor-community/fcm si disponible
+        try {
+            // @ts-expect-error - Le plugin FCM peut ne pas être disponible au build
+            const { FCM } = await import('@capacitor-community/fcm');
+            console.log('✅ Plugin FCM trouvé, récupération du token...');
+
+            const result = await FCM.getToken();
+            if (result && result.token) {
+                console.log('🎯 Token FCM récupéré via plugin:', result.token.substring(0, 20) + '...');
+                deviceToken.value = result.token;
+                await sendTokenToBackend(result.token);
+                return result.token;
+            }
+        } catch (fcmError) {
+            console.log('⚠️ Plugin FCM non disponible, fallback vers Capacitor:', fcmError);
+        }
+
+        // Option 2: Fallback vers les push notifications Capacitor
         const PushNotifications = await importPushNotifications();
         if (!PushNotifications) {
             console.log('❌ PushNotifications non disponible');
@@ -183,7 +259,7 @@ const getTokenOnDemand = async (): Promise<string | null> => {
                 const timeout = setTimeout(() => {
                     console.log('⏰ Timeout récupération token');
                     resolve(deviceToken.value);
-                }, 2000);
+                }, 3000); // 3 secondes pour laisser plus de temps
 
                 // Observer les changements du token
                 const checkToken = () => {
@@ -201,7 +277,7 @@ const getTokenOnDemand = async (): Promise<string | null> => {
             return null;
         }
     } catch (error) {
-        console.log('⚠️ Erreur récupération token à la demande:', error);
+        console.log('⚠️ Erreur récupération token direct:', error);
         return null;
     }
 };
@@ -459,7 +535,8 @@ export function usePushNotifications() {
         sendTokenToBackend,
         testTokenSaving, // Pour debug uniquement
         forceReinitPushNotifications, // Pour debug uniquement
-        getTokenOnDemand, // Récupération à la demande
+        getFirebaseTokenDirect, // Récupération directe FCM
+        callNativeGetToken, // Appel méthode native
         getDeviceTokenData,
         sendTokenWithLogin,
     };

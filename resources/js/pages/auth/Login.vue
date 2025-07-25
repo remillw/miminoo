@@ -17,7 +17,8 @@ import { route } from 'ziggy-js';
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
 const { isNative } = useCapacitor();
-const { initializePushNotifications, sendTokenWithLogin, deviceToken, forceReinitPushNotifications, getTokenOnDemand } = usePushNotifications();
+const { initializePushNotifications, sendTokenWithLogin, deviceToken, forceReinitPushNotifications, getFirebaseTokenDirect, callNativeGetToken } =
+    usePushNotifications();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -111,7 +112,10 @@ onMounted(async () => {
                         <button @click="forceReinitPushNotifications" type="button" class="rounded bg-red-500 px-2 py-1 text-xs text-white">
                             🔄 Force Reinit
                         </button>
-                        <button @click="getTokenOnDemand" type="button" class="rounded bg-blue-500 px-2 py-1 text-xs text-white">📱 Get Token</button>
+                        <button @click="getFirebaseTokenDirect" type="button" class="rounded bg-blue-500 px-2 py-1 text-xs text-white">
+                            📱 Get Token
+                        </button>
+                        <button @click="callNativeGetToken" type="button" class="rounded bg-green-500 px-2 py-1 text-xs text-white">🔥 Native</button>
                     </div>
                 </div>
 
