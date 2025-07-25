@@ -52,7 +52,7 @@ const importPushNotifications = async () => {
 };
 
 /**
- * Initialiser les notifications push avec Capacitor natif
+ * Initialiser les notifications push avec Capacitor natif selon la documentation officielle
  */
 const initializeNativePushNotifications = async (): Promise<void> => {
     // Vérifier si déjà en cours d'initialisation
@@ -68,73 +68,49 @@ const initializeNativePushNotifications = async (): Promise<void> => {
     }
 
     try {
-        console.log('🚀 Début initializeNativePushNotifications...');
+        console.log('🚀 Début initializeNativePushNotifications selon documentation Capacitor...');
         isInitializing = true;
 
         // Import dynamique de PushNotifications
-        console.log('🔄 Étape 1: Import PushNotifications...');
         const PushNotifications = await importPushNotifications();
         if (!PushNotifications) {
             console.log('❌ Échec import PushNotifications, arrêt initialisation');
             return;
         }
-        console.log('✅ Étape 1 terminée: PushNotifications importé');
 
-        console.log('🔔 Initialisation des notifications push natives...');
+        // ÉTAPE 1: Configurer les listeners AVANT toute opération (documentation Capacitor)
+        console.log('🔄 Étape 1: Configuration des listeners...');
+        setupPushNotificationListeners(PushNotifications);
+        console.log('✅ Étape 1 terminée: Listeners configurés');
 
-        // Les listeners sont déjà configurés précocement, on continue
-        console.log('🔄 Étape 2: Listeners déjà configurés, on continue...');
-
-        // Vérifier les permissions actuelles
-        console.log('🔄 Étape 3: Vérification des permissions...');
-        console.log('📋 Vérification des permissions...');
+        // ÉTAPE 2: Vérifier les permissions actuelles
+        console.log('🔄 Étape 2: Vérification des permissions...');
         const permissionCheck = await PushNotifications.checkPermissions();
         console.log('📋 Permissions actuelles:', JSON.stringify(permissionCheck, null, 2));
-        console.log('✅ Étape 3 terminée: Permissions vérifiées');
-
         permissionStatus.value = permissionCheck.receive;
+        console.log('✅ Étape 2 terminée: Permissions vérifiées');
 
+        // ÉTAPE 3: Demander les permissions si nécessaire
         if (permissionCheck.receive === 'prompt' || permissionCheck.receive === 'prompt-with-rationale') {
-            // Demander les permissions
-            console.log('🔄 Étape 4: Demande de permissions...');
-            console.log('🔐 Demande de permissions...');
+            console.log('🔄 Étape 3: Demande de permissions...');
             const permissionRequest = await PushNotifications.requestPermissions();
             console.log('✅ Réponse permissions:', JSON.stringify(permissionRequest, null, 2));
             permissionStatus.value = permissionRequest.receive;
-            console.log('✅ Étape 4 terminée: Permissions demandées');
+            console.log('✅ Étape 3 terminée: Permissions demandées');
         } else {
-            console.log('⏭️ Étape 4 sautée: Permissions déjà accordées');
+            console.log('⏭️ Étape 3 sautée: Permissions déjà accordées');
         }
 
-        console.log('🔍 Statut final permissions:', permissionStatus.value);
-
+        // ÉTAPE 4: S'enregistrer si permissions accordées
         if (permissionStatus.value === 'granted') {
-            console.log("✅ Permissions accordées, tentative d'enregistrement...");
-
-            // Enregistrer pour les notifications
-            console.log('🔄 Étape 5: Enregistrement pour notifications...');
+            console.log('🔄 Étape 4: Enregistrement pour notifications...');
             console.log('📝 Appel PushNotifications.register()...');
-
-            try {
-                const registerResult = await PushNotifications.register();
-                console.log('✅ PushNotifications.register() retourné:', registerResult);
-                console.log('✅ Enregistrement pour notifications effectué');
-                console.log('✅ Étape 5 terminée: Enregistrement effectué');
-                isRegistered.value = true;
-
-                // Attendre un peu pour voir si les listeners se déclenchent
-                setTimeout(async () => {
-                    console.log('⏰ Timeout 3s: Vérification token après registration');
-                    console.log('📱 Device token actuel:', deviceToken.value);
-                    if (!deviceToken.value) {
-                        console.log('⚠️ Aucun token reçu après 3 secondes - tentative récupération directe');
-                        await getFirebaseTokenDirect();
-                    }
-                }, 3000);
-            } catch (registerError) {
-                console.error('❌ Erreur lors du register():', registerError);
-                throw registerError;
-            }
+            
+            // L'enregistrement déclenchera automatiquement le listener 'registration' avec le token
+            await PushNotifications.register();
+            isRegistered.value = true;
+            console.log('✅ Étape 4 terminée: Enregistrement effectué');
+            console.log('⏳ Attente du token via le listener "registration"...');
         } else {
             console.log('❌ Permissions non accordées:', permissionStatus.value);
             console.log("⏹️ Arrêt de l'initialisation: permissions requises");
@@ -283,7 +259,7 @@ const getFirebaseTokenDirect = async (): Promise<string | null> => {
 };
 
 /**
- * Configurer les listeners pour les notifications
+ * Configurer les listeners pour les notifications selon la documentation Capacitor
  */
 const setupPushNotificationListeners = (PushNotifications: any) => {
     if (listenersConfigured) {
@@ -291,34 +267,39 @@ const setupPushNotificationListeners = (PushNotifications: any) => {
         return;
     }
 
-    console.log('🔧 Configuration des listeners push notifications...');
+    console.log('🔧 Configuration des listeners push notifications selon doc Capacitor...');
 
-    // Listener pour le token de registration Capacitor standard
+    // Listener pour le token de registration - PRIORITAIRE selon documentation
     console.log('📝 Ajout listener: registration');
     PushNotifications.addListener('registration', (token: any) => {
         console.log('🎯 Token reçu via listener registration:', JSON.stringify(token, null, 2));
-        console.log('🔑 Token value:', token.value);
+        console.log('🌐 Token FCM natif :', token.value);
+        
+        // Sauvegarder le token
         deviceToken.value = token.value;
+        
+        // Envoyer au backend SEULEMENT après avoir reçu le token
+        console.log('📤 Envoi du token via NotificationCenter officiel Capacitor');
         sendTokenToBackend(token.value);
     });
 
-    // Listener pour les erreurs
+    // Listener pour les erreurs de registration
     console.log('📝 Ajout listener: registrationError');
     PushNotifications.addListener('registrationError', (error: any) => {
-        console.error('❌ Erreur registration détaillée:', JSON.stringify(error, null, 2));
+        console.error('❌ Erreur registration push notifications:', JSON.stringify(error, null, 2));
         console.error('❌ Message erreur:', error.message || error);
     });
 
     // Listener pour les notifications reçues (app en premier plan)
     console.log('📝 Ajout listener: pushNotificationReceived');
     PushNotifications.addListener('pushNotificationReceived', (notification: any) => {
-        console.log('📱 Notification reçue:', notification);
+        console.log('📱 Notification reçue en premier plan:', notification);
     });
 
-    // Listener pour les notifications cliquées
+    // Listener pour les notifications cliquées/ouvertes
     console.log('📝 Ajout listener: pushNotificationActionPerformed');
     PushNotifications.addListener('pushNotificationActionPerformed', (notification: any) => {
-        console.log('👆 Notification cliquée:', notification);
+        console.log('👆 Action sur notification:', notification);
         handleNotificationOpened(notification);
     });
 
@@ -504,22 +485,6 @@ const sendTokenWithLogin = (formData: any) => {
 /**
  * Hook de composition pour les notifications push
  */
-// Configuration immédiate des listeners dès l'import du module
-const configureListenersEarly = async () => {
-    try {
-        console.log('🔧 Configuration précoce des listeners...');
-        const PushNotifications = await importPushNotifications();
-        if (PushNotifications) {
-            setupPushNotificationListeners(PushNotifications);
-            console.log('✅ Listeners configurés précocement');
-        }
-    } catch (error) {
-        console.log('⚠️ Erreur configuration précoce:', error);
-    }
-};
-
-// Configurer les listeners immédiatement
-configureListenersEarly();
 
 export function usePushNotifications() {
     // Initialiser automatiquement au montage
