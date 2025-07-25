@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useMobileAuth } from '@/composables/useMobileAuth';
 import { useCapacitor } from '@/composables/useCapacitor';
+import { useMobileAuth } from '@/composables/useMobileAuth';
 import { usePushNotifications } from '@/composables/usePushNotifications';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { Eye, EyeOff, LoaderCircle, Lock, Mail } from 'lucide-vue-next';
-import { ref, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { route } from 'ziggy-js';
 
 const isPasswordVisible = ref(false);
@@ -37,21 +37,21 @@ const form = useForm({
 const submit = () => {
     // Préparer les données de base
     const baseData = form.data();
-    
+
     // Intégrer le token de device si on est sur mobile
     const formData = isNative.value ? sendTokenWithLogin(baseData) : baseData;
 
     console.log('🔐 Connexion avec données:', {
         isNative: isNative.value,
         hasDeviceToken: !!deviceToken.value,
-        formData: formData
+        formData: formData,
     });
 
     form.transform(() => formData).post(route('connexion'), {
         onFinish: () => form.reset('password'),
         onSuccess: async () => {
             console.log('✅ Connexion réussie');
-            
+
             // Si on est sur mobile, déclencher l'enregistrement des notifications push
             if (isNative.value) {
                 console.log('📱 Déclenchement manuel des notifications push après connexion');
@@ -59,13 +59,13 @@ const submit = () => {
                     await initializePushNotifications();
                     console.log('✅ Notifications push initialisées après connexion');
                 } catch (error) {
-                    console.error('❌ Erreur lors de l\'initialisation des push notifications:', error);
+                    console.error("❌ Erreur lors de l'initialisation des push notifications:", error);
                 }
             }
         },
         onError: (errors) => {
             console.error('❌ Erreur de connexion:', errors);
-        }
+        },
     });
 };
 
@@ -81,7 +81,7 @@ onMounted(async () => {
             await initializePushNotifications();
             console.log('✅ Push notifications initialisées avant login');
         } catch (error) {
-            console.error('❌ Erreur lors de l\'initialisation des push notifications avant login:', error);
+            console.error("❌ Erreur lors de l'initialisation des push notifications avant login:", error);
         }
     }
 });
@@ -96,9 +96,9 @@ onMounted(async () => {
             <div class="mx-auto my-20 mb-10 w-full max-w-md rounded-3xl bg-white p-8 shadow-md">
                 <h2 class="mb-1 text-center text-2xl font-bold">Connexion</h2>
                 <p class="mb-6 text-center text-gray-500">Bienvenue sur la plateforme de babysitting</p>
-                
+
                 <!-- DEBUG: Statut push notifications (mobile seulement) -->
-                <div v-if="isNative" class="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                <div v-if="isNative" class="mb-4 rounded border border-blue-200 bg-blue-50 p-2 text-xs">
                     <div class="flex justify-between">
                         <span>📱 Mobile:</span>
                         <span class="font-mono">{{ isNative ? 'OUI' : 'NON' }}</span>
