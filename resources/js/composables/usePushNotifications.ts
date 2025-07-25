@@ -16,6 +16,7 @@ const deviceToken = ref<string | null>(null);
 
 // Variable pour éviter les initialisations multiples
 let isInitializing = false;
+let listenersConfigured = false;
 
 /**
  * Import dynamique de Capacitor Push Notifications
@@ -81,10 +82,8 @@ const initializeNativePushNotifications = async (): Promise<void> => {
 
         console.log('🔔 Initialisation des notifications push natives...');
 
-        // Configurer les listeners EN PREMIER
-        console.log('🔄 Étape 2: Configuration des listeners...');
-        setupPushNotificationListeners(PushNotifications);
-        console.log('✅ Étape 2 terminée: Listeners configurés');
+        // Les listeners sont déjà configurés précocement, on continue
+        console.log('🔄 Étape 2: Listeners déjà configurés, on continue...');
 
         // Vérifier les permissions actuelles
         console.log('🔄 Étape 3: Vérification des permissions...');
@@ -179,6 +178,11 @@ const checkExistingToken = async (PushNotifications: any): Promise<void> => {
  * Configurer les listeners pour les notifications
  */
 const setupPushNotificationListeners = (PushNotifications: any) => {
+    if (listenersConfigured) {
+        console.log('⚠️ Listeners déjà configurés, skip...');
+        return;
+    }
+
     console.log('🔧 Configuration des listeners push notifications...');
 
     // Listener pour le token de registration Capacitor standard
@@ -210,6 +214,7 @@ const setupPushNotificationListeners = (PushNotifications: any) => {
         handleNotificationOpened(notification);
     });
 
+    listenersConfigured = true;
     console.log('✅ Tous les listeners push notifications configurés');
 };
 
@@ -327,6 +332,7 @@ const initializePushNotifications = async (forceReinit: boolean = false): Promis
         if (forceReinit) {
             console.log('🔄 Force reinit: reset des variables de contrôle');
             isInitializing = false;
+            listenersConfigured = false;
             deviceToken.value = null;
         }
 
@@ -390,6 +396,23 @@ const sendTokenWithLogin = (formData: any) => {
 /**
  * Hook de composition pour les notifications push
  */
+// Configuration immédiate des listeners dès l'import du module
+const configureListenersEarly = async () => {
+    try {
+        console.log('🔧 Configuration précoce des listeners...');
+        const PushNotifications = await importPushNotifications();
+        if (PushNotifications) {
+            setupPushNotificationListeners(PushNotifications);
+            console.log('✅ Listeners configurés précocement');
+        }
+    } catch (error) {
+        console.log('⚠️ Erreur configuration précoce:', error);
+    }
+};
+
+// Configurer les listeners immédiatement
+configureListenersEarly();
+
 export function usePushNotifications() {
     // Initialiser automatiquement au montage
     onMounted(() => {
