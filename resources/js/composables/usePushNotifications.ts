@@ -84,6 +84,7 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         // Configurer les listeners EN PREMIER
         console.log('🔄 Étape 2: Configuration des listeners...');
         setupPushNotificationListeners(PushNotifications);
+        setupCustomFCMListener(); // Ajouter le listener FCM personnalisé
         console.log('✅ Étape 2 terminée: Listeners configurés');
 
         // Vérifier les permissions actuelles
@@ -181,7 +182,7 @@ const checkExistingToken = async (PushNotifications: any): Promise<void> => {
 const setupPushNotificationListeners = (PushNotifications: any) => {
     console.log('🔧 Configuration des listeners push notifications...');
 
-    // Listener pour le token de registration
+    // Listener pour le token de registration Capacitor standard
     console.log('📝 Ajout listener: registration');
     PushNotifications.addListener('registration', (token: any) => {
         console.log('🎯 Token reçu via listener registration:', JSON.stringify(token, null, 2));
@@ -211,6 +212,26 @@ const setupPushNotificationListeners = (PushNotifications: any) => {
     });
 
     console.log('✅ Tous les listeners push notifications configurés');
+};
+
+/**
+ * Configurer un listener pour l'événement FCM personnalisé
+ */
+const setupCustomFCMListener = () => {
+    console.log('🔧 Configuration du listener FCM personnalisé...');
+
+    // Écouter l'événement personnalisé envoyé depuis iOS
+    window.addEventListener('fcmTokenReceived', (event: any) => {
+        console.log('🎯 Token FCM reçu via événement personnalisé:', event.detail);
+        const token = event.detail?.value;
+        if (token) {
+            console.log('🔑 Token FCM value:', token);
+            deviceToken.value = token;
+            sendTokenToBackend(token);
+        }
+    });
+
+    console.log('✅ Listener FCM personnalisé configuré');
 };
 
 /**
@@ -391,6 +412,9 @@ const sendTokenWithLogin = (formData: any) => {
  * Hook de composition pour les notifications push
  */
 export function usePushNotifications() {
+    // Configurer le listener FCM personnalisé immédiatement
+    setupCustomFCMListener();
+
     // Initialiser automatiquement au montage
     onMounted(() => {
         initializePushNotifications();
