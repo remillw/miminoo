@@ -17,7 +17,7 @@ import { route } from 'ziggy-js';
 const isPasswordVisible = ref(false);
 const { authenticateWithGoogle } = useMobileAuth();
 const { isNative } = useCapacitor();
-const { initializePushNotifications, sendTokenWithLogin, deviceToken } = usePushNotifications();
+const { initializePushNotifications, sendTokenWithLogin, deviceToken, forceReinitPushNotifications } = usePushNotifications();
 
 const togglePasswordVisibility = () => {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -89,7 +89,7 @@ onMounted(async () => {
 
 <template>
     <GlobalLayout>
-        <div class="bg-secondary flex flex-col justify-between min-h-screen">
+        <div class="bg-secondary flex min-h-screen flex-col justify-between">
             <Head title="Connexion" />
 
             <!-- Form container -->
@@ -106,6 +106,11 @@ onMounted(async () => {
                     <div class="flex justify-between">
                         <span>🔔 Token:</span>
                         <span class="font-mono">{{ deviceToken ? '✅ ' + deviceToken.substring(0, 10) + '...' : '❌ Aucun' }}</span>
+                    </div>
+                    <div class="mt-2">
+                        <button @click="forceReinitPushNotifications" type="button" class="rounded bg-red-500 px-2 py-1 text-xs text-white">
+                            🔄 Force Reinit
+                        </button>
                     </div>
                 </div>
 
@@ -170,7 +175,7 @@ onMounted(async () => {
                                 v-model="form.email"
                                 autocomplete="email"
                                 required
-                                class="pl-8 py-2.5 text-sm sm:pl-10 sm:py-3 sm:text-base"
+                                class="py-2.5 pl-8 text-sm sm:py-3 sm:pl-10 sm:text-base"
                                 placeholder="votre@email.com"
                             />
                         </div>
@@ -187,10 +192,14 @@ onMounted(async () => {
                                 v-model="form.password"
                                 required
                                 autocomplete="current-password"
-                                class="pr-8 pl-8 py-2.5 text-sm sm:pr-10 sm:pl-10 sm:py-3 sm:text-base"
+                                class="py-2.5 pr-8 pl-8 text-sm sm:py-3 sm:pr-10 sm:pl-10 sm:text-base"
                                 placeholder="••••••••"
                             />
-                            <button type="button" class="absolute top-1/2 right-2.5 -translate-y-1/2 text-gray-500 sm:right-3" @click="togglePasswordVisibility">
+                            <button
+                                type="button"
+                                class="absolute top-1/2 right-2.5 -translate-y-1/2 text-gray-500 sm:right-3"
+                                @click="togglePasswordVisibility"
+                            >
                                 <component :is="isPasswordVisible ? EyeOff : Eye" class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </button>
                         </div>
@@ -205,7 +214,11 @@ onMounted(async () => {
                         <TextLink v-if="canResetPassword" :href="route('password.request')">Mot de passe oublié ?</TextLink>
                     </div>
 
-                    <Button type="submit" class="bg-primary hover:bg-primary w-full py-3 text-sm font-bold text-white sm:py-5 sm:text-base" :disabled="form.processing">
+                    <Button
+                        type="submit"
+                        class="bg-primary hover:bg-primary w-full py-3 text-sm font-bold text-white sm:py-5 sm:text-base"
+                        :disabled="form.processing"
+                    >
                         <LoaderCircle v-if="form.processing" class="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" />
                         <span v-else>Se connecter</span>
                     </Button>

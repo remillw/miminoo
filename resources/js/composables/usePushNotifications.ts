@@ -60,7 +60,7 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         return;
     }
 
-    // Si on a déjà un token, pas besoin de réinitialiser
+    // Si on a déjà un token, pas besoin de réinitialiser (sauf si on force)
     if (deviceToken.value) {
         console.log('✅ Token déjà disponible:', deviceToken.value.substring(0, 20) + '...');
         return;
@@ -319,10 +319,17 @@ const sendTokenToBackend = async (token: string): Promise<void> => {
 /**
  * Initialiser automatiquement les notifications push
  */
-const initializePushNotifications = async (): Promise<void> => {
+const initializePushNotifications = async (forceReinit: boolean = false): Promise<void> => {
     try {
         // Utiliser Capacitor Push Notifications natif uniquement
         console.log('🔔 Initialisation automatique des notifications push natives');
+
+        if (forceReinit) {
+            console.log('🔄 Force reinit: reset des variables de contrôle');
+            isInitializing = false;
+            deviceToken.value = null;
+        }
+
         await initializeNativePushNotifications();
 
         console.log('✅ Push notifications initialisées avec succès');
@@ -338,6 +345,14 @@ const testTokenSaving = async (): Promise<void> => {
     console.log('🧪 Test manuel: envoi token fictif pour debug');
     const fakeToken = 'test_token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     await sendTokenToBackend(fakeToken);
+};
+
+/**
+ * Forcer la réinitialisation des notifications push (debug)
+ */
+const forceReinitPushNotifications = async (): Promise<void> => {
+    console.log('🔄 Force réinitialisation des push notifications');
+    await initializePushNotifications(true);
 };
 
 /**
@@ -388,6 +403,7 @@ export function usePushNotifications() {
         initializePushNotifications,
         sendTokenToBackend,
         testTokenSaving, // Pour debug uniquement
+        forceReinitPushNotifications, // Pour debug uniquement
         getDeviceTokenData,
         sendTokenWithLogin,
     };
