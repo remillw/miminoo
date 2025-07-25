@@ -122,18 +122,13 @@ const initializeNativePushNotifications = async (): Promise<void> => {
                 console.log('✅ Étape 5 terminée: Enregistrement effectué');
                 isRegistered.value = true;
 
-                // Essayer de récupérer un token existant si disponible
-                console.log('🔄 Étape 6: Vérification token existant...');
-                await checkExistingToken(PushNotifications);
-
                 // Attendre un peu pour voir si les listeners se déclenchent
-                setTimeout(() => {
+                setTimeout(async () => {
                     console.log('⏰ Timeout 3s: Vérification token après registration');
                     console.log('📱 Device token actuel:', deviceToken.value);
                     if (!deviceToken.value) {
-                        console.log('⚠️ Aucun token reçu après 3 secondes - tentative de récupération manuelle');
-                        // Essayer une nouvelle fois de récupérer le token
-                        checkExistingToken(PushNotifications);
+                        console.log('⚠️ Aucun token reçu après 3 secondes - tentative récupération à la demande');
+                        await getTokenOnDemand();
                     }
                 }, 3000);
             } catch (registerError) {
@@ -156,21 +151,58 @@ const initializeNativePushNotifications = async (): Promise<void> => {
 };
 
 /**
- * Vérifier s'il existe déjà un token (pour gérer les cas où le token est généré avant les listeners)
+ * Récupérer le token à la demande via Capacitor
  */
-const checkExistingToken = async (PushNotifications: any): Promise<void> => {
+const getTokenOnDemand = async (): Promise<string | null> => {
     try {
-        console.log('🔍 Vérification token existant...');
+        console.log('🔍 Récupération token à la demande...');
 
-        // Tenter d'obtenir les notifications livrées (peut contenir des infos de token)
-        const deliveredNotifications = await PushNotifications.getDeliveredNotifications();
-        console.log('📱 Notifications livrées:', deliveredNotifications);
+        const PushNotifications = await importPushNotifications();
+        if (!PushNotifications) {
+            console.log('❌ PushNotifications non disponible');
+            return null;
+        }
 
-        // Sur iOS, essayer de re-déclencher l'enregistrement pour forcer la génération d'événement
-        console.log('🔄 Re-déclenchement registration pour forcer le token...');
-        await PushNotifications.register();
+        // Vérifier les permissions
+        const permissions = await PushNotifications.checkPermissions();
+        console.log('📋 Permissions actuelles:', permissions);
+
+        if (permissions.receive === 'granted') {
+            console.log('✅ Permissions OK, demande du token...');
+
+            // Configurer les listeners s'ils ne le sont pas déjà
+            if (!listenersConfigured) {
+                setupPushNotificationListeners(PushNotifications);
+            }
+
+            // Déclencher l'enregistrement pour obtenir le token
+            await PushNotifications.register();
+
+            // Attendre un peu pour voir si le token arrive
+            return new Promise((resolve) => {
+                const timeout = setTimeout(() => {
+                    console.log('⏰ Timeout récupération token');
+                    resolve(deviceToken.value);
+                }, 2000);
+
+                // Observer les changements du token
+                const checkToken = () => {
+                    if (deviceToken.value) {
+                        clearTimeout(timeout);
+                        resolve(deviceToken.value);
+                    } else {
+                        setTimeout(checkToken, 100);
+                    }
+                };
+                checkToken();
+            });
+        } else {
+            console.log('❌ Permissions non accordées');
+            return null;
+        }
     } catch (error) {
-        console.log('⚠️ Erreur lors de la vérification du token existant:', error);
+        console.log('⚠️ Erreur récupération token à la demande:', error);
+        return null;
     }
 };
 
@@ -427,6 +459,7 @@ export function usePushNotifications() {
         sendTokenToBackend,
         testTokenSaving, // Pour debug uniquement
         forceReinitPushNotifications, // Pour debug uniquement
+        getTokenOnDemand, // Récupération à la demande
         getDeviceTokenData,
         sendTokenWithLogin,
     };
