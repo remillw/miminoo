@@ -71,27 +71,35 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         isInitializing = true;
 
         // Import dynamique de PushNotifications
+        console.log('🔄 Étape 1: Import PushNotifications...');
         const PushNotifications = await importPushNotifications();
         if (!PushNotifications) {
             console.log('❌ Échec import PushNotifications, arrêt initialisation');
             return;
         }
+        console.log('✅ Étape 1 terminée: PushNotifications importé');
 
         console.log('🔔 Initialisation des notifications push natives...');
 
         // Vérifier les permissions actuelles
+        console.log('🔄 Étape 2: Vérification des permissions...');
         console.log('📋 Vérification des permissions...');
         const permissionCheck = await PushNotifications.checkPermissions();
         console.log('📋 Permissions actuelles:', JSON.stringify(permissionCheck, null, 2));
+        console.log('✅ Étape 2 terminée: Permissions vérifiées');
 
         permissionStatus.value = permissionCheck.receive;
 
         if (permissionCheck.receive === 'prompt' || permissionCheck.receive === 'prompt-with-rationale') {
             // Demander les permissions
+            console.log('🔄 Étape 3: Demande de permissions...');
             console.log('🔐 Demande de permissions...');
             const permissionRequest = await PushNotifications.requestPermissions();
             console.log('✅ Réponse permissions:', JSON.stringify(permissionRequest, null, 2));
             permissionStatus.value = permissionRequest.receive;
+            console.log('✅ Étape 3 terminée: Permissions demandées');
+        } else {
+            console.log('⏭️ Étape 3 sautée: Permissions déjà accordées');
         }
 
         console.log('🔍 Statut final permissions:', permissionStatus.value);
@@ -100,15 +108,20 @@ const initializeNativePushNotifications = async (): Promise<void> => {
             console.log("✅ Permissions accordées, tentative d'enregistrement...");
 
             // Configurer les listeners AVANT l'enregistrement
+            console.log('🔄 Étape 4: Configuration des listeners...');
             setupPushNotificationListeners(PushNotifications);
+            console.log('✅ Étape 4 terminée: Listeners configurés');
 
             // Enregistrer pour les notifications
+            console.log('🔄 Étape 5: Enregistrement pour notifications...');
             console.log('📝 Appel PushNotifications.register()...');
             await PushNotifications.register();
             console.log('✅ Enregistrement pour notifications effectué');
+            console.log('✅ Étape 5 terminée: Enregistrement effectué');
             isRegistered.value = true;
         } else {
             console.log('❌ Permissions non accordées:', permissionStatus.value);
+            console.log("⏹️ Arrêt de l'initialisation: permissions requises");
         }
 
         initializationComplete = true;
@@ -118,6 +131,7 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     } finally {
         isInitializing = false;
+        console.log('🏁 Finally: isInitializing mis à false');
     }
 };
 
