@@ -9,9 +9,33 @@ let Capacitor: any = null;
 // Variable globale pour éviter les multiples initialisations
 let isCapacitorInitialized = false;
 
+// Détection synchrone de la plateforme native au chargement du module
+const detectNativePlatform = (): boolean => {
+    if (typeof window === 'undefined') return false;
+
+    const windowCapacitor = (window as any).Capacitor;
+    if (!windowCapacitor) return false;
+
+    try {
+        return windowCapacitor.isNativePlatform();
+    } catch {
+        return false;
+    }
+};
+
+// Initialisation synchrone des valeurs
+const initialIsNative = detectNativePlatform();
+const initialPlatform = initialIsNative && (window as any).Capacitor ? (window as any).Capacitor.getPlatform() : '';
+
+console.log('🔍 Détection plateforme native:', {
+    isNative: initialIsNative,
+    platform: initialPlatform,
+    hasWindowCapacitor: !!(window as any)?.Capacitor,
+});
+
 export function useCapacitor() {
-    const isNative = ref(false);
-    const platform = ref('');
+    const isNative = ref(initialIsNative);
+    const platform = ref(initialPlatform);
     const appStateChangeListener = ref<any>(null);
     const appUrlOpenListener = ref<any>(null);
 
@@ -138,10 +162,18 @@ export function useCapacitor() {
             console.log('🚀 Initialisation Capacitor...');
             isCapacitorInitialized = true;
 
-            isNative.value = true;
-            platform.value = Capacitor.getPlatform();
+            // Les valeurs sont déjà définies au niveau du module, mais on les confirme
+            if (!isNative.value) {
+                isNative.value = true;
+                console.log('✅ isNative mis à jour vers true');
+            }
+            
+            if (!platform.value) {
+                platform.value = Capacitor.getPlatform();
+                console.log('✅ Platform mis à jour vers:', platform.value);
+            }
 
-            console.log('📱 Plateforme détectée:', platform.value);
+            console.log('📱 Plateforme confirmée:', platform.value);
 
             // Écouter les changements d'état de l'app
             appStateChangeListener.value = await App.addListener('appStateChange', (state: any) => {
