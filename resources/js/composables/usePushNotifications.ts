@@ -253,28 +253,42 @@ const sendTokenToBackend = async (token: string): Promise<void> => {
             notification_provider: 'capacitor'
         });
 
-        // Utiliser Inertia router pour gérer automatiquement CSRF
-        return new Promise((resolve, reject) => {
-            router.post('/device-token', {
+        // Utiliser fetch avec gestion CSRF pour mobile
+        const response = await fetch('/device-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'Accept': 'application/json',
+            },
+            credentials: 'include', // Important pour les cookies de session
+            body: JSON.stringify({
                 device_token: token,
                 platform: platform,
                 notification_provider: 'capacitor',
-            }, {
-                preserveScroll: true,
-                preserveState: true,
-                onSuccess: (page) => {
-                    console.log('✅ Device token envoyé avec succès au backend via Inertia');
-                    resolve(undefined);
-                },
-                onError: (errors) => {
-                    console.error('❌ Erreur envoi token au backend via Inertia:', errors);
-                    reject(new Error(JSON.stringify(errors)));
-                },
-                onFinish: () => {
-                    console.log('🏁 Requête device token terminée');
-                }
-            });
+            }),
         });
+
+        console.log('📥 Réponse backend:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            url: response.url
+        });
+
+        if (response.ok) {
+            const responseData = await response.json();
+            console.log('✅ Device token envoyé avec succès au backend:', responseData);
+        } else {
+            const errorData = await response.text();
+            console.error('❌ Erreur envoi token au backend:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorData,
+                url: response.url
+            });
+            throw new Error(`Failed to save token: ${response.status} ${response.statusText}`);
+        }
     } catch (error) {
         console.error("❌ Erreur lors de l'envoi du token:", error);
     }
