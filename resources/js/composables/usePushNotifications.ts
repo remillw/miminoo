@@ -14,6 +14,10 @@ const isRegistered = ref(false);
 const permissionStatus = ref<'prompt' | 'prompt-with-rationale' | 'granted' | 'denied'>('prompt');
 const deviceToken = ref<string | null>(null);
 
+// Variable pour éviter les initialisations multiples
+let isInitializing = false;
+let initializationComplete = false;
+
 /**
  * Import dynamique de Capacitor Push Notifications
  */
@@ -51,8 +55,20 @@ const importPushNotifications = async () => {
  * Initialiser les notifications push avec Capacitor natif
  */
 const initializeNativePushNotifications = async (): Promise<void> => {
+    // Vérifier si déjà en cours d'initialisation ou terminé
+    if (isInitializing) {
+        console.log('⚠️ Initialisation déjà en cours, skip...');
+        return;
+    }
+
+    if (initializationComplete) {
+        console.log('✅ Initialisation déjà terminée, skip...');
+        return;
+    }
+
     try {
         console.log('🚀 Début initializeNativePushNotifications...');
+        isInitializing = true;
 
         // Import dynamique de PushNotifications
         const PushNotifications = await importPushNotifications();
@@ -94,9 +110,14 @@ const initializeNativePushNotifications = async (): Promise<void> => {
         } else {
             console.log('❌ Permissions non accordées:', permissionStatus.value);
         }
+
+        initializationComplete = true;
+        console.log('🎯 Initialisation push notifications terminée avec succès');
     } catch (error) {
         console.error('❌ Erreur initialisation push notifications:', error);
         console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    } finally {
+        isInitializing = false;
     }
 };
 

@@ -127,14 +127,14 @@ class PushNotificationService
         $payload = [
             'message' => [
                 'token' => $deviceToken,
-                'notification' => [
-                    'title' => $title,
-                    'body' => $body,
+            'notification' => [
+                'title' => $title,
+                'body' => $body,
                 ],
                 'data' => array_map('strval', $data), // FCM requires string values
                 'android' => [
                     'notification' => [
-                        'sound' => 'default',
+                'sound' => 'default',
                         'priority' => 'high'
                     ]
                 ],
