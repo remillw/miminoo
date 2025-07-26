@@ -30,6 +30,10 @@ const form = useForm({
     email: '',
     password: '',
     remember: false,
+    mobile_auth: '',
+    device_token: '',
+    platform: '',
+    notification_provider: '',
 });
 
 const submit = () => {
@@ -78,9 +82,16 @@ const submit = () => {
         password: '[HIDDEN]' // Ne pas logger le mot de passe
     });
 
-    // Soumission directe avec les données
+    // Soumission avec les données intégrées dans le form
+    // D'abord, ajouter les données mobiles au form object
+    if (isMobileApp() && deviceTokenData) {
+        form.mobile_auth = 'true';
+        form.device_token = deviceTokenData.device_token;
+        form.platform = deviceTokenData.platform;
+        form.notification_provider = deviceTokenData.notification_provider;
+    }
+    
     form.post(route('connexion'), {
-        data: baseData,
         onFinish: () => form.reset('password'),
         onError: (errors) => {
             console.log('=== FRONTEND - ERREURS REÇUES ===');
