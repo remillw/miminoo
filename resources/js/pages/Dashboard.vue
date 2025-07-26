@@ -54,7 +54,7 @@ const currentContent = computed(() => {
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+    <div class="flex min-h-screen flex-col bg-secondary">
         <Head title="Dashboard" />
 
         <LandingHeader />
