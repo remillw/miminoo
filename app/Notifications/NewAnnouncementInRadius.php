@@ -71,21 +71,10 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
      */
     public function toExpo(object $notifiable)
     {
-        // Récupérer tous les tokens de l'utilisateur
-        $deviceTokens = DB::table('device_tokens')
-            ->where('user_id', $notifiable->id)
-            ->pluck('token')
-            ->toArray();
-            
-        if (empty($deviceTokens) && $notifiable->device_token) {
-            // Fallback pour la rétrocompatibilité
-            $deviceTokens = [$notifiable->device_token];
-        }
-            
-        if (empty($deviceTokens) || !$notifiable->push_notifications) {
+        if (!$notifiable->device_token || !$notifiable->push_notifications) {
             Log::info('Notification non envoyée : pas de device_token ou notifications désactivées', [
                 'user_id' => $notifiable->id,
-                'has_tokens' => !empty($deviceTokens),
+                'has_token' => !empty($notifiable->device_token),
                 'push_enabled' => $notifiable->push_notifications
             ]);
             return;
@@ -103,45 +92,35 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
         $title = 'Nouvelle annonce dans votre secteur';
         $body = "Garde d'enfants à {$city} (à " . round($this->distance, 1) . " km) - {$this->ad->hourly_rate}€/h";
 
-        $successCount = 0;
-        $failCount = 0;
+        Log::info('Envoi notification Expo pour nouvelle annonce', [
+            'to' => $notifiable->device_token,
+            'user_id' => $notifiable->id,
+            'ad_id' => $this->ad->id,
+            'distance' => $this->distance
+        ]);
 
-        foreach ($deviceTokens as $token) {
-            Log::info('Envoi notification Expo pour nouvelle annonce', [
-                'to' => $token,
-                'user_id' => $notifiable->id,
-                'ad_id' => $this->ad->id,
-                'distance' => $this->distance
-            ]);
-
-            $response = Http::post('https://exp.host/--/api/v2/push/send', [
-                'to' => $token,
-                'title' => $title,
-                'body' => $body,
-                'data' => [
-                    'screen' => 'AnnouncementScreen',
-                    'param' => [
-                        'announcementId' => $this->ad->id,
-                        'slug' => $this->createAdSlug(),
-                    ],
+        $response = Http::post('https://exp.host/--/api/v2/push/send', [
+            'to' => $notifiable->device_token,
+            'title' => $title,
+            'body' => $body,
+            'data' => [
+                'screen' => 'AnnouncementScreen',
+                'param' => [
+                    'announcementId' => $this->ad->id,
+                    'slug' => $this->createAdSlug(),
                 ],
+            ],
+        ]);
+        
+        if ($response->successful()) {
+            return ['success' => 1, 'failed' => 0];
+        } else {
+            Log::warning('Échec envoi notification nouvelle annonce', [
+                'token' => $notifiable->device_token,
+                'response' => $response->json()
             ]);
-            
-            if ($response->successful()) {
-                $successCount++;
-            } else {
-                $failCount++;
-                Log::warning('Échec envoi notification nouvelle annonce', [
-                    'token' => $token,
-                    'response' => $response->json()
-                ]);
-            }
+            return ['success' => 0, 'failed' => 1];
         }
- 
-        return [
-            'success' => $successCount,
-            'failed' => $failCount
-        ];
     }
 
     private function createAdSlug(): string
