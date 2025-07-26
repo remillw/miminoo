@@ -22,7 +22,12 @@ class PushNotificationService
             return false;
         }
 
-        return $this->sendNotification($user->device_token, $title, $body, $data);
+        // Détecter le type de token et envoyer via la bonne API
+        if ($this->isExpoToken($user->device_token)) {
+            return $this->sendExpoNotification($user->device_token, $title, $body, $data);
+        } else {
+            return $this->sendFirebaseNotification($user->device_token, $title, $body, $data);
+        }
     }
 
     /**
@@ -109,9 +114,63 @@ class PushNotificationService
     }
 
     /**
+     * Détecter si le token est un token Expo
+     */
+    private function isExpoToken(string $token): bool
+    {
+        return str_starts_with($token, 'ExponentPushToken[');
+    }
+
+    /**
+     * Envoyer une notification via Expo Push API
+     */
+    private function sendExpoNotification(string $deviceToken, string $title, string $body, array $data = []): bool
+    {
+        $payload = [
+            'to' => $deviceToken,
+            'title' => $title,
+            'body' => $body,
+            'data' => $data,
+            'sound' => 'default',
+            'badge' => 1,
+            'priority' => 'high'
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Accept-encoding' => 'gzip, deflate',
+                'Content-Type' => 'application/json',
+            ])->post('https://exp.host/--/api/v2/push/send', $payload);
+
+            if ($response->successful()) {
+                Log::info('Expo push notification sent successfully', [
+                    'token_preview' => substr($deviceToken, 0, 20) . '...',
+                    'title' => $title,
+                    'response' => $response->json()
+                ]);
+                return true;
+            } else {
+                Log::error('Failed to send Expo push notification', [
+                    'status' => $response->status(),
+                    'response' => $response->body(),
+                    'token_preview' => substr($deviceToken, 0, 20) . '...'
+                ]);
+                return false;
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception while sending Expo push notification', [
+                'error' => $e->getMessage(),
+                'token_preview' => substr($deviceToken, 0, 20) . '...'
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Envoyer une notification push via Firebase FCM HTTP v1
      */
-    private function sendNotification(string $deviceToken, string $title, string $body, array $data = []): bool
+    private function sendFirebaseNotification(string $deviceToken, string $title, string $body, array $data = []): bool
     {
         $projectId = config('services.firebase.project_id');
         $accessToken = $this->getAccessToken();
