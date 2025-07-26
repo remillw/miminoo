@@ -33,6 +33,8 @@ const form = useForm({
 });
 
 const submit = () => {
+    console.log('=== LOGIN SUBMIT DÉMARRÉ ===');
+    
     // Version simplifiée sans transform pour éviter les conflits
     const baseData = {
         email: form.email,
@@ -40,17 +42,37 @@ const submit = () => {
         remember: form.remember,
     };
 
+    // Debug détaillé
+    console.log('Step 1 - Base data:', { email: baseData.email, remember: baseData.remember });
+    
+    // Vérifier l'état du composable
+    console.log('Step 2 - isMobileApp():', isMobileApp());
+    console.log('Step 3 - window.ReactNativeWebView exists:', !!window.ReactNativeWebView);
+    console.log('Step 4 - window.deviceTokenData exists:', !!(window as any).deviceTokenData);
+    console.log('Step 5 - window.deviceTokenData value:', (window as any).deviceTokenData);
+
     const deviceTokenData = getDeviceTokenData();
+    console.log('Step 6 - getDeviceTokenData() result:', deviceTokenData);
+
     if (isMobileApp() && deviceTokenData) {
         console.log('=== FRONTEND - DEVICE TOKEN DÉTECTÉ ===');
         console.log('Device Token Data:', deviceTokenData);
-        console.log('Is Mobile App:', isMobileApp());
         
         // Ajouter les données mobile directement
         Object.assign(baseData, deviceTokenData, { mobile_auth: 'true' });
+        console.log('Step 7 - Data after mobile token added:', {
+            ...baseData,
+            password: '[HIDDEN]',
+            device_token: deviceTokenData.device_token ? deviceTokenData.device_token.substring(0, 20) + '...' : 'NULL'
+        });
+    } else {
+        console.log('=== FRONTEND - PAS DE TOKEN MOBILE ===');
+        console.log('Raisons possibles:');
+        console.log('- isMobileApp():', isMobileApp());
+        console.log('- deviceTokenData:', deviceTokenData);
     }
 
-    console.log('=== FRONTEND - DONNÉES ENVOYÉES AU SERVEUR ===');
+    console.log('=== FRONTEND - DONNÉES FINALES ENVOYÉES ===');
     console.log('Final Data:', {
         ...baseData,
         password: '[HIDDEN]' // Ne pas logger le mot de passe

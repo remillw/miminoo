@@ -37,7 +37,10 @@ export function useDeviceToken() {
 
         // Écouter l'événement personnalisé émis par le JavaScript injecté
         const deviceTokenReadyHandler = (event: CustomEvent) => {
+            console.log('=== deviceTokenReady event received ===');
             const data = event.detail;
+            console.log('Event detail:', data);
+            
             if (data && data.device_token) {
                 deviceToken.value = data.device_token;
                 platform.value = data.platform;
@@ -48,6 +51,10 @@ export function useDeviceToken() {
                     provider: notificationProvider.value,
                     tokenPreview: deviceToken.value?.substring(0, 30) + '...',
                 });
+                
+                console.log('useDeviceToken: State updated - deviceToken.value:', !!deviceToken.value);
+            } else {
+                console.log('useDeviceToken: Event reçu mais pas de device_token valide');
             }
         };
 
@@ -98,13 +105,28 @@ export function useDeviceToken() {
      * Obtenir les données du device token pour les formulaires
      */
     const getDeviceTokenData = () => {
-        if (!deviceToken.value) return null;
+        console.log('=== getDeviceTokenData called ===');
+        console.log('deviceToken.value:', deviceToken.value);
+        console.log('platform.value:', platform.value);
+        console.log('notificationProvider.value:', notificationProvider.value);
+        
+        if (!deviceToken.value) {
+            console.log('No device token available');
+            return null;
+        }
 
-        return {
+        const data = {
             device_token: deviceToken.value,
             platform: platform.value || 'unknown',
             notification_provider: notificationProvider.value,
         };
+        
+        console.log('Returning device token data:', {
+            ...data,
+            device_token: data.device_token.substring(0, 20) + '...'
+        });
+
+        return data;
     };
 
     onMounted(() => {
