@@ -192,9 +192,9 @@ class PushNotificationService
                 ],
                 'data' => array_map('strval', $data), // FCM requires string values
                 'android' => [
+                    'priority' => 'high',
                     'notification' => [
-                'sound' => 'default',
-                        'priority' => 'high'
+                        'sound' => 'default'
                     ]
                 ],
                 'apns' => [
