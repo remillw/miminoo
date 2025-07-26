@@ -6,8 +6,10 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Models\Ad;
-use App\Services\PushNotificationService;
 
 class NewAnnouncementInRadius extends Notification implements ShouldQueue
 {
@@ -20,14 +22,7 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        $channels = ['mail', 'database'];
-        
-        // Ajouter les push notifications si l'utilisateur a un device token et les notifications activées
-        if ($notifiable->device_token && $notifiable->push_notifications) {
-            $channels[] = 'push';
-        }
-        
-        return $channels;
+        return ['mail', 'database']; // Pas de canal push, on appellera toExpo() manuellement
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -72,12 +67,81 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
     }
 
     /**
-     * Envoyer la notification push
+     * Envoyer la notification push via Expo
      */
-    public function toPush(object $notifiable)
+    public function toExpo(object $notifiable)
     {
-        $pushService = app(PushNotificationService::class);
-        return $pushService->sendAnnouncementNotification($notifiable, $this->ad, $this->distance);
+        // Récupérer tous les tokens de l'utilisateur
+        $deviceTokens = DB::table('device_tokens')
+            ->where('user_id', $notifiable->id)
+            ->pluck('token')
+            ->toArray();
+            
+        if (empty($deviceTokens) && $notifiable->device_token) {
+            // Fallback pour la rétrocompatibilité
+            $deviceTokens = [$notifiable->device_token];
+        }
+            
+        if (empty($deviceTokens) || !$notifiable->push_notifications) {
+            Log::info('Notification non envoyée : pas de device_token ou notifications désactivées', [
+                'user_id' => $notifiable->id,
+                'has_tokens' => !empty($deviceTokens),
+                'push_enabled' => $notifiable->push_notifications
+            ]);
+            return;
+        }
+
+        $parentName = $this->ad->isGuest() ? $this->ad->getOwnerName() : 
+                     $this->ad->parent->firstname . ' ' . $this->ad->parent->lastname;
+        
+        $city = '';
+        if ($this->ad->address) {
+            $addressParts = explode(',', $this->ad->address->address);
+            $city = trim(end($addressParts));
+        }
+
+        $title = 'Nouvelle annonce dans votre secteur';
+        $body = "Garde d'enfants à {$city} (à " . round($this->distance, 1) . " km) - {$this->ad->hourly_rate}€/h";
+
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($deviceTokens as $token) {
+            Log::info('Envoi notification Expo pour nouvelle annonce', [
+                'to' => $token,
+                'user_id' => $notifiable->id,
+                'ad_id' => $this->ad->id,
+                'distance' => $this->distance
+            ]);
+
+            $response = Http::post('https://exp.host/--/api/v2/push/send', [
+                'to' => $token,
+                'title' => $title,
+                'body' => $body,
+                'data' => [
+                    'screen' => 'AnnouncementScreen',
+                    'param' => [
+                        'announcementId' => $this->ad->id,
+                        'slug' => $this->createAdSlug(),
+                    ],
+                ],
+            ]);
+            
+            if ($response->successful()) {
+                $successCount++;
+            } else {
+                $failCount++;
+                Log::warning('Échec envoi notification nouvelle annonce', [
+                    'token' => $token,
+                    'response' => $response->json()
+                ]);
+            }
+        }
+ 
+        return [
+            'success' => $successCount,
+            'failed' => $failCount
+        ];
     }
 
     private function createAdSlug(): string

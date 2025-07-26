@@ -87,7 +87,25 @@ class AnnouncementNotificationService
                             'max_radius' => $maxRadius
                         ]);
                         
-                        $babysitter->notify(new NewAnnouncementInRadius($ad, $distance));
+                        $notification = new NewAnnouncementInRadius($ad, $distance);
+                        $babysitter->notify($notification);
+                        
+                        // Envoyer la notification push manuellement
+                        if ($babysitter->device_token && $babysitter->push_notifications) {
+                            try {
+                                $pushResult = $notification->toExpo($babysitter);
+                                Log::info('Notification push envoyée', [
+                                    'babysitter_id' => $babysitter->id,
+                                    'push_result' => $pushResult
+                                ]);
+                            } catch (\Exception $pushError) {
+                                Log::error('Erreur notification push', [
+                                    'babysitter_id' => $babysitter->id,
+                                    'error' => $pushError->getMessage()
+                                ]);
+                            }
+                        }
+                        
                         $notifiedCount++;
 
                         Log::info('Notification envoyée avec succès', [
