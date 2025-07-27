@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/composables/useToast';
 import { router } from '@inertiajs/vue3';
 import {
     AlertCircle,
@@ -16,7 +17,7 @@ import {
     Shield,
     User,
 } from 'lucide-vue-next';
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 
 interface Props {
     user: {
@@ -34,13 +35,19 @@ interface Props {
     };
     accountStatus: string;
     stripeAccountId?: string;
+    googlePlacesApiKey?: string;
 }
 
 const props = defineProps<Props>();
 
+const { showSuccess, showError, handleApiError } = useToast();
+
 const isLoading = ref(false);
-const error = ref('');
 const currentStep = ref(1);
+
+// Autocomplete Google Places
+const isGoogleLoaded = ref(false);
+let autocomplete: any;
 
 // Données du formulaire pré-remplies avec les informations utilisateur
 const formData = reactive({
@@ -142,7 +149,6 @@ const submitOnboarding = async () => {
     if (!canProceedToNext.value || isLoading.value) return;
 
     isLoading.value = true;
-    error.value = '';
 
     try {
         const response = await fetch('/stripe/internal-onboarding', {
@@ -154,23 +160,96 @@ const submitOnboarding = async () => {
             body: JSON.stringify(formData),
         });
 
+        // Vérifier le content-type de la réponse
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const htmlContent = await response.text();
+            console.error('Réponse non-JSON reçue:', htmlContent.substring(0, 200));
+            throw new Error(`Erreur serveur: la réponse n'est pas au format JSON (Status: ${response.status})`);
+        }
+
         const data = await response.json();
 
         if (response.ok && data.success) {
-            // Rediriger vers la page de paiements avec un message de succès
-            router.visit('/babysitter/paiements', {
-                onSuccess: () => {
-                    // Le message de succès sera géré par la page de destination
-                }
-            });
+            showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
+            
+            // Rediriger vers la page de paiements
+            setTimeout(() => {
+                router.visit('/babysitter/paiements');
+            }, 1500);
         } else {
             throw new Error(data.error || 'Erreur lors de la configuration du compte');
         }
     } catch (err) {
-        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
+        console.error('Erreur onboarding:', err);
+        handleApiError(err);
     } finally {
         isLoading.value = false;
     }
+};
+
+// Charger Google Places API
+const loadGooglePlaces = () => {
+    // Si déjà chargé, initialiser directement
+    if (window.google?.maps?.places) {
+        isGoogleLoaded.value = true;
+        initAutocomplete();
+        return;
+    }
+
+    const apiKey = props.googlePlacesApiKey;
+    if (!apiKey) {
+        console.warn('Clé API Google Places manquante');
+        return;
+    }
+
+    // Créer une fonction de callback globale
+    (window as any).initGooglePlacesCallback = () => {
+        isGoogleLoaded.value = true;
+        initAutocomplete();
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGooglePlacesCallback`;
+    script.async = true;
+    script.defer = true;
+
+    document.head.appendChild(script);
+};
+
+const initAutocomplete = async () => {
+    await nextTick();
+    const input = document.getElementById('address-input-onboarding') as HTMLInputElement;
+    if (!input || !window.google?.maps?.places) return;
+
+    autocomplete = new (window as any).google.maps.places.Autocomplete(input, {
+        types: ['address'],
+        componentRestrictions: { country: 'fr' }
+    });
+
+    // Configuration des champs retournés
+    autocomplete.setFields(['formatted_address', 'address_components', 'geometry']);
+
+    autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.formatted_address) {
+            formData.address_line1 = place.formatted_address;
+            formData.address_city = '';
+            formData.address_postal_code = '';
+
+            if (place.address_components) {
+                place.address_components.forEach((component: any) => {
+                    const types = component.types;
+                    if (types.includes('postal_code')) {
+                        formData.address_postal_code = component.long_name;
+                    }
+                    if (types.includes('locality') || types.includes('administrative_area_level_2')) {
+                        formData.address_city = component.long_name;
+                    }
+                });
+            }
+        }
+    });
 };
 
 // Validation IBAN basique
@@ -204,7 +283,7 @@ const isIbanValid = computed(() => {
         <!-- Progress bar -->
         <div class="w-full bg-gray-200 rounded-full h-2">
             <div 
-                class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                class="bg-primary h-2 rounded-full transition-all duration-300"
                 :style="{ width: `${(currentStep / 4) * 100}%` }"
             ></div>
         </div>
@@ -215,11 +294,11 @@ const isIbanValid = computed(() => {
                 v-for="step in steps"
                 :key="step.id"
                 class="flex items-center space-x-2"
-                :class="step.id <= currentStep ? 'text-blue-600' : 'text-gray-400'"
+                :class="step.id <= currentStep ? 'text-primary' : 'text-gray-400'"
             >
                 <div
                     class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-                    :class="step.id <= currentStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'"
+                    :class="step.id <= currentStep ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'"
                 >
                     <component v-if="step.id <= currentStep" :is="step.icon" class="w-4 h-4" />
                     <span v-else>{{ step.id }}</span>
@@ -237,13 +316,6 @@ const isIbanValid = computed(() => {
                 <p class="text-sm text-gray-600">{{ currentStepData?.description }}</p>
             </CardHeader>
             <CardContent>
-                <!-- Erreur globale -->
-                <div v-if="error" class="mb-6 rounded-md border border-red-200 bg-red-50 p-4">
-                    <div class="flex items-center">
-                        <AlertCircle class="mr-2 h-4 w-4 text-red-500" />
-                        <p class="text-sm text-red-700">{{ error }}</p>
-                    </div>
-                </div>
 
                 <!-- Étape 1: Informations personnelles -->
                 <div v-if="currentStep === 1" class="space-y-4">
@@ -344,11 +416,14 @@ const isIbanValid = computed(() => {
                     <div>
                         <Label for="address_line1">Adresse</Label>
                         <Input
-                            id="address_line1"
+                            id="address-input-onboarding"
                             v-model="formData.address_line1"
-                            placeholder="123 rue de la République"
+                            placeholder="123 rue de la République, Paris"
+                            autocomplete="address-line1"
+                            @focus="() => { if (!isGoogleLoaded) loadGooglePlaces(); }"
                             required
                         />
+                        <p class="mt-1 text-xs text-gray-500">Commencez à taper pour voir les suggestions d'adresses</p>
                     </div>
 
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
