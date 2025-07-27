@@ -49,6 +49,7 @@ const currentStep = ref(1);
 const isGoogleLoaded = ref(false);
 let autocomplete: any;
 
+
 // Données du formulaire pré-remplies avec les informations utilisateur
 const formData = reactive({
     // Informations personnelles
@@ -62,10 +63,10 @@ const formData = reactive({
     dob_month: '',
     dob_year: '',
     
-    // Adresse
-    address_line1: props.user.address?.address || '',
-    address_city: props.user.address?.city || '',
-    address_postal_code: props.user.address?.postal_code || '',
+    // Adresse (vide pour permettre la saisie libre avec autocomplete)
+    address_line1: '',
+    address_city: '',
+    address_postal_code: '',
     address_country: 'FR',
     
     // Informations bancaires

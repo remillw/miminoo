@@ -926,6 +926,11 @@ class StripeController extends Controller
     {
         $user = $request->user();
 
+        Log::info('🔍 Début internalOnboarding', [
+            'user_id' => $user->id,
+            'request_data' => $request->all()
+        ]);
+
         // Validation des données
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',

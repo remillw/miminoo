@@ -155,7 +155,6 @@ const isLoading = ref(false);
 const currentStatus = ref(props.accountStatus);
 const error = ref('');
 const isRefreshing = ref(false);
-const showInternalOnboarding = ref(false);
 
 // États réactifs pour la gestion des virements
 const transferSettings = ref({
@@ -504,11 +503,6 @@ const formatRequirement = (requirement: string) => {
     };
 
     return mapping[requirement] || requirement;
-};
-
-const startOnboarding = () => {
-    // Afficher le formulaire d'onboarding interne au lieu de rediriger vers Stripe
-    showInternalOnboarding.value = true;
 };
 
 const startExternalOnboarding = async () => {
@@ -896,72 +890,23 @@ const formatAmount = (amount: number) => {
 
                     <!-- Formulaire d'onboarding interne -->
                     <div v-if="connectAccountStatus.step === 'not_created'" class="space-y-4">
-                        <div v-if="!showInternalOnboarding" class="space-y-4">
-                            <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                                <div class="mb-2 flex items-center">
-                                    <Info class="mr-2 h-4 w-4 text-blue-600" />
-                                    <span class="text-sm font-medium text-blue-900">Créer votre compte de paiement</span>
-                                </div>
-                                <p class="text-sm text-blue-800">
-                                    Configuration rapide et sécurisée directement depuis notre interface.
-                                </p>
+                        <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                            <div class="mb-2 flex items-center">
+                                <Info class="mr-2 h-4 w-4 text-primary" />
+                                <span class="text-sm font-medium text-primary">Configuration de votre compte de paiement</span>
                             </div>
-
-                            <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                                <h3 class="mb-2 text-sm font-medium text-primary">✨ Configuration interne fluide</h3>
-                                <div class="grid grid-cols-1 gap-4 text-sm text-primary/80 md:grid-cols-2">
-                                    <div class="space-y-2">
-                                        <div class="flex items-center">
-                                            <User class="mr-2 h-4 w-4" />
-                                            <span>Informations pré-remplies</span>
-                                        </div>
-                                        <div class="flex items-center">
-                                            <Building class="mr-2 h-4 w-4" />
-                                            <span>Interface simplifiée</span>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="flex items-center">
-                                            <Shield class="mr-2 h-4 w-4" />
-                                            <span>Sécurité maximale</span>
-                                        </div>
-                                        <div class="flex items-center">
-                                            <CheckCircle class="mr-2 h-4 w-4" />
-                                            <span>Configuration en 4 étapes</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex gap-3">
-                                <Button @click="startOnboarding" :disabled="isLoading" size="lg" class="flex-1">
-                                    <CreditCard class="mr-2 h-4 w-4" />
-                                    Configuration rapide
-                                </Button>
-                                <Button @click="startExternalOnboarding" variant="outline" :disabled="isLoading" size="lg" class="flex-1">
-                                    <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
-                                    <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                                    {{ isLoading ? 'Préparation...' : 'Via Stripe (externe)' }}
-                                </Button>
-                            </div>
+                            <p class="text-sm text-primary/80">
+                                Remplissez les informations ci-dessous pour configurer votre compte Stripe Connect.
+                            </p>
                         </div>
 
-                        <!-- Formulaire d'onboarding interne -->
-                        <div v-else>
-                            <div class="mb-4 flex items-center justify-between">
-                                <h3 class="text-lg font-medium text-gray-900">Configuration de votre compte</h3>
-                                <Button variant="ghost" size="sm" @click="showInternalOnboarding = false">
-                                    ← Retour
-                                </Button>
-                            </div>
-                            <StripeOnboardingForm 
-                                v-if="user" 
-                                :user="user" 
-                                :account-status="accountStatus" 
-                                :stripe-account-id="stripeAccountId"
-                                :google-places-api-key="googlePlacesApiKey"
-                            />
-                        </div>
+                        <StripeOnboardingForm 
+                            v-if="user" 
+                            :user="user" 
+                            :account-status="accountStatus" 
+                            :stripe-account-id="stripeAccountId"
+                            :google-places-api-key="googlePlacesApiKey"
+                        />
                     </div>
 
                     <!-- Compte en cours de configuration -->
@@ -974,57 +919,23 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <div v-if="!showInternalOnboarding" class="space-y-4">
-                            <!-- Configuration interne -->
-                            <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                                <div class="mb-2 flex items-center">
-                                    <CheckCircle class="mr-2 h-4 w-4 text-primary" />
-                                    <span class="text-sm font-medium text-primary">✨ Configuration simplifiée</span>
-                                </div>
-                                <p class="text-sm text-primary/80 mb-3">
-                                    Utilisez notre interface interne pour compléter votre configuration plus rapidement.
-                                </p>
-                                <div class="grid grid-cols-1 gap-2 text-xs text-primary/70 md:grid-cols-2">
-                                    <div class="flex items-center">
-                                        <Shield class="mr-1 h-3 w-3" />
-                                        <span>Configuration en 4 étapes</span>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <User class="mr-1 h-3 w-3" />
-                                        <span>Données pré-remplies</span>
-                                    </div>
-                                </div>
+                        <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                            <div class="mb-2 flex items-center">
+                                <CheckCircle class="mr-2 h-4 w-4 text-primary" />
+                                <span class="text-sm font-medium text-primary">Finalisation de votre compte</span>
                             </div>
-
-                            <div class="flex gap-3">
-                                <Button @click="startOnboarding" :disabled="isLoading" size="lg" class="flex-1">
-                                    <CreditCard class="mr-2 h-4 w-4" />
-                                    Configuration simplifiée
-                                </Button>
-                                <Button @click="startExternalOnboarding" variant="outline" :disabled="isLoading" size="lg" class="flex-1">
-                                    <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
-                                    <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                                    {{ isLoading ? 'Préparation...' : 'Via Stripe (externe)' }}
-                                </Button>
-                            </div>
+                            <p class="text-sm text-primary/80">
+                                Complétez les informations manquantes pour finaliser votre compte.
+                            </p>
                         </div>
 
-                        <!-- Formulaire d'onboarding interne -->
-                        <div v-else>
-                            <div class="mb-4 flex items-center justify-between">
-                                <h3 class="text-lg font-medium text-gray-900">Finalisation de votre compte</h3>
-                                <Button variant="ghost" size="sm" @click="showInternalOnboarding = false">
-                                    ← Retour
-                                </Button>
-                            </div>
-                            <StripeOnboardingForm 
-                                v-if="user" 
-                                :user="user" 
-                                :account-status="accountStatus" 
-                                :stripe-account-id="stripeAccountId"
-                                :google-places-api-key="googlePlacesApiKey"
-                            />
-                        </div>
+                        <StripeOnboardingForm 
+                            v-if="user" 
+                            :user="user" 
+                            :account-status="accountStatus" 
+                            :stripe-account-id="stripeAccountId"
+                            :google-places-api-key="googlePlacesApiKey"
+                        />
                     </div>
 
                     <!-- Compte configuré -->

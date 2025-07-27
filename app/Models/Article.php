@@ -18,14 +18,21 @@ class Article extends Model
         'content',
         'excerpt',
         'featured_image_url',
+        'cover_image',
         'meta_title',
         'meta_description',
+        'meta_keywords',
         'canonical_url',
-        'cover_image',
-        'twitter_image',
+        'og_title',
+        'og_description',
         'og_image',
+        'twitter_title',
+        'twitter_description',
+        'twitter_image',
+        'schema_markup',
         'status',
         'published_at',
+        'scheduled_at',
         'author_name',
         'author_bio',
         'external_id',
@@ -33,14 +40,20 @@ class Article extends Model
         'webhook_received_at',
         'webhook_data',
         'is_featured',
+        'is_synced',
         'reading_time',
+        'word_count',
     ];
 
     protected $casts = [
         'published_at' => 'datetime',
+        'scheduled_at' => 'datetime',
         'webhook_received_at' => 'datetime',
         'webhook_data' => 'array',
+        'meta_keywords' => 'array',
+        'schema_markup' => 'array',
         'is_featured' => 'boolean',
+        'is_synced' => 'boolean',
     ];
 
     protected static function boot()
@@ -114,6 +127,22 @@ class Article extends Model
         // Calculer le temps de lecture si pas défini
         $wordCount = str_word_count(strip_tags($this->content));
         return ceil($wordCount / 200);
+    }
+
+    public function getFeaturedImageUrlAttribute()
+    {
+        // Si featured_image_url est défini, l'utiliser
+        if ($this->attributes['featured_image_url'] ?? null) {
+            return $this->attributes['featured_image_url'];
+        }
+
+        // Sinon, utiliser cover_image avec l'URL complète
+        if ($this->cover_image) {
+            return asset('storage/' . $this->cover_image);
+        }
+
+        // Fallback sur une image par défaut
+        return asset('storage/article-default.jpg');
     }
 
     // Méthodes utilitaires
