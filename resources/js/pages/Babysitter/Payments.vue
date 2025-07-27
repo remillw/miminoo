@@ -967,41 +967,81 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <!-- Actions requises pour la configuration du compte -->
-                        <div v-if="accountRequirements.length > 0" class="space-y-3">
-                            <div
-                                v-for="req in accountRequirements"
-                                :key="req.title"
-                                :class="`rounded-lg p-4 ${
-                                    req.type === 'error'
-                                        ? 'border border-red-200 bg-red-50'
-                                        : req.type === 'warning'
-                                          ? 'border border-orange-200 bg-orange-50'
-                                          : 'border border-blue-200 bg-blue-50'
-                                }`"
-                            >
-                                <h4
-                                    :class="`mb-2 text-sm font-medium ${
-                                        req.type === 'error' ? 'text-red-900' : req.type === 'warning' ? 'text-orange-900' : 'text-blue-900'
+                        <div v-if="!showInternalOnboarding" class="space-y-4">
+                            <!-- Actions requises pour la configuration du compte -->
+                            <div v-if="accountRequirements.length > 0" class="space-y-3">
+                                <div
+                                    v-for="req in accountRequirements"
+                                    :key="req.title"
+                                    :class="`rounded-lg p-4 ${
+                                        req.type === 'error'
+                                            ? 'border border-red-200 bg-red-50'
+                                            : req.type === 'warning'
+                                              ? 'border border-orange-200 bg-orange-50'
+                                              : 'border border-blue-200 bg-blue-50'
                                     }`"
                                 >
-                                    {{ req.title }}
-                                </h4>
-                                <ul
-                                    :class="`space-y-1 text-xs ${
-                                        req.type === 'error' ? 'text-red-700' : req.type === 'warning' ? 'text-orange-700' : 'text-blue-700'
-                                    }`"
-                                >
-                                    <li v-for="item in req.items" :key="item">• {{ formatRequirement(item) }}</li>
-                                </ul>
+                                    <h4
+                                        :class="`mb-2 text-sm font-medium ${
+                                            req.type === 'error' ? 'text-red-900' : req.type === 'warning' ? 'text-orange-900' : 'text-blue-900'
+                                        }`"
+                                    >
+                                        {{ req.title }}
+                                    </h4>
+                                    <ul
+                                        :class="`space-y-1 text-xs ${
+                                            req.type === 'error' ? 'text-red-700' : req.type === 'warning' ? 'text-orange-700' : 'text-blue-700'
+                                        }`"
+                                    >
+                                        <li v-for="item in req.items" :key="item">• {{ formatRequirement(item) }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- Nouvelle option: Configuration interne -->
+                            <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+                                <div class="mb-2 flex items-center">
+                                    <Info class="mr-2 h-4 w-4 text-green-600" />
+                                    <span class="text-sm font-medium text-green-900">✨ Configuration simplifiée disponible</span>
+                                </div>
+                                <p class="text-sm text-green-800 mb-3">
+                                    Utilisez notre interface interne pour compléter votre configuration plus rapidement.
+                                </p>
+                                <div class="grid grid-cols-1 gap-2 text-xs text-green-700 md:grid-cols-2">
+                                    <div class="flex items-center">
+                                        <CheckCircle class="mr-1 h-3 w-3" />
+                                        <span>Configuration en 4 étapes</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <Shield class="mr-1 h-3 w-3" />
+                                        <span>Données pré-remplies</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <Button @click="startOnboarding" :disabled="isLoading" size="lg" class="flex-1 bg-green-600 hover:bg-green-700">
+                                    <CreditCard class="mr-2 h-4 w-4" />
+                                    Configuration simplifiée
+                                </Button>
+                                <Button @click="startExternalOnboarding" variant="outline" :disabled="isLoading" size="lg" class="flex-1">
+                                    <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
+                                    <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                                    {{ isLoading ? 'Préparation...' : 'Via Stripe (externe)' }}
+                                </Button>
                             </div>
                         </div>
 
-                        <Button @click="startExternalOnboarding" :disabled="isLoading" size="lg" class="w-full">
-                            <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
-                            <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            {{ isLoading ? 'Préparation...' : 'Continuer la configuration' }}
-                        </Button>
+                        <!-- Formulaire d'onboarding interne -->
+                        <div v-else>
+                            <div class="mb-4 flex items-center justify-between">
+                                <h3 class="text-lg font-medium text-gray-900">Finalisation de votre compte</h3>
+                                <Button variant="ghost" size="sm" @click="showInternalOnboarding = false">
+                                    ← Retour
+                                </Button>
+                            </div>
+                            <StripeOnboardingForm v-if="user" :user="user" :account-status="accountStatus" :stripe-account-id="stripeAccountId" />
+                        </div>
                     </div>
 
                     <!-- Compte configuré -->
