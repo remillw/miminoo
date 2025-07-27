@@ -605,7 +605,20 @@ class StripeController extends Controller
             'payoutHistory' => $payoutHistory, // Ajouter l'historique des virements
             'deductionTransactions' => $deductionTransactions,
             'stripeAccountId' => $user->stripe_account_id,
-            'babysitterProfile' => $user->babysitterProfile
+            'babysitterProfile' => $user->babysitterProfile,
+            'user' => [
+                'id' => $user->id,
+                'firstname' => $user->firstname,
+                'lastname' => $user->lastname,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
+                'address' => $user->address ? [
+                    'address' => $user->address->address,
+                    'postal_code' => $user->address->postal_code,
+                    'city' => $user->address->city ?? '',
+                ] : null,
+            ]
         ];
 
         Log::info('📤 Données envoyées à la vue', [
@@ -903,5 +916,68 @@ class StripeController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Onboarding interne sécurisé - collecte les données via notre interface
+     */
+    public function internalOnboarding(Request $request)
+    {
+        $user = $request->user();
+
+        // Validation des données
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'nullable|string|max:20',
+            'dob_day' => 'required|integer|min:1|max:31',
+            'dob_month' => 'required|integer|min:1|max:12',
+            'dob_year' => 'required|integer|min:1900|max:' . (date('Y') - 16),
+            'address_line1' => 'required|string|max:255',
+            'address_city' => 'required|string|max:255',
+            'address_postal_code' => 'required|string|regex:/^[0-9]{5}$/',
+            'address_country' => 'required|string|size:2',
+            'account_holder_name' => 'required|string|max:255',
+            'iban' => 'required|string|regex:/^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/',
+            'business_description' => 'required|string|max:500',
+            'tos_acceptance' => 'required|accepted',
+        ]);
+
+        try {
+            // Vérifier que l'utilisateur est babysitter
+            if (!$user->hasRole('babysitter')) {
+                return response()->json(['error' => 'Seuls les babysitters peuvent créer un compte de paiement'], 403);
+            }
+
+            // Vérifier l'âge minimum
+            $birthDate = sprintf('%04d-%02d-%02d', $validated['dob_year'], $validated['dob_month'], $validated['dob_day']);
+            $age = \Carbon\Carbon::parse($birthDate)->age;
+            if ($age < 16) {
+                return response()->json(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement'], 400);
+            }
+
+            // Créer ou mettre à jour le compte Stripe Connect avec les données fournies
+            $result = $this->stripeService->createOrUpdateConnectAccountInternal($user, $validated);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Compte configuré avec succès',
+                'account_id' => $result['account_id'],
+                'status' => $result['status']
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'onboarding interne', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la configuration du compte : ' . $e->getMessage()
+            ], 500);
+        }
     }
 } 

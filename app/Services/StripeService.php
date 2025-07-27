@@ -1291,16 +1291,53 @@ class StripeService
                 $this->createConnectAccount($user);
             }
 
-            // Créer une session de vérification Identity
+            // Préparer les données pré-remplies pour la vérification d'identité
+            $providedDetails = [
+                'email' => $user->email,
+            ];
+
+            // Ajouter les informations personnelles si disponibles
+            if ($user->firstname && $user->lastname) {
+                $providedDetails['name'] = trim($user->firstname . ' ' . $user->lastname);
+            }
+
+            // Ajouter la date de naissance si disponible
+            if ($user->date_of_birth) {
+                $dob = \Carbon\Carbon::parse($user->date_of_birth);
+                $providedDetails['dob'] = [
+                    'day' => $dob->day,
+                    'month' => $dob->month,
+                    'year' => $dob->year,
+                ];
+            }
+
+            // Ajouter l'adresse si disponible
+            if ($user->address) {
+                $providedDetails['address'] = [
+                    'line1' => $user->address->address ?? '',
+                    'city' => $user->address->city ?? $this->extractCityFromAddress($user->address->address ?? ''),
+                    'postal_code' => $user->address->postal_code ?? '',
+                    'country' => 'FR',
+                ];
+            }
+
+            // Ajouter le téléphone si disponible
+            if ($user->phone) {
+                $phone = $this->formatPhoneForStripe($user->phone);
+                if ($phone) {
+                    $providedDetails['phone_number'] = $phone;
+                }
+            }
+
+            // Créer une session de vérification Identity avec les données pré-remplies
             $verificationSession = $this->stripe->identity->verificationSessions->create([
                 'type' => 'document',
-                'provided_details' => [
-                    'email' => $user->email,
-                ],
+                'provided_details' => $providedDetails,
                 'metadata' => [
                     'user_id' => $user->id,
                     'stripe_account_id' => $user->stripe_account_id,
-                    'purpose' => 'connect_account_verification'
+                    'purpose' => 'connect_account_verification',
+                    'prefilled_data' => json_encode(array_keys($providedDetails))
                 ],
             ]);
 
@@ -2729,6 +2766,182 @@ class StripeService
                     'babysitter_loses' => $babysitterDeduction
                 ]
             ]);
+        }
+    }
+
+    /**
+     * Créer ou mettre à jour un compte Connect avec onboarding interne sécurisé
+     */
+    public function createOrUpdateConnectAccountInternal(User $user, array $validatedData)
+    {
+        try {
+            $accountData = [];
+            $isCreating = false;
+
+            // Si pas de compte existant, créer un nouveau compte
+            if (!$user->stripe_account_id) {
+                $isCreating = true;
+                $accountData = [
+                    'type' => 'express',
+                    'country' => 'FR',
+                    'email' => $validatedData['email'],
+                    'capabilities' => [
+                        'card_payments' => ['requested' => true],
+                        'transfers' => ['requested' => true],
+                    ],
+                    'business_type' => 'individual',
+                    'metadata' => [
+                        'user_id' => $user->id,
+                        'platform' => 'TrouvetaBabysitter',
+                        'onboarding_method' => 'internal'
+                    ]
+                ];
+            }
+
+            // Préparer les données individuelles
+            $individual = [
+                'first_name' => $validatedData['first_name'],
+                'last_name' => $validatedData['last_name'],
+                'email' => $validatedData['email'],
+                'dob' => [
+                    'day' => $validatedData['dob_day'],
+                    'month' => $validatedData['dob_month'],
+                    'year' => $validatedData['dob_year'],
+                ],
+                'address' => [
+                    'line1' => $validatedData['address_line1'],
+                    'city' => $validatedData['address_city'],
+                    'postal_code' => $validatedData['address_postal_code'],
+                    'country' => $validatedData['address_country'],
+                ]
+            ];
+
+            // Ajouter le téléphone si fourni
+            if (!empty($validatedData['phone'])) {
+                $phone = $this->formatPhoneForStripe($validatedData['phone']);
+                if ($phone) {
+                    $individual['phone'] = $phone;
+                }
+            }
+
+            // Profil business
+            $businessProfile = [
+                'mcc' => '8299', // Services de garde d'enfants
+                'product_description' => $validatedData['business_description'],
+            ];
+
+            // Compte externe (IBAN)
+            $externalAccount = [
+                'object' => 'bank_account',
+                'country' => 'FR',
+                'currency' => 'eur',
+                'account_holder_name' => $validatedData['account_holder_name'],
+                'account_number' => str_replace(' ', '', $validatedData['iban']),
+            ];
+
+            // Acceptation des conditions d'utilisation
+            $tosAcceptance = [
+                'date' => time(),
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ];
+
+            if ($isCreating) {
+                // Créer un nouveau compte avec toutes les données
+                $accountData['individual'] = $individual;
+                $accountData['business_profile'] = $businessProfile;
+                $accountData['external_account'] = $externalAccount;
+                $accountData['tos_acceptance'] = $tosAcceptance;
+
+                $account = $this->stripe->accounts->create($accountData);
+                
+                // Sauvegarder l'ID du compte
+                $user->update([
+                    'stripe_account_id' => $account->id,
+                    'stripe_account_status' => 'pending'
+                ]);
+
+                Log::info('Compte Stripe Connect créé avec onboarding interne', [
+                    'user_id' => $user->id,
+                    'account_id' => $account->id,
+                    'method' => 'internal_onboarding'
+                ]);
+
+            } else {
+                // Mettre à jour un compte existant
+                $updateData = [
+                    'individual' => $individual,
+                    'business_profile' => $businessProfile,
+                    'tos_acceptance' => $tosAcceptance,
+                ];
+
+                $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+
+                // Ajouter/mettre à jour le compte externe séparément
+                $this->stripe->accounts->createExternalAccount(
+                    $user->stripe_account_id,
+                    ['external_account' => $externalAccount]
+                );
+
+                $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
+
+                Log::info('Compte Stripe Connect mis à jour avec onboarding interne', [
+                    'user_id' => $user->id,
+                    'account_id' => $user->stripe_account_id,
+                    'method' => 'internal_onboarding'
+                ]);
+            }
+
+            // Récupérer le statut du compte
+            $status = $this->getAccountStatus($user);
+
+            return [
+                'account_id' => $account->id,
+                'status' => $status,
+                'account' => $account
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'onboarding interne', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Formater un numéro de téléphone pour Stripe
+     */
+    private function formatPhoneForStripe($phone)
+    {
+        try {
+            // Nettoyer le numéro
+            $phone = preg_replace('/[^0-9+]/', '', $phone);
+            
+            // Gérer les différents formats français
+            if (strlen($phone) === 10 && substr($phone, 0, 1) === '0') {
+                // Format 0612345678 -> +33612345678
+                return '+33' . substr($phone, 1);
+            } elseif (strlen($phone) === 9 && substr($phone, 0, 1) !== '0') {
+                // Format 612345678 -> +33612345678
+                return '+33' . $phone;
+            } elseif (substr($phone, 0, 3) === '+33') {
+                // Déjà au bon format
+                return $phone;
+            } elseif (substr($phone, 0, 2) === '33') {
+                // Format 33612345678 -> +33612345678
+                return '+' . $phone;
+            }
+            
+            return null; // Format non reconnu
+        } catch (\Exception $e) {
+            Log::warning('Impossible de formater le téléphone pour Stripe', [
+                'phone' => $phone,
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 } 

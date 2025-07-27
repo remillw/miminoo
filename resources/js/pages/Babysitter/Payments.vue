@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import StripeOnboardingForm from '@/components/StripeOnboardingForm.vue';
 import { Head, router } from '@inertiajs/vue3';
 import {
     AlertCircle,
@@ -129,6 +130,19 @@ interface Props {
     deductionTransactions: DeductionTransaction[];
     stripeAccountId: string;
     babysitterProfile: BabysitterProfile | null;
+    user?: {
+        id: number;
+        firstname: string;
+        lastname: string;
+        email: string;
+        phone?: string;
+        date_of_birth?: string;
+        address?: {
+            address: string;
+            postal_code: string;
+            city: string;
+        };
+    };
 }
 
 const props = defineProps<Props>();
@@ -140,6 +154,7 @@ const isLoading = ref(false);
 const currentStatus = ref(props.accountStatus);
 const error = ref('');
 const isRefreshing = ref(false);
+const showInternalOnboarding = ref(false);
 
 // États réactifs pour la gestion des virements
 const transferSettings = ref({
@@ -490,7 +505,12 @@ const formatRequirement = (requirement: string) => {
     return mapping[requirement] || requirement;
 };
 
-const startOnboarding = async () => {
+const startOnboarding = () => {
+    // Afficher le formulaire d'onboarding interne au lieu de rediriger vers Stripe
+    showInternalOnboarding.value = true;
+};
+
+const startExternalOnboarding = async () => {
     if (isLoading.value) return;
 
     isLoading.value = true;
@@ -523,8 +543,6 @@ const startOnboarding = async () => {
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
         error.value = errorMessage;
-
-        // L'erreur est déjà stockée dans error.value pour l'affichage
 
         console.error("Erreur lors de la création du lien d'onboarding:", err);
     } finally {
@@ -875,49 +893,68 @@ const formatAmount = (amount: number) => {
                 <CardContent>
                     <p class="mb-4 text-gray-600">{{ connectAccountStatus.description }}</p>
 
-                    <!-- Compte non créé -->
+                    <!-- Formulaire d'onboarding interne -->
                     <div v-if="connectAccountStatus.step === 'not_created'" class="space-y-4">
-                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <div class="mb-2 flex items-center">
-                                <Info class="mr-2 h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900">Créer votre compte de paiement</span>
+                        <div v-if="!showInternalOnboarding" class="space-y-4">
+                            <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                <div class="mb-2 flex items-center">
+                                    <Info class="mr-2 h-4 w-4 text-blue-600" />
+                                    <span class="text-sm font-medium text-blue-900">Créer votre compte de paiement</span>
+                                </div>
+                                <p class="text-sm text-blue-800">
+                                    Configuration rapide et sécurisée directement depuis notre interface.
+                                </p>
                             </div>
-                            <p class="text-sm text-blue-800">
-                                Première étape : créez votre compte Stripe Connect pour pouvoir recevoir des paiements.
-                            </p>
-                        </div>
 
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                            <h3 class="mb-2 text-sm font-medium text-gray-900">🔐 Configuration sécurisée avec Stripe</h3>
-                            <div class="grid grid-cols-1 gap-4 text-sm text-gray-700 md:grid-cols-2">
-                                <div class="space-y-2">
-                                    <div class="flex items-center">
-                                        <User class="mr-2 h-4 w-4" />
-                                        <span>Informations pré-remplies</span>
+                            <div class="rounded-lg border border-green-200 bg-green-50 p-4">
+                                <h3 class="mb-2 text-sm font-medium text-green-900">✨ Onboarding interne fluide</h3>
+                                <div class="grid grid-cols-1 gap-4 text-sm text-green-700 md:grid-cols-2">
+                                    <div class="space-y-2">
+                                        <div class="flex items-center">
+                                            <User class="mr-2 h-4 w-4" />
+                                            <span>Informations pré-remplies</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <Building class="mr-2 h-4 w-4" />
+                                            <span>Interface simplifiée</span>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center">
-                                        <Building class="mr-2 h-4 w-4" />
-                                        <span>Coordonnées bancaires</span>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center">
+                                            <Shield class="mr-2 h-4 w-4" />
+                                            <span>Sécurité maximale</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <CheckCircle class="mr-2 h-4 w-4" />
+                                            <span>Configuration en 4 étapes</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="space-y-2">
-                                    <div class="flex items-center">
-                                        <Calendar class="mr-2 h-4 w-4" />
-                                        <span>Paiements hebdomadaires</span>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <Shield class="mr-2 h-4 w-4" />
-                                        <span>Chiffrement bancaire</span>
-                                    </div>
-                                </div>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <Button @click="startOnboarding" :disabled="isLoading" size="lg" class="flex-1 bg-green-600 hover:bg-green-700">
+                                    <CreditCard class="mr-2 h-4 w-4" />
+                                    Configuration rapide
+                                </Button>
+                                <Button @click="startExternalOnboarding" variant="outline" :disabled="isLoading" size="lg" class="flex-1">
+                                    <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
+                                    <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                                    {{ isLoading ? 'Préparation...' : 'Via Stripe (externe)' }}
+                                </Button>
                             </div>
                         </div>
 
-                        <Button @click="startOnboarding" :disabled="isLoading" size="lg" class="w-full">
-                            <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
-                            <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            {{ isLoading ? 'Préparation...' : 'Créer mon compte de paiement' }}
-                        </Button>
+                        <!-- Formulaire d'onboarding interne -->
+                        <div v-else>
+                            <div class="mb-4 flex items-center justify-between">
+                                <h3 class="text-lg font-medium text-gray-900">Configuration de votre compte</h3>
+                                <Button variant="ghost" size="sm" @click="showInternalOnboarding = false">
+                                    ← Retour
+                                </Button>
+                            </div>
+                            <StripeOnboardingForm v-if="user" :user="user" :account-status="accountStatus" :stripe-account-id="stripeAccountId" />
+                        </div>
                     </div>
 
                     <!-- Compte en cours de configuration -->
@@ -960,7 +997,7 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <Button @click="startOnboarding" :disabled="isLoading" size="lg" class="w-full">
+                        <Button @click="startExternalOnboarding" :disabled="isLoading" size="lg" class="w-full">
                             <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
                             <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                             {{ isLoading ? 'Préparation...' : 'Continuer la configuration' }}
@@ -1003,7 +1040,7 @@ const formatAmount = (amount: number) => {
 
                         <!-- Actions -->
                         <div class="flex gap-3">
-                            <Button variant="outline" @click="startOnboarding" class="flex-1">
+                            <Button variant="outline" @click="startExternalOnboarding" class="flex-1">
                                 <Settings class="mr-2 h-4 w-4" />
                                 Gérer mon compte
                             </Button>
