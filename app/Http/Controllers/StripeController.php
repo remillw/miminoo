@@ -924,7 +924,18 @@ class StripeController extends Controller
      */
     public function internalOnboarding(Request $request)
     {
+        Log::info('🚀 Route internalOnboarding atteinte', [
+            'method' => $request->method(),
+            'url' => $request->url(),
+            'headers' => $request->headers->all()
+        ]);
+
         $user = $request->user();
+
+        if (!$user) {
+            Log::error('❌ Utilisateur non authentifié');
+            return response()->json(['error' => 'Utilisateur non authentifié'], 401);
+        }
 
         Log::info('🔍 Début internalOnboarding', [
             'user_id' => $user->id,
