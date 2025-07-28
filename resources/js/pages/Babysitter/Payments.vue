@@ -1207,17 +1207,11 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <div class="flex gap-3">
-                            <Button @click="startIdentityVerificationProcess" :disabled="isLoading" class="flex-1">
-                                <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
-                                <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                {{ isLoading ? 'Redirection...' : 'Vérifier maintenant' }}
-                            </Button>
-                            <Button variant="outline" @click="refreshAccountStatus" class="flex-1">
-                                <RefreshCw class="mr-2 h-4 w-4" />
-                                Plus tard
-                            </Button>
-                        </div>
+                        <Button @click="startIdentityVerificationProcess" :disabled="isLoading" class="w-full">
+                            <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
+                            <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                            {{ isLoading ? 'Redirection...' : 'Vérifier maintenant' }}
+                        </Button>
                     </div>
 
                     <!-- Vérification en cours -->
