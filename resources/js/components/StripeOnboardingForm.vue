@@ -152,39 +152,34 @@ const submitOnboarding = async () => {
     isLoading.value = true;
 
     try {
-        const response = await fetch('/stripe/internal-onboarding', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        // Utiliser Inertia au lieu de fetch pour maintenir la session
+        router.post('/stripe/internal-onboarding', formData, {
+            onSuccess: (page) => {
+                showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
+                
+                // Rediriger vers la page de paiements après succès
+                setTimeout(() => {
+                    router.visit('/babysitter/paiements');
+                }, 1500);
             },
-            body: JSON.stringify(formData),
+            onError: (errors) => {
+                console.error('Erreur onboarding:', errors);
+                
+                // Gérer les erreurs spécifiques
+                if (typeof errors === 'object' && errors !== null) {
+                    const errorMessage = Object.values(errors)[0] as string || 'Erreur lors de la configuration du compte';
+                    showError('❌ Erreur', errorMessage);
+                } else {
+                    showError('❌ Erreur', 'Erreur lors de la configuration du compte');
+                }
+            },
+            onFinish: () => {
+                isLoading.value = false;
+            }
         });
-
-        // Vérifier le content-type de la réponse
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const htmlContent = await response.text();
-            console.error('Réponse non-JSON reçue:', htmlContent.substring(0, 200));
-            throw new Error(`Erreur serveur: la réponse n'est pas au format JSON (Status: ${response.status})`);
-        }
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
-            
-            // Rediriger vers la page de paiements
-            setTimeout(() => {
-                router.visit('/babysitter/paiements');
-            }, 1500);
-        } else {
-            throw new Error(data.error || 'Erreur lors de la configuration du compte');
-        }
     } catch (err) {
         console.error('Erreur onboarding:', err);
         handleApiError(err);
-    } finally {
         isLoading.value = false;
     }
 };
