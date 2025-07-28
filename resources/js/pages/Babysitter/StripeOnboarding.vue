@@ -15,6 +15,7 @@ import {
     ExternalLink,
     FileText,
     MapPin,
+    RefreshCw,
     Shield,
     TrendingUp,
     User,
@@ -169,26 +170,52 @@ const requirementMessages = computed(() => {
     return messages;
 });
 
+// Computed pour analyser les requirements Stripe
+const criticalRequirements = computed(() => {
+    if (!props.accountDetails?.requirements) return [];
+    const { currently_due = [], past_due = [] } = props.accountDetails.requirements;
+    return [...currently_due, ...past_due];
+});
+
+const pendingRequirements = computed(() => {
+    return props.accountDetails?.requirements?.pending_verification || [];
+});
+
+const futureRequirements = computed(() => {
+    return props.accountDetails?.requirements?.eventually_due || [];
+});
+
+const hasRequiredActions = computed(() => {
+    return criticalRequirements.value.length > 0;
+});
+
+const disabledReason = computed(() => {
+    return props.accountDetails?.requirements?.disabled_reason || null;
+});
+
 const formatRequirement = (requirement: string) => {
     const mapping: { [key: string]: string } = {
-        'individual.verification.document': "Pièce d'identité",
-        'individual.verification.additional_document': 'Document complémentaire',
-        external_account: 'Coordonnées bancaires',
-        'tos_acceptance.date': 'Acceptation des conditions',
-        'business_profile.url': 'Site web',
-        'business_profile.mcc': "Code d'activité",
-        'individual.address.line1': 'Adresse',
-        'individual.address.postal_code': 'Code postal',
-        'individual.address.city': 'Ville',
-        'individual.dob.day': 'Date de naissance',
-        'individual.dob.month': 'Date de naissance',
-        'individual.dob.year': 'Date de naissance',
-        'individual.first_name': 'Prénom',
-        'individual.last_name': 'Nom',
-        'individual.phone': 'Numéro de téléphone',
+        'individual.verification.document': "🆔 Pièce d'identité",
+        'individual.verification.additional_document': '📄 Document complémentaire',
+        'external_account': '🏦 Coordonnées bancaires (IBAN)',
+        'tos_acceptance.date': '✍️ Acceptation des conditions',
+        'business_profile.url': '🌐 Site web professionnel',
+        'business_profile.mcc': "🏷️ Code d'activité",
+        'individual.address.line1': '📍 Adresse complète',
+        'individual.address.postal_code': '📮 Code postal',
+        'individual.address.city': '🏙️ Ville',
+        'individual.dob.day': '📅 Date de naissance (jour)',
+        'individual.dob.month': '📅 Date de naissance (mois)',
+        'individual.dob.year': '📅 Date de naissance (année)',
+        'individual.first_name': '👤 Prénom',
+        'individual.last_name': '👤 Nom de famille',
+        'individual.phone': '📞 Numéro de téléphone',
+        'individual.id_number': '🆔 Numéro d\'identité nationale',
+        'individual.ssn_last_4': '🔢 Numéro de sécurité sociale',
+        'business_profile.product_description': '📝 Description de l\'activité',
     };
 
-    return mapping[requirement] || requirement;
+    return mapping[requirement] || `⚠️ ${requirement}`;
 };
 
 const startOnboarding = async () => {
@@ -375,10 +402,10 @@ onMounted(() => {
                     </Card>
 
                     <!-- Configuration requise -->
-                    <Card v-if="currentStatus !== 'active'">
+                    <Card v-if="!stripeAccountId">
                         <CardHeader>
                             <CardTitle>Configuration requise</CardTitle>
-                            <CardDescription> Complétez la configuration de votre compte pour commencer à recevoir des paiements. </CardDescription>
+                            <CardDescription> Créez votre compte Stripe Connect pour commencer à recevoir des paiements. </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <!-- Erreur -->
@@ -438,6 +465,112 @@ onMounted(() => {
 
                             <div v-if="currentStatus === 'pending'" class="border-t pt-4">
                                 <Button variant="ghost" @click="checkAccountStatus" class="w-full text-sm"> Vérifier le statut de mon compte </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Compte en cours de traitement ou avec erreurs -->
+                    <Card v-else-if="stripeAccountId && currentStatus !== 'active'">
+                        <CardHeader>
+                            <CardTitle>Configuration du compte</CardTitle>
+                            <CardDescription>
+                                <span v-if="hasRequiredActions">Votre compte nécessite des informations supplémentaires.</span>
+                                <span v-else>Votre compte Stripe Connect a été créé et est en cours de traitement.</span>
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="space-y-4">
+                            <!-- Erreurs critiques (currently_due et past_due) -->
+                            <div v-if="criticalRequirements.length > 0" class="rounded-lg bg-red-50 border border-red-200 p-4">
+                                <div class="flex items-center mb-3">
+                                    <AlertCircle class="mr-2 h-5 w-5 text-red-600" />
+                                    <span class="text-sm font-medium text-red-900">Action requise immédiatement</span>
+                                </div>
+                                <p class="text-sm text-red-800 mb-3">
+                                    Ces informations sont nécessaires pour que votre compte fonctionne correctement :
+                                </p>
+                                <ul class="space-y-2">
+                                    <li v-for="requirement in criticalRequirements" :key="requirement" 
+                                        class="flex items-center text-sm text-red-800">
+                                        <span class="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
+                                        {{ formatRequirement(requirement) }}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Avertissements (pending_verification) -->
+                            <div v-if="pendingRequirements.length > 0" class="rounded-lg bg-orange-50 border border-orange-200 p-4">
+                                <div class="flex items-center mb-3">
+                                    <Clock class="mr-2 h-5 w-5 text-orange-600" />
+                                    <span class="text-sm font-medium text-orange-900">Vérification en cours</span>
+                                </div>
+                                <p class="text-sm text-orange-800 mb-3">
+                                    Stripe vérifie actuellement ces informations :
+                                </p>
+                                <ul class="space-y-2">
+                                    <li v-for="requirement in pendingRequirements" :key="requirement" 
+                                        class="flex items-center text-sm text-orange-800">
+                                        <span class="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+                                        {{ formatRequirement(requirement) }}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Informations futures (eventually_due) -->
+                            <div v-if="futureRequirements.length > 0" class="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                                <div class="flex items-center mb-3">
+                                    <FileText class="mr-2 h-5 w-5 text-blue-600" />
+                                    <span class="text-sm font-medium text-blue-900">À fournir prochainement</span>
+                                </div>
+                                <p class="text-sm text-blue-800 mb-3">
+                                    Ces informations seront demandées dans le futur :
+                                </p>
+                                <ul class="space-y-2">
+                                    <li v-for="requirement in futureRequirements" :key="requirement" 
+                                        class="flex items-center text-sm text-blue-800">
+                                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                                        {{ formatRequirement(requirement) }}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Compte créé mais pas d'erreurs spécifiques -->
+                            <div v-if="!hasRequiredActions" class="rounded-lg bg-green-50 border border-green-200 p-4">
+                                <div class="flex items-center mb-2">
+                                    <CheckCircle class="mr-2 h-5 w-5 text-green-600" />
+                                    <span class="text-sm font-medium text-green-900">Compte créé avec succès</span>
+                                </div>
+                                <p class="text-sm text-green-800">
+                                    Votre compte a été créé avec succès ! Stripe traite actuellement vos informations. 
+                                    Cela peut prendre quelques minutes à quelques heures.
+                                </p>
+                            </div>
+
+                            <!-- Informations du compte -->
+                            <div class="rounded-lg bg-gray-50 p-4">
+                                <h3 class="text-sm font-medium text-gray-900 mb-2">Informations du compte</h3>
+                                <div class="text-sm text-gray-600 space-y-1">
+                                    <div><strong>ID du compte :</strong> {{ stripeAccountId }}</div>
+                                    <div><strong>Statut :</strong> {{ currentStatus || 'En cours de vérification' }}</div>
+                                    <div v-if="accountDetails"><strong>Paiements activés :</strong> {{ accountDetails.charges_enabled ? '✅ Oui' : '❌ Non' }}</div>
+                                    <div v-if="accountDetails"><strong>Virements activés :</strong> {{ accountDetails.payouts_enabled ? '✅ Oui' : '❌ Non' }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex gap-3">
+                                <Button variant="outline" @click="checkAccountStatus" :disabled="isLoading" class="flex-1">
+                                    <RefreshCw :class="['mr-2 h-4 w-4', isLoading && 'animate-spin']" />
+                                    Vérifier le statut
+                                </Button>
+                                <Button 
+                                    @click="startOnboarding" 
+                                    :disabled="isLoading" 
+                                    class="flex-1"
+                                    :class="hasRequiredActions ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+                                >
+                                    <ExternalLink class="mr-2 h-4 w-4" />
+                                    {{ hasRequiredActions ? 'Résoudre les erreurs' : 'Finaliser sur Stripe' }}
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

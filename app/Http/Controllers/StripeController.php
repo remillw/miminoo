@@ -38,22 +38,35 @@ class StripeController extends Controller
         ]);
 
         // Récupérer le statut et les détails du compte
-        try {
-            $accountStatus = $this->stripeService->getAccountStatus($user);
-            $accountDetails = $this->stripeService->getAccountDetails($user);
-            $accountBalance = null;
-            $recentTransactions = [];
+        $accountStatus = null;
+        $accountDetails = null;
+        $accountBalance = null;
+        $recentTransactions = [];
+        
+        if ($user->stripe_account_id) {
+            try {
+                $accountStatus = $this->stripeService->getAccountStatus($user);
+                $accountDetails = $this->stripeService->getAccountDetails($user);
 
-            // Si le compte est actif, récupérer le solde et les transactions
-            if ($accountStatus === 'active') {
-                $accountBalance = $this->stripeService->getAccountBalance($user);
-                $recentTransactions = $this->stripeService->getRecentTransactions($user, 5);
+                // Si le compte est actif, récupérer le solde et les transactions
+                if ($accountStatus === 'active') {
+                    $accountBalance = $this->stripeService->getAccountBalance($user);
+                    $recentTransactions = $this->stripeService->getRecentTransactions($user, 5);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Erreur récupération données Stripe - compte peut-être en cours de création', [
+                    'user_id' => $user->id,
+                    'stripe_account_id' => $user->stripe_account_id,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Si on a un stripe_account_id mais qu'on ne peut pas le récupérer,
+                // c'est probablement que le compte vient d'être créé
+                $accountStatus = 'pending';
             }
-        } catch (\Exception $e) {
-            $accountStatus = 'pending';
-            $accountDetails = null;
-            $accountBalance = null;
-            $recentTransactions = [];
+        } else {
+            // Pas de compte Stripe Connect configuré
+            $accountStatus = null;
         }
 
         return Inertia::render('Babysitter/StripeOnboarding', [
@@ -1012,6 +1025,16 @@ class StripeController extends Controller
 
             // Créer ou mettre à jour le compte Stripe Connect avec les données fournies
             $result = $this->stripeService->createOrUpdateConnectAccountInternal($user, $validated);
+            
+            // Recharger l'utilisateur pour s'assurer que les données Stripe sont bien persistées
+            $user->refresh();
+            
+            Log::info('✅ Compte configuré - vérification de la persistance', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'stripe_account_status' => $user->stripe_account_status,
+                'result_account_id' => $result->id ?? 'N/A'
+            ]);
             
             return redirect()->route('babysitter.payments')->with('success', 'Compte configuré avec succès !');
 
