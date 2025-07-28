@@ -2778,6 +2778,24 @@ class StripeService
             $accountData = [];
             $isCreating = false;
 
+            // Vérifier si le compte Stripe existe vraiment
+            if ($user->stripe_account_id) {
+                try {
+                    $this->stripe->accounts->retrieve($user->stripe_account_id);
+                } catch (\Exception $e) {
+                    // Le compte n'existe plus ou l'accès a été révoqué
+                    Log::warning('Compte Stripe Connect introuvable, nettoyage nécessaire', [
+                        'user_id' => $user->id,
+                        'old_account_id' => $user->stripe_account_id,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    // Nettoyer la référence
+                    $user->stripe_account_id = null;
+                    $user->save();
+                }
+            }
+
             // Si pas de compte existant, créer un nouveau compte
             if (!$user->stripe_account_id) {
                 $isCreating = true;
@@ -2894,21 +2912,51 @@ class StripeService
                     $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
 
                 } catch (\Exception $e) {
-                    // Si la mise à jour échoue à cause des permissions, supprimer et recréer
-                    if (strpos($e->getMessage(), 'does not have the required permissions') !== false) {
-                        Log::info('Suppression et recréation du compte Stripe à cause des permissions', [
+                    // Si la mise à jour échoue, recréer le compte
+                    if (strpos($e->getMessage(), 'does not have the required permissions') !== false ||
+                        strpos($e->getMessage(), 'does not have access to account') !== false ||
+                        strpos($e->getMessage(), 'that account does not exist') !== false) {
+                        
+                        Log::info('Recréation du compte Stripe à cause d\'erreur d\'accès', [
                             'user_id' => $user->id,
-                            'old_account_id' => $user->stripe_account_id
+                            'old_account_id' => $user->stripe_account_id,
+                            'error' => $e->getMessage()
                         ]);
 
-                        // Supprimer l'ancien compte
-                        $this->stripe->accounts->delete($user->stripe_account_id);
+                        // Essayer de supprimer l'ancien compte (si il existe encore)
+                        try {
+                            $this->stripe->accounts->delete($user->stripe_account_id);
+                        } catch (\Exception $deleteError) {
+                            // Ignorer les erreurs de suppression
+                            Log::info('Impossible de supprimer l\'ancien compte (probablement déjà supprimé)', [
+                                'account_id' => $user->stripe_account_id
+                            ]);
+                        }
+                        
+                        // Nettoyer la référence et créer un nouveau compte
+                        $user->stripe_account_id = null;
+                        $user->save();
                         
                         // Créer un nouveau compte
-                        $accountData['individual'] = $individual;
-                        $accountData['business_profile'] = $businessProfile;
-                        $accountData['tos_acceptance'] = $tosAcceptance;
-                        $accountData['external_account'] = $externalAccount;
+                        $accountData = [
+                            'type' => 'custom',
+                            'country' => 'FR',
+                            'email' => $validatedData['email'],
+                            'capabilities' => [
+                                'card_payments' => ['requested' => true],
+                                'transfers' => ['requested' => true],
+                            ],
+                            'business_type' => 'individual',
+                            'individual' => $individual,
+                            'business_profile' => $businessProfile,
+                            'tos_acceptance' => $tosAcceptance,
+                            'external_account' => $externalAccount,
+                            'metadata' => [
+                                'user_id' => $user->id,
+                                'platform' => 'TrouvetaBabysitter',
+                                'onboarding_method' => 'internal_recreated'
+                            ]
+                        ];
 
                         $account = $this->stripe->accounts->create($accountData);
                         
