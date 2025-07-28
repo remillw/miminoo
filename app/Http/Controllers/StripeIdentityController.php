@@ -200,7 +200,7 @@ class StripeIdentityController extends Controller
             ]);
         }
         
-        return redirect()->route('babysitter.identity-verification')->with('success', 
+        return redirect()->route('babysitter.payments')->with('success', 
             'Vérification d\'identité complétée avec succès !'
         );
     }
@@ -239,7 +239,7 @@ class StripeIdentityController extends Controller
      */
     public function failure(Request $request)
     {
-        return redirect()->route('babysitter.identity-verification')->with('error', 
+        return redirect()->route('babysitter.payments')->with('error', 
             'La vérification d\'identité a échoué. Veuillez réessayer.'
         );
     }

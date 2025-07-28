@@ -724,36 +724,7 @@ const startConnectVerification = async () => {
     }
 };
 
-// Démarrer la vérification Identity rapide
-const startIdentityVerification = async () => {
-    if (isLoading.value) return;
-
-    isLoading.value = true;
-    error.value = '';
-
-    try {
-        const response = await fetch('/stripe/identity/create-session', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success && data.session) {
-            // Rediriger vers la page de vérification Identity intégrée
-            router.visit('/babysitter/identity-verification');
-        } else {
-            throw new Error(data.error || 'Erreur lors de la création de la session Identity');
-        }
-    } catch (err) {
-        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
-    } finally {
-        isLoading.value = false;
-    }
-};
+// Supprimé - utiliser startIdentityVerificationProcess pour aller directement vers Stripe
 
 // Polling du statut après vérification
 const startStatusPolling = () => {
@@ -1358,9 +1329,10 @@ const formatAmount = (amount: number) => {
                                     <span class="text-sm font-medium text-blue-800">Option 2 : Vérification rapide</span>
                                 </div>
                                 <p class="mb-2 text-xs text-blue-700">Vérifiez seulement votre identité maintenant (plus rapide)</p>
-                                <Button @click="startIdentityVerification" :disabled="isLoading" variant="outline" class="w-full">
-                                    <Shield class="mr-2 h-4 w-4" />
-                                    {{ isLoading ? 'Préparation...' : 'Vérification Identity' }}
+                                <Button @click="startIdentityVerificationProcess" :disabled="isLoading" variant="outline" class="w-full">
+                                    <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
+                                    <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                                    {{ isLoading ? 'Redirection...' : 'Vérification Identity' }}
                                 </Button>
                             </div>
                         </div>
@@ -1390,9 +1362,10 @@ const formatAmount = (amount: number) => {
                             </p>
                         </div>
 
-                        <Button variant="outline" @click="router.visit('/babysitter/identity-verification')" class="w-full">
-                            <Shield class="mr-2 h-4 w-4" />
-                            Vérifier mon identité maintenant (optionnel)
+                        <Button variant="outline" @click="startIdentityVerificationProcess" :disabled="isLoading" class="w-full">
+                            <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
+                            <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                            {{ isLoading ? 'Redirection...' : 'Vérifier mon identité maintenant (optionnel)' }}
                         </Button>
                     </div>
                 </CardContent>

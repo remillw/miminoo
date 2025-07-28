@@ -146,9 +146,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('api/stripe/payment-methods', [StripeController::class, 'getPaymentMethods']);
     Route::get('api/reservations/{reservation}/payment-intent', [ReservationController::class, 'getPaymentIntent']);
 
-    // Routes Stripe Identity pour vérification d'identité
+    // Routes Stripe Identity pour vérification d'identité (simplifiées - pas de page intermédiaire)
     Route::prefix('babysitter')->name('babysitter.')->group(function () {
-        Route::get('/identity-verification', [App\Http\Controllers\StripeIdentityController::class, 'index'])->name('identity-verification');
+        // Route::get('/identity-verification', [App\Http\Controllers\StripeIdentityController::class, 'index'])->name('identity-verification'); // Supprimée - redirection directe vers Stripe
         Route::post('/identity-verification/create-session', [App\Http\Controllers\StripeIdentityController::class, 'createSession'])->name('identity.create-session');
         Route::post('/identity-verification/verify-and-link', [App\Http\Controllers\StripeIdentityController::class, 'verifyAndLink'])->name('identity.verify-and-link');
         Route::get('/identity-verification/status', [App\Http\Controllers\StripeIdentityController::class, 'getStatus'])->name('identity.status');
