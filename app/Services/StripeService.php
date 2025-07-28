@@ -17,7 +17,10 @@ class StripeService
     }
 
     /**
-     * Créer un compte Stripe Connect pour un utilisateur
+     * Créer un compte Stripe Connect pour un utilisateur (LEGACY - utiliser createConnectAccountWithClientToken)
+     * 
+     * @deprecated Cette méthode est obsolète. Utilisez createConnectAccountWithClientToken() avec des account tokens
+     *             pour respecter les exigences françaises DSP2 et la sécurité renforcée.
      */
     public function createConnectAccount(User $user)
     {
@@ -243,13 +246,13 @@ class StripeService
     public function createOnboardingLink(User $user)
     {
         try {
-            // S'assurer que le compte existe
+            // Vérifier que le compte Stripe Connect existe
             if (!$user->stripe_account_id) {
-                $this->createConnectAccount($user);
-            } else {
-                // Mettre à jour le compte existant avec les dernières données utilisateur
-                $this->updateConnectAccountData($user);
+                throw new \Exception('Aucun compte Stripe Connect trouvé. Veuillez d\'abord configurer votre compte via l\'onboarding dédié.');
             }
+            
+            // Mettre à jour le compte existant avec les dernières données utilisateur
+            $this->updateConnectAccountData($user);
 
             // Créer un AccountLink pour l'onboarding avec vérification d'identité forcée
             $accountLink = $this->stripe->accountLinks->create([
@@ -300,9 +303,9 @@ class StripeService
     public function createVerificationLink(User $user)
     {
         try {
-            // S'assurer que le compte Connect existe
+            // Vérifier que le compte Connect existe
             if (!$user->stripe_account_id) {
-                $this->createConnectAccount($user);
+                throw new \Exception('Aucun compte Stripe Connect trouvé. Veuillez d\'abord configurer votre compte via l\'onboarding dédié.');
             }
 
             // Créer un AccountLink pour la vérification d'identité
@@ -1286,9 +1289,9 @@ class StripeService
     public function createIdentityVerificationSession(User $user)
     {
         try {
-            // S'assurer que l'utilisateur a un compte Connect
+            // Vérifier que l'utilisateur a un compte Connect
             if (!$user->stripe_account_id) {
-                $this->createConnectAccount($user);
+                throw new \Exception('Aucun compte Stripe Connect trouvé. Veuillez d\'abord configurer votre compte via l\'onboarding dédié.');
             }
 
             // Préparer les données pré-remplies pour la vérification d'identité
@@ -1765,9 +1768,15 @@ class StripeService
                             ];
                         }
                     } else {
-                        // Pas de compte Connect, le créer
-                        $this->createConnectAccount($user);
-                        return $this->getOnboardingStatus($user); // Récursion pour réévaluer
+                        // Pas de compte Connect - demander la configuration via l'onboarding
+                        return [
+                            'status' => 'not_started',
+                            'method' => 'none',
+                            'message' => 'Aucun compte Stripe Connect configuré. Veuillez utiliser l\'onboarding dédié.',
+                            'requires_onboarding' => true,
+                            'can_receive_payments' => false,
+                            'error' => 'Compte Stripe Connect non configuré'
+                        ];
                     }
                 }
             }
@@ -2810,7 +2819,18 @@ class StripeService
                     'user_id' => $user->id
                 ]);
                 
-                return $this->createConnectAccountWithClientToken($user, $validated['account_token']);
+                // Préparer les données additionnelles pour le compte bancaire
+                $additionalData = [];
+                if (isset($validated['iban']) && isset($validated['account_holder_name'])) {
+                    $additionalData = [
+                        'iban' => $validated['iban'],
+                        'account_holder_name' => $validated['account_holder_name'],
+                        'business_description' => $validated['business_description'] ?? 'Services de garde d\'enfants et babysitting',
+                        'mcc' => $validated['mcc'] ?? '8299'
+                    ];
+                }
+                
+                return $this->createConnectAccountWithClientToken($user, $validated['account_token'], $additionalData);
             }
 
             // Si l'utilisateur a déjà un compte Stripe Connect, essayer d'abord de le mettre à jour
@@ -2896,7 +2916,7 @@ class StripeService
     /**
      * Créer un compte Stripe Connect avec account token (créé côté client)
      */
-    public function createConnectAccountWithClientToken(User $user, string $accountToken)
+    public function createConnectAccountWithClientToken(User $user, string $accountToken, array $additionalData = [])
     {
         try {
             Log::info('🚀 Création compte Connect avec token client', [
@@ -2933,6 +2953,11 @@ class StripeService
                 'account_id' => $account->id
             ]);
 
+            // Ajouter les informations bancaires si fournies
+            if (isset($additionalData['iban']) && isset($additionalData['account_holder_name'])) {
+                $this->addBankAccountToConnectAccount($user, $additionalData);
+            }
+
             return $account;
 
         } catch (\Exception $e) {
@@ -2945,6 +2970,59 @@ class StripeService
         }
     }
 
+    /**
+     * Ajouter un compte bancaire à un compte Connect existant
+     */
+    private function addBankAccountToConnectAccount(User $user, array $bankData)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé pour cet utilisateur');
+            }
+
+            Log::info('📦 Ajout compte bancaire au compte Connect', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id
+            ]);
+
+            // Préparer les données du compte bancaire
+            $externalAccountData = [
+                'object' => 'bank_account',
+                'country' => 'FR',
+                'currency' => 'eur',
+                'account_holder_name' => $bankData['account_holder_name'],
+                'account_number' => str_replace(' ', '', $bankData['iban']), // Supprimer les espaces de l'IBAN
+            ];
+
+            // Ajouter le compte bancaire via l'API External Accounts
+            $bankAccount = $this->stripe->accounts->createExternalAccount(
+                $user->stripe_account_id,
+                ['external_account' => $externalAccountData]
+            );
+
+            Log::info('✅ Compte bancaire ajouté avec succès', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'bank_account_id' => $bankAccount->id
+            ]);
+
+            return $bankAccount;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de l\'ajout du compte bancaire', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Ne pas faire échouer toute la création du compte pour un problème bancaire
+            // L'utilisateur pourra ajouter son IBAN plus tard
+            Log::warning('⚠️ Compte Connect créé sans compte bancaire', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id
+            ]);
+        }
+    }
 
     /**
      * Mettre à jour un compte Connect existant

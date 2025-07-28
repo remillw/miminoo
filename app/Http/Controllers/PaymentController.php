@@ -46,18 +46,12 @@ class PaymentController extends Controller
     {
         $user = $request->user();
 
-        // Si pas de compte Stripe, en créer un
-        if (!$user->stripe_account_id) {
-            try {
-                $this->stripeService->createConnectAccount($user);
-                $user->refresh();
-            } catch (\Exception $e) {
-                Log::error('Erreur création compte Stripe Connect', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
+        // Le compte Stripe Connect sera créé uniquement via l'onboarding dédié
+        Log::info('💰 Accès aux paiements babysitter', [
+            'user_id' => $user->id, 
+            'has_stripe_account' => !is_null($user->stripe_account_id),
+            'stripe_account_id' => $user->stripe_account_id
+        ]);
 
         // Récupérer les informations du compte
         try {

@@ -56,30 +56,11 @@ class BabysitterModerationController extends Controller
             // Envoyer la notification de vérification
             $babysitter->notify(new BabysitterProfileVerified());
 
-            // Créer automatiquement le compte Stripe Connect
-            try {
-                if (!$babysitter->stripe_account_id) {
-                    Log::info('💳 Création du compte Stripe Connect pour babysitter vérifié', [
-                        'babysitter_id' => $babysitter->id,
-                        'babysitter_name' => $babysitter->firstname . ' ' . $babysitter->lastname
-                    ]);
-
-                    $this->stripeService->createConnectAccount($babysitter);
-                    
-                    Log::info('✅ Compte Stripe Connect créé avec succès', [
-                        'babysitter_id' => $babysitter->id,
-                        'stripe_account_created' => true
-                    ]);
-                }
-            } catch (\Exception $e) {
-                Log::error('❌ Erreur lors de la création du compte Stripe Connect', [
-                    'babysitter_id' => $babysitter->id,
-                    'error' => $e->getMessage()
-                ]);
-                
-                // On ne fait pas échouer la vérification si Stripe échoue
-                // Le babysitter pourra configurer Stripe plus tard
-            }
+            Log::info('✅ Babysitter vérifié - pas de création automatique du compte Stripe Connect', [
+                'babysitter_id' => $babysitter->id,
+                'babysitter_name' => $babysitter->firstname . ' ' . $babysitter->lastname,
+                'note' => 'Le babysitter devra configurer son compte Stripe via l\'onboarding dédié'
+            ]);
         } else {
             $profile->update([
                 'verification_status' => 'rejected',

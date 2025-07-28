@@ -30,19 +30,12 @@ class StripeController extends Controller
             return redirect()->route('dashboard')->with('error', 'Vous devez être un babysitter vérifié pour accéder à cette page.');
         }
 
-        // Si pas de compte Stripe, en créer un
-        if (!$user->stripe_account_id) {
-            try {
-                $this->stripeService->createConnectAccount($user);
-                $user->refresh(); // Recharger l'utilisateur avec les nouvelles données
-            } catch (\Exception $e) {
-                Log::error('Erreur création compte Stripe Connect', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage()
-                ]);
-                return redirect()->route('dashboard')->with('error', 'Erreur lors de la création du compte de paiement.');
-            }
-        }
+        // Le compte Stripe Connect sera créé uniquement via l'onboarding dédié
+        Log::info('🏦 Accès à la page paiements', [
+            'user_id' => $user->id, 
+            'has_stripe_account' => !is_null($user->stripe_account_id),
+            'stripe_account_id' => $user->stripe_account_id
+        ]);
 
         // Récupérer le statut et les détails du compte
         try {
@@ -501,18 +494,12 @@ class StripeController extends Controller
             return redirect()->route('dashboard')->with('error', 'Accès non autorisé.');
         }
 
-        // Si pas de compte Stripe, en créer un
-        if (!$user->stripe_account_id) {
-            try {
-                $this->stripeService->createConnectAccount($user);
-                $user->refresh();
-            } catch (\Exception $e) {
-                Log::error('Erreur création compte Stripe Connect', [
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
+        // Le compte Stripe Connect sera créé uniquement via l'onboarding dédié
+        Log::info('🔗 Accès à la page Stripe Connect', [
+            'user_id' => $user->id, 
+            'has_stripe_account' => !is_null($user->stripe_account_id),
+            'stripe_account_id' => $user->stripe_account_id
+        ]);
 
         // Récupérer les informations du compte
         try {
@@ -965,26 +952,45 @@ class StripeController extends Controller
             'iban' => strtoupper(str_replace(' ', '', $request->input('iban', '')))
         ]);
 
-        // Validation des données
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'nullable|string|max:20',
-            'dob_day' => 'required|integer|min:1|max:31',
-            'dob_month' => 'required|integer|min:1|max:12',
-            'dob_year' => 'required|integer|min:1900|max:' . (date('Y') - 16),
-            'address_line1' => 'required|string|max:255',
-            'address_city' => 'required|string|max:255',
-            'address_postal_code' => 'required|string|regex:/^[0-9]{5}$/',
-            'address_country' => 'required|string|size:2',
-            'account_holder_name' => 'required|string|max:255',
-            'iban' => 'required|string|regex:/^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/',
-            'business_description' => 'required|string|max:500',
-            'mcc' => 'nullable|string', // Code MCC optionnel
-            'tos_acceptance' => 'required|accepted',
+        // Validation des données - adaptation selon si on utilise un token ou non
+        $hasToken = $request->has('account_token') && !empty($request->account_token);
+        
+        $validationRules = [
             'account_token' => 'nullable|string', // Token Stripe créé côté client
-        ]);
+            'internal_onboarding' => 'nullable|boolean',
+        ];
+
+        if ($hasToken) {
+            // Avec token, seules les données bancaires sont requises
+            $validationRules = array_merge($validationRules, [
+                'iban' => 'required|string|regex:/^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/',
+                'account_holder_name' => 'required|string|max:255',
+                'business_description' => 'nullable|string|max:500',
+                'mcc' => 'nullable|string',
+            ]);
+        } else {
+            // Sans token, toutes les données sont requises (ancien système)
+            $validationRules = array_merge($validationRules, [
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|email|max:255',
+                'phone' => 'nullable|string|max:20',
+                'dob_day' => 'required|integer|min:1|max:31',
+                'dob_month' => 'required|integer|min:1|max:12',
+                'dob_year' => 'required|integer|min:1900|max:' . (date('Y') - 16),
+                'address_line1' => 'required|string|max:255',
+                'address_city' => 'required|string|max:255',
+                'address_postal_code' => 'required|string|regex:/^[0-9]{5}$/',
+                'address_country' => 'required|string|size:2',
+                'account_holder_name' => 'required|string|max:255',
+                'iban' => 'required|string|regex:/^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/',
+                'business_description' => 'required|string|max:500',
+                'mcc' => 'nullable|string',
+                'tos_acceptance' => 'required|accepted',
+            ]);
+        }
+
+        $validated = $request->validate($validationRules);
 
         // Ajouter les valeurs par défaut si elles ne sont pas présentes
         $validated['mcc'] = $validated['mcc'] ?? '8299'; // Code MCC pour services de garde d'enfants
@@ -995,11 +1001,13 @@ class StripeController extends Controller
                 return response()->json(['error' => 'Seuls les babysitters peuvent créer un compte de paiement'], 403);
             }
 
-            // Vérifier l'âge minimum
-            $birthDate = sprintf('%04d-%02d-%02d', $validated['dob_year'], $validated['dob_month'], $validated['dob_day']);
-            $age = \Carbon\Carbon::parse($birthDate)->age;
-            if ($age < 16) {
-                return back()->withErrors(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement']);
+            // Vérifier l'âge minimum (seulement si on n'utilise pas de token car l'âge est déjà vérifié dans le token)
+            if (!$hasToken) {
+                $birthDate = sprintf('%04d-%02d-%02d', $validated['dob_year'], $validated['dob_month'], $validated['dob_day']);
+                $age = \Carbon\Carbon::parse($birthDate)->age;
+                if ($age < 16) {
+                    return back()->withErrors(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement']);
+                }
             }
 
             // Créer ou mettre à jour le compte Stripe Connect avec les données fournies

@@ -47,7 +47,7 @@ const currentStep = ref(1);
 const errorMessage = ref('');
 
 // Stripe.js
-let stripe = null;
+let stripe: any = null;
 
 // Autocomplete Google Places
 const isGoogleLoaded = ref(false);
@@ -159,10 +159,51 @@ const submitOnboarding = async () => {
     isLoading.value = true;
 
     try {
-        // Utiliser une route existante avec un paramètre pour l'onboarding interne
+        // Initialiser Stripe si pas déjà fait
+        if (!stripe) {
+            await loadStripe();
+        }
+
+        if (!stripe) {
+            throw new Error('Impossible de charger Stripe.js');
+        }
+
+        // Créer l'account token avec Stripe.js
+        const accountTokenResult = await stripe.createToken('account', {
+            business_type: 'individual',
+            individual: {
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                email: formData.email,
+                phone: formData.phone || undefined,
+                dob: {
+                    day: parseInt(formData.dob_day),
+                    month: parseInt(formData.dob_month),
+                    year: parseInt(formData.dob_year),
+                },
+                address: {
+                    line1: formData.address_line1,
+                    city: formData.address_city,
+                    postal_code: formData.address_postal_code,
+                    country: formData.address_country,
+                },
+            },
+            tos_shown_and_accepted: formData.tos_acceptance,
+        });
+
+        if (accountTokenResult.error) {
+            throw new Error(accountTokenResult.error.message);
+        }
+
+        // Utiliser le token pour créer le compte
         router.post('/stripe/create-onboarding-link', {
-            ...formData,
-            internal_onboarding: true
+            account_token: accountTokenResult.token.id,
+            internal_onboarding: true,
+            // Données additionnelles pour le backend
+            iban: formData.iban,
+            account_holder_name: formData.account_holder_name,
+            business_description: formData.business_description,
+            mcc: formData.mcc,
         }, {
             onSuccess: (page) => {
                 showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
@@ -185,25 +226,6 @@ const submitOnboarding = async () => {
                     errorMsg = 'Erreur lors de la configuration du compte';
                 }
                 
-                // Gestion spécifique pour l'erreur de comptes français
-                if (errorMsg.includes('Connect platforms based in FR must create accounts via account tokens') || 
-                    errorMsg.includes('Configuration requise pour les comptes français') ||
-                    errorMsg.includes('Configuration avec account tokens en cours')) {
-                    errorMsg = 'Configuration avec account tokens Stripe en cours. Cette méthode est recommandée pour les comptes français.';
-                    
-                    // Pour la nouvelle implémentation avec account tokens, proposer un retry automatique
-                    if (errorMsg.includes('Configuration avec account tokens en cours')) {
-                        errorMsg += ' La configuration se fait maintenant automatiquement avec les account tokens Stripe.';
-                    } else {
-                        // Ancienne erreur - proposer l'onboarding externe
-                        setTimeout(() => {
-                            if (confirm('Souhaitez-vous être redirigé vers la configuration Stripe externe ?')) {
-                                startExternalOnboarding();
-                            }
-                        }, 2000);
-                    }
-                }
-                
                 errorMessage.value = errorMsg;
                 showError('❌ Erreur de configuration', errorMsg);
                 
@@ -215,9 +237,43 @@ const submitOnboarding = async () => {
         });
     } catch (err) {
         console.error('Erreur onboarding:', err);
-        handleApiError(err);
+        let errorMsg = 'Erreur lors de la configuration du compte';
+        if (err instanceof Error) {
+            errorMsg = err.message;
+        }
+        errorMessage.value = errorMsg;
+        showError('❌ Erreur de configuration', errorMsg);
         isLoading.value = false;
     }
+};
+
+// Charger Stripe.js
+const loadStripe = async () => {
+    if (stripe) return;
+
+    // Vérifier si Stripe est déjà disponible globalement
+    if ((window as any).Stripe) {
+        stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
+        return;
+    }
+
+    // Charger Stripe.js dynamiquement
+    const script = document.createElement('script');
+    script.src = 'https://js.stripe.com/v3/';
+    script.async = true;
+
+    return new Promise<void>((resolve, reject) => {
+        script.onload = () => {
+            if ((window as any).Stripe) {
+                stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
+                resolve();
+            } else {
+                reject(new Error('Stripe.js failed to load'));
+            }
+        };
+        script.onerror = () => reject(new Error('Failed to load Stripe.js'));
+        document.head.appendChild(script);
+    });
 };
 
 // Charger Google Places API
@@ -605,12 +661,14 @@ const startExternalOnboarding = async () => {
                         <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 mb-4">
                             <div class="flex items-center mb-1">
                                 <Shield class="mr-2 h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900">Sécurité renforcée</span>
+                                <span class="text-sm font-medium text-blue-900">Sécurité renforcée avec Account Tokens</span>
                             </div>
-                            <p class="text-xs text-blue-800">
-                                Nous utilisons les account tokens Stripe, une méthode sécurisée recommandée 
-                                pour les plateformes françaises qui permet un transfert direct et sécurisé de vos données vers Stripe.
-                            </p>
+                            <ul class="text-xs text-blue-800 space-y-1">
+                                <li>• Vos données sont envoyées directement à Stripe (pas via nos serveurs)</li>
+                                <li>• Chiffrement bancaire de niveau militaire</li>
+                                <li>• Méthode recommandée pour les comptes français (conformité DSP2)</li>
+                                <li>• Détection renforcée de la fraude par Stripe</li>
+                            </ul>
                         </div>
 
                         <div class="flex items-start space-x-3">
