@@ -168,6 +168,34 @@ const submitOnboarding = async () => {
             throw new Error('Impossible de charger Stripe.js');
         }
 
+        // Formater le numéro de téléphone pour Stripe (format international)
+        const formatPhoneForStripe = (phone: string) => {
+            if (!phone) return undefined;
+            
+            // Nettoyer le numéro (garder seulement les chiffres)
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            
+            // Convertir les formats français vers +33
+            if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) {
+                // Format 0781191375 -> +33781191375
+                return '+33' + cleanPhone.substring(1);
+            } else if (cleanPhone.length === 9 && !cleanPhone.startsWith('0')) {
+                // Format 781191375 -> +33781191375
+                return '+33' + cleanPhone;
+            } else if (cleanPhone.startsWith('33') && cleanPhone.length === 11) {
+                // Format 33781191375 -> +33781191375
+                return '+' + cleanPhone;
+            }
+            
+            // Si déjà au format +33, le retourner tel quel
+            if (phone.startsWith('+33')) {
+                return phone;
+            }
+            
+            // Sinon, assumer que c'est un numéro français
+            return cleanPhone.length >= 9 ? '+33' + cleanPhone.replace(/^0/, '') : undefined;
+        };
+
         // Créer l'account token avec Stripe.js
         const accountTokenResult = await stripe.createToken('account', {
             business_type: 'individual',
@@ -175,7 +203,7 @@ const submitOnboarding = async () => {
                 first_name: formData.first_name,
                 last_name: formData.last_name,
                 email: formData.email,
-                phone: formData.phone || undefined,
+                phone: formatPhoneForStripe(formData.phone),
                 dob: {
                     day: parseInt(formData.dob_day),
                     month: parseInt(formData.dob_month),
@@ -365,6 +393,19 @@ const isIbanValid = computed(() => {
     return validateIban(formData.iban);
 });
 
+// Validation du téléphone français
+const isPhoneValid = computed(() => {
+    if (!formData.phone) return true; // Optionnel
+    
+    const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
+    
+    // Numéro français: 10 chiffres commençant par 0, ou 9 chiffres sans le 0
+    return (cleanPhone.length === 10 && cleanPhone.startsWith('0')) ||
+           (cleanPhone.length === 9 && !cleanPhone.startsWith('0')) ||
+           (cleanPhone.startsWith('33') && cleanPhone.length === 11) ||
+           formData.phone.startsWith('+33');
+});
+
 // Fonction pour vider l'erreur quand l'utilisateur modifie un champ
 const clearError = () => {
     if (errorMessage.value) {
@@ -510,8 +551,13 @@ const startExternalOnboarding = async () => {
                             id="phone"
                             v-model="formData.phone"
                             type="tel"
-                            placeholder="06 12 34 56 78"
+                            placeholder="06 12 34 56 78 ou +33 6 12 34 56 78"
+                            :class="!isPhoneValid ? 'border-red-500' : ''"
                         />
+                        <p v-if="!isPhoneValid" class="mt-1 text-sm text-red-600">
+                            Format de téléphone invalide (ex: 06 12 34 56 78)
+                        </p>
+                        <p v-else class="mt-1 text-xs text-gray-500">Format français accepté : 06 12 34 56 78</p>
                     </div>
 
                     <div>
