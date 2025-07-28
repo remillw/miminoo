@@ -152,8 +152,11 @@ const submitOnboarding = async () => {
     isLoading.value = true;
 
     try {
-        // Utiliser Inertia au lieu de fetch pour maintenir la session
-        router.post('/stripe/internal-onboarding', formData, {
+        // Utiliser une route existante avec un paramètre pour l'onboarding interne
+        router.post('/stripe/create-onboarding-link', {
+            ...formData,
+            internal_onboarding: true
+        }, {
             onSuccess: (page) => {
                 showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
                 

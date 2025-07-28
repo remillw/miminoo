@@ -95,6 +95,11 @@ class StripeController extends Controller
                 return response()->json(['error' => 'Veuillez renseigner votre date de naissance dans votre profil'], 400);
             }
 
+            // Si c'est un onboarding interne, traiter différemment
+            if ($request->has('internal_onboarding') && $request->internal_onboarding) {
+                return $this->internalOnboarding($request);
+            }
+
             $accountLink = $this->stripeService->createOnboardingLink($user);
             
             return response()->json([
