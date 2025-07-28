@@ -2924,7 +2924,7 @@ class StripeService
                     'business_type' => 'individual',
                     'tos_shown_and_accepted' => $formData['tos_acceptance'] ?? true,
                     'business_profile' => [
-                        'mcc' => $formData['mcc'],
+                        'mcc' => $formData['mcc'] ?? '8299', // Code MCC pour services de garde d'enfants
                         'product_description' => $formData['business_description'],
                     ],
                     'external_account' => [
@@ -3039,7 +3039,7 @@ class StripeService
 
             // Profil business
             $updateData['business_profile'] = [
-                'mcc' => $validated['mcc'],
+                'mcc' => $validated['mcc'] ?? '8299', // Code MCC pour services de garde d'enfants
                 'product_description' => $validated['business_description'],
             ];
 

@@ -981,8 +981,12 @@ class StripeController extends Controller
             'account_holder_name' => 'required|string|max:255',
             'iban' => 'required|string|regex:/^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/',
             'business_description' => 'required|string|max:500',
+            'mcc' => 'nullable|string', // Code MCC optionnel
             'tos_acceptance' => 'required|accepted',
         ]);
+
+        // Ajouter les valeurs par défaut si elles ne sont pas présentes
+        $validated['mcc'] = $validated['mcc'] ?? '8299'; // Code MCC pour services de garde d'enfants
 
         try {
             // Vérifier que l'utilisateur est babysitter

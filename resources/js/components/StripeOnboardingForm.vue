@@ -650,7 +650,6 @@ const startExternalOnboarding = async () => {
                         v-else
                         @click="submitOnboarding"
                         :disabled="!canProceedToNext || isLoading"
-                        class="bg-green-600 hover:bg-green-700"
                     >
                         <div v-if="isLoading" class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                         {{ isLoading ? 'Configuration...' : 'Finaliser mon compte' }}
