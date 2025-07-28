@@ -44,40 +44,44 @@ const { showSuccess, showError, handleApiError } = useToast();
 
 const isLoading = ref(false);
 const currentStep = ref(1);
+const errorMessage = ref('');
 
 // Autocomplete Google Places
 const isGoogleLoaded = ref(false);
 let autocomplete: any;
 
 
-// Données du formulaire pré-remplies avec les informations utilisateur
+// Récupérer les anciennes valeurs depuis la session Laravel (preserved on error)
+const oldData = (window as any)?.Laravel?.oldInput || {};
+
+// Données du formulaire pré-remplies avec les informations utilisateur ou les anciennes valeurs
 const formData = reactive({
     // Informations personnelles
-    first_name: props.user.firstname || '',
-    last_name: props.user.lastname || '',
-    email: props.user.email || '',
-    phone: props.user.phone || '',
+    first_name: oldData.first_name || props.user.firstname || '',
+    last_name: oldData.last_name || props.user.lastname || '',
+    email: oldData.email || props.user.email || '',
+    phone: oldData.phone || props.user.phone || '',
     
     // Date de naissance
-    dob_day: '',
-    dob_month: '',
-    dob_year: '',
+    dob_day: oldData.dob_day || '',
+    dob_month: oldData.dob_month || '',
+    dob_year: oldData.dob_year || '',
     
     // Adresse (vide pour permettre la saisie libre avec autocomplete)
-    address_line1: '',
-    address_city: '',
-    address_postal_code: '',
-    address_country: 'FR',
+    address_line1: oldData.address_line1 || '',
+    address_city: oldData.address_city || '',
+    address_postal_code: oldData.address_postal_code || '',
+    address_country: oldData.address_country || 'FR',
     
     // Informations bancaires
-    account_holder_name: `${props.user.firstname} ${props.user.lastname}`.trim(),
-    iban: '',
+    account_holder_name: oldData.account_holder_name || `${props.user.firstname} ${props.user.lastname}`.trim(),
+    iban: oldData.iban || '',
     
     // Profil business
-    business_description: 'Services de garde d\'enfants et babysitting',
-    mcc: '8299',
+    business_description: oldData.business_description || 'Services de garde d\'enfants et babysitting',
+    mcc: oldData.mcc || '8299',
     
-    // Conditions d'utilisation
+    // Conditions d'utilisation (jamais pré-remplie pour la sécurité)
     tos_acceptance: false,
 });
 
@@ -169,12 +173,38 @@ const submitOnboarding = async () => {
                 console.error('Erreur onboarding:', errors);
                 
                 // Gérer les erreurs spécifiques
+                let errorMsg = '';
                 if (typeof errors === 'object' && errors !== null) {
-                    const errorMessage = Object.values(errors)[0] as string || 'Erreur lors de la configuration du compte';
-                    showError('❌ Erreur', errorMessage);
+                    errorMsg = Object.values(errors)[0] as string || 'Erreur lors de la configuration du compte';
+                } else if (typeof errors === 'string') {
+                    errorMsg = errors;
                 } else {
-                    showError('❌ Erreur', 'Erreur lors de la configuration du compte');
+                    errorMsg = 'Erreur lors de la configuration du compte';
                 }
+                
+                // Gestion spécifique pour l'erreur de comptes français
+                if (errorMsg.includes('Connect platforms based in FR must create accounts via account tokens') || 
+                    errorMsg.includes('Configuration requise pour les comptes français') ||
+                    errorMsg.includes('Configuration avec account tokens en cours')) {
+                    errorMsg = 'Configuration avec account tokens Stripe en cours. Cette méthode est recommandée pour les comptes français.';
+                    
+                    // Pour la nouvelle implémentation avec account tokens, proposer un retry automatique
+                    if (errorMsg.includes('Configuration avec account tokens en cours')) {
+                        errorMsg += ' La configuration se fait maintenant automatiquement avec les account tokens Stripe.';
+                    } else {
+                        // Ancienne erreur - proposer l'onboarding externe
+                        setTimeout(() => {
+                            if (confirm('Souhaitez-vous être redirigé vers la configuration Stripe externe ?')) {
+                                startExternalOnboarding();
+                            }
+                        }, 2000);
+                    }
+                }
+                
+                errorMessage.value = errorMsg;
+                showError('❌ Erreur de configuration', errorMsg);
+                
+                // Les valeurs du formulaire sont automatiquement préservées
             },
             onFinish: () => {
                 isLoading.value = false;
@@ -275,6 +305,36 @@ const isIbanValid = computed(() => {
     if (!formData.iban) return true; // Valide si vide (pas encore saisi)
     return validateIban(formData.iban);
 });
+
+// Fonction pour vider l'erreur quand l'utilisateur modifie un champ
+const clearError = () => {
+    if (errorMessage.value) {
+        errorMessage.value = '';
+    }
+};
+
+// Fonction pour démarrer l'onboarding externe en cas d'erreur française
+const startExternalOnboarding = async () => {
+    try {
+        const response = await fetch('/stripe/create-onboarding-link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.onboarding_url) {
+            window.location.href = data.onboarding_url;
+        } else {
+            showError('❌ Erreur', data.error || 'Erreur lors de la création du lien externe');
+        }
+    } catch (err) {
+        showError('❌ Erreur', 'Erreur lors de la redirection vers Stripe');
+    }
+};
 </script>
 
 <template>
@@ -315,6 +375,38 @@ const isIbanValid = computed(() => {
                 <p class="text-sm text-gray-600">{{ currentStepData?.description }}</p>
             </CardHeader>
             <CardContent>
+                <!-- Affichage des erreurs persistantes -->
+                <div v-if="errorMessage" class="mb-4 rounded-md border border-red-200 bg-red-50 p-4">
+                    <div class="flex items-center">
+                        <AlertCircle class="mr-2 h-4 w-4 text-red-500" />
+                        <p class="text-sm text-red-700">{{ errorMessage }}</p>
+                    </div>
+                    
+                    <!-- Bouton de fallback pour l'onboarding externe si erreur française -->
+                    <div v-if="errorMessage.includes('Configuration requise pour les comptes français')" class="mt-3 flex gap-2">
+                        <Button 
+                            @click="startExternalOnboarding" 
+                            variant="outline" 
+                            size="sm"
+                            class="text-xs"
+                        >
+                            Utiliser la configuration Stripe externe
+                        </Button>
+                        <button 
+                            @click="errorMessage = ''" 
+                            class="text-xs text-red-600 hover:text-red-800 underline"
+                        >
+                            Fermer
+                        </button>
+                    </div>
+                    <button 
+                        v-else
+                        @click="errorMessage = ''" 
+                        class="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+                    >
+                        Fermer
+                    </button>
+                </div>
 
                 <!-- Étape 1: Informations personnelles -->
                 <div v-if="currentStep === 1" class="space-y-4">
@@ -325,6 +417,7 @@ const isIbanValid = computed(() => {
                                 id="first_name"
                                 v-model="formData.first_name"
                                 placeholder="Votre prénom"
+                                @input="clearError"
                                 required
                             />
                         </div>
@@ -334,6 +427,7 @@ const isIbanValid = computed(() => {
                                 id="last_name"
                                 v-model="formData.last_name"
                                 placeholder="Votre nom"
+                                @input="clearError"
                                 required
                             />
                         </div>
@@ -346,6 +440,7 @@ const isIbanValid = computed(() => {
                             v-model="formData.email"
                             type="email"
                             placeholder="votre.email@exemple.com"
+                            @input="clearError"
                             required
                         />
                     </div>
@@ -420,6 +515,7 @@ const isIbanValid = computed(() => {
                             placeholder="123 rue de la République, Paris"
                             autocomplete="address-line1"
                             @focus="() => { if (!isGoogleLoaded) loadGooglePlaces(); }"
+                            @input="clearError"
                             required
                         />
                         <p class="mt-1 text-xs text-gray-500">Commencez à taper pour voir les suggestions d'adresses</p>
@@ -476,7 +572,7 @@ const isIbanValid = computed(() => {
                         <Input
                             id="iban"
                             v-model="formData.iban"
-                            @input="onIbanInput"
+                            @input="(e) => { onIbanInput(e); clearError(); }"
                             placeholder="FR76 1234 5678 9012 3456 7890 123"
                             :class="!isIbanValid ? 'border-red-500' : ''"
                             required
@@ -503,6 +599,17 @@ const isIbanValid = computed(() => {
                     </div>
 
                     <div class="space-y-4">
+                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 mb-4">
+                            <div class="flex items-center mb-1">
+                                <Shield class="mr-2 h-4 w-4 text-blue-600" />
+                                <span class="text-sm font-medium text-blue-900">Sécurité renforcée</span>
+                            </div>
+                            <p class="text-xs text-blue-800">
+                                Nous utilisons les account tokens Stripe, une méthode sécurisée recommandée 
+                                pour les plateformes françaises qui permet un transfert direct et sécurisé de vos données vers Stripe.
+                            </p>
+                        </div>
+
                         <div class="flex items-start space-x-3">
                             <input
                                 id="tos_acceptance"

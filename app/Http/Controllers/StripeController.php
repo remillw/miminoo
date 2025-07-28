@@ -1009,7 +1009,23 @@ class StripeController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return back()->withErrors(['error' => 'Erreur lors de la configuration du compte : ' . $e->getMessage()]);
+            // Gestion spécifique pour l'erreur de comptes français
+            $errorMessage = $e->getMessage();
+            if (strpos($errorMessage, 'Connect platforms based in FR must create accounts via account tokens') !== false) {
+                // L'erreur ne devrait plus se produire avec notre nouvelle implémentation des account tokens
+                Log::warning('🇫🇷 Erreur token française détectée malgré l\'implémentation des account tokens', [
+                    'user_id' => $user->id,
+                    'error' => $errorMessage
+                ]);
+                
+                $errorMessage = 'Configuration avec account tokens en cours. Veuillez réessayer ou utiliser la configuration externe.';
+                
+                // Rediriger vers l'onboarding externe si disponible
+                return back()->withErrors(['error' => $errorMessage])->with('suggest_external', true);
+            }
+            
+            return back()->withErrors(['error' => 'Erreur lors de la configuration du compte : ' . $errorMessage])
+                        ->withInput($request->except(['tos_acceptance'])); // Préserver les données sauf la case à cocher
         }
     }
 } 

@@ -2181,18 +2181,47 @@ class StripeService
                 throw new \Exception('Le montant minimum pour un virement est de 25€');
             }
 
+            // Calculer les frais de la plateforme : 5% avec minimum 2€
+            $originalAmountEuros = $amount / 100; // Convertir en euros
+            $platformFeeEuros = max(2.00, round($originalAmountEuros * 0.05, 2)); // 5% minimum 2€
+            $platformFeeCentimes = round($platformFeeEuros * 100); // Reconvertir en centimes
+            
+            // Montant que recevra réellement la babysitter
+            $finalPayoutAmount = $amount - $platformFeeCentimes;
+            
+            // Vérifier que le montant final reste positif
+            if ($finalPayoutAmount <= 0) {
+                throw new \Exception('Le montant après déduction des frais est trop faible');
+            }
+
+            Log::info('💳 Calcul des frais de virement bancaire', [
+                'user_id' => $user->id,
+                'amount_requested' => $originalAmountEuros . '€',
+                'platform_fee' => $platformFeeEuros . '€',
+                'amount_transferred_to_bank' => ($finalPayoutAmount / 100) . '€',
+                'platform_keeps' => $platformFeeEuros . '€'
+            ]);
+
             $payout = $this->stripe->payouts->create([
-                'amount' => $amount,
+                'amount' => $finalPayoutAmount, // Montant après déduction des frais
                 'currency' => $currency,
-                'method' => 'standard', // Utiliser 'standard' pour éviter les frais supplémentaires
+                'method' => 'standard',
+                'metadata' => [
+                    'original_amount_requested' => $originalAmountEuros,
+                    'platform_fee_applied' => $platformFeeEuros,
+                    'platform_fee_percentage' => '5%',
+                    'final_amount_transferred' => $finalPayoutAmount / 100
+                ]
             ], [
                 'stripe_account' => $user->stripe_account_id
             ]);
 
-            Log::info('Virement manuel créé', [
+            Log::info('Virement manuel créé avec frais prélevés', [
                 'user_id' => $user->id,
                 'payout_id' => $payout->id,
-                'amount' => $amount / 100 . '€'
+                'original_amount' => $originalAmountEuros . '€',
+                'platform_fee' => $platformFeeEuros . '€',
+                'final_amount' => ($finalPayoutAmount / 100) . '€'
             ]);
 
             return $payout;
@@ -2770,228 +2799,53 @@ class StripeService
     }
 
     /**
-     * Créer ou mettre à jour un compte Connect avec onboarding interne sécurisé
+     * Créer ou mettre à jour un compte Connect avec account token (méthode principale pour la France)
      */
-    public function createOrUpdateConnectAccountInternal(User $user, array $validatedData)
+    public function createOrUpdateConnectAccountInternal(User $user, array $validated)
     {
         try {
-            $accountData = [];
-            $isCreating = false;
-
-            // Vérifier si le compte Stripe existe vraiment
+            // Si l'utilisateur a déjà un compte Stripe Connect, essayer d'abord de le mettre à jour
             if ($user->stripe_account_id) {
                 try {
+                    // Vérifier que le compte existe encore
                     $this->stripe->accounts->retrieve($user->stripe_account_id);
+                    
+                    Log::info('🔄 Mise à jour du compte existant', [
+                        'user_id' => $user->id,
+                        'account_id' => $user->stripe_account_id
+                    ]);
+
+                    // Tenter de mettre à jour le compte existant avec les nouvelles données
+                    return $this->updateExistingConnectAccount($user, $validated);
+                    
                 } catch (\Exception $e) {
-                    // Le compte n'existe plus ou l'accès a été révoqué
-                    Log::warning('Compte Stripe Connect introuvable, nettoyage nécessaire', [
+                    Log::warning('Compte Stripe Connect introuvable ou inaccessible, création d\'un nouveau', [
                         'user_id' => $user->id,
                         'old_account_id' => $user->stripe_account_id,
                         'error' => $e->getMessage()
                     ]);
                     
-                    // Nettoyer la référence
+                    // Nettoyer la référence au compte qui n'existe plus
                     $user->stripe_account_id = null;
                     $user->save();
                 }
             }
 
-            // Si pas de compte existant, créer un nouveau compte
-            if (!$user->stripe_account_id) {
-                $isCreating = true;
-                $accountData = [
-                    'type' => 'custom',
-                    'country' => 'FR',
-                    'email' => $validatedData['email'],
-                    'capabilities' => [
-                        'card_payments' => ['requested' => true],
-                        'transfers' => ['requested' => true],
-                    ],
-                    'business_type' => 'individual',
-                    'metadata' => [
-                        'user_id' => $user->id,
-                        'platform' => 'TrouvetaBabysitter',
-                        'onboarding_method' => 'internal'
-                    ]
-                ];
-            }
-
-            // Préparer les données individuelles
-            $individual = [
-                'first_name' => $validatedData['first_name'],
-                'last_name' => $validatedData['last_name'],
-                'email' => $validatedData['email'],
-                'dob' => [
-                    'day' => $validatedData['dob_day'],
-                    'month' => $validatedData['dob_month'],
-                    'year' => $validatedData['dob_year'],
-                ],
-                'address' => [
-                    'line1' => $validatedData['address_line1'],
-                    'city' => $validatedData['address_city'],
-                    'postal_code' => $validatedData['address_postal_code'],
-                    'country' => $validatedData['address_country'],
-                ]
-            ];
-
-            // Ajouter le téléphone si fourni
-            if (!empty($validatedData['phone'])) {
-                $phone = $this->formatPhoneForStripe($validatedData['phone']);
-                if ($phone) {
-                    $individual['phone'] = $phone;
-                }
-            }
-
-            // Profil business
-            $businessProfile = [
-                'mcc' => '8299', // Services de garde d'enfants
-                'product_description' => $validatedData['business_description'],
-            ];
-
-            // Compte externe (IBAN)
-            $externalAccount = [
-                'object' => 'bank_account',
-                'country' => 'FR',
-                'currency' => 'eur',
-                'account_holder_name' => $validatedData['account_holder_name'],
-                'account_number' => str_replace(' ', '', $validatedData['iban']),
-            ];
-
-            // Acceptation des conditions d'utilisation
-            $tosAcceptance = [
-                'date' => time(),
-                'ip' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ];
-
-            if ($isCreating) {
-                // Créer un nouveau compte avec toutes les données
-                $accountData['individual'] = $individual;
-                $accountData['business_profile'] = $businessProfile;
-                $accountData['external_account'] = $externalAccount;
-                $accountData['tos_acceptance'] = $tosAcceptance;
-
-                $account = $this->stripe->accounts->create($accountData);
-                
-                // Sauvegarder l'ID du compte
-                $user->update([
-                    'stripe_account_id' => $account->id,
-                    'stripe_account_status' => 'pending'
-                ]);
-
-                Log::info('Compte Stripe Connect créé avec onboarding interne', [
-                    'user_id' => $user->id,
-                    'account_id' => $account->id,
-                    'method' => 'internal_onboarding'
-                ]);
-
-            } else {
-                // Pour un compte existant, tenter la mise à jour directe
-                try {
-                    $updateData = [
-                        'individual' => $individual,
-                        'business_profile' => $businessProfile,
-                        'tos_acceptance' => $tosAcceptance,
-                    ];
-
-                    $this->stripe->accounts->update($user->stripe_account_id, $updateData);
-
-                    // Ajouter le compte externe (IBAN)
-                    try {
-                        $this->stripe->accounts->createExternalAccount(
-                            $user->stripe_account_id,
-                            ['external_account' => $externalAccount]
-                        );
-                    } catch (\Exception $e) {
-                        // Si le compte externe existe déjà, l'ignorer
-                        if (strpos($e->getMessage(), 'already exists') === false) {
-                            throw $e;
-                        }
-                    }
-
-                    $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
-
-                } catch (\Exception $e) {
-                    // Si la mise à jour échoue, recréer le compte
-                    if (strpos($e->getMessage(), 'does not have the required permissions') !== false ||
-                        strpos($e->getMessage(), 'does not have access to account') !== false ||
-                        strpos($e->getMessage(), 'that account does not exist') !== false) {
-                        
-                        Log::info('Recréation du compte Stripe à cause d\'erreur d\'accès', [
-                            'user_id' => $user->id,
-                            'old_account_id' => $user->stripe_account_id,
-                            'error' => $e->getMessage()
-                        ]);
-
-                        // Essayer de supprimer l'ancien compte (si il existe encore)
-                        try {
-                            $this->stripe->accounts->delete($user->stripe_account_id);
-                        } catch (\Exception $deleteError) {
-                            // Ignorer les erreurs de suppression
-                            Log::info('Impossible de supprimer l\'ancien compte (probablement déjà supprimé)', [
-                                'account_id' => $user->stripe_account_id
-                            ]);
-                        }
-                        
-                        // Nettoyer la référence et créer un nouveau compte
-                        $user->stripe_account_id = null;
-                        $user->save();
-                        
-                        // Créer un nouveau compte
-                        $accountData = [
-                            'type' => 'custom',
-                            'country' => 'FR',
-                            'email' => $validatedData['email'],
-                            'capabilities' => [
-                                'card_payments' => ['requested' => true],
-                                'transfers' => ['requested' => true],
-                            ],
-                            'business_type' => 'individual',
-                            'individual' => $individual,
-                            'business_profile' => $businessProfile,
-                            'tos_acceptance' => $tosAcceptance,
-                            'external_account' => $externalAccount,
-                            'metadata' => [
-                                'user_id' => $user->id,
-                                'platform' => 'TrouvetaBabysitter',
-                                'onboarding_method' => 'internal_recreated'
-                            ]
-                        ];
-
-                        $account = $this->stripe->accounts->create($accountData);
-                        
-                        // Mettre à jour l'ID du compte dans la base
-                        $user->stripe_account_id = $account->id;
-                        $user->save();
-                    } else {
-                        throw $e;
-                    }
-                }
-
-                $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
-
-                Log::info('Compte Stripe Connect mis à jour avec onboarding interne', [
-                    'user_id' => $user->id,
-                    'account_id' => $user->stripe_account_id,
-                    'method' => 'internal_onboarding'
-                ]);
-            }
-
-            // Récupérer le statut du compte
-            $status = $this->getAccountStatus($user);
-
-            return [
-                'account_id' => $account->id,
-                'status' => $status,
-                'account' => $account
-            ];
+            // Créer un nouveau compte avec account token
+            return $this->createConnectAccountWithToken($user, $validated);
 
         } catch (\Exception $e) {
-            Log::error('Erreur lors de l\'onboarding interne', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            // Si l'erreur concerne la nécessité d'utiliser des tokens pour la France
+            if (strpos($e->getMessage(), 'Connect platforms based in FR must create accounts via account tokens') !== false) {
+                Log::info('🇫🇷 Erreur détectée pour la France - utilisation des account tokens requise', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+
+                // Créer avec account token
+                return $this->createConnectAccountWithToken($user, $validated);
+            }
+
             throw $e;
         }
     }
@@ -3027,6 +2881,201 @@ class StripeService
                 'error' => $e->getMessage()
             ]);
             return null;
+        }
+    }
+
+    /**
+     * Créer un compte Stripe Connect avec account token (méthode requise pour la France)
+     */
+    public function createConnectAccountWithToken(User $user, array $formData)
+    {
+        try {
+            Log::info('🚀 Création compte Connect avec token', [
+                'user_id' => $user->id,
+                'form_data' => array_keys($formData)
+            ]);
+
+            // Vérifier l'âge minimum
+            $birthDate = sprintf('%04d-%02d-%02d', $formData['dob_year'], $formData['dob_month'], $formData['dob_day']);
+            $age = \Carbon\Carbon::parse($birthDate)->age;
+            if ($age < 16) {
+                throw new \Exception('Vous devez avoir au moins 16 ans pour créer un compte de paiement');
+            }
+
+            // Préparer les données pour le token de compte
+            $accountTokenData = [
+                'account' => [
+                    'individual' => [
+                        'first_name' => $formData['first_name'],
+                        'last_name' => $formData['last_name'],
+                        'email' => $formData['email'],
+                        'dob' => [
+                            'day' => (int) $formData['dob_day'],
+                            'month' => (int) $formData['dob_month'],
+                            'year' => (int) $formData['dob_year'],
+                        ],
+                        'address' => [
+                            'line1' => $formData['address_line1'],
+                            'city' => $formData['address_city'],
+                            'postal_code' => $formData['address_postal_code'],
+                            'country' => $formData['address_country'],
+                        ],
+                    ],
+                    'business_type' => 'individual',
+                    'tos_shown_and_accepted' => $formData['tos_acceptance'] ?? true,
+                    'business_profile' => [
+                        'mcc' => $formData['mcc'],
+                        'product_description' => $formData['business_description'],
+                    ],
+                    'external_account' => [
+                        'object' => 'bank_account',
+                        'country' => 'FR',
+                        'currency' => 'eur',
+                        'account_holder_name' => $formData['account_holder_name'],
+                        'account_number' => str_replace(' ', '', $formData['iban']),
+                    ],
+                ],
+            ];
+
+            // Ajouter le téléphone si fourni
+            if (!empty($formData['phone'])) {
+                $formattedPhone = $this->formatPhoneForStripe($formData['phone']);
+                if ($formattedPhone) {
+                    $accountTokenData['account']['individual']['phone'] = $formattedPhone;
+                }
+            }
+
+            Log::info('📋 Données pour token de compte', [
+                'user_id' => $user->id,
+                'account_token_data' => $accountTokenData
+            ]);
+
+            // Créer le token de compte
+            $accountToken = $this->stripe->accountTokens->create($accountTokenData);
+
+            Log::info('🔑 Token de compte créé', [
+                'user_id' => $user->id,
+                'token_id' => $accountToken->id
+            ]);
+
+            // Créer le compte Connect avec le token
+            $accountData = [
+                'type' => 'custom',
+                'country' => 'FR',
+                'account_token' => $accountToken->id,
+                'capabilities' => [
+                    'card_payments' => ['requested' => true],
+                    'transfers' => ['requested' => true],
+                ],
+                'metadata' => [
+                    'user_id' => $user->id,
+                    'platform' => 'TrouvetaBabysitter',
+                    'created_with_token' => 'true'
+                ]
+            ];
+
+            $account = $this->stripe->accounts->create($accountData);
+
+            // Sauvegarder l'ID du compte
+            $user->update([
+                'stripe_account_id' => $account->id,
+                'stripe_account_status' => 'pending'
+            ]);
+
+            Log::info('✅ Compte Stripe Connect créé avec token', [
+                'user_id' => $user->id,
+                'account_id' => $account->id,
+                'token_id' => $accountToken->id
+            ]);
+
+            return $account;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la création du compte Connect avec token', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+
+    /**
+     * Mettre à jour un compte Connect existant
+     */
+    private function updateExistingConnectAccount(User $user, array $validated)
+    {
+        try {
+            $updateData = [];
+
+            // Informations individuelles
+            $individual = [
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'dob' => [
+                    'day' => (int) $validated['dob_day'],
+                    'month' => (int) $validated['dob_month'],
+                    'year' => (int) $validated['dob_year'],
+                ],
+                'address' => [
+                    'line1' => $validated['address_line1'],
+                    'city' => $validated['address_city'],
+                    'postal_code' => $validated['address_postal_code'],
+                    'country' => $validated['address_country'],
+                ],
+            ];
+
+            // Ajouter le téléphone si fourni
+            if (!empty($validated['phone'])) {
+                $formattedPhone = $this->formatPhoneForStripe($validated['phone']);
+                if ($formattedPhone) {
+                    $individual['phone'] = $formattedPhone;
+                }
+            }
+
+            $updateData['individual'] = $individual;
+
+            // Profil business
+            $updateData['business_profile'] = [
+                'mcc' => $validated['mcc'],
+                'product_description' => $validated['business_description'],
+            ];
+
+            // Informations bancaires externes (compte externe)
+            $updateData['external_account'] = [
+                'object' => 'bank_account',
+                'country' => 'FR',
+                'currency' => 'eur',
+                'account_holder_name' => $validated['account_holder_name'],
+                'account_number' => str_replace(' ', '', $validated['iban']),
+            ];
+
+            // Acceptation des conditions d'utilisation
+            $updateData['tos_acceptance'] = [
+                'date' => time(),
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ];
+
+            // Effectuer la mise à jour
+            $account = $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+
+            Log::info('✅ Compte Connect mis à jour', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id
+            ]);
+
+            return $account;
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la mise à jour du compte Connect', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
     }
 } 
