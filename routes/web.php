@@ -215,6 +215,7 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     Route::get('/stripe/connect', [StripeController::class, 'connect'])->name('babysitter.stripe.connect');
     Route::post('/stripe/create-onboarding-link', [StripeController::class, 'createOnboardingLink'])->name('babysitter.stripe.create-link');
     Route::post('/stripe/create-verification-link', [StripeController::class, 'createVerificationLink'])->name('stripe.create-verification-link');
+    Route::post('/stripe/create-identity-verification-link', [StripeController::class, 'createIdentityVerificationLink'])->name('stripe.create-identity-verification-link');
     Route::get('/stripe/onboarding/success', [StripeController::class, 'onboardingSuccess'])->name('babysitter.stripe.onboarding.success');
     Route::get('/stripe/onboarding/refresh', [StripeController::class, 'onboardingRefresh'])->name('babysitter.stripe.onboarding.refresh');
     Route::get('/stripe/verification/success', [StripeController::class, 'onboardingSuccess'])->name('babysitter.stripe.verification.success');

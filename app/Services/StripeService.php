@@ -3106,4 +3106,50 @@ class StripeService
             throw $e;
         }
     }
+
+    /**
+     * Créer un lien spécifique pour la vérification d'identité
+     * Utilisé quand il y a des requirements critiques d'identité (currently_due/past_due)
+     */
+    public function createIdentityVerificationLink(User $user)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            Log::info('🆔 Création lien vérification identité spécifique', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id
+            ]);
+
+            // Créer un AccountLink spécifiquement pour la vérification d'identité
+            $accountLink = $this->stripe->accountLinks->create([
+                'account' => $user->stripe_account_id,
+                'refresh_url' => route('babysitter.payments') . '?verification=failed',
+                'return_url' => route('babysitter.payments') . '?verification=completed',
+                'type' => 'account_onboarding',
+                'collection_options' => [
+                    'fields' => 'currently_due', // Se concentrer sur les fields actuellement requis
+                    'future_requirements' => 'omit' // Ignorer les requirements futurs pour cette session
+                ]
+            ]);
+
+            Log::info('✅ Lien vérification identité créé', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'url' => substr($accountLink->url, 0, 50) . '...',
+                'expires_at' => $accountLink->expires_at
+            ]);
+
+            return $accountLink;
+
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création du lien de vérification d\'identité', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
 } 

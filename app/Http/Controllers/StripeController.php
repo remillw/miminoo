@@ -1064,4 +1064,38 @@ class StripeController extends Controller
                         ->withInput($request->except(['tos_acceptance'])); // Préserver les données sauf la case à cocher
         }
     }
+
+    /**
+     * Créer un lien spécifique pour la vérification d'identité (requirements critiques)
+     */
+    public function createIdentityVerificationLink(Request $request)
+    {
+        $user = $request->user();
+        try {
+            // Vérifier que l'utilisateur a un compte Stripe Connect
+            if (!$user->stripe_account_id) {
+                return response()->json([
+                    'error' => 'Aucun compte Stripe Connect trouvé. Veuillez d\'abord configurer votre compte.'
+                ], 400);
+            }
+
+            // Créer un AccountLink spécifiquement pour la vérification d'identité
+            $accountLink = $this->stripeService->createIdentityVerificationLink($user);
+            
+            return response()->json([
+                'verification_url' => $accountLink->url,
+                'expires_at' => $accountLink->expires_at,
+                'type' => 'identity_verification'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur création lien de vérification d\'identité', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'error' => 'Erreur lors de la création du lien de vérification d\'identité : ' . $e->getMessage()
+            ], 500);
+        }
+    }
 } 
