@@ -82,6 +82,9 @@ class StripeController extends Controller
         try {
             // Vérifier que l'utilisateur est babysitter
             if (!$user->hasRole('babysitter')) {
+                if ($request->wantsJson() || $request->header('X-Inertia')) {
+                    return back()->withErrors(['error' => 'Seuls les babysitters peuvent créer un compte de paiement']);
+                }
                 return response()->json(['error' => 'Seuls les babysitters peuvent créer un compte de paiement'], 403);
             }
 
@@ -89,9 +92,15 @@ class StripeController extends Controller
             if ($user->date_of_birth) {
                 $age = \Carbon\Carbon::parse($user->date_of_birth)->age;
                 if ($age < 16) {
+                    if ($request->wantsJson() || $request->header('X-Inertia')) {
+                        return back()->withErrors(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement']);
+                    }
                     return response()->json(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement'], 400);
                 }
             } else {
+                if ($request->wantsJson() || $request->header('X-Inertia')) {
+                    return back()->withErrors(['error' => 'Veuillez renseigner votre date de naissance dans votre profil']);
+                }
                 return response()->json(['error' => 'Veuillez renseigner votre date de naissance dans votre profil'], 400);
             }
 
@@ -111,6 +120,10 @@ class StripeController extends Controller
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
+            
+            if ($request->wantsJson() || $request->header('X-Inertia')) {
+                return back()->withErrors(['error' => 'Erreur lors de la création du lien d\'onboarding : ' . $e->getMessage()]);
+            }
             
             return response()->json([
                 'error' => 'Erreur lors de la création du lien d\'onboarding : ' . $e->getMessage()
@@ -939,12 +952,17 @@ class StripeController extends Controller
 
         if (!$user) {
             Log::error('❌ Utilisateur non authentifié');
-            return response()->json(['error' => 'Utilisateur non authentifié'], 401);
+            return back()->withErrors(['error' => 'Utilisateur non authentifié']);
         }
 
         Log::info('🔍 Début internalOnboarding', [
             'user_id' => $user->id,
             'request_data' => $request->all()
+        ]);
+
+        // Nettoyer l'IBAN avant validation
+        $request->merge([
+            'iban' => strtoupper(str_replace(' ', '', $request->input('iban', '')))
         ]);
 
         // Validation des données
@@ -976,18 +994,13 @@ class StripeController extends Controller
             $birthDate = sprintf('%04d-%02d-%02d', $validated['dob_year'], $validated['dob_month'], $validated['dob_day']);
             $age = \Carbon\Carbon::parse($birthDate)->age;
             if ($age < 16) {
-                return response()->json(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement'], 400);
+                return back()->withErrors(['error' => 'Vous devez avoir au moins 16 ans pour créer un compte de paiement']);
             }
 
             // Créer ou mettre à jour le compte Stripe Connect avec les données fournies
             $result = $this->stripeService->createOrUpdateConnectAccountInternal($user, $validated);
             
-            return response()->json([
-                'success' => true,
-                'message' => 'Compte configuré avec succès',
-                'account_id' => $result['account_id'],
-                'status' => $result['status']
-            ]);
+            return redirect()->route('babysitter.payments')->with('success', 'Compte configuré avec succès !');
 
         } catch (\Exception $e) {
             Log::error('Erreur lors de l\'onboarding interne', [
@@ -996,10 +1009,7 @@ class StripeController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return response()->json([
-                'success' => false,
-                'error' => 'Erreur lors de la configuration du compte : ' . $e->getMessage()
-            ], 500);
+            return back()->withErrors(['error' => 'Erreur lors de la configuration du compte : ' . $e->getMessage()]);
         }
     }
 } 
