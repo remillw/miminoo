@@ -32,7 +32,7 @@ class StripeService
 
             // Préparer les données de base avec auto-remplissage
             $accountData = [
-                'type' => 'express', // Express pour simplifier
+                'type' => 'custom', // Custom pour plus de contrôle
                 'country' => 'FR',
                 'email' => $user->email,
                 'capabilities' => [
@@ -2782,7 +2782,7 @@ class StripeService
             if (!$user->stripe_account_id) {
                 $isCreating = true;
                 $accountData = [
-                    'type' => 'express',
+                    'type' => 'custom',
                     'country' => 'FR',
                     'email' => $validatedData['email'],
                     'capabilities' => [
@@ -2868,20 +2868,57 @@ class StripeService
                 ]);
 
             } else {
-                // Mettre à jour un compte existant
-                $updateData = [
-                    'individual' => $individual,
-                    'business_profile' => $businessProfile,
-                    'tos_acceptance' => $tosAcceptance,
-                ];
+                // Pour un compte existant, tenter la mise à jour directe
+                try {
+                    $updateData = [
+                        'individual' => $individual,
+                        'business_profile' => $businessProfile,
+                        'tos_acceptance' => $tosAcceptance,
+                    ];
 
-                $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+                    $this->stripe->accounts->update($user->stripe_account_id, $updateData);
 
-                // Ajouter/mettre à jour le compte externe séparément
-                $this->stripe->accounts->createExternalAccount(
-                    $user->stripe_account_id,
-                    ['external_account' => $externalAccount]
-                );
+                    // Ajouter le compte externe (IBAN)
+                    try {
+                        $this->stripe->accounts->createExternalAccount(
+                            $user->stripe_account_id,
+                            ['external_account' => $externalAccount]
+                        );
+                    } catch (\Exception $e) {
+                        // Si le compte externe existe déjà, l'ignorer
+                        if (strpos($e->getMessage(), 'already exists') === false) {
+                            throw $e;
+                        }
+                    }
+
+                    $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
+
+                } catch (\Exception $e) {
+                    // Si la mise à jour échoue à cause des permissions, supprimer et recréer
+                    if (strpos($e->getMessage(), 'does not have the required permissions') !== false) {
+                        Log::info('Suppression et recréation du compte Stripe à cause des permissions', [
+                            'user_id' => $user->id,
+                            'old_account_id' => $user->stripe_account_id
+                        ]);
+
+                        // Supprimer l'ancien compte
+                        $this->stripe->accounts->delete($user->stripe_account_id);
+                        
+                        // Créer un nouveau compte
+                        $accountData['individual'] = $individual;
+                        $accountData['business_profile'] = $businessProfile;
+                        $accountData['tos_acceptance'] = $tosAcceptance;
+                        $accountData['external_account'] = $externalAccount;
+
+                        $account = $this->stripe->accounts->create($accountData);
+                        
+                        // Mettre à jour l'ID du compte dans la base
+                        $user->stripe_account_id = $account->id;
+                        $user->save();
+                    } else {
+                        throw $e;
+                    }
+                }
 
                 $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
 
