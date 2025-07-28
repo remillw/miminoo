@@ -2933,6 +2933,11 @@ class StripeService
                     'card_payments' => ['requested' => true],
                     'transfers' => ['requested' => true],
                 ],
+                'business_profile' => [
+                    'mcc' => $additionalData['mcc'] ?? '8299', // Code MCC pour services de garde d'enfants
+                    'product_description' => $additionalData['business_description'] ?? 'Services de garde d\'enfants et babysitting',
+                    'url' => 'https://trouvetababysitter.com', // URL du site web d'entreprise requis
+                ],
                 'metadata' => [
                     'user_id' => $user->id,
                     'platform' => 'TrouvetaBabysitter',
