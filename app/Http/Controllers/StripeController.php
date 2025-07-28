@@ -983,6 +983,7 @@ class StripeController extends Controller
             'business_description' => 'required|string|max:500',
             'mcc' => 'nullable|string', // Code MCC optionnel
             'tos_acceptance' => 'required|accepted',
+            'account_token' => 'nullable|string', // Token Stripe créé côté client
         ]);
 
         // Ajouter les valeurs par défaut si elles ne sont pas présentes

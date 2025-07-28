@@ -2804,6 +2804,15 @@ class StripeService
     public function createOrUpdateConnectAccountInternal(User $user, array $validated)
     {
         try {
+            // Vérifier si un account token a été fourni
+            if (isset($validated['account_token'])) {
+                Log::info('🔑 Account token fourni - création avec token client', [
+                    'user_id' => $user->id
+                ]);
+                
+                return $this->createConnectAccountWithClientToken($user, $validated['account_token']);
+            }
+
             // Si l'utilisateur a déjà un compte Stripe Connect, essayer d'abord de le mettre à jour
             if ($user->stripe_account_id) {
                 try {
@@ -2819,7 +2828,7 @@ class StripeService
                     return $this->updateExistingConnectAccount($user, $validated);
                     
                 } catch (\Exception $e) {
-                    Log::warning('Compte Stripe Connect introuvable ou inaccessible, création d\'un nouveau', [
+                    Log::warning('Compte Stripe Connect introuvable ou inaccessible, utilisation de l\'onboarding externe', [
                         'user_id' => $user->id,
                         'old_account_id' => $user->stripe_account_id,
                         'error' => $e->getMessage()
@@ -2828,11 +2837,14 @@ class StripeService
                     // Nettoyer la référence au compte qui n'existe plus
                     $user->stripe_account_id = null;
                     $user->save();
+                    
+                    // Lancer une exception pour suggérer l'onboarding externe
+                    throw new \Exception('Configuration avec account tokens requise. Veuillez utiliser la configuration externe avec Stripe.');
                 }
             }
 
-            // Créer un nouveau compte avec account token
-            return $this->createConnectAccountWithToken($user, $validated);
+            // Si pas de token et pas de compte existant, suggérer l'onboarding externe
+            throw new \Exception('Configuration avec account tokens requise. Veuillez utiliser la configuration externe avec Stripe.');
 
         } catch (\Exception $e) {
             // Si l'erreur concerne la nécessité d'utiliser des tokens pour la France
@@ -2841,9 +2853,6 @@ class StripeService
                     'user_id' => $user->id,
                     'error' => $e->getMessage()
                 ]);
-
-                // Créer avec account token
-                return $this->createConnectAccountWithToken($user, $validated);
             }
 
             throw $e;
@@ -2885,84 +2894,21 @@ class StripeService
     }
 
     /**
-     * Créer un compte Stripe Connect avec account token (méthode requise pour la France)
+     * Créer un compte Stripe Connect avec account token (créé côté client)
      */
-    public function createConnectAccountWithToken(User $user, array $formData)
+    public function createConnectAccountWithClientToken(User $user, string $accountToken)
     {
         try {
-            Log::info('🚀 Création compte Connect avec token', [
+            Log::info('🚀 Création compte Connect avec token client', [
                 'user_id' => $user->id,
-                'form_data' => array_keys($formData)
-            ]);
-
-            // Vérifier l'âge minimum
-            $birthDate = sprintf('%04d-%02d-%02d', $formData['dob_year'], $formData['dob_month'], $formData['dob_day']);
-            $age = \Carbon\Carbon::parse($birthDate)->age;
-            if ($age < 16) {
-                throw new \Exception('Vous devez avoir au moins 16 ans pour créer un compte de paiement');
-            }
-
-            // Préparer les données pour le token de compte
-            $accountTokenData = [
-                'account' => [
-                    'individual' => [
-                        'first_name' => $formData['first_name'],
-                        'last_name' => $formData['last_name'],
-                        'email' => $formData['email'],
-                        'dob' => [
-                            'day' => (int) $formData['dob_day'],
-                            'month' => (int) $formData['dob_month'],
-                            'year' => (int) $formData['dob_year'],
-                        ],
-                        'address' => [
-                            'line1' => $formData['address_line1'],
-                            'city' => $formData['address_city'],
-                            'postal_code' => $formData['address_postal_code'],
-                            'country' => $formData['address_country'],
-                        ],
-                    ],
-                    'business_type' => 'individual',
-                    'tos_shown_and_accepted' => $formData['tos_acceptance'] ?? true,
-                    'business_profile' => [
-                        'mcc' => $formData['mcc'] ?? '8299', // Code MCC pour services de garde d'enfants
-                        'product_description' => $formData['business_description'],
-                    ],
-                    'external_account' => [
-                        'object' => 'bank_account',
-                        'country' => 'FR',
-                        'currency' => 'eur',
-                        'account_holder_name' => $formData['account_holder_name'],
-                        'account_number' => str_replace(' ', '', $formData['iban']),
-                    ],
-                ],
-            ];
-
-            // Ajouter le téléphone si fourni
-            if (!empty($formData['phone'])) {
-                $formattedPhone = $this->formatPhoneForStripe($formData['phone']);
-                if ($formattedPhone) {
-                    $accountTokenData['account']['individual']['phone'] = $formattedPhone;
-                }
-            }
-
-            Log::info('📋 Données pour token de compte', [
-                'user_id' => $user->id,
-                'account_token_data' => $accountTokenData
-            ]);
-
-            // Créer le token de compte
-            $accountToken = $this->stripe->accountTokens->create($accountTokenData);
-
-            Log::info('🔑 Token de compte créé', [
-                'user_id' => $user->id,
-                'token_id' => $accountToken->id
+                'account_token' => substr($accountToken, 0, 20) . '...'
             ]);
 
             // Créer le compte Connect avec le token
             $accountData = [
                 'type' => 'custom',
                 'country' => 'FR',
-                'account_token' => $accountToken->id,
+                'account_token' => $accountToken,
                 'capabilities' => [
                     'card_payments' => ['requested' => true],
                     'transfers' => ['requested' => true],
@@ -2970,7 +2916,7 @@ class StripeService
                 'metadata' => [
                     'user_id' => $user->id,
                     'platform' => 'TrouvetaBabysitter',
-                    'created_with_token' => 'true'
+                    'created_with_client_token' => 'true'
                 ]
             ];
 
@@ -2982,16 +2928,15 @@ class StripeService
                 'stripe_account_status' => 'pending'
             ]);
 
-            Log::info('✅ Compte Stripe Connect créé avec token', [
+            Log::info('✅ Compte Stripe Connect créé avec token client', [
                 'user_id' => $user->id,
-                'account_id' => $account->id,
-                'token_id' => $accountToken->id
+                'account_id' => $account->id
             ]);
 
             return $account;
 
         } catch (\Exception $e) {
-            Log::error('❌ Erreur lors de la création du compte Connect avec token', [
+            Log::error('❌ Erreur lors de la création du compte Connect avec token client', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

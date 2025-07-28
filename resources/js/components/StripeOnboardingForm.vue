@@ -17,7 +17,7 @@ import {
     Shield,
     User,
 } from 'lucide-vue-next';
-import { computed, nextTick, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref, onMounted } from 'vue';
 
 interface Props {
     user: {
@@ -45,6 +45,9 @@ const { showSuccess, showError, handleApiError } = useToast();
 const isLoading = ref(false);
 const currentStep = ref(1);
 const errorMessage = ref('');
+
+// Stripe.js
+let stripe = null;
 
 // Autocomplete Google Places
 const isGoogleLoaded = ref(false);
