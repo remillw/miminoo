@@ -1,5 +1,5 @@
 <template>
-  <AppLayout title="Vérification d'identité">
+  <DashboardLayout :currentMode="'babysitter'" title="Vérification d'identité">
     <div class="py-12">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
@@ -155,13 +155,13 @@
         </div>
       </div>
     </div>
-  </AppLayout>
+  </DashboardLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
-import AppLayout from '@/Layouts/AppLayout.vue'
+import DashboardLayout from '@/layouts/DashboardLayout.vue'
 
 const props = defineProps({
   verificationStatus: String,
