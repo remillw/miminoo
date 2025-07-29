@@ -623,9 +623,9 @@ onMounted(() => {
     // Vérifier si la babysitter est vérifiée pour accéder à cette page
     if (props.babysitterProfile && props.babysitterProfile.verification_status !== 'verified') {
         showVerificationRequired();
-        // Rediriger vers le profil après 3 secondes
+        // Rediriger vers le tableau de bord après 3 secondes
         setTimeout(() => {
-            router.visit('/profil');
+            router.visit('/dashboard');
         }, 3000);
         return;
     }

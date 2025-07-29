@@ -128,7 +128,7 @@ export function useToast() {
     const showVerificationRequired = () => {
         showWarning(
             '🔒 Vérification requise',
-            'Votre profil doit être vérifié par notre équipe pour accéder à cette page. Rendez-vous dans votre profil pour demander la vérification.'
+            'Votre profil doit être vérifié par notre équipe pour accéder à la page des paiements. Vous allez être redirigé vers le tableau de bord.'
         );
     };
 

@@ -519,6 +519,7 @@ const verificationStatus = computed(() => {
             propsProfile: props.babysitterProfile,
             userRoles: props.userRoles,
             hasBabysitterRole: props.hasBabysitterRole,
+            currentMode: currentMode.value,
         });
         return null;
     }
@@ -960,6 +961,56 @@ console.log('🔍 Données utilisateur Profil:', {
                             <span class="hidden sm:inline">50%</span>
                             <span class="hidden sm:inline">80%</span>
                             <span>100%</span>
+                        </div>
+                    </div>
+
+                    <!-- Bouton de demande de vérification -->
+                    <div class="mt-4 flex justify-center">
+                        <div v-if="verificationStatus === 'pending'" class="flex items-center gap-2 rounded-md bg-yellow-100 px-4 py-2 text-sm text-yellow-800">
+                            <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
+                            <span>Vérification en cours...</span>
+                        </div>
+                        <Button 
+                            v-else-if="verificationStatus === 'verified'" 
+                            disabled 
+                            class="cursor-not-allowed bg-green-100 text-green-800"
+                        >
+                            ✅ Profil vérifié
+                        </Button>
+                        <Button
+                            v-else-if="verificationStatus === 'rejected'"
+                            @click="requestVerification"
+                            :disabled="isRequestingVerification || babysitterProfileCompletion < 50"
+                            :class="[
+                                babysitterProfileCompletion < 50 
+                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ]"
+                            :title="babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
+                        >
+                            {{ isRequestingVerification ? 'Envoi en cours...' : 
+                               babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : 
+                               'Soumettre une nouvelle demande' }}
+                        </Button>
+                        <Button
+                            v-else
+                            @click="requestVerification"
+                            :disabled="isRequestingVerification || babysitterProfileCompletion < 50"
+                            :class="[
+                                babysitterProfileCompletion < 50 
+                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ]"
+                            :title="babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
+                        >
+                            {{ isRequestingVerification ? 'Envoi en cours...' : 
+                               babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : 
+                               '🚀 Demander la vérification' }}
+                        </Button>
+                        
+                        <!-- Debug info -->
+                        <div class="mt-2 text-xs text-gray-500 text-center">
+                            Debug: Status = {{ verificationStatus }} | Completion = {{ babysitterProfileCompletion }}%
                         </div>
                     </div>
                 </div>
