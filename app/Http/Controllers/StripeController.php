@@ -177,14 +177,18 @@ class StripeController extends Controller
         $user = $request->user();
 
         try {
-            $verificationSession = $this->stripeService->createIdentityVerificationSession($user);
+            $result = $this->stripeService->createIdentityVerificationSession($user);
+            
+            $session = $result['session'];
+            $accountLink = $result['account_link'];
             
             return response()->json([
                 'success' => true,
                 'session' => [
-                    'id' => $verificationSession->id,
-                    'client_secret' => $verificationSession->client_secret,
-                    'status' => $verificationSession->status,
+                    'id' => $session->id,
+                    'client_secret' => $session->client_secret,
+                    'status' => $session->status,
+                    'url' => $accountLink->url,
                 ]
             ]);
         } catch (\Exception $e) {
