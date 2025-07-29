@@ -25,7 +25,9 @@ Route::middleware('guest')->group(function () {
         ->name('role.complete');
 
     Route::get('connexion', [AuthenticatedSessionController::class, 'create'])
-        ->name('connexion');
+        ->name('connexion')
+        ->name('login'); // alias pour compatibilité
+
 
     Route::post('connexion', [AuthenticatedSessionController::class, 'store']);
 
