@@ -945,7 +945,7 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
                     </div>
 
-                    <!-- Message d'information selon le statut -->
+                    <!-- Bouton et statut de vérification -->
                     <div class="mt-6 flex justify-center">
                         <div v-if="verificationStatus === 'pending'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm border border-yellow-200">
                             <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
@@ -955,16 +955,27 @@ console.log('🔍 Données utilisateur Profil:', {
                             <CheckCircle class="h-5 w-5 text-green-500" />
                             <span class="text-sm font-medium text-green-800">✅ Profil vérifié</span>
                         </div>
-                        <div v-else class="text-center p-6 bg-gray-50 rounded-lg border border-gray-200">
-                            <Shield class="mx-auto h-12 w-12 text-gray-400 mb-3" />
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Demande de vérification</h3>
-                            <p class="text-sm text-gray-600 mb-4">
-                                Pour accéder aux fonctionnalités babysitter, votre profil doit être vérifié par notre équipe.
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                Progression actuelle : {{ babysitterProfileCompletion }}%
-                            </p>
+                        <div v-else-if="verificationStatus === 'rejected'" class="space-y-4">
+                            <div class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-red-50 to-pink-50 px-6 py-3 shadow-sm border border-red-200">
+                                <AlertCircle class="h-5 w-5 text-red-500" />
+                                <span class="text-sm font-medium text-red-800">❌ Demande rejetée</span>
+                            </div>
+                            <Button
+                                @click="requestVerification"
+                                :disabled="isRequestingVerification"
+                                class="bg-primary hover:bg-orange-500 text-white"
+                            >
+                                {{ isRequestingVerification ? 'Envoi en cours...' : 'Soumettre une nouvelle demande' }}
+                            </Button>
                         </div>
+                        <Button
+                            v-else
+                            @click="requestVerification"
+                            :disabled="isRequestingVerification"
+                            class="bg-primary hover:bg-orange-500 text-white"
+                        >
+                            {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
+                        </Button>
                     </div>
                 </div>
             </div>
