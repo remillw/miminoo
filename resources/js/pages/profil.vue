@@ -957,12 +957,8 @@ console.log('🔍 Données utilisateur Profil:', {
 
                     <!-- Bouton de demande de vérification -->
                     <div class="mt-6 flex justify-center">
-                        <div v-if="verificationStatus === 'pending'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm border border-yellow-200">
-                            <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
-                            <span class="text-sm font-medium text-yellow-800">✨ Vérification en cours...</span>
-                        </div>
                         <Button
-                            v-else-if="verificationStatus === 'rejected'"
+                            v-if="verificationStatus === 'rejected'"
                             @click="requestVerification"
                             :disabled="isRequestingVerification || babysitterProfileCompletion < 50"
                             :class="[

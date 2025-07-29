@@ -78,6 +78,17 @@ class CheckBabysitterVerification
                     if ($request->expectsJson()) {
                         return response()->json(['error' => $errorMessage], 403);
                     }
+                    
+                    Log::info('🔒 MIDDLEWARE: Redirection vers dashboard avec toast de vérification', [
+                        'user_id' => $user->id,
+                        'from_url' => $request->fullUrl(),
+                        'flash_messages' => [
+                            'warning' => '🔒 Accès restreint',
+                            'info' => 'Vous devez être vérifié par notre équipe pour accéder à cette page.',
+                            'show_verification_toast' => true
+                        ]
+                    ]);
+                    
                     return redirect()->route('dashboard')
                         ->with('warning', '🔒 Accès restreint')
                         ->with('info', 'Vous devez être vérifié par notre équipe pour accéder à cette page.')
