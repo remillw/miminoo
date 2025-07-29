@@ -26,5 +26,25 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+        <script>
+      const typebotInitScript = document.createElement("script");
+      typebotInitScript.type = "module";
+      typebotInitScript.innerHTML = `import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0/dist/web.js'
+
+Typebot.initBubble({
+  typebot: "customer-support-2lar6lt",
+  theme: {
+    button: {
+      backgroundColor: "#ff8157",
+      customIconSrc:
+        "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij4KCTxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjIiPgoJCTxwYXRoIGQ9Ik0xOCA0YTMgMyAwIDAgMSAzIDN2OGEzIDMgMCAwIDEtMyAzaC01bC01IDN2LTNINmEzIDMgMCAwIDEtMy0zVjdhMyAzIDAgMCAxIDMtM3pNOS41IDloLjAxbTQuOTkgMGguMDEiIC8+CgkJPHBhdGggZD0iTTkuNSAxM2EzLjUgMy41IDAgMCAwIDUgMCIgLz4KCTwvZz4KPC9zdmc+",
+    },
+  },
+});
+`;
+      document.addEventListener('DOMContentLoaded', function() {
+        document.body.append(typebotInitScript);
+      });
+    </script>
     </body>
 </html>
