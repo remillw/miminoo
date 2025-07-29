@@ -59,7 +59,7 @@ const current = ref(0)
 
 const reviews = [
   {
-    avatar: '/storage/review-parent.png',
+    avatar: '/storage/sophie-trouve-ta-babysitter.png',
     name: 'Sophie D.',
     role: 'Maman de 2 enfants',
     rating: 5,
@@ -67,7 +67,7 @@ const reviews = [
       "Trouve ta Babysitter m'a sauvée plus d'une fois ! J'ai pu trouver une babysitter fiable en moins de 30 minutes alors que j'avais une réunion urgente. Le processus est simple et rassurant.",
   },
   {
-    avatar: '/storage/review-parent.png',
+    avatar: '/storage/laetitia-trouve-ta-babysitter.png',
     name: 'Laetitia G.',
     role: 'Maman solo à Aix',
     rating: 5,
@@ -75,7 +75,7 @@ const reviews = [
       "Un service ultra pratique ! J’utilise la plateforme quand j’ai des imprévus pro, et je n’ai jamais été déçue. Les babysitters sont pros et ponctuelles.",
   },
   {
-    avatar: '/storage/review-parent.png',
+    avatar: '/storage/julien-trouve-ta-babysitter.png',
     name: 'Julien M.',
     role: 'Papa de 3 enfants',
     rating: 4,

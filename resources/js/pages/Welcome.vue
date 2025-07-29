@@ -25,7 +25,7 @@ onMounted(() => {
         <HeroSection />
         <HowItWorksSection />
         <TrustSection />
-        <Babysitterlist />
+      <!--  <Babysitterlist /> -->
         <SectionReview />
         <ReassuranceSection />
     </GlobalLayout>
