@@ -1289,44 +1289,19 @@ class StripeService
     public function createIdentityVerificationSession(User $user)
     {
         try {
-            // Vérifier que l'utilisateur a un compte Connect
-            if (!$user->stripe_account_id) {
-                throw new \Exception('Aucun compte Stripe Connect trouvé. Veuillez d\'abord configurer votre compte via l\'onboarding dédié.');
-            }
-
             // Préparer les données pré-remplies pour la vérification d'identité
             $providedDetails = [
                 'email' => $user->email,
             ];
 
-            // Note: Stripe Identity n'accepte pas le champ 'name' dans provided_details
-            // Les noms seront détectés automatiquement depuis le document d'identité
-
-            // Note: Stripe Identity n'accepte pas le champ 'dob' dans provided_details
-            // La date de naissance sera extraite automatiquement du document d'identité
-
-            // Note: Seuls quelques champs sont acceptés dans provided_details pour Stripe Identity
-            // L'adresse, téléphone, etc. seront extraits automatiquement du document d'identité
-
-            // Créer un AccountLink pour forcer la vérification d'identité via Connect
-            // Cela générera une URL directe pour l'onboarding/vérification
-            $accountLink = $this->stripe->accountLinks->create([
-                'account' => $user->stripe_account_id,
-                'refresh_url' => config('app.url') . '/babysitter/paiements?refresh=true',
-                'return_url' => config('app.url') . '/babysitter/paiements?verification=completed',
-                'type' => 'account_onboarding',
-            ]);
-            
-            // Créer aussi une session Identity pour le suivi (optionnel, en arrière-plan)
+            // Créer une session de vérification Stripe Identity
             $verificationSession = $this->stripe->identity->verificationSessions->create([
                 'type' => 'document',
                 'provided_details' => $providedDetails,
                 'return_url' => config('app.url') . '/babysitter/identity-verification/success',
                 'metadata' => [
                     'user_id' => $user->id,
-                    'stripe_account_id' => $user->stripe_account_id,
-                    'purpose' => 'connect_account_verification',
-                    'prefilled_data' => json_encode(array_keys($providedDetails))
+                    'purpose' => 'identity_verification'
                 ],
             ]);
 
@@ -1338,15 +1313,11 @@ class StripeService
             Log::info('Session de vérification Stripe Identity créée', [
                 'user_id' => $user->id,
                 'session_id' => $verificationSession->id,
-                'stripe_account_id' => $user->stripe_account_id,
-                'session_properties' => json_encode(array_keys($verificationSession->toArray())),
-                'has_url' => isset($verificationSession->url) ? 'yes' : 'no'
+                'session_url' => $verificationSession->url,
+                'session_client_secret' => $verificationSession->client_secret
             ]);
 
-            return [
-                'session' => $verificationSession,
-                'account_link' => $accountLink
-            ];
+            return $verificationSession;
 
         } catch (\Exception $e) {
             Log::error('Erreur lors de la création de la session Identity', [
