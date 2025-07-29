@@ -1308,7 +1308,16 @@ class StripeService
             // Note: Seuls quelques champs sont acceptés dans provided_details pour Stripe Identity
             // L'adresse, téléphone, etc. seront extraits automatiquement du document d'identité
 
-            // Créer une session de vérification Identity avec les données pré-remplies
+            // Créer un AccountLink pour forcer la vérification d'identité via Connect
+            // Cela générera une URL directe pour l'onboarding/vérification
+            $accountLink = $this->stripe->accountLinks->create([
+                'account' => $user->stripe_account_id,
+                'refresh_url' => config('app.url') . '/babysitter/paiements?refresh=true',
+                'return_url' => config('app.url') . '/babysitter/paiements?verification=completed',
+                'type' => 'account_onboarding',
+            ]);
+            
+            // Créer aussi une session Identity pour le suivi (optionnel, en arrière-plan)
             $verificationSession = $this->stripe->identity->verificationSessions->create([
                 'type' => 'document',
                 'provided_details' => $providedDetails,
@@ -1334,7 +1343,10 @@ class StripeService
                 'has_url' => isset($verificationSession->url) ? 'yes' : 'no'
             ]);
 
-            return $verificationSession;
+            return [
+                'session' => $verificationSession,
+                'account_link' => $accountLink
+            ];
 
         } catch (\Exception $e) {
             Log::error('Erreur lors de la création de la session Identity', [
