@@ -670,11 +670,21 @@ const startIdentityVerificationProcess = async () => {
         });
 
         const data = await response.json();
+        console.log('Réponse API Identity:', data);
 
-        if (response.ok && data.success && data.session && data.session.url) {
-            // Rediriger directement vers l'URL Stripe Identity
-            window.location.href = data.session.url;
+        if (response.ok && data.success && data.session) {
+            console.log('Session Identity reçue:', data.session);
+            
+            if (data.session.url) {
+                console.log('URL Stripe Identity:', data.session.url);
+                // Rediriger directement vers l'URL Stripe Identity
+                window.location.href = data.session.url;
+            } else {
+                console.error('Aucune URL fournie dans la session');
+                throw new Error('URL de vérification manquante dans la réponse');
+            }
         } else {
+            console.error('Erreur API:', data);
             throw new Error(data.error || 'Erreur lors de la création de la session Identity');
         }
     } catch (err) {

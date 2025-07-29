@@ -1312,6 +1312,7 @@ class StripeService
             $verificationSession = $this->stripe->identity->verificationSessions->create([
                 'type' => 'document',
                 'provided_details' => $providedDetails,
+                'return_url' => config('app.url') . '/babysitter/identity-verification/success',
                 'metadata' => [
                     'user_id' => $user->id,
                     'stripe_account_id' => $user->stripe_account_id,
