@@ -1619,27 +1619,49 @@ class StripeService
                 return $account;
             }
             
-            // Créer un AccountLink spécialisé qui référence la session Identity
-            $accountLink = $this->stripe->accountLinks->create([
-                'account' => $user->stripe_account_id,
-                'refresh_url' => route('babysitter.identity.failure'),
-                'return_url' => route('babysitter.identity.success'),
-                'type' => 'account_onboarding',
-                'collect' => 'currently_due'
-            ]);
+            // Préparer les données vérifiées d'Identity pour auto-remplir Connect
+            $updateData = [
+                'individual' => [],
+                'metadata' => [
+                    'identity_verified_via_identity' => 'true',
+                    'identity_session_id' => $user->stripe_identity_session_id,
+                    'identity_document_type' => $document->type ?? 'unknown',
+                    'identity_document_status' => $document->status ?? 'unknown',
+                    'identity_verified_at' => now()->toISOString(),
+                    'auto_completed_with_identity' => 'true'
+                ]
+            ];
             
-            Log::info('AccountLink créé pour finaliser avec Identity', [
+            // Auto-remplir avec les données vérifiées d'Identity
+            if ($document->first_name) {
+                $updateData['individual']['first_name'] = $document->first_name;
+            }
+            if ($document->last_name) {
+                $updateData['individual']['last_name'] = $document->last_name;
+            }
+            if ($document->dob) {
+                $updateData['individual']['dob'] = [
+                    'day' => $document->dob->day,
+                    'month' => $document->dob->month,
+                    'year' => $document->dob->year,
+                ];
+            }
+            
+            // Mettre à jour le compte Connect avec les données Identity
+            $updatedAccount = $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+            
+            Log::info('Métadonnées Identity ajoutées au compte Connect', [
                 'user_id' => $user->id,
                 'account_id' => $user->stripe_account_id,
-                'link_url' => $accountLink->url,
-                'identity_requirements' => $identityRequirements
+                'identity_requirements' => $identityRequirements,
+                'metadata_updated' => true
             ]);
             
             return [
-                'account' => $account,
-                'account_link' => $accountLink,
-                'method' => 'account_link_with_identity',
-                'requirements_to_resolve' => $identityRequirements
+                'account' => $updatedAccount,
+                'method' => 'metadata_update_for_internal_onboarding',
+                'requirements_to_resolve' => $identityRequirements,
+                'redirect_to_internal_onboarding' => true
             ];
 
         } catch (\Exception $e) {
@@ -1823,16 +1845,11 @@ class StripeService
                 Log::info('Résolution avancée des requirements Connect avec Identity réussie', [
                     'user_id' => $user->id,
                     'account_id' => $user->stripe_account_id,
-                    'charges_enabled' => $account->charges_enabled,
-                    'details_submitted' => $account->details_submitted
+                    'charges_enabled' => $account['account']->charges_enabled,
+                    'details_submitted' => $account['account']->details_submitted
                 ]);
                 
-                return [
-                    'account' => $account,
-                    'resolution_attempted' => true,
-                    'method' => 'advanced_identity_transfer',
-                    'success' => true
-                ];
+                return $account;
                 
             } catch (\Exception $e) {
                 Log::warning('Résolution avancée échouée, tentative de méthode fallback', [
