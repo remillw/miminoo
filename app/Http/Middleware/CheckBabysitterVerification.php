@@ -78,7 +78,9 @@ class CheckBabysitterVerification
                     if ($request->expectsJson()) {
                         return response()->json(['error' => $errorMessage], 403);
                     }
-                    return redirect()->route('dashboard')->with('error', $errorMessage);
+                    return redirect()->route('dashboard')
+                        ->with('warning', '🔒 Accès restreint')
+                        ->with('info', 'Vous devez être vérifié par notre équipe pour accéder à cette page.');
                 }
                 break;
                 

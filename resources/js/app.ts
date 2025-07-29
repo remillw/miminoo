@@ -61,8 +61,16 @@ createInertiaApp({
         router.on('error', (errors) => {
             console.log('🔍 Erreur Inertia capturée:', errors);
             
-            // Vérifier si c'est une erreur de session expirée
-            if (isSessionExpiredError(errors)) {
+            // Convertir l'erreur en format utilisable
+            const errorData = {
+                message: typeof errors === 'string' ? errors : JSON.stringify(errors),
+                status: 500,
+                data: errors
+            };
+            
+            // Vérifier si c'est une erreur de session expirée ou Route [login] not defined
+            if (isSessionExpiredError(errorData)) {
+                console.log('🚨 Session expirée détectée, redirection vers login');
                 import('./composables/useToast').then(({ useToast }) => {
                     const { handleAuthError } = useToast();
                     handleAuthError();

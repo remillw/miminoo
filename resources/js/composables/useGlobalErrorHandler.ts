@@ -15,6 +15,8 @@ export function useGlobalErrorHandler() {
             '';
 
         return errorMessage.toLowerCase().includes('login not defined') ||
+               errorMessage.toLowerCase().includes('route [login] not defined') ||
+               errorMessage.toLowerCase().includes('routenotfoundexception') ||
                errorMessage.toLowerCase().includes('unauthenticated') ||
                errorMessage.toLowerCase().includes('session expired') ||
                (error?.status === 500 && errorMessage.includes('undefined'));

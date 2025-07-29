@@ -808,10 +808,6 @@ console.log('🔍 Données utilisateur Profil:', {
                             <span class="hidden sm:inline">Vérification en cours</span>
                             <span class="sm:hidden">En cours</span>
                         </div>
-                        <Button v-else-if="verificationStatus === 'verified'" disabled class="cursor-not-allowed bg-green-100 text-green-800 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2">
-                            <span class="hidden sm:inline">Profil vérifié</span>
-                            <span class="sm:hidden">Vérifié</span>
-                        </Button>
                         <Button
                             v-else-if="verificationStatus === 'rejected'"
                             @click="requestVerification"
@@ -955,13 +951,6 @@ console.log('🔍 Données utilisateur Profil:', {
                         <div v-if="verificationStatus === 'pending'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm border border-yellow-200">
                             <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
                             <span class="text-sm font-medium text-yellow-800">✨ Vérification en cours...</span>
-                        </div>
-                        <div 
-                            v-else-if="verificationStatus === 'verified'" 
-                            class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-3 shadow-sm border border-green-200"
-                        >
-                            <CheckCircle class="h-5 w-5 text-green-600" />
-                            <span class="text-sm font-medium text-green-800">✅ Profil vérifié</span>
                         </div>
                         <Button
                             v-else-if="verificationStatus === 'rejected'"

@@ -635,18 +635,8 @@ onMounted(() => {
         return;
     }
 
-    // Vérifier si la babysitter est vérifiée pour accéder à cette page
-    if (props.babysitterProfile && props.babysitterProfile.verification_status !== 'verified') {
-        showWarning(
-            '🔒 Accès restreint',
-            'Vous devez être vérifié par notre équipe pour accéder à cette page.'
-        );
-        // Rediriger vers le tableau de bord après 3 secondes
-        setTimeout(() => {
-            router.visit('/dashboard');
-        }, 3000);
-        return;
-    }
+    // La vérification est maintenant gérée par le middleware CheckBabysitterVerification
+    // Si on arrive ici, c'est que la babysitter est vérifiée
 
     // Vérifier le statut toutes les 30 secondes si on est en pending
     const interval = setInterval(() => {
