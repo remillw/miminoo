@@ -77,19 +77,22 @@ class StripeIdentityController extends Controller
         try {
             $result = $this->stripeService->createIdentityVerificationSession($user);
             
+            $session = $result['session'];
+            $accountLink = $result['account_link'];
+            
             Log::info('Résultat création session', [
                 'user_id' => $user->id,
-                'session_id' => $result['session']->id,
-                'account_link_url' => $result['account_link']->url,
+                'session_id' => $session->id,
+                'account_link_url' => $accountLink->url,
             ]);
             
             return response()->json([
                 'success' => true,
                 'session' => [
-                    'id' => $result['session']->id,
-                    'client_secret' => $result['session']->client_secret,
-                    'status' => $result['session']->status,
-                    'url' => $result['account_link']->url, // URL de l'AccountLink
+                    'id' => $session->id,
+                    'client_secret' => $session->client_secret,
+                    'status' => $session->status,
+                    'url' => $accountLink->url, // URL de l'AccountLink
                 ]
             ]);
         } catch (\Exception $e) {
