@@ -57,26 +57,32 @@ createInertiaApp({
         const { installGlobalHandlers, isSessionExpiredError } = useGlobalErrorHandler();
         installGlobalHandlers();
 
-        // Gestionnaire global d'erreurs Inertia pour les sessions expirées
+        // Gestionnaire global d'erreurs Inertia pour les sessions expirées uniquement
         router.on('error', (errors) => {
             console.log('🔍 Erreur Inertia capturée:', errors);
             
-            // Convertir l'erreur en format utilisable
-            const errorData = {
-                message: typeof errors === 'string' ? errors : JSON.stringify(errors),
-                status: 500,
-                data: errors
-            };
-            
-            // Vérifier si c'est une erreur de session expirée ou Route [login] not defined
-            if (isSessionExpiredError(errorData)) {
-                console.log('🚨 Session expirée détectée, redirection vers login');
-                import('./composables/useToast').then(({ useToast }) => {
-                    const { handleAuthError } = useToast();
-                    handleAuthError();
-                });
-                return;
+            // Ne traiter que les vraies erreurs d'authentification
+            // Ignorer les autres erreurs pour permettre la gestion normale des flash messages
+            if (typeof errors === 'string' || (errors && typeof errors === 'object')) {
+                const errorData = {
+                    message: typeof errors === 'string' ? errors : JSON.stringify(errors),
+                    status: 500,
+                    data: errors
+                };
+                
+                // Vérifier si c'est spécifiquement une erreur de session expirée
+                if (isSessionExpiredError(errorData)) {
+                    console.log('🚨 Session expirée détectée, redirection vers login');
+                    import('./composables/useToast').then(({ useToast }) => {
+                        const { handleAuthError } = useToast();
+                        handleAuthError();
+                    });
+                    return;
+                }
             }
+            
+            // Laisser les autres erreurs être gérées normalement par Inertia
+            console.log('ℹ️ Erreur non liée à la session, gestion normale');
         });
 
         // Les listeners Capacitor sont maintenant gérés automatiquement

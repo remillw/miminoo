@@ -28,7 +28,7 @@ export function useGlobalErrorHandler() {
         try {
             const response = await originalFetch.apply(window, args);
             
-            // Vérifier les erreurs 500
+            // Vérifier les erreurs 500 seulement pour les erreurs de session
             if (response.status === 500) {
                 try {
                     const contentType = response.headers.get('content-type');
@@ -39,7 +39,7 @@ export function useGlobalErrorHandler() {
                             return response;
                         }
                     } else {
-                        // Pour les réponses non-JSON, vérifier le texte
+                        // Pour les réponses non-JSON, vérifier le texte seulement si nécessaire
                         const errorText = await response.clone().text();
                         if (isSessionExpiredError({ message: errorText })) {
                             handleAuthError();
@@ -47,14 +47,14 @@ export function useGlobalErrorHandler() {
                         }
                     }
                 } catch (e) {
-                    // Si on ne peut pas parser la réponse, ignorer
+                    // Si on ne peut pas parser la réponse, ignorer silencieusement
                     console.warn('Impossible de parser la réponse d\'erreur 500:', e);
                 }
             }
             
             return response;
         } catch (error) {
-            // Vérifier les erreurs de réseau
+            // Vérifier les erreurs de réseau seulement pour les vraies erreurs de session
             if (isSessionExpiredError(error)) {
                 handleAuthError();
             }

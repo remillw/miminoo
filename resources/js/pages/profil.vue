@@ -589,12 +589,22 @@ const requestVerification = async () => {
             route('babysitter.request-verification'),
             {},
             {
-                onSuccess: (response: any) => {
-                    console.log('✅ Réponse serveur:', response);
-                    showSuccess(
-                        '✅ Demande envoyée !', 
-                        'Votre demande de vérification a été envoyée avec succès. Nos modérateurs vont examiner votre profil sous 24h.'
-                    );
+                onSuccess: (page: any) => {
+                    console.log('✅ Réponse serveur onSuccess:', page);
+                    
+                    // Vérifier d'abord les flash messages dans la page Inertia
+                    if (page.props?.flash?.success) {
+                        showSuccess('✅ Demande envoyée !', page.props.flash.success);
+                    } else if (page.props?.flash?.error) {
+                        showError('❌ Erreur', page.props.flash.error);
+                        return;
+                    } else {
+                        // Fallback si pas de flash message
+                        showSuccess(
+                            '✅ Demande envoyée !', 
+                            'Votre demande de vérification a été envoyée avec succès. Nos modérateurs vont examiner votre profil sous 24h.'
+                        );
+                    }
 
                     // Force la mise à jour du statut localement IMMÉDIATEMENT
                     if (babysitterProfile.value) {
@@ -610,7 +620,6 @@ const requestVerification = async () => {
                 },
                 onError: (errors: any) => {
                     console.error('❌ Erreur demande vérification:', errors);
-                    // Les erreurs 500 sont maintenant gérées globalement
 
                     if (errors.message) {
                         showError(errors.message);

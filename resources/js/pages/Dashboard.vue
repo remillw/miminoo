@@ -5,6 +5,7 @@ import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { useUserMode } from '@/composables/useUserMode';
+import { useToast } from '@/composables/useToast';
 
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed, onMounted } from 'vue';
@@ -40,11 +41,20 @@ interface Props {
 
 const props = defineProps<Props>();
 const { currentMode, initializeMode } = useUserMode();
+const { showVerificationRequired } = useToast();
 const page = usePage();
 
 // Initialiser le mode au montage du composant
 onMounted(() => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
+    
+    // Vérifier si l'utilisateur a été redirigé depuis la page des paiements
+    // car il n'était pas vérifié (géré par le middleware CheckBabysitterVerification)
+    const flash = page.props.flash as any;
+    if (flash?.show_verification_toast) {
+        console.log('🔒 Dashboard: Utilisateur redirigé depuis paiements - Affichage toast de vérification');
+        showVerificationRequired();
+    }
 });
 
 // Contenu dynamique selon le mode
