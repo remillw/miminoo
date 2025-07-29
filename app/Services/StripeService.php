@@ -1591,46 +1591,6 @@ class StripeService
 
             $document = $verificationReport->document;
 
-            // Préparer les données pour satisfaire les exigences Connect
-            $updateData = [
-                'individual' => [
-                    'verification' => [
-                        'status' => 'verified', // Marquer comme vérifié
-                        'document' => [
-                            'front' => 'file_identity_verified', // Référence symbolique
-                            'back' => null,
-                        ],
-                        'details' => 'Verified via Stripe Identity session: ' . $user->stripe_identity_session_id,
-                        'details_code' => 'identity_document_verified'
-                    ]
-                ],
-                'metadata' => [
-                    'user_id' => $user->id,
-                    'platform' => 'TrouvetaBabysitter',
-                    'identity_session_id' => $user->stripe_identity_session_id,
-                    'identity_status' => $session->status,
-                    'identity_document_verified' => 'true',
-                    'identity_satisfies_connect' => 'true',
-                    'eventually_due_resolved_at' => now()->toISOString(),
-                    'resolution_method' => 'stripe_identity'
-                ]
-            ];
-
-            // Si nous avons les données vérifiées, les ajouter
-            if ($document->first_name) {
-                $updateData['individual']['first_name'] = $document->first_name;
-            }
-            if ($document->last_name) {
-                $updateData['individual']['last_name'] = $document->last_name;
-            }
-            if ($document->dob) {
-                $updateData['individual']['dob'] = [
-                    'day' => $document->dob->day,
-                    'month' => $document->dob->month,
-                    'year' => $document->dob->year,
-                ];
-            }
-
             Log::info('Tentative de résolution des exigences Connect avec Identity', [
                 'user_id' => $user->id,
                 'account_id' => $user->stripe_account_id,
@@ -1638,24 +1598,49 @@ class StripeService
                 'document_type' => $document->type ?? 'unknown',
                 'document_status' => $document->status ?? 'unknown'
             ]);
-
-            // Mettre à jour le compte Connect
-            $account = $this->stripe->accounts->update($user->stripe_account_id, $updateData);
-
-            // Marquer la vérification comme complète
-            $user->update([
-                'identity_verified_at' => now(),
+            
+            // Récupérer les détails actuels du compte
+            $account = $this->stripe->accounts->retrieve($user->stripe_account_id);
+            $currentlyDue = $account->requirements->currently_due ?? [];
+            $eventuallyDue = $account->requirements->eventually_due ?? [];
+            
+            // Si il n'y a pas de requirements d'identité, pas besoin de faire quoi que ce soit
+            $identityRequirements = array_filter(array_merge($currentlyDue, $eventuallyDue), function($req) {
+                return strpos($req, 'individual.verification.document') !== false || 
+                       strpos($req, 'individual.id_number') !== false;
+            });
+            
+            if (empty($identityRequirements)) {
+                Log::info('Aucun requirement d\'identité à résoudre', [
+                    'user_id' => $user->id,
+                    'currently_due' => $currentlyDue,
+                    'eventually_due' => $eventuallyDue
+                ]);
+                return $account;
+            }
+            
+            // Créer un AccountLink spécialisé qui référence la session Identity
+            $accountLink = $this->stripe->accountLinks->create([
+                'account' => $user->stripe_account_id,
+                'refresh_url' => route('babysitter.identity.failure'),
+                'return_url' => route('babysitter.identity.success'),
+                'type' => 'account_onboarding',
+                'collect' => 'currently_due'
             ]);
-
-            Log::info('Exigences Connect résolues avec Identity', [
+            
+            Log::info('AccountLink créé pour finaliser avec Identity', [
                 'user_id' => $user->id,
                 'account_id' => $user->stripe_account_id,
-                'session_id' => $user->stripe_identity_session_id,
-                'account_charges_enabled' => $account->charges_enabled,
-                'account_details_submitted' => $account->details_submitted
+                'link_url' => $accountLink->url,
+                'identity_requirements' => $identityRequirements
             ]);
-
-            return $account;
+            
+            return [
+                'account' => $account,
+                'account_link' => $accountLink,
+                'method' => 'account_link_with_identity',
+                'requirements_to_resolve' => $identityRequirements
+            ];
 
         } catch (\Exception $e) {
             Log::error('Erreur lors de la résolution des exigences Connect avec Identity', [

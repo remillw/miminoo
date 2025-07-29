@@ -211,6 +211,16 @@ class StripeIdentityController extends Controller
                         'session_id' => $user->stripe_identity_session_id,
                         'result' => $result
                     ]);
+                    
+                    // Si un AccountLink a été créé, rediriger l'utilisateur pour finaliser
+                    if (isset($result['account_link'])) {
+                        Log::info('Redirection vers AccountLink pour finaliser Connect', [
+                            'user_id' => $user->id,
+                            'account_link_url' => $result['account_link']->url
+                        ]);
+                        
+                        return redirect($result['account_link']->url);
+                    }
                 }
             }
         } catch (\Exception $e) {
