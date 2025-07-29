@@ -1302,33 +1302,11 @@ class StripeService
             // Note: Stripe Identity n'accepte pas le champ 'name' dans provided_details
             // Les noms seront détectés automatiquement depuis le document d'identité
 
-            // Ajouter la date de naissance si disponible
-            if ($user->date_of_birth) {
-                $dob = \Carbon\Carbon::parse($user->date_of_birth);
-                $providedDetails['dob'] = [
-                    'day' => $dob->day,
-                    'month' => $dob->month,
-                    'year' => $dob->year,
-                ];
-            }
+            // Note: Stripe Identity n'accepte pas le champ 'dob' dans provided_details
+            // La date de naissance sera extraite automatiquement du document d'identité
 
-            // Ajouter l'adresse si disponible
-            if ($user->address) {
-                $providedDetails['address'] = [
-                    'line1' => $user->address->address ?? '',
-                    'city' => $user->address->city ?? $this->extractCityFromAddress($user->address->address ?? ''),
-                    'postal_code' => $user->address->postal_code ?? '',
-                    'country' => 'FR',
-                ];
-            }
-
-            // Ajouter le téléphone si disponible
-            if ($user->phone) {
-                $phone = $this->formatPhoneForStripe($user->phone);
-                if ($phone) {
-                    $providedDetails['phone_number'] = $phone;
-                }
-            }
+            // Note: Seuls quelques champs sont acceptés dans provided_details pour Stripe Identity
+            // L'adresse, téléphone, etc. seront extraits automatiquement du document d'identité
 
             // Créer une session de vérification Identity avec les données pré-remplies
             $verificationSession = $this->stripe->identity->verificationSessions->create([
