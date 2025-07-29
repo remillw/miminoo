@@ -1809,85 +1809,56 @@ class StripeService
             if (!$user->stripe_account_id) {
                 throw new \Exception('Aucun compte Connect trouvé');
             }
-
             if (!$user->stripe_identity_session_id) {
                 throw new \Exception('Aucune session Identity trouvée');
             }
-
+            
             // Vérifier que la session Identity est vérifiée
             $session = $this->getIdentityVerificationSession($user->stripe_identity_session_id);
             if ($session->status !== 'verified') {
                 throw new \Exception('La session Identity doit être vérifiée. Status: ' . $session->status);
             }
-
-            // Récupérer les détails actuels du compte
+            
+            // Récupérer les détails actuels du compte pour voir les requirements
             $accountDetails = $this->getAccountDetails($user);
+            $currentlyDue = $accountDetails['requirements']['currently_due'] ?? [];
             $eventuallyDue = $accountDetails['requirements']['eventually_due'] ?? [];
-
-            // Vérifier si le document d'identité est dans eventually_due
-            if (!in_array('individual.verification.document', $eventuallyDue)) {
-                Log::info('Aucun document d\'identité requis dans eventually_due', [
-                    'user_id' => $user->id,
-                    'eventually_due' => $eventuallyDue
-                ]);
-                return $accountDetails;
-            }
-
-            // Récupérer le rapport de vérification Identity
-            $verificationReport = null;
-            if ($session->last_verification_report) {
-                $verificationReport = $this->getIdentityVerificationReport($session->last_verification_report);
-            }
-
-            // Créer un AccountLink spécial qui "complète" l'onboarding avec Identity
-            // Cette approche force Stripe à réévaluer les exigences
-            $accountLink = $this->stripe->accountLinks->create([
-                'account' => $user->stripe_account_id,
-                'refresh_url' => route('babysitter.stripe.onboarding.refresh'),
-                'return_url' => route('babysitter.stripe.onboarding.success'),
-                'type' => 'account_onboarding', // Utiliser account_onboarding
-                'collect' => 'eventually_due', // Collecter spécifiquement les eventually_due
-            ]);
-
-            // Mettre à jour les métadonnées du compte pour indiquer que Identity satisfait les exigences
-            $updateData = [
-                'metadata' => [
-                    'user_id' => $user->id,
-                    'platform' => 'TrouvetaBabysitter',
-                    'identity_session_id' => $user->stripe_identity_session_id,
-                    'identity_status' => $session->status,
-                    'identity_document_verified' => 'true',
-                    'identity_satisfies_connect' => 'true',
-                    'eventually_due_resolved_at' => now()->toISOString(),
-                    'resolution_method' => 'stripe_identity'
-                ]
-            ];
-
-            if ($verificationReport && $verificationReport->document) {
-                $document = $verificationReport->document;
-                $updateData['metadata']['identity_document_type'] = $document->type ?? 'unknown';
-                $updateData['metadata']['identity_document_status'] = $document->status ?? 'unknown';
-            }
-
-            // Mettre à jour le compte avec les nouvelles métadonnées
-            $account = $this->stripe->accounts->update($user->stripe_account_id, $updateData);
-
-            Log::info('Tentative de résolution du eventually_due via Identity', [
+            
+            Log::info('État des requirements avant résolution automatique', [
                 'user_id' => $user->id,
                 'account_id' => $user->stripe_account_id,
-                'session_id' => $user->stripe_identity_session_id,
-                'account_link_url' => $accountLink->url,
-                'eventually_due_before' => $eventuallyDue
+                'currently_due' => $currentlyDue,
+                'eventually_due' => $eventuallyDue
             ]);
-
-            // Retourner les nouvelles informations
-            return [
-                'account' => $account,
-                'account_link' => $accountLink,
-                'resolution_attempted' => true,
-                'method' => 'identity_metadata_update'
-            ];
-
+            
+            // Utiliser la méthode avancée pour résoudre les requirements avec Identity
+            try {
+                $account = $this->resolveConnectRequirementsWithIdentity($user);
+                
+                Log::info('Résolution avancée des requirements Connect avec Identity réussie', [
+                    'user_id' => $user->id,
+                    'account_id' => $user->stripe_account_id,
+                    'charges_enabled' => $account->charges_enabled,
+                    'details_submitted' => $account->details_submitted
+                ]);
+                
+                return [
+                    'account' => $account,
+                    'resolution_attempted' => true,
+                    'method' => 'advanced_identity_transfer',
+                    'success' => true
+                ];
+                
+            } catch (\Exception $e) {
+                Log::warning('Résolution avancée échouée, tentative de méthode fallback', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Fallback: utiliser l'ancienne méthode avec AccountLink
+                return $this->resolveWithAccountLinkFallback($user, $session, $eventuallyDue);
+            }
+            
         } catch (\Exception $e) {
             Log::error('Erreur lors de la résolution du eventually_due', [
                 'user_id' => $user->id,
@@ -1896,6 +1867,59 @@ class StripeService
             ]);
             throw $e;
         }
+    }
+    
+    /**
+     * Méthode fallback pour résoudre les requirements avec AccountLink
+     */
+    private function resolveWithAccountLinkFallback(User $user, $session, $eventuallyDue)
+    {
+        // Vérifier si le document d'identité est requis
+        if (!in_array('individual.verification.document', $eventuallyDue)) {
+            Log::info('Aucun document d\'identité requis dans eventually_due', [
+                'user_id' => $user->id,
+                'eventually_due' => $eventuallyDue
+            ]);
+            return ['account' => $this->getAccountDetails($user), 'resolution_attempted' => false];
+        }
+        
+        // Créer un AccountLink pour forcer la réévaluation
+        $accountLink = $this->stripe->accountLinks->create([
+            'account' => $user->stripe_account_id,
+            'refresh_url' => route('babysitter.stripe.onboarding.refresh'),
+            'return_url' => route('babysitter.stripe.onboarding.success'),
+            'type' => 'account_onboarding',
+            'collect' => 'eventually_due',
+        ]);
+        
+        // Mettre à jour les métadonnées pour indiquer la résolution
+        $updateData = [
+            'metadata' => [
+                'user_id' => $user->id,
+                'platform' => 'TrouvetaBabysitter',
+                'identity_session_id' => $user->stripe_identity_session_id,
+                'identity_status' => $session->status,
+                'identity_document_verified' => 'true',
+                'identity_satisfies_connect' => 'true',
+                'eventually_due_resolved_at' => now()->toISOString(),
+                'resolution_method' => 'account_link_fallback'
+            ]
+        ];
+        
+        $account = $this->stripe->accounts->update($user->stripe_account_id, $updateData);
+        
+        Log::info('Résolution fallback via AccountLink tentée', [
+            'user_id' => $user->id,
+            'account_id' => $user->stripe_account_id,
+            'account_link_url' => $accountLink->url
+        ]);
+        
+        return [
+            'account' => $account,
+            'account_link' => $accountLink,
+            'resolution_attempted' => true,
+            'method' => 'account_link_fallback'
+        ];
     }
 
     /**

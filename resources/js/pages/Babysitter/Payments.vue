@@ -1235,6 +1235,14 @@ const formatAmount = (amount: number) => {
                                 <span class="text-sm font-medium text-green-800">Identité vérifiée par Stripe !</span>
                             </div>
                             <p class="mt-1 text-sm text-green-700">Votre identité a été vérifiée avec succès par Stripe.</p>
+                            <div class="mt-3">
+                                <p class="text-xs text-green-600 mb-2">Si Stripe demande encore des documents, cliquez ci-dessous pour synchroniser votre vérification :</p>
+                                <Button @click="syncIdentityWithConnect" :disabled="isLoading" variant="outline" size="sm">
+                                    <RefreshCw v-if="!isLoading" class="mr-2 h-3 w-3" />
+                                    <div v-else class="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                                    {{ isLoading ? 'Synchronisation...' : 'Synchroniser avec Connect' }}
+                                </Button>
+                            </div>
                         </div>
                     </div>
 

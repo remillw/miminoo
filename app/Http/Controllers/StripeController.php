@@ -296,7 +296,36 @@ class StripeController extends Controller
         $user = User::where('stripe_account_id', $account['id'])->first();
         
         if ($user) {
-            $this->stripeService->getAccountStatus($user);
+            // Récupérer les détails mis à jour du compte
+            $accountDetails = $this->stripeService->getAccountStatus($user);
+            
+            // Log des changements importants
+            Log::info('Compte Connect mis à jour via webhook', [
+                'user_id' => $user->id,
+                'account_id' => $account['id'],
+                'charges_enabled' => $account['charges_enabled'] ?? false,
+                'details_submitted' => $account['details_submitted'] ?? false,
+                'requirements_currently_due' => $account['requirements']['currently_due'] ?? [],
+                'requirements_eventually_due' => $account['requirements']['eventually_due'] ?? [],
+                'payouts_enabled' => $account['payouts_enabled'] ?? false
+            ]);
+            
+            // Si les requirements sont maintenant résolus et que l'utilisateur avait une session Identity
+            if (empty($account['requirements']['currently_due']) && 
+                empty($account['requirements']['eventually_due']) && 
+                $user->stripe_identity_session_id) {
+                
+                Log::info('Requirements automatiquement résolus après vérification Identity', [
+                    'user_id' => $user->id,
+                    'account_id' => $account['id'],
+                    'identity_session_id' => $user->stripe_identity_session_id
+                ]);
+                
+                // Marquer la vérification comme complètement résolue
+                $user->update([
+                    'identity_verified_at' => now()
+                ]);
+            }
         }
     }
 
@@ -324,6 +353,21 @@ class StripeController extends Controller
             
             // Lier la vérification Identity au compte Connect
             $this->stripeService->linkIdentityToConnect($user, $verificationSession['id']);
+            
+            // Automatiquement résoudre les requirements eventually_due
+            try {
+                $this->stripeService->resolveEventuallyDueIdentityDocument($user);
+                Log::info('Automatically resolved eventually_due requirements after Identity verification', [
+                    'user_id' => $user->id,
+                    'session_id' => $verificationSession['id']
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('Could not automatically resolve eventually_due requirements', [
+                    'user_id' => $user->id,
+                    'session_id' => $verificationSession['id'],
+                    'error' => $e->getMessage()
+                ]);
+            }
             
             Log::info('Identity verification completed and linked to Connect account', [
                 'user_id' => $user->id,
