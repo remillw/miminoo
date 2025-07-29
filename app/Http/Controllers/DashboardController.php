@@ -23,6 +23,9 @@ class DashboardController extends Controller
         $user = Auth::user();
         $requestedMode = $request->get('mode');
         
+        // Vérifier si on doit afficher le toast de vérification
+        $showVerificationToast = $request->get('show_verification_toast') === 'true';
+        
         // Déterminer les rôles de l'utilisateur
         $userRoles = $user->roles->pluck('name')->toArray();
         $hasParentRole = in_array('parent', $userRoles);
@@ -64,6 +67,7 @@ class DashboardController extends Controller
             'requestedMode' => $requestedMode,
             'parentProfile' => $parentProfile,
             'babysitterProfile' => $babysitterProfile,
+            'showVerificationToast' => $showVerificationToast,
         ], $dashboardData));
     }
     

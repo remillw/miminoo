@@ -27,6 +27,7 @@ interface Props {
     requestedMode?: 'parent' | 'babysitter';
     parentProfile?: any;
     babysitterProfile?: any;
+    showVerificationToast?: boolean;
     unreadNotifications?: any[];
     unreadNotificationsCount?: number;
     // Données du dashboard
@@ -48,22 +49,9 @@ const page = usePage();
 onMounted(() => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
     
-    // Debug: Afficher tous les flash messages
-    const flash = page.props.flash as any;
-    console.log('🔍 Dashboard: Flash messages reçus:', flash);
-    
-    // Vérifier si l'utilisateur a été redirigé depuis la page des paiements
-    // car il n'était pas vérifié (géré par le middleware CheckBabysitterVerification)
-    if (flash?.show_verification_toast) {
+    // Vérifier si on doit afficher le toast de vérification
+    if (props.showVerificationToast) {
         console.log('🔒 Dashboard: Utilisateur redirigé depuis paiements - Affichage toast de vérification');
-        showVerificationRequired();
-    } else {
-        console.log('🔍 Dashboard: Pas de show_verification_toast trouvé');
-    }
-    
-    // Alternative : vérifier aussi les messages warning/info standards
-    if (flash?.warning && flash?.info && flash.warning.includes('Accès restreint')) {
-        console.log('🔒 Dashboard: Messages de restriction détectés - Affichage toast alternatif');
         showVerificationRequired();
     }
 });

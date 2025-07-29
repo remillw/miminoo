@@ -955,50 +955,27 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
                     </div>
 
-                    <!-- Bouton de demande de vérification -->
+                    <!-- Message d'information selon le statut -->
                     <div class="mt-6 flex justify-center">
-                        <Button
-                            v-if="verificationStatus === 'rejected'"
-                            @click="requestVerification"
-                            :disabled="isRequestingVerification || babysitterProfileCompletion < 50"
-                            :class="[
-                                'relative px-8 py-3 rounded-lg font-medium text-sm shadow-lg transform transition-all duration-200 hover:scale-105',
-                                babysitterProfileCompletion < 50 
-                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed shadow-gray-200' 
-                                    : 'bg-gradient-to-r from-primary to-orange-500 text-white hover:from-orange-500 hover:to-primary shadow-orange-200'
-                            ]"
-                            :title="babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
-                        >
-                            <div v-if="isRequestingVerification" class="flex items-center gap-2">
-                                <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                <span>Envoi en cours...</span>
-                            </div>
-                            <div v-else class="flex items-center gap-2">
-                                <Shield class="h-4 w-4" />
-                                <span>{{ babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : 'Soumettre une nouvelle demande' }}</span>
-                            </div>
-                        </Button>
-                        <Button
-                            v-else
-                            @click="requestVerification"
-                            :disabled="isRequestingVerification || babysitterProfileCompletion < 50"
-                            :class="[
-                                'relative px-8 py-3 rounded-lg font-medium text-sm shadow-lg transform transition-all duration-200 hover:scale-105',
-                                babysitterProfileCompletion < 50 
-                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed shadow-gray-200' 
-                                    : 'bg-gradient-to-r from-primary to-orange-500 text-white hover:from-orange-500 hover:to-primary shadow-orange-200'
-                            ]"
-                            :title="babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
-                        >
-                            <div v-if="isRequestingVerification" class="flex items-center gap-2">
-                                <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                <span>Envoi en cours...</span>
-                            </div>
-                            <div v-else class="flex items-center gap-2">
-                                <Shield class="h-4 w-4" />
-                                <span>{{ babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : '🚀 Demander la vérification' }}</span>
-                            </div>
-                        </Button>
+                        <div v-if="verificationStatus === 'pending'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm border border-yellow-200">
+                            <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
+                            <span class="text-sm font-medium text-yellow-800">✨ Vérification en cours...</span>
+                        </div>
+                        <div v-else-if="verificationStatus === 'verified'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-3 shadow-sm border border-green-200">
+                            <CheckCircle class="h-5 w-5 text-green-500" />
+                            <span class="text-sm font-medium text-green-800">✅ Profil vérifié</span>
+                        </div>
+                        <div v-else class="text-center p-6 bg-gray-50 rounded-lg border border-gray-200">
+                            <Shield class="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Demande de vérification</h3>
+                            <p class="text-sm text-gray-600 mb-4">
+                                Votre profil doit être complété à au moins 50% et vérifié par notre équipe pour accéder aux fonctionnalités babysitter.
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                Progression actuelle : {{ babysitterProfileCompletion }}%
+                                {{ babysitterProfileCompletion < 50 ? ' - Continuez à remplir votre profil ci-dessous' : ' - Utilisez le bouton en haut pour demander la vérification' }}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

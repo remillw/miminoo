@@ -89,10 +89,9 @@ class CheckBabysitterVerification
                         ]
                     ]);
                     
-                    return redirect()->route('dashboard')
+                    return redirect()->route('dashboard', ['show_verification_toast' => 'true'])
                         ->with('warning', '🔒 Accès restreint')
-                        ->with('info', 'Vous devez être vérifié par notre équipe pour accéder à cette page.')
-                        ->with('show_verification_toast', true);
+                        ->with('info', 'Vous devez être vérifié par notre équipe pour accéder à cette page.');
                 }
                 break;
                 
