@@ -7,7 +7,7 @@ import { useToast } from '@/composables/useToast';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Eye, EyeOff, LoaderCircle, Lock, Mail, User } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { route } from 'ziggy-js';
 import { z } from 'zod';
 
