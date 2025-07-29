@@ -11,6 +11,7 @@ use App\Http\Controllers\BabysitterController;
 use App\Http\Controllers\ReservationController;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\StripeController;
+use App\Http\Controllers\StripeIdentityController;
 use App\Http\Controllers\StripeVerificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ParentController;
