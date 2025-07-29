@@ -601,7 +601,7 @@ const requestVerification = async () => {
                     } else {
                         // Fallback si pas de flash message
                         showSuccess(
-                            '✅ Demande envoyée !', 
+                            'Demande envoyée !', 
                             'Votre demande de vérification a été envoyée avec succès. Nos modérateurs vont examiner votre profil sous 24h.'
                         );
                     }
@@ -953,7 +953,7 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
                         <div v-else-if="verificationStatus === 'verified'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-3 shadow-sm border border-green-200">
                             <CheckCircle class="h-5 w-5 text-green-500" />
-                            <span class="text-sm font-medium text-green-800">✅ Profil vérifié</span>
+                            <span class="text-sm font-medium text-green-800">Profil vérifié</span>
                         </div>
                         <div v-else-if="verificationStatus === 'rejected'" class="space-y-4">
                             <div class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-red-50 to-pink-50 px-6 py-3 shadow-sm border border-red-200">
