@@ -77,7 +77,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const { showSuccess, showError } = useToast();
+const { showSuccess, showError, handleAuthError } = useToast();
 const { currentMode, initializeMode, setMode } = useUserMode();
 
 // Variables réactives
@@ -480,6 +480,8 @@ const submitForm = async () => {
                 },
                 onError: (errors) => {
                     console.error('❌ Erreurs de validation:', errors);
+                    // Les erreurs 500 sont maintenant gérées globalement
+                    
                     showError('Erreur lors de la mise à jour du profil');
                 },
             },
@@ -581,6 +583,15 @@ const requestVerification = async () => {
         return;
     }
 
+    // Vérifier que le profil est complété à au moins 50%
+    if (currentMode.value === 'babysitter' && babysitterProfileCompletion.value < 50) {
+        showError(
+            'Profil incomplet', 
+            `Votre profil doit être complété à au moins 50% pour demander une vérification. Actuellement: ${babysitterProfileCompletion.value}%`
+        );
+        return;
+    }
+
     isRequestingVerification.value = true;
 
     console.log('🚀 Demande de vérification - Début');
@@ -593,7 +604,10 @@ const requestVerification = async () => {
             {
                 onSuccess: (response: any) => {
                     console.log('✅ Réponse serveur:', response);
-                    showSuccess('Demande de vérification envoyée avec succès !');
+                    showSuccess(
+                        '✅ Demande envoyée !', 
+                        'Votre demande de vérification a été envoyée avec succès. Nos modérateurs vont examiner votre profil sous 24h.'
+                    );
 
                     // Force la mise à jour du statut localement IMMÉDIATEMENT
                     if (babysitterProfile.value) {
@@ -609,6 +623,7 @@ const requestVerification = async () => {
                 },
                 onError: (errors: any) => {
                     console.error('❌ Erreur demande vérification:', errors);
+                    // Les erreurs 500 sont maintenant gérées globalement
 
                     if (errors.message) {
                         showError(errors.message);
@@ -822,11 +837,25 @@ console.log('🔍 Données utilisateur Profil:', {
                         <Button
                             v-else
                             @click="requestVerification"
-                            :disabled="isRequestingVerification || verificationStatus === 'pending'"
-                            class="bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
+                            :disabled="isRequestingVerification || verificationStatus === 'pending' || (currentMode === 'babysitter' && babysitterProfileCompletion < 50)"
+                            :class="[
+                                'text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 disabled:cursor-not-allowed disabled:opacity-50',
+                                currentMode === 'babysitter' && babysitterProfileCompletion < 50 
+                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ]"
+                            :title="currentMode === 'babysitter' && babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
                         >
-                            <span class="hidden sm:inline">{{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}</span>
-                            <span class="sm:hidden">{{ isRequestingVerification ? 'Envoi...' : 'Vérification' }}</span>
+                            <span class="hidden sm:inline">
+                                {{ isRequestingVerification ? 'Envoi en cours...' : 
+                                   (currentMode === 'babysitter' && babysitterProfileCompletion < 50) ? `Compléter le profil (${babysitterProfileCompletion}%)` : 
+                                   'Demander la vérification' }}
+                            </span>
+                            <span class="sm:hidden">
+                                {{ isRequestingVerification ? 'Envoi...' : 
+                                   (currentMode === 'babysitter' && babysitterProfileCompletion < 50) ? `${babysitterProfileCompletion}%` : 
+                                   'Vérification' }}
+                            </span>
                         </Button>
                     </div>
                 </div>

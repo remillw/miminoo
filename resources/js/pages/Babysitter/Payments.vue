@@ -27,6 +27,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
 
 interface AccountDetails {
     id: string;
@@ -150,6 +151,7 @@ const props = defineProps<Props>();
 
 // Composables
 const { getFundsStatusColor, getPayoutStatusColor, getStatusText } = useStatusColors();
+const { showVerificationRequired, handleAuthError } = useToast();
 
 const isLoading = ref(false);
 const currentStatus = ref(props.accountStatus);
@@ -453,6 +455,12 @@ const startExternalOnboarding = async () => {
             },
         });
 
+        // Gérer les erreurs 500 (session expirée)
+        if (response.status === 500) {
+            handleAuthError();
+            return;
+        }
+
         // Vérifier le content-type de la réponse
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
@@ -471,6 +479,11 @@ const startExternalOnboarding = async () => {
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
         error.value = errorMessage;
+        
+        // Vérifier si c'est une erreur de session
+        if (err instanceof Error && err.message.includes('login not defined')) {
+            handleAuthError();
+        }
 
         console.error("Erreur lors de la création du lien d'onboarding:", err);
     } finally {
@@ -485,6 +498,7 @@ const refreshAccountStatus = async () => {
 
     try {
         const response = await fetch('/api/stripe/account-status');
+        // Les erreurs 500 sont maintenant gérées globalement
         const data = await response.json();
 
         if (response.ok) {
@@ -496,6 +510,7 @@ const refreshAccountStatus = async () => {
         }
     } catch (err) {
         console.error('Erreur lors de la vérification du statut:', err);
+        // Les erreurs de session sont maintenant gérées globalement
     } finally {
         isRefreshing.value = false;
     }
@@ -579,6 +594,12 @@ const startStripeOnboarding = async () => {
             },
         });
 
+        // Gérer les erreurs 500 (session expirée)
+        if (response.status === 500) {
+            handleAuthError();
+            return;
+        }
+
         const data = await response.json();
 
         if (response.ok && data.onboarding_url) {
@@ -588,12 +609,27 @@ const startStripeOnboarding = async () => {
         }
     } catch (err) {
         error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
+        
+        // Vérifier si c'est une erreur de session
+        if (err instanceof Error && err.message.includes('login not defined')) {
+            handleAuthError();
+        }
     } finally {
         isLoading.value = false;
     }
 };
 
 onMounted(() => {
+    // Vérifier si la babysitter est vérifiée pour accéder à cette page
+    if (props.babysitterProfile && props.babysitterProfile.verification_status !== 'verified') {
+        showVerificationRequired();
+        // Rediriger vers le profil après 3 secondes
+        setTimeout(() => {
+            router.visit('/profil');
+        }, 3000);
+        return;
+    }
+
     // Vérifier le statut toutes les 30 secondes si on est en pending
     const interval = setInterval(() => {
         if (currentStatus.value === 'pending') {

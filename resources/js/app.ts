@@ -7,6 +7,8 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { waitForEcho } from './echo';
+import { router } from '@inertiajs/vue3';
+import { useGlobalErrorHandler } from './composables/useGlobalErrorHandler';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -50,6 +52,24 @@ createInertiaApp({
         });
 
         app.use(plugin).use(ZiggyVue).mount(el);
+
+        // Installer le gestionnaire global d'erreurs
+        const { installGlobalHandlers, isSessionExpiredError } = useGlobalErrorHandler();
+        installGlobalHandlers();
+
+        // Gestionnaire global d'erreurs Inertia pour les sessions expirées
+        router.on('error', (errors) => {
+            console.log('🔍 Erreur Inertia capturée:', errors);
+            
+            // Vérifier si c'est une erreur de session expirée
+            if (isSessionExpiredError(errors)) {
+                import('./composables/useToast').then(({ useToast }) => {
+                    const { handleAuthError } = useToast();
+                    handleAuthError();
+                });
+                return;
+            }
+        });
 
         // Les listeners Capacitor sont maintenant gérés automatiquement
         // par le composable useCapacitor dans les layouts
