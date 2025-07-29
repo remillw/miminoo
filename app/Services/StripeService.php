@@ -1299,10 +1299,8 @@ class StripeService
                 'email' => $user->email,
             ];
 
-            // Ajouter les informations personnelles si disponibles
-            if ($user->firstname && $user->lastname) {
-                $providedDetails['name'] = trim($user->firstname . ' ' . $user->lastname);
-            }
+            // Note: Stripe Identity n'accepte pas le champ 'name' dans provided_details
+            // Les noms seront détectés automatiquement depuis le document d'identité
 
             // Ajouter la date de naissance si disponible
             if ($user->date_of_birth) {
