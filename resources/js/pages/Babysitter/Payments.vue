@@ -661,7 +661,7 @@ const startIdentityVerificationProcess = async () => {
     error.value = '';
 
     try {
-        const response = await fetch('/stripe/create-identity-verification-link', {
+        const response = await fetch('/stripe/identity/create-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -671,11 +671,11 @@ const startIdentityVerificationProcess = async () => {
 
         const data = await response.json();
 
-        if (response.ok && data.verification_url) {
-            // Redirection directe vers Stripe pour la vérification d'identité
-            window.location.href = data.verification_url;
+        if (response.ok && data.success && data.session) {
+            // Rediriger vers la page de vérification Identity intégrée
+            router.visit('/babysitter/identity-verification');
         } else {
-            throw new Error(data.error || 'Erreur lors de la création du lien de vérification d\'identité');
+            throw new Error(data.error || 'Erreur lors de la création de la session Identity');
         }
     } catch (err) {
         error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
