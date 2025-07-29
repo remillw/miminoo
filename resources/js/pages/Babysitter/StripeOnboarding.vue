@@ -289,7 +289,7 @@ onMounted(() => {
 <template>
     <Head title="Configuration du compte de paiement" />
 
-    <div class="min-h-screen bg-gray-50 py-8">
+    <div class="min-h-screen bg-secondary py-8">
         <div class="mx-auto max-w-4xl px-4">
             <!-- Header -->
             <div class="mb-8">
