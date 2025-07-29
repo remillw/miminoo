@@ -988,17 +988,7 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <!-- Actions -->
-                        <div class="flex gap-3">
-                            <Button variant="outline" @click="startExternalOnboarding" class="flex-1">
-                                <Settings class="mr-2 h-4 w-4" />
-                                Gérer mon compte
-                            </Button>
-                            <Button variant="outline" @click="router.visit('/stripe/connect')" class="flex-1">
-                                <Eye class="mr-2 h-4 w-4" />
-                                Vue détaillée
-                            </Button>
-                        </div>
+                        <!-- Actions supprimées selon demande utilisateur -->
                     </div>
                 </CardContent>
             </Card>
