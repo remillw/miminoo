@@ -49,6 +49,14 @@ class StripeWebhookController extends Controller
                 $this->handlePayoutPaid($event->data->object);
                 break;
                 
+            case 'identity.verification_session.verified':
+                $this->handleIdentityVerificationVerified($event->data->object);
+                break;
+                
+            case 'identity.verification_session.requires_input':
+                $this->handleIdentityVerificationRequiresInput($event->data->object);
+                break;
+                
             default:
                 Log::info('Type d\'événement webhook non géré', ['type' => $event->type]);
         }
@@ -228,6 +236,101 @@ class StripeWebhookController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur lors de l\'envoi des demandes d\'avis', [
                 'reservation_id' => $reservation->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Gérer la vérification d'identité réussie
+     */
+    private function handleIdentityVerificationVerified($verificationSession)
+    {
+        Log::info('Vérification Identity réussie', [
+            'session_id' => $verificationSession->id,
+            'status' => $verificationSession->status
+        ]);
+        
+        // Trouver l'utilisateur avec cette session
+        $user = \App\Models\User::where('stripe_identity_session_id', $verificationSession->id)->first();
+        
+        if (!$user) {
+            Log::warning('Utilisateur non trouvé pour la session Identity', [
+                'session_id' => $verificationSession->id
+            ]);
+            return;
+        }
+        
+        try {
+            // Marquer la vérification comme réussie
+            $user->update([
+                'identity_verified_at' => now(),
+                'identity_verification_status' => 'verified'
+            ]);
+            
+            // Optionnel : lier automatiquement au compte Connect si nécessaire
+            if ($user->stripe_account_id) {
+                app(\App\Services\StripeService::class)->linkIdentityToConnect($user);
+            }
+            
+            // Envoyer une notification de confirmation
+            $user->notify(new \App\Notifications\IdentityVerificationSuccessNotification());
+            
+            Log::info('Utilisateur marqué comme vérifié', [
+                'user_id' => $user->id,
+                'session_id' => $verificationSession->id
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors du traitement de la vérification réussie', [
+                'user_id' => $user->id,
+                'session_id' => $verificationSession->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Gérer l'échec de la vérification d'identité
+     */
+    private function handleIdentityVerificationRequiresInput($verificationSession)
+    {
+        Log::info('Vérification Identity échouée - input requis', [
+            'session_id' => $verificationSession->id,
+            'status' => $verificationSession->status,
+            'last_error' => $verificationSession->last_error
+        ]);
+        
+        // Trouver l'utilisateur avec cette session
+        $user = \App\Models\User::where('stripe_identity_session_id', $verificationSession->id)->first();
+        
+        if (!$user) {
+            Log::warning('Utilisateur non trouvé pour la session Identity', [
+                'session_id' => $verificationSession->id
+            ]);
+            return;
+        }
+        
+        try {
+            // Marquer la vérification comme ayant échoué
+            $user->update([
+                'identity_verification_status' => 'requires_input',
+                'identity_verification_error' => $verificationSession->last_error ? json_encode($verificationSession->last_error) : null
+            ]);
+            
+            // Envoyer une notification d'échec avec instructions pour recommencer
+            $user->notify(new \App\Notifications\IdentityVerificationFailedNotification($verificationSession->last_error));
+            
+            Log::info('Utilisateur notifié de l\'échec de vérification', [
+                'user_id' => $user->id,
+                'session_id' => $verificationSession->id,
+                'error' => $verificationSession->last_error
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors du traitement de l\'échec de vérification', [
+                'user_id' => $user->id,
+                'session_id' => $verificationSession->id,
                 'error' => $e->getMessage()
             ]);
         }

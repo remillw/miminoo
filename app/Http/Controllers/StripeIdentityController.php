@@ -198,6 +198,12 @@ class StripeIdentityController extends Controller
                 $session = $this->stripeService->getIdentityVerificationSession($user->stripe_identity_session_id);
                 if ($session->status === 'verified' && !$user->identity_verified_at) {
                     $this->stripeService->linkIdentityToConnect($user);
+                    
+                    // Marquer comme vérifié
+                    $user->update([
+                        'identity_verified_at' => now(),
+                        'identity_verification_status' => 'verified'
+                    ]);
                 }
             }
         } catch (\Exception $e) {
@@ -207,9 +213,11 @@ class StripeIdentityController extends Controller
             ]);
         }
         
-        return redirect()->route('babysitter.payments')->with('success', 
-            'Vérification d\'identité complétée avec succès !'
-        );
+        // Afficher une page de confirmation avec le statut
+        return Inertia::render('Babysitter/IdentityVerificationSuccess', [
+            'verificationStatus' => $this->stripeService->getIdentityVerificationStatus($user),
+            'redirectTo' => route('babysitter.payments')
+        ]);
     }
 
     /**
@@ -246,8 +254,27 @@ class StripeIdentityController extends Controller
      */
     public function failure(Request $request)
     {
-        return redirect()->route('babysitter.payments')->with('error', 
-            'La vérification d\'identité a échoué. Veuillez réessayer.'
-        );
+        $user = $request->user();
+        
+        // Récupérer les détails de l'erreur si possible
+        $errorDetails = null;
+        if ($user->stripe_identity_session_id) {
+            try {
+                $session = $this->stripeService->getIdentityVerificationSession($user->stripe_identity_session_id);
+                $errorDetails = $session->last_error;
+            } catch (\Exception $e) {
+                Log::warning('Impossible de récupérer les détails de l\'erreur', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        // Afficher une page d'échec avec possibilité de recommencer
+        return Inertia::render('Babysitter/IdentityVerificationFailure', [
+            'error' => $errorDetails,
+            'canRetry' => true,
+            'retryUrl' => route('babysitter.identity-verification')
+        ]);
     }
 } 
