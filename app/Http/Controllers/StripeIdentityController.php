@@ -212,14 +212,14 @@ class StripeIdentityController extends Controller
                         'result' => $result
                     ]);
                     
-                    // Si un AccountLink a été créé, rediriger l'utilisateur pour finaliser
-                    if (isset($result['account_link'])) {
-                        Log::info('Redirection vers AccountLink pour finaliser Connect', [
+                    // Si Identity a été vérifiée, rediriger vers l'onboarding interne
+                    if (isset($result['redirect_to_internal_onboarding']) && $result['redirect_to_internal_onboarding']) {
+                        Log::info('Redirection vers onboarding interne après vérification Identity', [
                             'user_id' => $user->id,
-                            'account_link_url' => $result['account_link']->url
+                            'method' => $result['method']
                         ]);
                         
-                        return redirect($result['account_link']->url);
+                        return redirect()->route('babysitter.payments')->with('identity_verified', true);
                     }
                 }
             }

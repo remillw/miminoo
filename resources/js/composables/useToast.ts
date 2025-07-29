@@ -95,7 +95,13 @@ export function useToast() {
                 break;
 
             case 500:
-                showError('💥 Erreur serveur', "Une erreur inattendue s'est produite");
+                // Vérifier si c'est une erreur de session expirée
+                const errorMessage = response.message || response.error || '';
+                if (errorMessage.includes('login not defined') || errorMessage.includes('Unauthenticated')) {
+                    handleAuthError();
+                } else {
+                    showError('💥 Erreur serveur', "Une erreur inattendue s'est produite");
+                }
                 break;
 
             default:
@@ -119,6 +125,25 @@ export function useToast() {
         }
     };
 
+    const showVerificationRequired = () => {
+        showWarning(
+            '🔒 Vérification requise',
+            'Votre profil doit être vérifié par notre équipe pour accéder à la page des paiements. Vous allez être redirigé vers le tableau de bord.'
+        );
+    };
+
+    const handleAuthError = () => {
+        showError(
+            '🔐 Session expirée',
+            'Votre session a expiré. Vous allez être redirigé vers la page de connexion.'
+        );
+        
+        // Redirection après 2 secondes
+        setTimeout(() => {
+            window.location.href = '/connexion';
+        }, 2000);
+    };
+
     return {
         showSuccess,
         showError,
@@ -126,5 +151,7 @@ export function useToast() {
         showInfo,
         handleApiResponse,
         handleApiError,
+        showVerificationRequired,
+        handleAuthError,
     };
 }

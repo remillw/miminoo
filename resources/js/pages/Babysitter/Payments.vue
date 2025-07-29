@@ -27,6 +27,7 @@ import {
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
 
 interface AccountDetails {
     id: string;
@@ -150,6 +151,7 @@ const props = defineProps<Props>();
 
 // Composables
 const { getFundsStatusColor, getPayoutStatusColor, getStatusText } = useStatusColors();
+const { showVerificationRequired, handleAuthError } = useToast();
 
 const isLoading = ref(false);
 const currentStatus = ref(props.accountStatus);
@@ -218,85 +220,41 @@ const connectAccountStatus = computed(() => {
     }
 });
 
-// Interface pour le statut d'onboarding intelligent
-interface OnboardingStatus {
-    status:
-        | 'completed'
-        | 'identity_sufficient'
-        | 'identity_completed_needs_connect'
-        | 'requires_onboarding'
-        | 'requires_action'
-        | 'not_started'
-        | 'error';
-    method: 'identity' | 'connect' | 'connect_after_identity' | 'none' | 'unknown';
-    message: string;
-    requires_onboarding: boolean;
-    can_receive_payments: boolean;
-    identity_verified?: boolean;
-    currently_due?: string[];
-    eventually_due?: string[];
-    remaining_requirements?: string[];
-    error?: string;
-}
+// Statut d'onboarding simplifié
+const onboardingStatus = ref<{status: string, message?: string} | null>(null);
 
-// Statut d'onboarding intelligent qui utilise la nouvelle logique
-const onboardingStatus = ref<OnboardingStatus | null>(null);
-
-// Analyse détaillée du statut de vérification d'identité
-const identityVerificationAnalysis = computed(() => {
+// Analyse simplifiée des requirements Connect
+const connectRequirementsAnalysis = computed(() => {
     if (!props.stripeAccountId || !props.accountDetails) {
         return {
             hasAccount: false,
-            status: 'no_account',
-            isBlocking: false,
-            description: "Aucun compte Stripe Connect configuré"
+            hasRequirements: false,
+            criticalRequirements: [],
+            pendingRequirements: [],
+            futureRequirements: []
         };
     }
 
     const requirements = props.accountDetails.requirements;
-    const individual = props.accountDetails.individual;
-    
-    // Identifier les requirements d'identité
-    const identityRequirements = [
-        'individual.verification.document',
-        'individual.verification.additional_document', 
-        'individual.id_number'
-    ];
-    
-    const criticalIdentityReqs = [
-        ...(requirements.currently_due || []),
-        ...(requirements.past_due || [])
-    ].filter(req => identityRequirements.some(identityReq => req.includes(identityReq)));
-    
-    const pendingIdentityReqs = (requirements.pending_verification || [])
-        .filter(req => identityRequirements.some(identityReq => req.includes(identityReq)));
-    
-    const futureIdentityReqs = (requirements.eventually_due || [])
-        .filter(req => identityRequirements.some(identityReq => req.includes(identityReq)));
-
-    // Analyser le statut de vérification individuelle
-    const verificationStatus = individual?.verification?.status || 'unverified';
-    const documentStatus = individual?.verification?.document || 'unverified';
     
     return {
         hasAccount: true,
-        verificationStatus,
-        documentStatus,
-        criticalIdentityReqs,
-        pendingIdentityReqs,
-        futureIdentityReqs,
-        isBlocking: criticalIdentityReqs.length > 0,
-        hasIdentityRequirements: criticalIdentityReqs.length > 0 || pendingIdentityReqs.length > 0 || futureIdentityReqs.length > 0,
-        isVerified: verificationStatus === 'verified',
-        isPending: verificationStatus === 'pending' || pendingIdentityReqs.length > 0,
-        canReceivePayments: props.accountDetails.charges_enabled && props.accountDetails.payouts_enabled,
-        accountActive: currentStatus.value === 'active'
+        hasRequirements: 
+            (requirements.currently_due?.length || 0) > 0 ||
+            (requirements.past_due?.length || 0) > 0 ||
+            (requirements.eventually_due?.length || 0) > 0,
+        criticalRequirements: [
+            ...(requirements.currently_due || []),
+            ...(requirements.past_due || [])
+        ],
+        pendingRequirements: requirements.pending_verification || [],
+        futureRequirements: requirements.eventually_due || []
     };
 });
 
-// Vérification d'identité (étape 2) - version améliorée avec détection du statut réel
-const identityVerificationStatus = computed(() => {
-    const analysis = identityVerificationAnalysis.value;
+// Statut des requirements Connect simplifiée
+const requirementsStatus = computed(() => {
+    const analysis = connectRequirementsAnalysis.value;
     
     if (!analysis.hasAccount) {
         return {
@@ -305,99 +263,67 @@ const identityVerificationStatus = computed(() => {
             color: 'bg-gray-100 text-gray-800',
             description: "Créez d'abord votre compte Stripe Connect",
             step: 'waiting_for_account',
-            canVerify: false,
+            canComplete: false,
             isBlocking: false,
             priority: 'none'
         };
     }
 
-    // Si des requirements critiques d'identité existent
-    if (analysis.criticalIdentityReqs.length > 0) {
+    // Si des requirements critiques existent
+    if (analysis.criticalRequirements.length > 0) {
         return {
             icon: AlertCircle,
-            label: 'Vérification obligatoire',
+            label: 'Action requise',
             color: 'bg-red-100 text-red-800',
-            description: `Stripe exige une vérification d'identité immédiate. ${analysis.canReceivePayments ? 'Votre compte peut être suspendu' : 'Votre compte est limité'} jusqu'à ce que cette vérification soit complétée.`,
+            description: 'Stripe exige des informations supplémentaires pour finaliser votre compte.',
             step: 'critical_required',
-            canVerify: true,
+            canComplete: true,
             isBlocking: true,
             priority: 'critical',
-            requirements: analysis.criticalIdentityReqs,
-            impactMessage: analysis.canReceivePayments 
-                ? '⚠️ Votre capacité à recevoir des paiements peut être suspendue'
-                : '🚫 Vous ne pouvez pas recevoir de paiements actuellement'
+            requirements: analysis.criticalRequirements
         };
     }
 
     // Si la vérification est en cours
-    if (analysis.isPending) {
+    if (analysis.pendingRequirements.length > 0) {
         return {
             icon: Clock,
             label: 'Vérification en cours',
             color: 'bg-orange-100 text-orange-800',
-            description: 'Stripe vérifie actuellement votre identité. Ce processus peut prendre de quelques minutes à quelques heures.',
+            description: 'Stripe vérifie actuellement vos informations.',
             step: 'pending',
-            canVerify: false,
+            canComplete: false,
             isBlocking: false,
             priority: 'pending',
-            requirements: analysis.pendingIdentityReqs
-        };
-    }
-
-    // Si l'identité est vérifiée
-    if (analysis.isVerified) {
-        return {
-            icon: CheckCircle,
-            label: 'Identité vérifiée',
-            color: 'bg-green-100 text-green-800',
-            description: 'Votre identité a été vérifiée avec succès par Stripe. Vous pouvez recevoir des paiements normalement.',
-            step: 'verified',
-            canVerify: false,
-            isBlocking: false,
-            priority: 'completed'
+            requirements: analysis.pendingRequirements
         };
     }
 
     // Si des requirements futurs existent
-    if (analysis.futureIdentityReqs.length > 0) {
+    if (analysis.futureRequirements.length > 0) {
         return {
             icon: Info,
-            label: 'Vérification à prévoir',
+            label: 'Informations à fournir',
             color: 'bg-blue-100 text-blue-800',
-            description: 'Stripe demande une vérification d\'identité prochainement. Vous pouvez la faire maintenant pour éviter toute interruption.',
+            description: 'Des informations supplémentaires seront bientôt requises.',
             step: 'future_required',
-            canVerify: true,
+            canComplete: true,
             isBlocking: false,
             priority: 'future',
-            requirements: analysis.futureIdentityReqs,
-            impactMessage: '📅 Cette vérification sera bientôt obligatoire'
+            requirements: analysis.futureRequirements
         };
     }
 
-    // Si on a un compte actif mais pas encore de demande d'identité
-    if (analysis.accountActive) {
-        return {
-            icon: CheckCircle,
-            label: 'Aucune vérification requise',
-            color: 'bg-green-100 text-green-800',
-            description: 'Aucune vérification d\'identité n\'est actuellement requise pour votre compte.',
-            step: 'not_required',
-            canVerify: true,
-            isBlocking: false,
-            priority: 'optional'
-        };
-    }
-
-    // Cas par défaut
+    // Compte complet
     return {
-        icon: Info,
-        label: 'Statut à déterminer',
-        color: 'bg-gray-100 text-gray-800',
-        description: 'La vérification d\'identité sera demandée automatiquement selon vos activités.',
-        step: 'not_required_yet',
-        canVerify: true,
+        icon: CheckCircle,
+        label: 'Compte vérifié',
+        color: 'bg-green-100 text-green-800',
+        description: 'Votre compte est entièrement configuré et vérifié.',
+        step: 'verified',
+        canComplete: false,
         isBlocking: false,
-        priority: 'optional'
+        priority: 'completed'
     };
 });
 
@@ -454,44 +380,36 @@ const nextAvailableDate = computed(() => {
         : null;
 });
 
-// Séparer les requirements entre configuration du compte et vérification d'identité
+// Requirements du compte Connect
 const accountRequirements = computed(() => {
     if (!props.accountDetails?.requirements) return [];
-
-    const identityRequirements = ['individual.verification.document', 'individual.verification.additional_document', 'individual.id_number'];
-
-    const filterRequirements = (reqs: string[]) => reqs.filter((req) => !identityRequirements.some((identityReq) => req.includes(identityReq)));
 
     const messages = [];
     const accountReqs = props.accountDetails.requirements;
 
-    const currentlyDue = filterRequirements(accountReqs.currently_due);
-    const pastDue = filterRequirements(accountReqs.past_due);
-    const pendingVerification = filterRequirements(accountReqs.pending_verification);
-
-    if (currentlyDue.length > 0) {
+    if (accountReqs.currently_due?.length > 0) {
         messages.push({
             type: 'error',
-            title: 'Configuration requise immédiatement',
-            items: currentlyDue,
-            description: 'Ces informations sont nécessaires pour configurer votre compte.',
+            title: 'Informations requises immédiatement',
+            items: accountReqs.currently_due,
+            description: 'Ces informations sont nécessaires pour finaliser votre compte.',
         });
     }
 
-    if (pastDue.length > 0) {
+    if (accountReqs.past_due?.length > 0) {
         messages.push({
             type: 'error',
-            title: 'Configuration en retard',
-            items: pastDue,
+            title: 'Informations en retard',
+            items: accountReqs.past_due,
             description: 'Ces informations auraient dû être fournies.',
         });
     }
 
-    if (pendingVerification.length > 0) {
+    if (accountReqs.pending_verification?.length > 0) {
         messages.push({
             type: 'warning',
             title: 'Vérification en cours',
-            items: pendingVerification,
+            items: accountReqs.pending_verification,
             description: 'Nous vérifions actuellement ces informations.',
         });
     }
@@ -514,6 +432,9 @@ const formatRequirement = (requirement: string) => {
         'individual.first_name': 'Prénom',
         'individual.last_name': 'Nom',
         'individual.phone': 'Numéro de téléphone',
+        'individual.verification.document': 'Document d\'identité',
+        'individual.verification.additional_document': 'Document supplémentaire',
+        'individual.id_number': 'Numéro d\'identification'
     };
 
     return mapping[requirement] || requirement;
@@ -534,6 +455,12 @@ const startExternalOnboarding = async () => {
             },
         });
 
+        // Gérer les erreurs 500 (session expirée)
+        if (response.status === 500) {
+            handleAuthError();
+            return;
+        }
+
         // Vérifier le content-type de la réponse
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
@@ -552,6 +479,11 @@ const startExternalOnboarding = async () => {
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
         error.value = errorMessage;
+        
+        // Vérifier si c'est une erreur de session
+        if (err instanceof Error && err.message.includes('login not defined')) {
+            handleAuthError();
+        }
 
         console.error("Erreur lors de la création du lien d'onboarding:", err);
     } finally {
@@ -566,6 +498,7 @@ const refreshAccountStatus = async () => {
 
     try {
         const response = await fetch('/api/stripe/account-status');
+        // Les erreurs 500 sont maintenant gérées globalement
         const data = await response.json();
 
         if (response.ok) {
@@ -577,6 +510,7 @@ const refreshAccountStatus = async () => {
         }
     } catch (err) {
         console.error('Erreur lors de la vérification du statut:', err);
+        // Les erreurs de session sont maintenant gérées globalement
     } finally {
         isRefreshing.value = false;
     }
@@ -631,37 +565,28 @@ const triggerManualPayout = () => {
     );
 };
 
-// Récupérer le statut d'onboarding intelligent
-const fetchOnboardingStatus = async () => {
-    try {
-        const response = await fetch('/api/stripe/onboarding-status', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-                onboardingStatus.value = data.status;
-            }
+// Compléter les informations manquantes via le formulaire interne
+const completeRequirements = () => {
+    // Afficher le formulaire d'onboarding pour compléter les informations
+    // Le formulaire détectera automatiquement les requirements manquants
+    if (connectAccountStatus.value.step !== 'completed') {
+        // Faire défiler vers le formulaire d'onboarding
+        const onboardingSection = document.querySelector('.onboarding-form');
+        if (onboardingSection) {
+            onboardingSection.scrollIntoView({ behavior: 'smooth' });
         }
-    } catch (err) {
-        console.error("Erreur lors de la récupération du statut d'onboarding:", err);
     }
 };
 
-// Démarrer la vérification d'identité spécifique (pour les requirements d'identité)
-const startIdentityVerificationProcess = async () => {
+// Démarrer l'onboarding externe Stripe si nécessaire
+const startStripeOnboarding = async () => {
     if (isLoading.value) return;
 
     isLoading.value = true;
     error.value = '';
 
     try {
-        const response = await fetch('/stripe/identity/create-session', {
+        const response = await fetch('/stripe/create-onboarding-link', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -669,156 +594,62 @@ const startIdentityVerificationProcess = async () => {
             },
         });
 
-        const data = await response.json();
-        console.log('Réponse API Identity:', data);
-
-        if (response.ok && data.success && data.session) {
-            console.log('Session Identity reçue:', data.session);
-            
-            if (data.session.url) {
-                console.log('URL Stripe Identity:', data.session.url);
-                // Rediriger directement vers l'URL Stripe Identity
-                window.location.href = data.session.url;
-            } else {
-                console.error('Aucune URL fournie dans la session');
-                throw new Error('URL de vérification manquante dans la réponse');
-            }
-        } else {
-            console.error('Erreur API:', data);
-            throw new Error(data.error || 'Erreur lors de la création de la session Identity');
+        // Gérer les erreurs 500 (session expirée)
+        if (response.status === 500) {
+            handleAuthError();
+            return;
         }
-    } catch (err) {
-        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-// Démarrer la vérification Connect complète (recommandé)
-const startConnectVerification = async () => {
-    if (isLoading.value) return;
-
-    isLoading.value = true;
-    error.value = '';
-
-    try {
-        const response = await fetch('/stripe/create-verification-link', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
 
         const data = await response.json();
 
-        if (response.ok && data.verification_url) {
-            // Ouvrir dans un nouvel onglet pour une meilleure UX
-            const newWindow = window.open(data.verification_url, '_blank');
-
-            // Vérifier si la popup a été bloquée
-            if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-                // Fallback : redirection directe si popup bloquée
-                window.location.href = data.verification_url;
-            } else {
-                // Démarrer le polling pour vérifier le statut
-                startStatusPolling();
-            }
+        if (response.ok && data.onboarding_url) {
+            window.location.href = data.onboarding_url;
         } else {
             throw new Error(data.error || 'Erreur lors de la création du lien de vérification');
         }
     } catch (err) {
         error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-// Supprimé - utiliser startIdentityVerificationProcess pour aller directement vers Stripe
-
-// Polling du statut après vérification
-const startStatusPolling = () => {
-    const pollInterval = setInterval(async () => {
-        try {
-            await fetchOnboardingStatus();
-            await refreshAccountStatus();
-
-            // Arrêter le polling si la vérification est complète
-            if (onboardingStatus.value?.status === 'completed') {
-                clearInterval(pollInterval);
-            }
-        } catch (err) {
-            console.error('Erreur lors du polling du statut:', err);
+        
+        // Vérifier si c'est une erreur de session
+        if (err instanceof Error && err.message.includes('login not defined')) {
+            handleAuthError();
         }
-    }, 5000); // Vérifier toutes les 5 secondes
-
-    // Arrêter le polling après 5 minutes maximum
-    setTimeout(() => {
-        clearInterval(pollInterval);
-    }, 300000);
-};
-
-// Résoudre les exigences eventually_due (méthode de fallback)
-const resolveEventuallyDue = async () => {
-    if (isLoading.value) return;
-
-    isLoading.value = true;
-    error.value = '';
-
-    try {
-        const response = await fetch('/stripe/identity/resolve-eventually-due', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            // Si un AccountLink est fourni, rediriger vers Stripe
-            if (data.account_link_url) {
-                window.location.href = data.account_link_url;
-            } else {
-                // Sinon, rafraîchir le statut
-                await fetchOnboardingStatus();
-                await refreshAccountStatus();
-            }
-        } else {
-            throw new Error(data.error || 'Erreur lors de la résolution des exigences');
-        }
-    } catch (err) {
-        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
     } finally {
         isLoading.value = false;
     }
 };
 
 onMounted(() => {
-    // Récupérer le statut d'onboarding intelligent au chargement
-    fetchOnboardingStatus();
+    // Vérifier si la babysitter est vérifiée pour accéder à cette page
+    if (props.babysitterProfile && props.babysitterProfile.verification_status !== 'verified') {
+        showVerificationRequired();
+        // Rediriger vers le tableau de bord après 3 secondes
+        setTimeout(() => {
+            router.visit('/dashboard');
+        }, 3000);
+        return;
+    }
 
     // Vérifier le statut toutes les 30 secondes si on est en pending
     const interval = setInterval(() => {
         if (currentStatus.value === 'pending') {
             refreshAccountStatus();
-            fetchOnboardingStatus();
         } else {
             clearInterval(interval);
         }
     }, 30000);
 
-    // Détecter si l'utilisateur revient d'une vérification
+    // Détecter si l'utilisateur revient d'une vérification Stripe
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('verification') === 'completed') {
-        // Afficher un message de succès
-        console.log('🎉 Vérification terminée ! Mise à jour du statut...');
+        console.log('🎉 Vérification terminée ! Actualisation du statut...');
+        
+        // Actualiser le statut après vérification
+        setTimeout(() => {
+            refreshAccountStatus();
+        }, 1000);
 
-        // Démarrer le polling pour détecter les changements
-        startStatusPolling();
-
-        // Nettoyer l'URL après 2 secondes
+        // Nettoyer l'URL
         setTimeout(() => {
             const url = new URL(window.location.href);
             url.searchParams.delete('verification');
@@ -915,28 +746,7 @@ const formatAmount = (amount: number) => {
                     <p class="mb-4 text-gray-600">{{ connectAccountStatus.description }}</p>
 
                     <!-- Formulaire d'onboarding interne -->
-                    <div v-if="connectAccountStatus.step === 'not_created'" class="space-y-4">
-                        <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                            <div class="mb-2 flex items-center">
-                                <Info class="mr-2 h-4 w-4 text-primary" />
-                                <span class="text-sm font-medium text-primary">Configuration de votre compte de paiement</span>
-                            </div>
-                            <p class="text-sm text-primary/80">
-                                Remplissez les informations ci-dessous pour configurer votre compte Stripe Connect.
-                            </p>
-                        </div>
-
-                        <StripeOnboardingForm 
-                            v-if="user" 
-                            :user="user" 
-                            :account-status="accountStatus" 
-                            :stripe-account-id="stripeAccountId"
-                            :google-places-api-key="googlePlacesApiKey"
-                        />
-                    </div>
-
-                    <!-- Compte en cours de configuration -->
-                    <div v-else-if="connectAccountStatus.step === 'pending' || connectAccountStatus.step === 'action_required'" class="space-y-4">
+                    <div v-if="connectAccountStatus.step === 'not_created' || connectAccountStatus.step === 'pending' || connectAccountStatus.step === 'action_required'" class="space-y-4">
                         <!-- Erreur -->
                         <div v-if="error" class="rounded-md border border-red-200 bg-red-50 p-4">
                             <div class="flex items-center">
@@ -947,21 +757,72 @@ const formatAmount = (amount: number) => {
 
                         <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
                             <div class="mb-2 flex items-center">
-                                <CheckCircle class="mr-2 h-4 w-4 text-primary" />
-                                <span class="text-sm font-medium text-primary">Finalisation de votre compte</span>
+                                <Info class="mr-2 h-4 w-4 text-primary" />
+                                <span class="text-sm font-medium text-primary">
+                                    {{ connectAccountStatus.step === 'not_created' ? 'Configuration de votre compte de paiement' : 'Finalisation de votre compte' }}
+                                </span>
                             </div>
                             <p class="text-sm text-primary/80">
-                                Complétez les informations manquantes pour finaliser votre compte.
+                                {{ connectAccountStatus.step === 'not_created' 
+                                    ? 'Remplissez les informations ci-dessous pour configurer votre compte Stripe Connect.' 
+                                    : 'Complétez les informations manquantes pour finaliser votre compte.' }}
                             </p>
                         </div>
 
-                        <StripeOnboardingForm 
-                            v-if="user" 
-                            :user="user" 
-                            :account-status="accountStatus" 
-                            :stripe-account-id="stripeAccountId"
-                            :google-places-api-key="googlePlacesApiKey"
-                        />
+                        <!-- Affichage des requirements manquants -->
+                        <div v-if="accountRequirements.length > 0" class="space-y-3">
+                            <div v-for="requirement in accountRequirements" :key="requirement.title" 
+                                 class="rounded-lg border p-3"
+                                 :class="{
+                                     'border-red-200 bg-red-50': requirement.type === 'error',
+                                     'border-orange-200 bg-orange-50': requirement.type === 'warning'
+                                 }">
+                                <div class="flex items-center mb-2">
+                                    <AlertCircle v-if="requirement.type === 'error'" class="mr-2 h-4 w-4 text-red-600" />
+                                    <Clock v-else class="mr-2 h-4 w-4 text-orange-600" />
+                                    <span class="text-sm font-medium" 
+                                          :class="{
+                                              'text-red-800': requirement.type === 'error',
+                                              'text-orange-800': requirement.type === 'warning'
+                                          }">{{ requirement.title }}</span>
+                                </div>
+                                <p class="text-sm mb-2" 
+                                   :class="{
+                                       'text-red-700': requirement.type === 'error',
+                                       'text-orange-700': requirement.type === 'warning'
+                                   }">{{ requirement.description }}</p>
+                                <ul class="space-y-1 text-xs" 
+                                    :class="{
+                                        'text-red-600': requirement.type === 'error',
+                                        'text-orange-600': requirement.type === 'warning'
+                                    }">
+                                    <li v-for="item in requirement.items" :key="item">
+                                        • {{ formatRequirement(item) }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="onboarding-form">
+                            <StripeOnboardingForm 
+                                v-if="user" 
+                                :user="user" 
+                                :account-status="accountStatus" 
+                                :stripe-account-id="stripeAccountId"
+                                :google-places-api-key="googlePlacesApiKey"
+                            />
+                        </div>
+                        
+                        <!-- Option d'onboarding externe en cas de problème -->
+                        <div class="mt-6 pt-4 border-t border-gray-200">
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600 mb-3">Problème avec le formulaire interne ?</p>
+                                <Button variant="outline" @click="startStripeOnboarding" :disabled="isLoading">
+                                    <ExternalLink class="mr-2 h-4 w-4" />
+                                    Utiliser l'interface Stripe
+                                </Button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Compte configuré -->
@@ -1077,18 +938,18 @@ const formatAmount = (amount: number) => {
                 </CardContent>
             </Card>
 
-            <!-- Étape 2: Vérification d'identité -->
-            <Card>
+            <!-- Étape 2: Informations supplémentaires (si nécessaire) -->
+            <Card v-if="requirementsStatus.step !== 'verified' && connectAccountStatus.step === 'completed'">
                 <CardHeader>
                     <div class="flex items-center justify-between">
                         <CardTitle class="flex items-center">
                             <div 
                                 class="mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
                                 :class="{
-                                    'bg-red-100 text-red-800': identityVerificationStatus.isBlocking,
-                                    'bg-orange-100 text-orange-800': identityVerificationStatus.priority === 'future' || identityVerificationStatus.priority === 'pending',
-                                    'bg-green-100 text-green-800': identityVerificationStatus.priority === 'completed',
-                                    'bg-gray-100 text-gray-800': identityVerificationStatus.priority === 'none' || identityVerificationStatus.priority === 'optional'
+                                    'bg-red-100 text-red-800': requirementsStatus.isBlocking,
+                                    'bg-orange-100 text-orange-800': requirementsStatus.priority === 'future' || requirementsStatus.priority === 'pending',
+                                    'bg-green-100 text-green-800': requirementsStatus.priority === 'completed',
+                                    'bg-gray-100 text-gray-800': requirementsStatus.priority === 'none'
                                 }"
                             >
                                 2
@@ -1096,279 +957,127 @@ const formatAmount = (amount: number) => {
                             <div>
                                 <div class="flex items-center">
                                     <Shield class="mr-2 h-5 w-5" />
-                                    Vérification d'identité
-                                    <span v-if="identityVerificationStatus.isBlocking" class="ml-2 text-xs font-medium text-red-600">
-                                        (BLOQUANT)
+                                    Informations supplémentaires
+                                    <span v-if="requirementsStatus.isBlocking" class="ml-2 text-xs font-medium text-red-600">
+                                        (REQUIS)
                                     </span>
                                 </div>
                                 <p class="text-sm font-normal text-gray-600">
-                                    Pièce d'identité et documents officiels
-                                    <span v-if="identityVerificationStatus.priority === 'critical'" class="text-red-600 font-medium">
-                                        - Action immédiate requise
-                                    </span>
+                                    Vérification d'identité et documents
                                 </p>
                             </div>
                         </CardTitle>
                         <div class="flex items-center gap-2">
-                            <Badge :class="identityVerificationStatus.color">
-                                <component :is="identityVerificationStatus.icon" class="mr-1 h-3 w-3" />
-                                {{ identityVerificationStatus.label }}
-                            </Badge>
-                            <Badge v-if="identityVerificationStatus.isBlocking" variant="destructive" class="text-xs">
-                                BLOQUANT
+                            <Badge :class="requirementsStatus.color">
+                                <component :is="requirementsStatus.icon" class="mr-1 h-3 w-3" />
+                                {{ requirementsStatus.label }}
                             </Badge>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
                     <div class="mb-4">
-                        <p class="text-gray-600">{{ identityVerificationStatus.description }}</p>
-                        
-                        <!-- Message d'impact si bloquant -->
-                        <div v-if="identityVerificationStatus.impactMessage" class="mt-3 rounded-lg border-l-4 border-red-500 bg-red-50 p-3">
-                            <p class="text-sm font-medium text-red-800">{{ identityVerificationStatus.impactMessage }}</p>
-                        </div>
+                        <p class="text-gray-600">{{ requirementsStatus.description }}</p>
                     </div>
 
                     <!-- En attente de la configuration du compte -->
-                    <div v-if="identityVerificationStatus.step === 'waiting_for_account'" class="space-y-4">
+                    <div v-if="requirementsStatus.step === 'waiting_for_account'" class="space-y-4">
                         <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
                             <div class="flex items-center">
                                 <Info class="mr-2 h-4 w-4 text-gray-600" />
                                 <span class="text-sm font-medium text-gray-800">Étape suivante</span>
                             </div>
                             <p class="mt-1 text-sm text-gray-700">
-                                Vous devez d'abord configurer votre compte Stripe Connect (étape 1) avant de pouvoir vérifier votre identité.
+                                Configurez d'abord votre compte Stripe Connect (étape 1).
                             </p>
                         </div>
                     </div>
 
-                    <!-- Vérification obligatoire critique -->
-                    <div v-else-if="identityVerificationStatus.step === 'critical_required'" class="space-y-4">
+                    <!-- Requirements critiques -->
+                    <div v-else-if="requirementsStatus.step === 'critical_required'" class="space-y-4">
                         <div class="rounded-lg border border-red-200 bg-red-50 p-4">
                             <div class="mb-2 flex items-center">
                                 <AlertCircle class="mr-2 h-4 w-4 text-red-600" />
-                                <span class="text-sm font-medium text-red-900">🚨 Vérification d'identité OBLIGATOIRE</span>
+                                <span class="text-sm font-medium text-red-900">🚨 Informations requises</span>
                             </div>
                             <p class="text-sm text-red-800 mb-2">
-                                Stripe exige une vérification d'identité immédiate pour votre compte.
+                                Stripe demande des informations supplémentaires pour finaliser votre compte.
                             </p>
                             
-                            <!-- Afficher les requirements spécifiques -->
-                            <div v-if="identityVerificationStatus.requirements" class="mt-3">
-                                <p class="text-xs font-medium text-red-900 mb-1">Documents requis :</p>
+                            <div v-if="requirementsStatus.requirements" class="mt-3">
+                                <p class="text-xs font-medium text-red-900 mb-1">Informations manquantes :</p>
                                 <ul class="space-y-1 text-xs text-red-800">
-                                    <li v-for="req in identityVerificationStatus.requirements" :key="req">
+                                    <li v-for="req in requirementsStatus.requirements" :key="req">
                                         • {{ formatRequirement(req) }}
                                     </li>
                                 </ul>
                             </div>
                         </div>
 
-                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <div class="mb-2 flex items-center">
-                                <Shield class="mr-2 h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900">Processus sécurisé Stripe</span>
-                            </div>
-                            <ul class="space-y-1 text-sm text-blue-800">
-                                <li>• Vérification directe par Stripe (plus sécurisé)</li>
-                                <li>• Chiffrement bancaire de niveau militaire</li>
-                                <li>• Conformité aux réglementations européennes</li>
-                                <li>• Processus rapide (5-10 minutes)</li>
-                            </ul>
+                        <div class="space-y-3">
+                            <Button @click="completeRequirements" class="w-full">
+                                <Shield class="mr-2 h-4 w-4" />
+                                Compléter les informations
+                            </Button>
+                            
+                            <Button variant="outline" @click="startStripeOnboarding" :disabled="isLoading" class="w-full">
+                                <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
+                                <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
+                                {{ isLoading ? 'Redirection...' : 'Compléter avec Stripe' }}
+                            </Button>
                         </div>
-
-                        <Button @click="startIdentityVerificationProcess" :disabled="isLoading" class="w-full bg-red-600 hover:bg-red-700">
-                            <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
-                            <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            {{ isLoading ? 'Redirection...' : '🆔 Vérifier mon identité avec Stripe (URGENT)' }}
-                        </Button>
                     </div>
 
-                    <!-- Vérification future (eventually_due) -->
-                    <div v-else-if="identityVerificationStatus.step === 'future_required'" class="space-y-4">
+                    <!-- Requirements futurs -->
+                    <div v-else-if="requirementsStatus.step === 'future_required'" class="space-y-4">
                         <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
                             <div class="mb-2 flex items-center">
                                 <Info class="mr-2 h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900">📅 Vérification à prévoir</span>
+                                <span class="text-sm font-medium text-blue-900">📅 Informations à fournir prochainement</span>
                             </div>
                             <p class="text-sm text-blue-800 mb-2">
-                                Stripe demande une vérification d'identité prochainement. Vous pouvez la faire maintenant pour éviter toute interruption.
+                                Ces informations seront bientôt requises. Vous pouvez les fournir maintenant.
                             </p>
                             
-                            <!-- Afficher les requirements futurs -->
-                            <div v-if="identityVerificationStatus.requirements" class="mt-3">
-                                <p class="text-xs font-medium text-blue-900 mb-1">Documents qui seront requis :</p>
+                            <div v-if="requirementsStatus.requirements" class="mt-3">
+                                <p class="text-xs font-medium text-blue-900 mb-1">Informations qui seront requises :</p>
                                 <ul class="space-y-1 text-xs text-blue-800">
-                                    <li v-for="req in identityVerificationStatus.requirements" :key="req">
+                                    <li v-for="req in requirementsStatus.requirements" :key="req">
                                         • {{ formatRequirement(req) }}
                                     </li>
                                 </ul>
                             </div>
                         </div>
 
-                        <Button @click="startIdentityVerificationProcess" :disabled="isLoading" class="w-full">
-                            <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
+                        <Button @click="startStripeOnboarding" :disabled="isLoading" class="w-full">
+                            <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
                             <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            {{ isLoading ? 'Redirection...' : 'Vérifier maintenant' }}
+                            {{ isLoading ? 'Redirection...' : 'Compléter maintenant' }}
                         </Button>
                     </div>
 
                     <!-- Vérification en cours -->
-                    <div v-else-if="identityVerificationStatus.step === 'pending'" class="space-y-4">
+                    <div v-else-if="requirementsStatus.step === 'pending'" class="space-y-4">
                         <div class="rounded-lg border border-orange-200 bg-orange-50 p-4">
                             <div class="flex items-center">
                                 <Clock class="mr-2 h-4 w-4 text-orange-600" />
                                 <span class="text-sm font-medium text-orange-800">Vérification en cours</span>
                             </div>
                             <p class="mt-1 text-sm text-orange-700">
-                                Stripe vérifie actuellement votre identité. Cela peut prendre quelques minutes à quelques heures.
+                                Stripe vérifie actuellement vos informations. Cela peut prendre quelques minutes à quelques heures.
                             </p>
                         </div>
                     </div>
 
-                    <!-- Identité vérifiée -->
-                    <div v-else-if="identityVerificationStatus.step === 'verified'" class="space-y-4">
+                    <!-- Compte vérifié -->
+                    <div v-else-if="requirementsStatus.step === 'verified'" class="space-y-4">
                         <div class="rounded-lg border border-green-200 bg-green-50 p-4">
                             <div class="flex items-center">
                                 <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
-                                <span class="text-sm font-medium text-green-800">Identité vérifiée par Stripe !</span>
+                                <span class="text-sm font-medium text-green-800">Compte entièrement vérifié !</span>
                             </div>
-                            <p class="mt-1 text-sm text-green-700">Votre identité a été vérifiée avec succès par Stripe.</p>
-                            <div class="mt-3">
-                                <p class="text-xs text-green-600 mb-2">Si Stripe demande encore des documents, cliquez ci-dessous pour synchroniser votre vérification :</p>
-                                <Button @click="syncIdentityWithConnect" :disabled="isLoading" variant="outline" size="sm">
-                                    <RefreshCw v-if="!isLoading" class="mr-2 h-3 w-3" />
-                                    <div v-else class="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                                    {{ isLoading ? 'Synchronisation...' : 'Synchroniser avec Connect' }}
-                                </Button>
-                            </div>
+                            <p class="mt-1 text-sm text-green-700">Votre compte est prêt à recevoir des paiements.</p>
                         </div>
-                    </div>
-
-                    <!-- Identity sufficient mais eventually_due à résoudre -->
-                    <div v-else-if="identityVerificationStatus.step === 'identity_sufficient'" class="space-y-4">
-                        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
-                            <div class="flex items-center">
-                                <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
-                                <span class="text-sm font-medium text-green-800">Identité vérifiée via Stripe Identity !</span>
-                            </div>
-                            <p class="mt-1 text-sm text-green-700">{{ identityVerificationStatus.description }}</p>
-                        </div>
-
-                        <!-- Bouton pour résoudre eventually_due si nécessaire -->
-                        <div v-if="identityVerificationStatus.showResolveButton" class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <div class="mb-2 flex items-center">
-                                <Info class="mr-2 h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900">Finaliser la configuration</span>
-                            </div>
-                            <p class="mb-3 text-sm text-blue-800">
-                                Stripe demande encore une vérification de document. Cliquez ci-dessous pour utiliser votre vérification Identity
-                                existante.
-                            </p>
-                            <Button @click="resolveEventuallyDue" :disabled="isLoading" class="w-full">
-                                <Shield class="mr-2 h-4 w-4" />
-                                {{ isLoading ? 'Résolution en cours...' : 'Finaliser avec Stripe Identity' }}
-                            </Button>
-                        </div>
-                    </div>
-
-                    <!-- Identité complétée, mais Connect a besoin de finalisation -->
-                    <div v-else-if="identityVerificationStatus.step === 'identity_completed_needs_connect'" class="space-y-4">
-                        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
-                            <div class="flex items-center">
-                                <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
-                                <span class="text-sm font-medium text-green-800">✅ Identité vérifiée avec Stripe Identity !</span>
-                            </div>
-                            <p class="mt-1 text-sm text-green-700">Votre identité a été vérifiée avec succès.</p>
-                        </div>
-
-                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <div class="mb-2 flex items-center">
-                                <Info class="mr-2 h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-900">Finalisation requise</span>
-                            </div>
-                            <p class="mb-3 text-sm text-blue-800">
-                                {{ identityVerificationStatus.description }}
-                            </p>
-
-                            <!-- Afficher les exigences restantes -->
-                            <div
-                                v-if="identityVerificationStatus.currentlyDue?.length || identityVerificationStatus.eventuallyDue?.length"
-                                class="mb-4"
-                            >
-                                <p class="mb-1 text-xs font-medium text-blue-900">Informations requises :</p>
-                                <ul class="space-y-1 text-xs text-blue-800">
-                                    <li
-                                        v-for="req in [
-                                            ...(identityVerificationStatus.currentlyDue || []),
-                                            ...(identityVerificationStatus.eventuallyDue || []),
-                                        ]"
-                                        :key="req"
-                                    >
-                                        • {{ formatRequirement(req) }}
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <!-- Option 1: Stripe Connect complet (recommandé) -->
-                            <div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-3">
-                                <div class="mb-2 flex items-center">
-                                    <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
-                                    <span class="text-sm font-medium text-green-800">Option 1 : Finalisation complète (Recommandé)</span>
-                                </div>
-                                <p class="mb-2 text-xs text-green-700">Finalisez tout en une fois : documents d'identité + informations bancaires</p>
-                                <Button @click="startConnectVerification" :disabled="isLoading" class="w-full">
-                                    <ExternalLink class="mr-2 h-4 w-4" />
-                                    {{ isLoading ? 'Préparation...' : 'Finaliser avec Stripe Connect' }}
-                                </Button>
-                            </div>
-
-                            <!-- Option 2: Identity rapide -->
-                            <div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                                <div class="mb-2 flex items-center">
-                                    <Shield class="mr-2 h-4 w-4 text-blue-600" />
-                                    <span class="text-sm font-medium text-blue-800">Option 2 : Vérification rapide</span>
-                                </div>
-                                <p class="mb-2 text-xs text-blue-700">Vérifiez seulement votre identité maintenant (plus rapide)</p>
-                                <Button @click="startIdentityVerificationProcess" :disabled="isLoading" variant="outline" class="w-full">
-                                    <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
-                                    <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                                    {{ isLoading ? 'Redirection...' : 'Vérification Identity' }}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Vérification complétée -->
-                    <div v-else-if="identityVerificationStatus.step === 'completed'" class="space-y-4">
-                        <div class="rounded-lg border border-green-200 bg-green-50 p-4">
-                            <div class="flex items-center">
-                                <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
-                                <span class="text-sm font-medium text-green-800">Configuration complète !</span>
-                            </div>
-                            <p class="mt-1 text-sm text-green-700">{{ identityVerificationStatus.description }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Pas encore requis -->
-                    <div v-else-if="identityVerificationStatus.step === 'not_required_yet'" class="space-y-4">
-                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                            <div class="flex items-center">
-                                <Info class="mr-2 h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium text-blue-800">Vérification optionnelle</span>
-                            </div>
-                            <p class="mt-1 text-sm text-blue-700">
-                                La vérification d'identité sera demandée automatiquement par Stripe selon vos activités. Vous pouvez aussi la faire
-                                maintenant.
-                            </p>
-                        </div>
-
-                        <Button variant="outline" @click="startIdentityVerificationProcess" :disabled="isLoading" class="w-full">
-                            <Shield v-if="!isLoading" class="mr-2 h-4 w-4" />
-                            <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                            {{ isLoading ? 'Redirection...' : 'Vérifier mon identité maintenant (optionnel)' }}
-                        </Button>
                     </div>
                 </CardContent>
             </Card>
@@ -1492,17 +1201,21 @@ const formatAmount = (amount: number) => {
                 <CardContent>
                     <div class="space-y-3 text-sm text-gray-600">
                         <div>
-                            <strong>Quelle est la différence entre les deux étapes ?</strong><br />
-                            <strong>Étape 1 :</strong> Configuration de base (coordonnées bancaires, informations personnelles)<br />
-                            <strong>Étape 2 :</strong> Vérification d'identité (pièce d'identité officielle)
+                            <strong>Comment fonctionne la configuration ?</strong><br />
+                            <strong>Étape 1 :</strong> Configuration du compte avec formulaire sécurisé intégré<br />
+                            <strong>Étape 2 :</strong> Informations supplémentaires si demandées par Stripe
+                        </div>
+                        <div>
+                            <strong>Pourquoi utiliser le formulaire interne ?</strong><br />
+                            Plus simple, plus rapide et 100% sécurisé. Vos données sont envoyées directement à Stripe.
                         </div>
                         <div>
                             <strong>Quand vais-je recevoir mes paiements ?</strong><br />
-                            Automatiquement chaque vendredi sur votre compte bancaire une fois les deux étapes complétées.
+                            Automatiquement selon votre configuration une fois le compte activé.
                         </div>
                         <div>
                             <strong>Mes données sont-elles sécurisées ?</strong><br />
-                            Oui, toutes vos informations sont protégées par le chiffrement bancaire de niveau militaire de Stripe.
+                            Oui, toutes vos informations sont protégées par le chiffrement bancaire de Stripe.
                         </div>
                     </div>
                 </CardContent>
