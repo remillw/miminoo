@@ -223,10 +223,10 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     Route::get('/api/stripe/account-status', [StripeController::class, 'getAccountStatus'])->name('babysitter.stripe.status');
     
     // Routes Stripe Identity (nouvelles)
-    Route::post('/stripe/identity/create-session', [StripeController::class, 'createIdentityVerificationSession'])->name('stripe.identity.create-session');
-    Route::post('/stripe/identity/verify-and-link', [StripeController::class, 'verifyAndLinkIdentity'])->name('stripe.identity.verify-and-link');
-    Route::post('/stripe/identity/resolve-eventually-due', [StripeController::class, 'resolveEventuallyDue'])->name('stripe.identity.resolve-eventually-due');
-    Route::get('/api/stripe/identity/status', [StripeController::class, 'getIdentityStatus'])->name('stripe.identity.status');
+    Route::post('/stripe/identity/create-session', [StripeIdentityController::class, 'createSession'])->name('stripe.identity.create-session');
+    Route::post('/stripe/identity/verify-and-link', [StripeIdentityController::class, 'verifyAndLink'])->name('stripe.identity.verify-and-link');
+    Route::post('/stripe/identity/resolve-eventually-due', [StripeIdentityController::class, 'resolveEventuallyDue'])->name('stripe.identity.resolve-eventually-due');
+    Route::get('/api/stripe/identity/status', [StripeIdentityController::class, 'getStatus'])->name('stripe.identity.status');
     Route::get('/api/stripe/onboarding-status', [StripeController::class, 'getOnboardingStatus'])->name('stripe.onboarding-status');
     
     // Routes pour la vérification d'identité Stripe
