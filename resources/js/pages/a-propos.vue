@@ -68,28 +68,24 @@ onMounted(() => {
             <div class="space-y-6 text-gray-600">
               <p>
                 C'était un soir d'été, autour d'un plat de pâtes, 
-                que tout a commencé. Julie, maman solo de 
-                deux enfants, venait de se faire planter par sa 
-                babysitter pour la troisième fois en un mois. 
-                Elle avait une soirée importante au travail... et 
-                aucune solution de repli.
+                que tout a commencé. Manon, habituée à faire du babysitting depuis des années, partageait avec son ami Rémi, développeur web, à quel point il était parfois compliqué de trouver rapidement des missions ou, pour les parents, de dénicher une babysitter fiable à la dernière minute.
+
+La conversation dévie sur les galères vécues par leurs proches : babysitters qui annulent au dernier moment, parents qui appellent en urgence, soirées annulées faute de solution… Bref, un problème bien réel.
               </p>
               <p>
-                Face à elle, son frère Lucas, développeur web, 
-                l'écoute râler – encore. Il lui lance en souriant :
+                C’est là que Rémi lance, mi-sérieux, mi-amusé :
               </p>
               <blockquote class="border-l-4 border-primary pl-4 italic text-primary">
-                « Et si je te faisais une appli pour trouver 
-                une babysitter fiable en 15 minutes chrono ? »
+                « Et si on créait une appli pour trouver une babysitter fiable en 15 minutes chrono ? »
               </blockquote>
               <p>
-                Julie rit, mais l'idée fait son chemin...
+                L’idée fait sourire… mais ne les quitte plus.
               </p>
             </div>
           </div>
           <div class="relative">
             <img 
-              src="/storage/trouve-ta-babysitter-equipe.png" 
+              src="/storage/equipe-trouve-ta-babysitter.png" 
               alt="Equipe Trouve ta Babysitter" 
               class="rounded-2xl w-full"
             >
@@ -124,12 +120,12 @@ onMounted(() => {
           <!-- Julie -->
           <div class="text-center">
             <div class="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden">
-              <img src="/storage/julie-trouve-ta-babysitter-ceo.png" alt="Julie" class="w-full h-full object-cover">
+              <img src="/storage/manon-trouve-ta-babysitter.png" alt="Julie" class="w-full h-full object-cover">
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Julie</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Manon</h3>
             <p class="text-primary font-medium mb-2">Co-fondatrice</p>
             <p class="text-gray-600 text-sm">
-              Maman et experte UX, elle comprend 
+              Product Design & experte UX, elle comprend 
               les besoins des familles
             </p>
           </div>
@@ -137,9 +133,9 @@ onMounted(() => {
           <!-- Lucas -->
           <div class="text-center">
             <div class="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden">
-              <img src="/storage/lucas-trouve-ta-babysitter-cto.png" alt="Lucas" class="w-full h-full object-cover">
+              <img src="/storage/remi-trouve-ta-babysitter.png" alt="Lucas" class="w-full h-full object-cover">
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Lucas</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Rémi</h3>
             <p class="text-primary font-medium mb-2">Co-fondateur & CTO</p>
             <p class="text-gray-600 text-sm">
               Développeur passionné, il donne vie à 
@@ -150,9 +146,9 @@ onMounted(() => {
           <!-- Sarah -->
           <div class="text-center">
             <div class="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden">
-              <img src="/storage/sarah-trouve-ta-babysitter-commu.png" alt="Sarah" class="w-full h-full object-cover">
+              <img src="/storage/jade-trouve-ta-babysitter.png" alt="Sarah" class="w-full h-full object-cover">
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Sarah</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Jade</h3>
             <p class="text-primary font-medium mb-2">Responsable Communauté</p>
             <p class="text-gray-600 text-sm">
               Éducatrice de formation, elle veille à la 
@@ -163,7 +159,7 @@ onMounted(() => {
 
         <div class="text-center max-w-4xl mx-auto">
           <p class="text-gray-600 leading-relaxed">
-            Avec Sarah, une amie éducatrice passionnée par la petite enfance, ils se lancent : créer une plateforme 
+            Avec Jade, une amie éducatrice passionnée par la petite enfance, ils se lancent : créer une plateforme 
             simple, humaine et efficace pour mettre en relation les familles et des babysitters de confiance. Ils 
             bossent le soir, les week-ends, entre deux couches ou deux réunions. Et après plusieurs mois de travail 
             acharné, la plateforme voit le jour.
@@ -331,7 +327,7 @@ onMounted(() => {
             <div class="text-orange-100">Babysitters vérifiées</div>
           </div>
           <div>
-            <div class="text-4xl font-bold mb-2">900+</div>
+            <div class="text-4xl font-bold mb-2">400+</div>
             <div class="text-orange-100">Gardes réalisées</div>
           </div>
           <div>
@@ -403,7 +399,7 @@ onMounted(() => {
         </div>
         
         <h2 class="text-4xl font-bold text-gray-900 mb-6">
-          Bienvenue chez Trouvez ta Babysitter ❤️
+          Bienvenue chez Trouvez ta Babysitter 🧡
         </h2>
         
         <div class="space-y-2 mb-8">
