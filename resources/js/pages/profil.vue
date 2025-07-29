@@ -514,24 +514,10 @@ const verificationStatus = computed(() => {
     const babysitterProfile = props.user.babysitterProfile || props.babysitterProfile;
 
     if (!babysitterProfile) {
-        console.log('🔍 Vérification statut: pas de profil babysitter trouvé', {
-            userProfile: props.user.babysitterProfile,
-            propsProfile: props.babysitterProfile,
-            userRoles: props.userRoles,
-            hasBabysitterRole: props.hasBabysitterRole,
-            currentMode: currentMode.value,
-        });
         return null;
     }
 
     const status = babysitterProfile.verification_status;
-    console.log('🔍 Statut de vérification:', {
-        status: status || 'null',
-        statusType: typeof status,
-        profile: babysitterProfile,
-        source: props.user.babysitterProfile ? 'user.babysitterProfile' : 'props.babysitterProfile',
-    });
-
     return status;
 });
 
@@ -965,53 +951,60 @@ console.log('🔍 Données utilisateur Profil:', {
                     </div>
 
                     <!-- Bouton de demande de vérification -->
-                    <div class="mt-4 flex justify-center">
-                        <div v-if="verificationStatus === 'pending'" class="flex items-center gap-2 rounded-md bg-yellow-100 px-4 py-2 text-sm text-yellow-800">
+                    <div class="mt-6 flex justify-center">
+                        <div v-if="verificationStatus === 'pending'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm border border-yellow-200">
                             <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
-                            <span>Vérification en cours...</span>
+                            <span class="text-sm font-medium text-yellow-800">✨ Vérification en cours...</span>
                         </div>
-                        <Button 
+                        <div 
                             v-else-if="verificationStatus === 'verified'" 
-                            disabled 
-                            class="cursor-not-allowed bg-green-100 text-green-800"
+                            class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-3 shadow-sm border border-green-200"
                         >
-                            ✅ Profil vérifié
-                        </Button>
+                            <CheckCircle class="h-5 w-5 text-green-600" />
+                            <span class="text-sm font-medium text-green-800">✅ Profil vérifié</span>
+                        </div>
                         <Button
                             v-else-if="verificationStatus === 'rejected'"
                             @click="requestVerification"
                             :disabled="isRequestingVerification || babysitterProfileCompletion < 50"
                             :class="[
+                                'relative px-8 py-3 rounded-lg font-medium text-sm shadow-lg transform transition-all duration-200 hover:scale-105',
                                 babysitterProfileCompletion < 50 
-                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed shadow-gray-200' 
+                                    : 'bg-gradient-to-r from-primary to-orange-500 text-white hover:from-orange-500 hover:to-primary shadow-orange-200'
                             ]"
                             :title="babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
                         >
-                            {{ isRequestingVerification ? 'Envoi en cours...' : 
-                               babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : 
-                               'Soumettre une nouvelle demande' }}
+                            <div v-if="isRequestingVerification" class="flex items-center gap-2">
+                                <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                <span>Envoi en cours...</span>
+                            </div>
+                            <div v-else class="flex items-center gap-2">
+                                <Shield class="h-4 w-4" />
+                                <span>{{ babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : 'Soumettre une nouvelle demande' }}</span>
+                            </div>
                         </Button>
                         <Button
                             v-else
                             @click="requestVerification"
                             :disabled="isRequestingVerification || babysitterProfileCompletion < 50"
                             :class="[
+                                'relative px-8 py-3 rounded-lg font-medium text-sm shadow-lg transform transition-all duration-200 hover:scale-105',
                                 babysitterProfileCompletion < 50 
-                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed shadow-gray-200' 
+                                    : 'bg-gradient-to-r from-primary to-orange-500 text-white hover:from-orange-500 hover:to-primary shadow-orange-200'
                             ]"
                             :title="babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
                         >
-                            {{ isRequestingVerification ? 'Envoi en cours...' : 
-                               babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : 
-                               '🚀 Demander la vérification' }}
+                            <div v-if="isRequestingVerification" class="flex items-center gap-2">
+                                <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                <span>Envoi en cours...</span>
+                            </div>
+                            <div v-else class="flex items-center gap-2">
+                                <Shield class="h-4 w-4" />
+                                <span>{{ babysitterProfileCompletion < 50 ? `Compléter le profil (${babysitterProfileCompletion}%)` : '🚀 Demander la vérification' }}</span>
+                            </div>
                         </Button>
-                        
-                        <!-- Debug info -->
-                        <div class="mt-2 text-xs text-gray-500 text-center">
-                            Debug: Status = {{ verificationStatus }} | Completion = {{ babysitterProfileCompletion }}%
-                        </div>
                     </div>
                 </div>
             </div>

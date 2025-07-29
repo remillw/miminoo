@@ -151,7 +151,7 @@ const props = defineProps<Props>();
 
 // Composables
 const { getFundsStatusColor, getPayoutStatusColor, getStatusText } = useStatusColors();
-const { showVerificationRequired, handleAuthError } = useToast();
+const { showVerificationRequired, handleAuthError, showWarning } = useToast();
 
 const isLoading = ref(false);
 const currentStatus = ref(props.accountStatus);
@@ -620,9 +620,27 @@ const startStripeOnboarding = async () => {
 };
 
 onMounted(() => {
+    // Vérifier si l'utilisateur arrive d'une redirection backend (par exemple manque de stripe account)
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectedFromPayments = urlParams.get('redirected_from') === 'payments' || 
+                                  sessionStorage.getItem('redirected_from_payments') === 'true';
+    
+    if (redirectedFromPayments) {
+        showVerificationRequired();
+        // Nettoyer les paramètres/storage
+        urlParams.delete('redirected_from');
+        sessionStorage.removeItem('redirected_from_payments');
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, '', newUrl);
+        return;
+    }
+
     // Vérifier si la babysitter est vérifiée pour accéder à cette page
     if (props.babysitterProfile && props.babysitterProfile.verification_status !== 'verified') {
-        showVerificationRequired();
+        showWarning(
+            '🔒 Accès restreint',
+            'Vous devez être vérifié par notre équipe pour accéder à cette page.'
+        );
         // Rediriger vers le tableau de bord après 3 secondes
         setTimeout(() => {
             router.visit('/dashboard');
@@ -640,7 +658,6 @@ onMounted(() => {
     }, 30000);
 
     // Détecter si l'utilisateur revient d'une vérification Stripe
-    const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('verification') === 'completed') {
         console.log('🎉 Vérification terminée ! Actualisation du statut...');
         
