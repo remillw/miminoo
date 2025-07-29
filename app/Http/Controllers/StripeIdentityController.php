@@ -196,13 +196,20 @@ class StripeIdentityController extends Controller
         try {
             if ($user->stripe_identity_session_id) {
                 $session = $this->stripeService->getIdentityVerificationSession($user->stripe_identity_session_id);
-                if ($session->status === 'verified' && !$user->identity_verified_at) {
-                    $this->stripeService->linkIdentityToConnect($user);
+                if ($session->status === 'verified') {
+                    // Utiliser la méthode avancée pour résoudre les requirements Connect
+                    $result = $this->stripeService->resolveEventuallyDueIdentityDocument($user);
                     
                     // Marquer comme vérifié
                     $user->update([
                         'identity_verified_at' => now(),
                         'identity_verification_status' => 'verified'
+                    ]);
+                    
+                    Log::info('Résolution automatique des requirements Connect après vérification', [
+                        'user_id' => $user->id,
+                        'session_id' => $user->stripe_identity_session_id,
+                        'result' => $result
                     ]);
                 }
             }

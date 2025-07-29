@@ -268,9 +268,22 @@ class StripeWebhookController extends Controller
                 'identity_verification_status' => 'verified'
             ]);
             
-            // Optionnel : lier automatiquement au compte Connect si nécessaire
+            // Résoudre automatiquement les requirements Connect avec Identity
             if ($user->stripe_account_id) {
-                app(\App\Services\StripeService::class)->linkIdentityToConnect($user);
+                try {
+                    $result = app(\App\Services\StripeService::class)->resolveEventuallyDueIdentityDocument($user);
+                    Log::info('Résolution automatique des requirements Connect via webhook', [
+                        'user_id' => $user->id,
+                        'session_id' => $verificationSession->id,
+                        'result' => $result
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('Échec de la résolution automatique via webhook', [
+                        'user_id' => $user->id,
+                        'session_id' => $verificationSession->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
             
             // Envoyer une notification de confirmation
