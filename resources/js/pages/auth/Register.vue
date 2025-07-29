@@ -2,6 +2,7 @@
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useDeviceToken } from '@/composables/useDeviceToken';
 import { useMobileAuth } from '@/composables/useMobileAuth';
 import { useToast } from '@/composables/useToast';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
@@ -13,6 +14,7 @@ import { z } from 'zod';
 
 const { showSuccess, showError } = useToast();
 const { authenticateWithGoogle } = useMobileAuth();
+const { getDeviceTokenData, isMobileApp } = useDeviceToken();
 
 const isPasswordVisible = ref(false);
 const isPasswordConfirmVisible = ref(false);
@@ -67,6 +69,10 @@ const inertiaForm = useForm({
     password: '',
     password_confirmation: '',
     accepted: false as boolean,
+    mobile_auth: '',
+    device_token: '',
+    platform: '',
+    notification_provider: '',
 });
 
 // Marquer un champ comme touché
@@ -143,11 +149,17 @@ const onSubmit = () => {
     inertiaForm.password_confirmation = password_confirmation.value;
     inertiaForm.accepted = accepted.value;
 
-    // Intégrer le token de device si on est sur mobile
-    const formData = isNative.value ? sendTokenWithLogin(inertiaForm.data()) : inertiaForm.data();
+    // Ajouter les données mobile si disponibles
+    const deviceTokenData = getDeviceTokenData();
+    if (isMobileApp() && deviceTokenData) {
+        inertiaForm.mobile_auth = 'true';
+        inertiaForm.device_token = deviceTokenData.device_token;
+        inertiaForm.platform = deviceTokenData.platform;
+        inertiaForm.notification_provider = deviceTokenData.notification_provider;
+    }
 
     // Soumettre avec Inertia
-    inertiaForm.transform(() => formData).post(route('inscription'), {
+    inertiaForm.post(route('inscription'), {
         onSuccess: () => {
             showSuccess('🎉 Bienvenue !', 'Votre compte a été créé avec succès. Choisissez maintenant votre rôle pour commencer.');
         },
@@ -202,16 +214,7 @@ const handleGoogleAuth = async () => {
     await authenticateWithGoogle();
 };
 
-// Initialiser les push notifications dès le chargement de la page d'inscription si on est sur mobile
-onMounted(async () => {
-    if (isNative.value) {
-        try {
-            await initializePushNotifications();
-        } catch (error) {
-            console.error("Erreur lors de l'initialisation des push notifications avant inscription:", error);
-        }
-    }
-});
+// Le composable useDeviceToken gère automatiquement l'initialisation des tokens mobiles
 </script>
 
 <template>
