@@ -83,6 +83,7 @@ class StripeIdentityController extends Controller
                     'id' => $verificationSession->id,
                     'client_secret' => $verificationSession->client_secret,
                     'status' => $verificationSession->status,
+                    'url' => $verificationSession->url,
                 ]
             ]);
         } catch (\Exception $e) {

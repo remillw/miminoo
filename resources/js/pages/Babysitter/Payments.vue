@@ -671,9 +671,9 @@ const startIdentityVerificationProcess = async () => {
 
         const data = await response.json();
 
-        if (response.ok && data.success && data.session) {
-            // Rediriger vers la page de vérification Identity intégrée
-            router.visit('/babysitter/identity-verification');
+        if (response.ok && data.success && data.session && data.session.url) {
+            // Rediriger directement vers l'URL Stripe Identity
+            window.location.href = data.session.url;
         } else {
             throw new Error(data.error || 'Erreur lors de la création de la session Identity');
         }
