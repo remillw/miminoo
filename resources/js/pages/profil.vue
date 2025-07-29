@@ -829,24 +829,14 @@ console.log('🔍 Données utilisateur Profil:', {
                         <Button
                             v-else
                             @click="requestVerification"
-                            :disabled="isRequestingVerification || verificationStatus === 'pending' || (currentMode === 'babysitter' && babysitterProfileCompletion < 50)"
-                            :class="[
-                                'text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2 disabled:cursor-not-allowed disabled:opacity-50',
-                                currentMode === 'babysitter' && babysitterProfileCompletion < 50 
-                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                            ]"
-                            :title="currentMode === 'babysitter' && babysitterProfileCompletion < 50 ? `Profil complété à ${babysitterProfileCompletion}% (minimum 50% requis)` : ''"
+                            :disabled="isRequestingVerification || verificationStatus === 'pending'"
+                            class="bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
                         >
                             <span class="hidden sm:inline">
-                                {{ isRequestingVerification ? 'Envoi en cours...' : 
-                                   (currentMode === 'babysitter' && babysitterProfileCompletion < 50) ? `Compléter le profil (${babysitterProfileCompletion}%)` : 
-                                   'Demander la vérification' }}
+                                {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
                             </span>
                             <span class="sm:hidden">
-                                {{ isRequestingVerification ? 'Envoi...' : 
-                                   (currentMode === 'babysitter' && babysitterProfileCompletion < 50) ? `${babysitterProfileCompletion}%` : 
-                                   'Vérification' }}
+                                {{ isRequestingVerification ? 'Envoi...' : 'Vérification' }}
                             </span>
                         </Button>
                     </div>
@@ -969,11 +959,10 @@ console.log('🔍 Données utilisateur Profil:', {
                             <Shield class="mx-auto h-12 w-12 text-gray-400 mb-3" />
                             <h3 class="text-lg font-semibold text-gray-900 mb-2">Demande de vérification</h3>
                             <p class="text-sm text-gray-600 mb-4">
-                                Votre profil doit être complété à au moins 50% et vérifié par notre équipe pour accéder aux fonctionnalités babysitter.
+                                Pour accéder aux fonctionnalités babysitter, votre profil doit être vérifié par notre équipe.
                             </p>
                             <p class="text-xs text-gray-500">
                                 Progression actuelle : {{ babysitterProfileCompletion }}%
-                                {{ babysitterProfileCompletion < 50 ? ' - Continuez à remplir votre profil ci-dessous' : ' - Utilisez le bouton en haut pour demander la vérification' }}
                             </p>
                         </div>
                     </div>

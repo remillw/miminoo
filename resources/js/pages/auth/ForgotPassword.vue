@@ -19,7 +19,7 @@ const submit = () => {
 
 <template>
     <GlobalLayout>
-  <div class="bg-secondary flex flex-col justify-between min-h-screen">
+  <div class="bg-secondary flex flex-col min-h-screen">
     <Head title="Mot de passe oublié" />
 
     <!-- Form Card -->

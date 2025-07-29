@@ -16,7 +16,7 @@ const submit = () => {
 </script>
 
 <template>
-  <div class="bg-secondary flex flex-col justify-between min-h-screen">
+  <div class="bg-secondary flex flex-col min-h-screen">
     <Head title="Vérification de l'e-mail" />
 
     <!-- Logo -->
