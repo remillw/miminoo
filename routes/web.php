@@ -143,19 +143,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('reclamations/{reservation}', [App\Http\Controllers\DisputeController::class, 'store'])->name('disputes.store');
     Route::get('reclamations/{dispute}', [App\Http\Controllers\DisputeController::class, 'show'])->name('disputes.show');
     
-    // Routes API pour Stripe
-    Route::get('api/stripe/payment-methods', [StripeController::class, 'getPaymentMethods']);
-    Route::get('api/reservations/{reservation}/payment-intent', [ReservationController::class, 'getPaymentIntent']);
-
-    // Routes Stripe Identity pour vérification d'identité (simplifiées - pas de page intermédiaire)
-    Route::prefix('babysitter')->name('babysitter.')->group(function () {
-        // Route::get('/identity-verification', [App\Http\Controllers\StripeIdentityController::class, 'index'])->name('identity-verification'); // Supprimée - redirection directe vers Stripe
-        Route::post('/identity-verification/create-session', [App\Http\Controllers\StripeIdentityController::class, 'createSession'])->name('identity.create-session');
-        Route::post('/identity-verification/verify-and-link', [App\Http\Controllers\StripeIdentityController::class, 'verifyAndLink'])->name('identity.verify-and-link');
-        Route::get('/identity-verification/status', [App\Http\Controllers\StripeIdentityController::class, 'getStatus'])->name('identity.status');
-        Route::get('/identity-verification/success', [App\Http\Controllers\StripeIdentityController::class, 'success'])->name('identity.success');
-        Route::get('/identity-verification/failure', [App\Http\Controllers\StripeIdentityController::class, 'failure'])->name('identity.failure');
-    });
 });
 
 Route::get('comment-ca-marche', function () {
@@ -212,30 +199,25 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     Route::get('/babysitter/paiements/history', [StripeController::class, 'getPayoutHistory'])->name('babysitter.payments.history');
     Route::post('/babysitter/paiements/generate-invoice', [StripeController::class, 'generateInvoice'])->name('babysitter.payments.generate-invoice');
     
-    // Routes Stripe Connect
+    // === ROUTES STRIPE CONNECT ===
     Route::get('/stripe/connect', [StripeController::class, 'connect'])->name('babysitter.stripe.connect');
     Route::post('/stripe/create-onboarding-link', [StripeController::class, 'createOnboardingLink'])->name('babysitter.stripe.create-link');
-    Route::post('/stripe/create-verification-link', [StripeController::class, 'createVerificationLink'])->name('stripe.create-verification-link');
     Route::get('/stripe/onboarding/success', [StripeController::class, 'onboardingSuccess'])->name('babysitter.stripe.onboarding.success');
     Route::get('/stripe/onboarding/refresh', [StripeController::class, 'onboardingRefresh'])->name('babysitter.stripe.onboarding.refresh');
-    Route::get('/stripe/verification/success', [StripeController::class, 'onboardingSuccess'])->name('babysitter.stripe.verification.success');
-    Route::get('/stripe/verification/refresh', [StripeController::class, 'onboardingRefresh'])->name('babysitter.stripe.verification.refresh');
-    Route::get('/api/stripe/account-status', [StripeController::class, 'getAccountStatus'])->name('babysitter.stripe.status');
     
-    // Routes Stripe Identity (nouvelles)
+    // === ROUTES STRIPE IDENTITY ===
     Route::post('/stripe/identity/create-session', [StripeIdentityController::class, 'createSession'])->name('stripe.identity.create-session');
     Route::post('/stripe/identity/verify-and-link', [StripeIdentityController::class, 'verifyAndLink'])->name('stripe.identity.verify-and-link');
     Route::post('/stripe/identity/resolve-eventually-due', [StripeIdentityController::class, 'resolveEventuallyDue'])->name('stripe.identity.resolve-eventually-due');
+    Route::get('/babysitter/identity-verification/success', [StripeIdentityController::class, 'success'])->name('babysitter.identity.success');
+    Route::get('/babysitter/identity-verification/failure', [StripeIdentityController::class, 'failure'])->name('babysitter.identity.failure');
+    
+    // === ROUTES API STRIPE ===
+    Route::get('/api/stripe/account-status', [StripeController::class, 'getAccountStatus'])->name('babysitter.stripe.status');
     Route::get('/api/stripe/identity/status', [StripeIdentityController::class, 'getStatus'])->name('stripe.identity.status');
     Route::get('/api/stripe/onboarding-status', [StripeController::class, 'getOnboardingStatus'])->name('stripe.onboarding-status');
-    
-    // Routes pour la vérification d'identité Stripe
-    Route::get('/babysitter/verification-stripe', [StripeVerificationController::class, 'show'])->name('babysitter.verification-stripe');
-    Route::post('/babysitter/verification-stripe/create-link', [StripeVerificationController::class, 'createVerificationLink'])->name('babysitter.stripe.verification.link');
-    Route::post('/babysitter/verification-stripe/upload', [StripeVerificationController::class, 'uploadDocument'])->name('babysitter.stripe.verification.upload');
-    Route::get('/api/stripe/verification-status', [StripeVerificationController::class, 'checkVerificationStatus'])->name('babysitter.stripe.verification.status');
-    Route::get('/stripe/verification/success', [StripeVerificationController::class, 'success'])->name('babysitter.stripe.verification.success');
-    Route::get('/stripe/verification/refresh', [StripeVerificationController::class, 'refresh'])->name('babysitter.stripe.verification.refresh');
+    Route::get('api/stripe/payment-methods', [StripeController::class, 'getPaymentMethods']);
+    Route::get('api/reservations/{reservation}/payment-intent', [ReservationController::class, 'getPaymentIntent']);
 });
 
 Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('babysitter.show');
@@ -353,22 +335,7 @@ Route::middleware(['auth'])->prefix('parametres')->group(function () {
 require __DIR__.'/auth.php';
 require __DIR__.'/channels.php';
 
-// Route de debug pour tester l'authentification (temporaire)
-Route::post('/debug-auth', function () {
-    return response()->json([
-        'auth_user' => auth()->user(),
-        'session_id' => session()->getId(),
-        'has_session' => session()->has('_token'),
-        'csrf_token' => csrf_token(),
-        'cookies' => request()->cookies->all(),
-        'headers' => [
-            'user-agent' => request()->header('user-agent'),
-            'referer' => request()->header('referer'),
-            'x-csrf-token' => request()->header('x-csrf-token'),
-            'cookie' => request()->header('cookie') ? 'Present' : 'Missing',
-        ]
-    ]);
-});
+
 
 // Routes pour les device tokens (notifications push)
 Route::middleware(['auth'])->group(function () {
