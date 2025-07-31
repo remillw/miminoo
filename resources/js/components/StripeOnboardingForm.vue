@@ -13,11 +13,13 @@ import {
     Building,
     CheckCircle,
     CreditCard,
+    FileText,
     Info,
     Shield,
+    Upload,
     User,
 } from 'lucide-vue-next';
-import { computed, nextTick, reactive, ref, onMounted } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 interface Props {
     user: {
@@ -45,6 +47,8 @@ const { showSuccess, showError, handleApiError } = useToast();
 const isLoading = ref(false);
 const currentStep = ref(1);
 const errorMessage = ref('');
+const documentUploadRequired = ref(false);
+const uploadedDocuments = ref<{ front?: File, back?: File }>({});
 
 // Stripe.js
 let stripe: any = null;
@@ -86,6 +90,10 @@ const formData = reactive({
     
     // Conditions d'utilisation (jamais pré-remplie pour la sécurité)
     tos_acceptance: false,
+    
+    // Documents d'identité (optionnels)
+    identity_document_front: null as File | null,
+    identity_document_back: null as File | null,
 });
 
 // Pré-remplir la date de naissance si disponible
@@ -96,34 +104,50 @@ if (props.user.date_of_birth) {
     formData.dob_year = dob.getFullYear().toString();
 }
 
-const steps = [
-    {
-        id: 1,
-        title: 'Informations personnelles',
-        description: 'Vérifiez vos informations de base',
-        icon: User,
-    },
-    {
-        id: 2,
-        title: 'Adresse',
-        description: 'Confirmez votre adresse de résidence',
-        icon: Building,
-    },
-    {
-        id: 3,
-        title: 'Informations bancaires',
-        description: 'Ajoutez vos coordonnées bancaires',
-        icon: CreditCard,
-    },
-    {
-        id: 4,
+const steps = computed(() => {
+    const baseSteps = [
+        {
+            id: 1,
+            title: 'Informations personnelles',
+            description: 'Vérifiez vos informations de base',
+            icon: User,
+        },
+        {
+            id: 2,
+            title: 'Adresse',
+            description: 'Confirmez votre adresse de résidence',
+            icon: Building,
+        },
+        {
+            id: 3,
+            title: 'Informations bancaires',
+            description: 'Ajoutez vos coordonnées bancaires',
+            icon: CreditCard,
+        },
+    ];
+    
+    if (documentUploadRequired.value) {
+        baseSteps.push({
+            id: 4,
+            title: 'Documents d\'identité',
+            description: 'Ajoutez vos documents de vérification',
+            icon: FileText,
+        });
+    }
+    
+    baseSteps.push({
+        id: documentUploadRequired.value ? 5 : 4,
         title: 'Finalisation',
         description: 'Acceptez les conditions et finalisez',
         icon: Shield,
-    },
-];
+    });
+    
+    return baseSteps;
+});
 
-const currentStepData = computed(() => steps.find(step => step.id === currentStep.value));
+const currentStepData = computed(() => steps.value.find(step => step.id === currentStep.value));
+
+const maxSteps = computed(() => documentUploadRequired.value ? 5 : 4);
 
 const canProceedToNext = computed(() => {
     switch (currentStep.value) {
@@ -135,6 +159,14 @@ const canProceedToNext = computed(() => {
         case 3:
             return formData.iban && formData.account_holder_name;
         case 4:
+            // Si step 4 est documents, vérifier si au moins le recto est uploadé (optionnel)
+            if (documentUploadRequired.value) {
+                return true; // Documents optionnels - on peut continuer sans
+            }
+            // Si step 4 est finalisation, vérifier acceptance des conditions
+            return formData.tos_acceptance;
+        case 5:
+            // Step 5 est toujours finalisation quand documents requis
             return formData.tos_acceptance;
         default:
             return false;
@@ -142,7 +174,7 @@ const canProceedToNext = computed(() => {
 });
 
 const nextStep = () => {
-    if (currentStep.value < 4 && canProceedToNext.value) {
+    if (currentStep.value < maxSteps.value && canProceedToNext.value) {
         currentStep.value++;
     }
 };
@@ -222,47 +254,46 @@ const submitOnboarding = async () => {
         if (accountTokenResult.error) {
             throw new Error(accountTokenResult.error.message);
         }
-
-        // Utiliser le token pour créer le compte
-        router.post('/stripe/create-onboarding-link', {
-            account_token: accountTokenResult.token.id,
-            internal_onboarding: true,
-            // Données additionnelles pour le backend
-            iban: formData.iban,
-            account_holder_name: formData.account_holder_name,
-            business_description: formData.business_description,
-            mcc: formData.mcc,
-        }, {
-            onSuccess: (page) => {
-                showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
-                
-                // Rediriger vers la page de paiements après succès
-                setTimeout(() => {
-                    router.visit('/babysitter/paiements');
-                }, 1500);
+        
+        // Préparer les données pour l'envoi
+        const requestData = new FormData();
+        requestData.append('account_token', accountTokenResult.token.id);
+        requestData.append('internal_onboarding', 'true');
+        requestData.append('iban', formData.iban);
+        requestData.append('account_holder_name', formData.account_holder_name);
+        requestData.append('business_description', formData.business_description);
+        requestData.append('mcc', formData.mcc);
+        
+        // Ajouter les documents si présents
+        if (formData.identity_document_front) {
+            requestData.append('identity_document_front', formData.identity_document_front);
+        }
+        if (formData.identity_document_back) {
+            requestData.append('identity_document_back', formData.identity_document_back);
+        }
+        
+        // Utiliser fetch au lieu de router.post pour supporter FormData
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const response = await fetch('/stripe/create-onboarding-link', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken || '',
             },
-            onError: (errors) => {
-                console.error('Erreur onboarding:', errors);
-                
-                // Gérer les erreurs spécifiques
-                let errorMsg = '';
-                if (typeof errors === 'object' && errors !== null) {
-                    errorMsg = Object.values(errors)[0] as string || 'Erreur lors de la configuration du compte';
-                } else if (typeof errors === 'string') {
-                    errorMsg = errors;
-                } else {
-                    errorMsg = 'Erreur lors de la configuration du compte';
-                }
-                
-                errorMessage.value = errorMsg;
-                showError('❌ Erreur de configuration', errorMsg);
-                
-                // Les valeurs du formulaire sont automatiquement préservées
-            },
-            onFinish: () => {
-                isLoading.value = false;
-            }
+            body: requestData
         });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
+            
+            // Rediriger vers la page de paiements après succès
+            setTimeout(() => {
+                router.visit('/babysitter/paiements');
+            }, 1500);
+        } else {
+            throw new Error(result.error || 'Erreur lors de la configuration du compte');
+        }
     } catch (err) {
         console.error('Erreur onboarding:', err);
         let errorMsg = 'Erreur lors de la configuration du compte';
@@ -332,6 +363,11 @@ const loadGooglePlaces = () => {
 
     document.head.appendChild(script);
 };
+
+// Vérifier les requirements au montage
+onMounted(() => {
+    checkDocumentRequirements();
+});
 
 const initAutocomplete = async () => {
     await nextTick();
@@ -435,6 +471,73 @@ const startExternalOnboarding = async () => {
         showError('❌ Erreur', 'Erreur lors de la redirection vers Stripe');
     }
 };
+
+// Vérifier si des documents sont requis pour ce compte
+const checkDocumentRequirements = async () => {
+    try {
+        if (!props.stripeAccountId) {
+            // Pas de compte Stripe encore, supposer que documents peuvent être requis
+            documentUploadRequired.value = true;
+            return;
+        }
+        
+        const response = await fetch(`/stripe/account-requirements/${props.stripeAccountId}`);
+        const data = await response.json();
+        
+        if (response.ok && data.requirements) {
+            // Vérifier si des documents d'identité sont requis
+            const allRequirements = [...(data.requirements.currently_due || []), ...(data.requirements.eventually_due || [])];
+            documentUploadRequired.value = allRequirements.some(req => 
+                req.includes('individual.verification.document') || 
+                req.includes('verification.document')
+            );
+        }
+    } catch (error) {
+        console.log('Impossible de vérifier les requirements, documents disponibles par défaut');
+        documentUploadRequired.value = true;
+    }
+};
+
+// Gestion de l'upload de documents
+const handleDocumentUpload = (event: Event, type: 'front' | 'back') => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (file) {
+        // Vérifier le type de fichier
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            showError('❌ Type de fichier invalide', 'Seuls les fichiers JPEG, PNG et PDF sont acceptés');
+            return;
+        }
+        
+        // Vérifier la taille (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            showError('❌ Fichier trop volumineux', 'La taille maximale est de 10MB');
+            return;
+        }
+        
+        if (type === 'front') {
+            formData.identity_document_front = file;
+            uploadedDocuments.value.front = file;
+        } else {
+            formData.identity_document_back = file;
+            uploadedDocuments.value.back = file;
+        }
+        
+        clearError();
+    }
+};
+
+const removeDocument = (type: 'front' | 'back') => {
+    if (type === 'front') {
+        formData.identity_document_front = null;
+        uploadedDocuments.value.front = undefined;
+    } else {
+        formData.identity_document_back = null;
+        uploadedDocuments.value.back = undefined;
+    }
+};
 </script>
 
 <template>
@@ -443,11 +546,11 @@ const startExternalOnboarding = async () => {
         <div class="w-full bg-gray-200 rounded-full h-2">
             <div 
                 class="bg-primary h-2 rounded-full transition-all duration-300"
-                :style="{ width: `${(currentStep / 4) * 100}%` }"
+                :style="{ width: `${(currentStep / maxSteps) * 100}%` }"
             ></div>
         </div>
 
-        <!-- Step indicator -->
+        <!-- Step indicator -->  
         <div class="flex justify-between items-center">
             <div
                 v-for="step in steps"
@@ -688,8 +791,98 @@ const startExternalOnboarding = async () => {
                     </div>
                 </div>
 
-                <!-- Étape 4: Finalisation -->
-                <div v-if="currentStep === 4" class="space-y-6">
+                <!-- Étape 4: Documents d'identité (conditionnelle) -->
+                <div v-if="currentStep === 4 && documentUploadRequired" class="space-y-6">
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 mb-6">
+                        <div class="flex items-center mb-2">
+                            <FileText class="mr-2 h-4 w-4 text-blue-600" />
+                            <span class="text-sm font-medium text-blue-900">Documents d'identité (optionnel)</span>
+                        </div>
+                        <p class="text-sm text-blue-800">
+                            Ces documents peuvent être requis par Stripe pour la vérification de votre compte.
+                            Vous pouvez les ajouter maintenant ou les envoyer plus tard si nécessaire.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <!-- Document recto -->
+                        <div class="space-y-3">
+                            <Label>Document d'identité (recto)</Label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                                <input 
+                                    type="file" 
+                                    id="identity-front" 
+                                    class="hidden" 
+                                    accept="image/*,.pdf"
+                                    @change="(e) => handleDocumentUpload(e, 'front')"
+                                />
+                                <div v-if="!uploadedDocuments.front">
+                                    <Upload class="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                                    <label for="identity-front" class="cursor-pointer">
+                                        <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                                            Cliquez pour uploader
+                                        </span>
+                                        <span class="text-sm text-gray-500"> ou glissez-déposez</span>
+                                    </label>
+                                    <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <CheckCircle class="mx-auto h-8 w-8 text-green-500" />
+                                    <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.front.name }}</p>
+                                    <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.front.size / 1024) }} KB</p>
+                                    <Button variant="outline" size="sm" @click="removeDocument('front')">
+                                        Supprimer
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Document verso (optionnel) -->
+                        <div class="space-y-3">
+                            <Label>Document d'identité (verso - optionnel)</Label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                                <input 
+                                    type="file" 
+                                    id="identity-back" 
+                                    class="hidden" 
+                                    accept="image/*,.pdf"
+                                    @change="(e) => handleDocumentUpload(e, 'back')"
+                                />
+                                <div v-if="!uploadedDocuments.back">
+                                    <Upload class="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                                    <label for="identity-back" class="cursor-pointer">
+                                        <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                                            Cliquez pour uploader
+                                        </span>
+                                        <span class="text-sm text-gray-500"> ou glissez-déposez</span>
+                                    </label>
+                                    <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <CheckCircle class="mx-auto h-8 w-8 text-green-500" />
+                                    <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.back.name }}</p>
+                                    <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.back.size / 1024) }} KB</p>
+                                    <Button variant="outline" size="sm" @click="removeDocument('back')">
+                                        Supprimer
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg bg-gray-50 p-4">
+                        <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• Carte d'identité française ou européenne</li>
+                            <li>• Passeport en cours de validité</li>
+                            <li>• Permis de conduire français</li>
+                            <li>• Carte de séjour (pour les non-européens)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Étape 4/5: Finalisation -->
+                <div v-if="(currentStep === 4 && !documentUploadRequired) || (currentStep === 5 && documentUploadRequired)" class="space-y-6">
                     <div class="rounded-lg border border-green-200 bg-green-50 p-4">
                         <div class="flex items-center mb-2">
                             <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
@@ -747,7 +940,7 @@ const startExternalOnboarding = async () => {
                     <div v-else></div>
 
                     <Button
-                        v-if="currentStep < 4"
+                        v-if="currentStep < maxSteps"
                         @click="nextStep"
                         :disabled="!canProceedToNext || isLoading"
                     >
