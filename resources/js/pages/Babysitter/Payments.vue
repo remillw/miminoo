@@ -560,7 +560,12 @@ const removeDocument = (type) => {
 
 const uploadDocuments = async () => {
     if (!uploadedDocuments.value.front) {
-        showWarning('Document manquant', 'Veuillez sélectionner au moins le recto de votre carte d\'identité.');
+        showWarning('Document manquant', 'Veuillez sélectionner le recto de votre carte d\'identité.');
+        return;
+    }
+    
+    if (!uploadedDocuments.value.back) {
+        showWarning('Document manquant', 'Veuillez sélectionner le verso de votre carte d\'identité. Les deux faces sont requises par Stripe.');
         return;
     }
     
@@ -1079,7 +1084,7 @@ const formatAmount = (amount: number) => {
 
                                 <!-- Verso -->
                                 <div class="space-y-3">
-                                    <label class="block text-sm font-medium text-gray-700">Carte d'identité (verso - optionnel)</label>
+                                    <label class="block text-sm font-medium text-gray-700">Carte d'identité (verso - requis)</label>
                                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                                         <input 
                                             type="file" 
@@ -1117,10 +1122,10 @@ const formatAmount = (amount: number) => {
                             </div>
 
                             <!-- Bouton pour envoyer les documents -->
-                            <div class="flex justify-center mb-4" v-if="uploadedDocuments.front">
+                            <div class="flex justify-center mb-4">
                                 <Button 
                                     @click="uploadDocuments" 
-                                    :disabled="uploading"
+                                    :disabled="uploading || !uploadedDocuments.front || !uploadedDocuments.back"
                                     variant="default"
                                     class="disabled:opacity-50"
                                 >
@@ -1136,11 +1141,16 @@ const formatAmount = (amount: number) => {
                             <div class="bg-gray-50 rounded-lg p-4">
                                 <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
                                 <ul class="text-sm text-gray-600 space-y-1">
-                                    <li>• Carte d'identité française ou européenne</li>
-                                    <li>• Passeport en cours de validité</li>
-                                    <li>• Permis de conduire français</li>
-                                    <li>• Carte de séjour (pour les non-européens)</li>
+                                    <li>• <strong>Carte d'identité française ou européenne</strong> (recto + verso requis)</li>
+                                    <li>• <strong>Passeport en cours de validité</strong> (page d'informations uniquement)</li>
+                                    <li>• <strong>Permis de conduire français</strong> (recto + verso requis)</li>
+                                    <li>• <strong>Carte de séjour</strong> (recto + verso requis pour les non-européens)</li>
                                 </ul>
+                                <div class="mt-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                                    <p class="text-xs text-blue-800">
+                                        ℹ️ <strong>Important</strong> : Pour les cartes d'identité et permis de conduire, les deux faces sont obligatoires selon les exigences Stripe.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -994,7 +994,7 @@ class StripeController extends Controller
     {
         $request->validate([
             'identity_document_front' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
-            'identity_document_back' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
+            'identity_document_back' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
         ]);
 
         $user = $request->user();
