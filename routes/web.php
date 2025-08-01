@@ -316,6 +316,9 @@ Route::middleware(['auth'])->group(function () {
     // Route pour la mise à jour du compte avec token (documents d'identité)
     Route::post('/stripe/update-account-with-token', [StripeController::class, 'updateAccountWithToken'])->name('stripe.update-account-with-token');
     
+    // Route pour l'upload de documents d'identité depuis le frontend
+    Route::post('/stripe/upload-identity-documents', [StripeController::class, 'uploadIdentityDocumentsFromFrontend'])->name('stripe.upload-identity-documents');
+    
     // Route de test temporaire
     Route::post('/stripe/test-route', function(Request $request) {
         Log::info('🧪 Route de test atteinte', ['data' => $request->all()]);

@@ -580,58 +580,41 @@ const uploadDocuments = async () => {
     uploading.value = true;
     
     try {
-        // Étape 1: Upload du document principal vers Stripe Files API
-        const frontFileData = new FormData();
-        frontFileData.append('file', uploadedDocuments.value.front);
-        frontFileData.append('purpose', 'identity_document');
+        // Initialiser Stripe.js
+        const stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
         
-        const frontFileResult = await fetch('https://files.stripe.com/v1/files', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_SECRET_KEY}`,
-            },
-            body: frontFileData,
+        // Étape 1: Upload du document principal vers Stripe Files API avec Stripe.js
+        const frontFileResult = await stripe.createFile({
+            file: uploadedDocuments.value.front,
+            purpose: 'identity_document'
         });
         
-        const frontFileResponse = await frontFileResult.json();
-        
-        if (!frontFileResult.ok) {
-            throw new Error(frontFileResponse.error?.message || 'Erreur lors de l\'upload du document principal');
+        if (frontFileResult.error) {
+            throw new Error(frontFileResult.error.message || 'Erreur lors de l\'upload du document principal');
         }
         
-        let backFileResponse = null;
+        let backFileResult = null;
         
         // Étape 2: Upload du verso si nécessaire (carte d'identité)
         if (uploadedDocuments.value.back && documentType.value === 'id_card') {
-            const backFileData = new FormData();
-            backFileData.append('file', uploadedDocuments.value.back);
-            backFileData.append('purpose', 'identity_document');
-            
-            const backFileResult = await fetch('https://files.stripe.com/v1/files', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_SECRET_KEY}`,
-                },
-                body: backFileData,
+            backFileResult = await stripe.createFile({
+                file: uploadedDocuments.value.back,
+                purpose: 'identity_document'
             });
             
-            backFileResponse = await backFileResult.json();
-            
-            if (!backFileResult.ok) {
-                throw new Error(backFileResponse.error?.message || 'Erreur lors de l\'upload du verso');
+            if (backFileResult.error) {
+                throw new Error(backFileResult.error.message || 'Erreur lors de l\'upload du verso');
             }
         }
         
         // Étape 3: Créer un token de compte avec les IDs des fichiers
-        const stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
-        
         const verificationDocument = {
-            front: frontFileResponse.id,
+            front: frontFileResult.file.id,
         };
         
         // Ajouter le verso si disponible
-        if (backFileResponse) {
-            verificationDocument.back = backFileResponse.id;
+        if (backFileResult) {
+            verificationDocument.back = backFileResult.file.id;
         }
         
         const tokenData = {
@@ -645,10 +628,10 @@ const uploadDocuments = async () => {
             tos_shown_and_accepted: true,
         };
         
-        const result = await stripe.createToken('account', tokenData);
+        const tokenResult = await stripe.createToken('account', tokenData);
         
-        if (result.error) {
-            throw new Error(result.error.message || 'Erreur lors de la création du token');
+        if (tokenResult.error) {
+            throw new Error(tokenResult.error.message || 'Erreur lors de la création du token');
         }
         
         // Étape 4: Envoyer le token au serveur pour mise à jour du compte
@@ -662,7 +645,7 @@ const uploadDocuments = async () => {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                account_token: result.token.id,
+                account_token: tokenResult.token.id,
                 document_type: documentType.value,
             }),
         });

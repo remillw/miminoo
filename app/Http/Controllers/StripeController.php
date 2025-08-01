@@ -1053,6 +1053,73 @@ class StripeController extends Controller
     }
 
     /**
+     * Upload des documents d'identité depuis le frontend
+     * Endpoint appelé par le frontend avec les paramètres front_document et back_document
+     */
+    public function uploadIdentityDocumentsFromFrontend(Request $request)
+    {
+        $documentType = $request->input('document_type', 'id_card');
+        
+        $rules = [
+            'front_document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
+            'document_type' => 'in:id_card,passport',
+        ];
+        
+        // Le verso n'est requis que pour les cartes d'identité et permis de conduire
+        if ($documentType === 'id_card') {
+            $rules['back_document'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
+        } else {
+            $rules['back_document'] = 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240';
+        }
+        
+        $request->validate($rules);
+
+        $user = $request->user();
+
+        if (!$user->stripe_account_id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Aucun compte Stripe Connect trouvé. Configurez d\'abord votre compte.'
+            ], 400);
+        }
+
+        try {
+            $result = $this->stripeService->uploadIdentityDocuments(
+                $user,
+                $request->file('front_document'),
+                $request->file('back_document'),
+                $documentType
+            );
+
+            Log::info('✅ Documents d\'identité uploadés avec succès depuis le frontend', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'document_type' => $documentType,
+                'result' => $result
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Documents uploadés avec succès !',
+                'data' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de l\'upload des documents d\'identité depuis le frontend', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de l\'upload des documents : ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Met à jour un compte Stripe Connect avec un token généré côté client
      * Utilisé pour l'upload de documents d'identité via l'API Stripe Files
      */
