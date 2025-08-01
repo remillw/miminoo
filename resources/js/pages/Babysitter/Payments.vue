@@ -161,6 +161,7 @@ const isRefreshing = ref(false);
 // Variables pour l'upload de documents
 const uploading = ref(false);
 const uploadedDocuments = ref({ front: null, back: null });
+const documentType = ref('id_card'); // 'id_card' ou 'passport'
 
 // États réactifs pour la gestion des virements
 const transferSettings = ref({
@@ -558,13 +559,20 @@ const removeDocument = (type) => {
     uploadedDocuments.value[type] = null;
 };
 
+// Réinitialiser les documents quand on change de type
+const resetDocuments = () => {
+    uploadedDocuments.value = { front: null, back: null };
+};
+
 const uploadDocuments = async () => {
     if (!uploadedDocuments.value.front) {
-        showWarning('Document manquant', 'Veuillez sélectionner le recto de votre carte d\'identité.');
+        const documentLabel = documentType.value === 'passport' ? 'passeport' : 'carte d\'identité';
+        showWarning('Document manquant', `Veuillez sélectionner votre ${documentLabel}.`);
         return;
     }
     
-    if (!uploadedDocuments.value.back) {
+    // Vérifier le verso seulement pour les cartes d'identité et permis de conduire
+    if (documentType.value === 'id_card' && !uploadedDocuments.value.back) {
         showWarning('Document manquant', 'Veuillez sélectionner le verso de votre carte d\'identité. Les deux faces sont requises par Stripe.');
         return;
     }
@@ -574,7 +582,8 @@ const uploadDocuments = async () => {
     try {
         const formData = new FormData();
         formData.append('identity_document_front', uploadedDocuments.value.front);
-        if (uploadedDocuments.value.back) {
+        formData.append('document_type', documentType.value);
+        if (uploadedDocuments.value.back && documentType.value === 'id_card') {
             formData.append('identity_document_back', uploadedDocuments.value.back);
         }
         
@@ -1034,19 +1043,30 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <!-- Formulaire d'upload de carte d'identité -->
+                        <!-- Formulaire d'upload de documents d'identité -->
                         <div class="bg-white border border-gray-200 rounded-lg p-6">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">
                                 <svg class="inline-block mr-2 h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                 </svg>
-                                Upload de carte d'identité
+                                Upload de documents d'identité
                             </h3>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <!-- Recto -->
+                            <!-- Sélecteur de type de document -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Type de document</label>
+                                <select v-model="documentType" @change="resetDocuments" class="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="id_card">Carte d'identité ou Permis de conduire</option>
+                                    <option value="passport">Passeport</option>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 gap-6 mb-6" :class="{ 'md:grid-cols-2': documentType === 'id_card', 'md:grid-cols-1': documentType === 'passport' }">
+                                <!-- Recto / Document principal -->
                                 <div class="space-y-3">
-                                    <label class="block text-sm font-medium text-gray-700">Carte d'identité (recto)</label>
+                                    <label class="block text-sm font-medium text-gray-700">
+                                        {{ documentType === 'passport' ? 'Page d\'informations du passeport' : 'Carte d\'identité (recto)' }}
+                                    </label>
                                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                                         <input 
                                             type="file" 
@@ -1082,8 +1102,8 @@ const formatAmount = (amount: number) => {
                                     </div>
                                 </div>
 
-                                <!-- Verso -->
-                                <div class="space-y-3">
+                                <!-- Verso (seulement pour carte d'identité) -->
+                                <div v-if="documentType === 'id_card'" class="space-y-3">
                                     <label class="block text-sm font-medium text-gray-700">Carte d'identité (verso - requis)</label>
                                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                                         <input 
@@ -1125,7 +1145,7 @@ const formatAmount = (amount: number) => {
                             <div class="flex justify-center mb-4">
                                 <Button 
                                     @click="uploadDocuments" 
-                                    :disabled="uploading || !uploadedDocuments.front || !uploadedDocuments.back"
+                                    :disabled="uploading || !uploadedDocuments.front || (documentType === 'id_card' && !uploadedDocuments.back)"
                                     variant="default"
                                     class="disabled:opacity-50"
                                 >

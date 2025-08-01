@@ -3155,7 +3155,7 @@ class StripeService
     /**
      * Upload identity documents to Stripe
      */
-    public function uploadIdentityDocuments(User $user, $frontFile, $backFile = null)
+    public function uploadIdentityDocuments(User $user, $frontFile, $backFile = null, $documentType = 'id_card')
     {
         try {
             if (!$user->stripe_account_id) {
@@ -3165,6 +3165,7 @@ class StripeService
             Log::info('📄 Upload de documents d\'identité vers Stripe', [
                 'user_id' => $user->id,
                 'account_id' => $user->stripe_account_id,
+                'document_type' => $documentType,
                 'has_front' => !is_null($frontFile),
                 'has_back' => !is_null($backFile)
             ]);
@@ -3195,12 +3196,14 @@ class StripeService
                 Log::info('✅ Verso uploadé', ['file_id' => $backStripeFile->id]);
             }
 
-            // Mettre à jour le compte avec les documents
-            $updateData = [
-                'individual' => [
-                    'verification' => [
-                        'document' => [
-                            'front' => $uploadedFiles['front'],
+            // Créer un account token avec les documents au lieu de mettre à jour directement
+            $tokenData = [
+                'account' => [
+                    'individual' => [
+                        'verification' => [
+                            'document' => [
+                                'front' => $uploadedFiles['front'],
+                            ],
                         ],
                     ],
                 ],
@@ -3208,12 +3211,16 @@ class StripeService
 
             // Ajouter le verso si disponible
             if (isset($uploadedFiles['back'])) {
-                $updateData['individual']['verification']['document']['back'] = $uploadedFiles['back'];
+                $tokenData['account']['individual']['verification']['document']['back'] = $uploadedFiles['back'];
             }
 
+            // Créer le token
+            $accountToken = $this->stripe->accountTokens->create($tokenData);
+
+            // Mettre à jour le compte avec le token
             $account = $this->stripe->accounts->update(
                 $user->stripe_account_id,
-                $updateData
+                ['account_token' => $accountToken->id]
             );
 
             Log::info('✅ Compte mis à jour avec les documents', [
