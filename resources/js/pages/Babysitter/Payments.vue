@@ -580,41 +580,58 @@ const uploadDocuments = async () => {
     uploading.value = true;
     
     try {
-        // Initialiser Stripe.js
-        const stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
+        // Étape 1: Upload du document principal vers Stripe Files API
+        const frontFileData = new FormData();
+        frontFileData.append('file', uploadedDocuments.value.front);
+        frontFileData.append('purpose', 'identity_document');
         
-        // Étape 1: Upload du document principal vers Stripe Files API avec Stripe.js
-        const frontFileResult = await stripe.createFile({
-            file: uploadedDocuments.value.front,
-            purpose: 'identity_document'
+        const frontFileResult = await fetch('https://files.stripe.com/v1/files', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
+            },
+            body: frontFileData,
         });
         
-        if (frontFileResult.error) {
-            throw new Error(frontFileResult.error.message || 'Erreur lors de l\'upload du document principal');
+        const frontFileResponse = await frontFileResult.json();
+        
+        if (!frontFileResult.ok) {
+            throw new Error(frontFileResponse.error?.message || 'Erreur lors de l\'upload du document principal');
         }
         
-        let backFileResult = null;
+        let backFileResponse = null;
         
         // Étape 2: Upload du verso si nécessaire (carte d'identité)
         if (uploadedDocuments.value.back && documentType.value === 'id_card') {
-            backFileResult = await stripe.createFile({
-                file: uploadedDocuments.value.back,
-                purpose: 'identity_document'
+            const backFileData = new FormData();
+            backFileData.append('file', uploadedDocuments.value.back);
+            backFileData.append('purpose', 'identity_document');
+            
+            const backFileResult = await fetch('https://files.stripe.com/v1/files', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
+                },
+                body: backFileData,
             });
             
-            if (backFileResult.error) {
-                throw new Error(backFileResult.error.message || 'Erreur lors de l\'upload du verso');
+            backFileResponse = await backFileResult.json();
+            
+            if (!backFileResult.ok) {
+                throw new Error(backFileResponse.error?.message || 'Erreur lors de l\'upload du verso');
             }
         }
         
         // Étape 3: Créer un token de compte avec les IDs des fichiers
+        const stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
+        
         const verificationDocument = {
-            front: frontFileResult.file.id,
+            front: frontFileResponse.id,
         };
         
         // Ajouter le verso si disponible
-        if (backFileResult) {
-            verificationDocument.back = backFileResult.file.id;
+        if (backFileResponse) {
+            verificationDocument.back = backFileResponse.id;
         }
         
         const tokenData = {
