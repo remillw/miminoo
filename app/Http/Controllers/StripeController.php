@@ -1052,4 +1052,61 @@ class StripeController extends Controller
         }
     }
 
+    /**
+     * Met à jour un compte Stripe Connect avec un token généré côté client
+     * Utilisé pour l'upload de documents d'identité via l'API Stripe Files
+     */
+    public function updateAccountWithToken(Request $request)
+    {
+        $user = $request->user();
+        
+        // Validation
+        $request->validate([
+            'account_token' => 'required|string',
+            'document_type' => 'required|in:id_card,passport',
+        ]);
+        
+        // Vérifier que l'utilisateur a un compte Stripe Connect
+        if (!$user->stripe_account_id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Aucun compte Stripe Connect associé à cet utilisateur.'
+            ], 400);
+        }
+        
+        try {
+            $result = $this->stripeService->updateAccountWithToken(
+                $user,
+                $request->input('account_token'),
+                $request->input('document_type')
+            );
+            
+            Log::info('✅ Compte Stripe mis à jour avec token', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'document_type' => $request->input('document_type'),
+                'token_id' => $request->input('account_token')
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Documents uploadés avec succès !',
+                'data' => $result
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la mise à jour du compte avec token', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la mise à jour du compte : ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 } 

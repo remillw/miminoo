@@ -580,27 +580,96 @@ const uploadDocuments = async () => {
     uploading.value = true;
     
     try {
-        const formData = new FormData();
-        formData.append('identity_document_front', uploadedDocuments.value.front);
-        formData.append('document_type', documentType.value);
-        if (uploadedDocuments.value.back && documentType.value === 'id_card') {
-            formData.append('identity_document_back', uploadedDocuments.value.back);
+        // Étape 1: Upload du document principal vers Stripe Files API
+        const frontFileData = new FormData();
+        frontFileData.append('file', uploadedDocuments.value.front);
+        frontFileData.append('purpose', 'identity_document');
+        
+        const frontFileResult = await fetch('https://uploads.stripe.com/v1/files', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
+            },
+            body: frontFileData,
+        });
+        
+        const frontFileResponse = await frontFileResult.json();
+        
+        if (!frontFileResult.ok) {
+            throw new Error(frontFileResponse.error?.message || 'Erreur lors de l\'upload du document principal');
         }
         
+        let backFileResponse = null;
+        
+        // Étape 2: Upload du verso si nécessaire (carte d'identité)
+        if (uploadedDocuments.value.back && documentType.value === 'id_card') {
+            const backFileData = new FormData();
+            backFileData.append('file', uploadedDocuments.value.back);
+            backFileData.append('purpose', 'identity_document');
+            
+            const backFileResult = await fetch('https://uploads.stripe.com/v1/files', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
+                },
+                body: backFileData,
+            });
+            
+            backFileResponse = await backFileResult.json();
+            
+            if (!backFileResult.ok) {
+                throw new Error(backFileResponse.error?.message || 'Erreur lors de l\'upload du verso');
+            }
+        }
+        
+        // Étape 3: Créer un token de compte avec les IDs des fichiers
+        const stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
+        
+        const verificationDocument = {
+            front: frontFileResponse.id,
+        };
+        
+        // Ajouter le verso si disponible
+        if (backFileResponse) {
+            verificationDocument.back = backFileResponse.id;
+        }
+        
+        const tokenData = {
+            person: {
+                first_name: props.user?.firstname || '',
+                last_name: props.user?.lastname || '',
+                verification: {
+                    document: verificationDocument,
+                },
+            },
+            tos_shown_and_accepted: true,
+        };
+        
+        const result = await stripe.createToken('account', tokenData);
+        
+        if (result.error) {
+            throw new Error(result.error.message || 'Erreur lors de la création du token');
+        }
+        
+        // Étape 4: Envoyer le token au serveur pour mise à jour du compte
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        const response = await fetch('/stripe/upload-identity-documents', {
+        const serverResponse = await fetch('/stripe/update-account-with-token', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken || '',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
+                'Content-Type': 'application/json',
             },
-            body: formData
+            body: JSON.stringify({
+                account_token: result.token.id,
+                document_type: documentType.value,
+            }),
         });
         
-        const result = await response.json();
+        const serverResult = await serverResponse.json();
         
-        if (response.ok && result.success) {
+        if (serverResponse.ok && serverResult.success) {
             const { showSuccess } = useToast();
             showSuccess('✅ Documents uploadés avec succès !', 'Vos documents ont été envoyés pour vérification.');
             
@@ -610,7 +679,7 @@ const uploadDocuments = async () => {
             // Recharger la page pour mettre à jour le statut
             router.reload();
         } else {
-            throw new Error(result.error || 'Erreur lors de l\'upload des documents');
+            throw new Error(serverResult.error || 'Erreur lors de la mise à jour du compte');
         }
     } catch (error) {
         console.error('Erreur upload:', error);

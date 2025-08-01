@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Stripe\StripeClient;
+use Stripe\AccountToken;
 use Illuminate\Support\Facades\Log;
 use App\Models\Reservation;
 
@@ -3214,8 +3215,8 @@ class StripeService
                 $tokenData['account']['individual']['verification']['document']['back'] = $uploadedFiles['back'];
             }
 
-            // Créer le token
-            $accountToken = $this->stripe->accountTokens->create($tokenData);
+            // Créer le token - utiliser l'API REST directement
+            $accountToken = AccountToken::create($tokenData);
 
             // Mettre à jour le compte avec le token
             $account = $this->stripe->accounts->update(
@@ -3237,6 +3238,64 @@ class StripeService
 
         } catch (\Exception $e) {
             Log::error('❌ Erreur lors de l\'upload des documents d\'identité', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id ?? 'N/A',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Met à jour un compte Stripe Connect avec un token généré côté client
+     * Cette méthode suit l'approche recommandée par Stripe pour l'upload de documents d'identité
+     * 
+     * @param User $user
+     * @param string $accountToken Le token généré côté client
+     * @param string $documentType Type de document (id_card, passport)
+     * @return array
+     */
+    public function updateAccountWithToken(User $user, string $accountToken, string $documentType = 'id_card')
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            Log::info('🏗️ Mise à jour du compte Stripe avec token côté client', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'document_type' => $documentType,
+                'token_prefix' => substr($accountToken, 0, 20) . '...'
+            ]);
+
+            // Mettre à jour le compte avec le token généré côté client
+            $account = $this->stripe->accounts->update(
+                $user->stripe_account_id,
+                ['account_token' => $accountToken]
+            );
+
+            Log::info('✅ Compte mis à jour avec token côté client', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'verification_status' => $account->individual->verification->status ?? 'unknown',
+                'requirements_due' => $account->requirements->currently_due ?? [],
+                'requirements_pending' => $account->requirements->pending_verification ?? []
+            ]);
+
+            return [
+                'account_id' => $user->stripe_account_id,
+                'verification_status' => $account->individual->verification->status ?? 'pending',
+                'requirements' => [
+                    'currently_due' => $account->requirements->currently_due ?? [],
+                    'eventually_due' => $account->requirements->eventually_due ?? [],
+                    'pending_verification' => $account->requirements->pending_verification ?? []
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la mise à jour du compte avec token', [
                 'user_id' => $user->id,
                 'account_id' => $user->stripe_account_id ?? 'N/A',
                 'error' => $e->getMessage(),
