@@ -88,6 +88,7 @@
 
             <!-- Besoin de vérification -->
             <div v-else>
+              <!-- Informations supplémentaires - Upload de carte d'identité -->
               <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
                 <div class="flex">
                   <div class="flex-shrink-0">
@@ -97,11 +98,140 @@
                   </div>
                   <div class="ml-3">
                     <h3 class="text-sm font-medium text-blue-800">
-                      Vérification d'identité requise
+                      Informations supplémentaires
                     </h3>
                     <div class="mt-2 text-sm text-blue-700">
-                      <p>Pour recevoir des paiements en tant que babysitter, vous devez vérifier votre identité via Stripe Identity.</p>
+                      <p>Vous pouvez uploader votre carte d'identité maintenant ou passer par Stripe Identity.</p>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section Upload de carte d'identité -->
+              <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">
+                  <svg class="inline-block mr-2 h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                  Upload de carte d'identité
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <!-- Recto -->
+                  <div class="space-y-3">
+                    <label class="block text-sm font-medium text-gray-700">Carte d'identité (recto)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                      <input 
+                        type="file" 
+                        id="identity-front" 
+                        class="hidden" 
+                        accept="image/*,.pdf"
+                        @change="handleDocumentUpload($event, 'front')"
+                      />
+                      <div v-if="!uploadedDocuments.front">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <label for="identity-front" class="cursor-pointer">
+                          <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                            Cliquez pour uploader
+                          </span>
+                          <span class="text-sm text-gray-500"> ou glissez-déposez</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
+                      </div>
+                      <div v-else class="space-y-2">
+                        <svg class="mx-auto h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.front.name }}</p>
+                        <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.front.size / 1024) }} KB</p>
+                        <button 
+                          type="button"
+                          @click="removeDocument('front')"
+                          class="text-xs text-red-600 hover:text-red-800 underline"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Verso -->
+                  <div class="space-y-3">
+                    <label class="block text-sm font-medium text-gray-700">Carte d'identité (verso - optionnel)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                      <input 
+                        type="file" 
+                        id="identity-back" 
+                        class="hidden" 
+                        accept="image/*,.pdf"
+                        @change="handleDocumentUpload($event, 'back')"
+                      />
+                      <div v-if="!uploadedDocuments.back">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <label for="identity-back" class="cursor-pointer">
+                          <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                            Cliquez pour uploader
+                          </span>
+                          <span class="text-sm text-gray-500"> ou glissez-déposez</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
+                      </div>
+                      <div v-else class="space-y-2">
+                        <svg class="mx-auto h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.back.name }}</p>
+                        <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.back.size / 1024) }} KB</p>
+                        <button 
+                          type="button"
+                          @click="removeDocument('back')"
+                          class="text-xs text-red-600 hover:text-red-800 underline"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bouton pour envoyer les documents -->
+                <div class="flex justify-center mb-4" v-if="uploadedDocuments.front">
+                  <button 
+                    @click="uploadDocuments" 
+                    :disabled="uploading"
+                    class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                  >
+                    <svg v-if="uploading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {{ uploading ? 'Envoi en cours...' : 'Envoyer les documents' }}
+                  </button>
+                </div>
+
+                <!-- Informations sur les documents acceptés -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
+                  <ul class="text-sm text-gray-600 space-y-1">
+                    <li>• Carte d'identité française ou européenne</li>
+                    <li>• Passeport en cours de validité</li>
+                    <li>• Permis de conduire français</li>
+                    <li>• Carte de séjour (pour les non-européens)</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="text-center mb-6">
+                <div class="relative">
+                  <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">ou</span>
                   </div>
                 </div>
               </div>
@@ -171,6 +301,8 @@ const props = defineProps({
 })
 
 const loading = ref(false)
+const uploading = ref(false)
+const uploadedDocuments = ref({ front: null, back: null })
 
 const getStatusLabel = (status) => {
   switch (status) {
@@ -235,6 +367,76 @@ const checkStatus = async () => {
     console.error('Erreur:', error)
   } finally {
     loading.value = false
+  }
+}
+
+// Gestion de l'upload de documents
+const handleDocumentUpload = (event, type) => {
+  const input = event.target
+  const file = input.files?.[0]
+  
+  if (file) {
+    // Vérifier le type de fichier
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Type de fichier invalide. Seuls les fichiers JPEG, PNG et PDF sont acceptés.')
+      return
+    }
+    
+    // Vérifier la taille (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Fichier trop volumineux. La taille maximale est de 10MB.')
+      return
+    }
+    
+    uploadedDocuments.value[type] = file
+  }
+}
+
+const removeDocument = (type) => {
+  uploadedDocuments.value[type] = null
+}
+
+const uploadDocuments = async () => {
+  if (!uploadedDocuments.value.front) {
+    alert('Veuillez sélectionner au moins le recto de votre carte d\'identité.')
+    return
+  }
+  
+  uploading.value = true
+  
+  try {
+    const formData = new FormData()
+    formData.append('identity_document_front', uploadedDocuments.value.front)
+    if (uploadedDocuments.value.back) {
+      formData.append('identity_document_back', uploadedDocuments.value.back)
+    }
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    const response = await fetch('/stripe/upload-identity-documents', {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken || '',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      },
+      body: formData
+    })
+    
+    const result = await response.json()
+    
+    if (response.ok && result.success) {
+      alert('✅ Documents uploadés avec succès !')
+      // Recharger la page pour mettre à jour le statut
+      router.reload()
+    } else {
+      throw new Error(result.error || 'Erreur lors de l\'upload des documents')
+    }
+  } catch (error) {
+    console.error('Erreur upload:', error)
+    alert('❌ Erreur lors de l\'upload des documents: ' + error.message)
+  } finally {
+    uploading.value = false
   }
 }
 </script>

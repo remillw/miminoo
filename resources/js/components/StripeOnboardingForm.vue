@@ -278,19 +278,16 @@ const submitOnboarding = async () => {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
             },
             body: requestData
         });
         
         const result = await response.json();
         
-        if (response.ok) {
+        if (response.ok && result.success) {
             showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
-            
-            // Rediriger vers la page de paiements après succès
-            setTimeout(() => {
-                router.visit('/babysitter/paiements');
-            }, 1500);
         } else {
             throw new Error(result.error || 'Erreur lors de la configuration du compte');
         }

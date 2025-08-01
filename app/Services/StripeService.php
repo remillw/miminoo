@@ -2935,6 +2935,17 @@ class StripeService
 
             $account = $this->stripe->accounts->create($accountData);
 
+            // Configurer les virements en manuel par défaut
+            $this->stripe->accounts->update($account->id, [
+                'settings' => [
+                    'payouts' => [
+                        'schedule' => [
+                            'interval' => 'manual'
+                        ]
+                    ]
+                ]
+            ]);
+
             // Sauvegarder l'ID du compte
             $user->update([
                 'stripe_account_id' => $account->id,

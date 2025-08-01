@@ -949,6 +949,15 @@ class StripeController extends Controller
                 'result_account_id' => $result->id ?? 'N/A'
             ]);
             
+            // Si c'est une requête AJAX (fetch), retourner JSON
+            if ($request->expectsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Compte configuré avec succès !',
+                    'redirect' => route('babysitter.payments')
+                ]);
+            }
+            
             return redirect()->route('babysitter.payments')->with('success', 'Compte configuré avec succès !');
 
         } catch (\Exception $e) {
