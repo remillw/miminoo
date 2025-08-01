@@ -585,10 +585,10 @@ const uploadDocuments = async () => {
         frontFileData.append('file', uploadedDocuments.value.front);
         frontFileData.append('purpose', 'identity_document');
         
-        const frontFileResult = await fetch('https://uploads.stripe.com/v1/files', {
+        const frontFileResult = await fetch('https://files.stripe.com/v1/files', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
+                'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_SECRET_KEY}`,
             },
             body: frontFileData,
         });
@@ -607,10 +607,10 @@ const uploadDocuments = async () => {
             backFileData.append('file', uploadedDocuments.value.back);
             backFileData.append('purpose', 'identity_document');
             
-            const backFileResult = await fetch('https://uploads.stripe.com/v1/files', {
+            const backFileResult = await fetch('https://files.stripe.com/v1/files', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
+                    'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_SECRET_KEY}`,
                 },
                 body: backFileData,
             });
