@@ -274,7 +274,7 @@ const submitOnboarding = async () => {
         
         // Utiliser fetch au lieu de router.post pour supporter FormData
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        const response = await fetch('/stripe/create-onboarding-link', {
+        const response = await fetch('/stripe/internal-onboarding', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken || '',
@@ -452,7 +452,7 @@ const clearError = () => {
 // Fonction pour démarrer l'onboarding externe en cas d'erreur française
 const startExternalOnboarding = async () => {
     try {
-        const response = await fetch('/stripe/create-onboarding-link', {
+        const response = await fetch('/stripe/internal-onboarding', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
