@@ -883,7 +883,7 @@ class StripeController extends Controller
         
         $validationRules = [
             'account_token' => 'nullable|string', // Token Stripe créé côté client
-            'internal_onboarding' => 'nullable|boolean',
+            'internal_onboarding' => 'nullable|in:true,false,1,0',
         ];
 
         if ($hasToken) {
