@@ -117,6 +117,11 @@ class StripeController extends Controller
 
             $accountLink = $this->stripeService->createOnboardingLink($user);
             
+            // Pour les requêtes Inertia, rediriger ou retourner les props
+            if ($request->header('X-Inertia')) {
+                return redirect($accountLink->url);
+            }
+            
             return response()->json([
                 'onboarding_url' => $accountLink->url,
                 'expires_at' => $accountLink->expires_at,

@@ -440,80 +440,29 @@ const formatRequirement = (requirement: string) => {
     return mapping[requirement] || requirement;
 };
 
-const startExternalOnboarding = async () => {
-    if (isLoading.value) return;
-
-    isLoading.value = true;
-    error.value = '';
-
-    try {
-        const response = await fetch('/stripe/create-onboarding-link', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
-
-        // Gérer les erreurs 500 (session expirée)
-        if (response.status === 500) {
-            handleAuthError();
-            return;
-        }
-
-        // Vérifier le content-type de la réponse
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const htmlContent = await response.text();
-            console.error('Réponse non-JSON reçue:', htmlContent.substring(0, 200));
-            throw new Error(`Erreur serveur: la réponse n'est pas au format JSON (Status: ${response.status})`);
-        }
-
-        const data = await response.json();
-
-        if (response.ok && data.onboarding_url) {
-            window.location.href = data.onboarding_url;
-        } else {
-            throw new Error(data.error || "Erreur lors de la création du lien d'onboarding");
-        }
-    } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
-        error.value = errorMessage;
-        
-        // Vérifier si c'est une erreur de session
-        if (err instanceof Error && err.message.includes('login not defined')) {
-            handleAuthError();
-        }
-
-        console.error("Erreur lors de la création du lien d'onboarding:", err);
-    } finally {
-        isLoading.value = false;
-    }
-};
 
 const refreshAccountStatus = async () => {
     if (isRefreshing.value) return;
 
     isRefreshing.value = true;
 
-    try {
-        const response = await fetch('/api/stripe/account-status');
-        // Les erreurs 500 sont maintenant gérées globalement
-        const data = await response.json();
-
-        if (response.ok) {
-            currentStatus.value = data.status;
-            // Recharger la page pour avoir les dernières données
-            setTimeout(() => {
-                router.reload();
-            }, 1000);
+    router.get('/api/stripe/account-status', {}, {
+        onSuccess: (page) => {
+            if (page.props && page.props.status) {
+                currentStatus.value = page.props.status;
+                // Recharger la page pour avoir les dernières données
+                setTimeout(() => {
+                    router.reload();
+                }, 1000);
+            }
+        },
+        onError: (errors) => {
+            console.error('Erreur lors de la vérification du statut:', errors);
+        },
+        onFinish: () => {
+            isRefreshing.value = false;
         }
-    } catch (err) {
-        console.error('Erreur lors de la vérification du statut:', err);
-        // Les erreurs de session sont maintenant gérées globalement
-    } finally {
-        isRefreshing.value = false;
-    }
+    });
 };
 
 const formatDate = (timestamp: number) => {
@@ -578,46 +527,6 @@ const completeRequirements = () => {
     }
 };
 
-// Démarrer l'onboarding externe Stripe si nécessaire
-const startStripeOnboarding = async () => {
-    if (isLoading.value) return;
-
-    isLoading.value = true;
-    error.value = '';
-
-    try {
-        const response = await fetch('/stripe/create-onboarding-link', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            },
-        });
-
-        // Gérer les erreurs 500 (session expirée)
-        if (response.status === 500) {
-            handleAuthError();
-            return;
-        }
-
-        const data = await response.json();
-
-        if (response.ok && data.onboarding_url) {
-            window.location.href = data.onboarding_url;
-        } else {
-            throw new Error(data.error || 'Erreur lors de la création du lien de vérification');
-        }
-    } catch (err) {
-        error.value = err instanceof Error ? err.message : 'Une erreur est survenue';
-        
-        // Vérifier si c'est une erreur de session
-        if (err instanceof Error && err.message.includes('login not defined')) {
-            handleAuthError();
-        }
-    } finally {
-        isLoading.value = false;
-    }
-};
 
 onMounted(() => {
     // Vérifier si l'utilisateur arrive d'une redirection backend (par exemple manque de stripe account)
@@ -820,16 +729,6 @@ const formatAmount = (amount: number) => {
                             />
                         </div>
                         
-                        <!-- Option d'onboarding externe en cas de problème -->
-                        <div class="mt-6 pt-4 border-t border-gray-200">
-                            <div class="text-center">
-                                <p class="text-sm text-gray-600 mb-3">Problème avec le formulaire interne ?</p>
-                                <Button variant="outline" @click="startStripeOnboarding" :disabled="isLoading">
-                                    <ExternalLink class="mr-2 h-4 w-4" />
-                                    Utiliser l'interface Stripe
-                                </Button>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Compte configuré -->
@@ -1026,12 +925,6 @@ const formatAmount = (amount: number) => {
                                 <Shield class="mr-2 h-4 w-4" />
                                 Compléter les informations
                             </Button>
-                            
-                            <Button variant="outline" @click="startStripeOnboarding" :disabled="isLoading" class="w-full">
-                                <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
-                                <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
-                                {{ isLoading ? 'Redirection...' : 'Compléter avec Stripe' }}
-                            </Button>
                         </div>
                     </div>
 
@@ -1055,12 +948,6 @@ const formatAmount = (amount: number) => {
                                 </ul>
                             </div>
                         </div>
-
-                        <Button @click="startStripeOnboarding" :disabled="isLoading" class="w-full">
-                            <ExternalLink v-if="!isLoading" class="mr-2 h-4 w-4" />
-                            <div v-else class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                            {{ isLoading ? 'Redirection...' : 'Compléter maintenant' }}
-                        </Button>
                     </div>
 
                     <!-- Vérification en cours -->
