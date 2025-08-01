@@ -987,4 +987,57 @@ class StripeController extends Controller
         }
     }
 
+    /**
+     * Upload identity documents to Stripe
+     */
+    public function uploadIdentityDocuments(Request $request)
+    {
+        $request->validate([
+            'identity_document_front' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
+            'identity_document_back' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
+        ]);
+
+        $user = $request->user();
+
+        if (!$user->stripe_account_id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Aucun compte Stripe Connect trouvé. Configurez d\'abord votre compte.'
+            ], 400);
+        }
+
+        try {
+            $result = $this->stripeService->uploadIdentityDocuments(
+                $user,
+                $request->file('identity_document_front'),
+                $request->file('identity_document_back')
+            );
+
+            Log::info('✅ Documents d\'identité uploadés avec succès', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'result' => $result
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Documents uploadés avec succès !',
+                'data' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de l\'upload des documents d\'identité', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de l\'upload des documents : ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 } 

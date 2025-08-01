@@ -313,6 +313,9 @@ Route::middleware(['auth'])->group(function () {
     // Route d'onboarding Stripe interne (accessible à tous les utilisateurs authentifiés)
     Route::post('/stripe/internal-onboarding', [StripeController::class, 'internalOnboarding'])->name('stripe.internal-onboarding');
     
+    // Route pour l'upload de documents d'identité
+    Route::post('/stripe/upload-identity-documents', [StripeController::class, 'uploadIdentityDocuments'])->name('stripe.upload-identity-documents');
+    
     // Route de test temporaire
     Route::post('/stripe/test-route', function(Request $request) {
         Log::info('🧪 Route de test atteinte', ['data' => $request->all()]);

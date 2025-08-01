@@ -1121,7 +1121,8 @@ const formatAmount = (amount: number) => {
                                 <Button 
                                     @click="uploadDocuments" 
                                     :disabled="uploading"
-                                    class="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                                    variant="default"
+                                    class="disabled:opacity-50"
                                 >
                                     <svg v-if="uploading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

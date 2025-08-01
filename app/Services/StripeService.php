@@ -3151,4 +3151,91 @@ class StripeService
             throw $e;
         }
     }
+
+    /**
+     * Upload identity documents to Stripe
+     */
+    public function uploadIdentityDocuments(User $user, $frontFile, $backFile = null)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            Log::info('📄 Upload de documents d\'identité vers Stripe', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'has_front' => !is_null($frontFile),
+                'has_back' => !is_null($backFile)
+            ]);
+
+            $uploadedFiles = [];
+
+            // Upload du recto (obligatoire)
+            if ($frontFile) {
+                $frontStripeFile = $this->stripe->files->create([
+                    'purpose' => 'identity_document',
+                    'file' => fopen($frontFile->getRealPath(), 'r'),
+                ], [
+                    'stripe_account' => $user->stripe_account_id,
+                ]);
+                $uploadedFiles['front'] = $frontStripeFile->id;
+                Log::info('✅ Recto uploadé', ['file_id' => $frontStripeFile->id]);
+            }
+
+            // Upload du verso (optionnel)
+            if ($backFile) {
+                $backStripeFile = $this->stripe->files->create([
+                    'purpose' => 'identity_document',
+                    'file' => fopen($backFile->getRealPath(), 'r'),
+                ], [
+                    'stripe_account' => $user->stripe_account_id,
+                ]);
+                $uploadedFiles['back'] = $backStripeFile->id;
+                Log::info('✅ Verso uploadé', ['file_id' => $backStripeFile->id]);
+            }
+
+            // Mettre à jour le compte avec les documents
+            $updateData = [
+                'individual' => [
+                    'verification' => [
+                        'document' => [
+                            'front' => $uploadedFiles['front'],
+                        ],
+                    ],
+                ],
+            ];
+
+            // Ajouter le verso si disponible
+            if (isset($uploadedFiles['back'])) {
+                $updateData['individual']['verification']['document']['back'] = $uploadedFiles['back'];
+            }
+
+            $account = $this->stripe->accounts->update(
+                $user->stripe_account_id,
+                $updateData
+            );
+
+            Log::info('✅ Compte mis à jour avec les documents', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'verification_status' => $account->individual->verification->status ?? 'unknown'
+            ]);
+
+            return [
+                'account_id' => $user->stripe_account_id,
+                'uploaded_files' => $uploadedFiles,
+                'verification_status' => $account->individual->verification->status ?? 'pending'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de l\'upload des documents d\'identité', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id ?? 'N/A',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
 } 
