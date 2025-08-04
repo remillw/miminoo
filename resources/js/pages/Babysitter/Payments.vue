@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import StripeOnboardingForm from '@/components/StripeOnboardingForm.vue';
+import StripeServerUpload from '@/components/StripeServerUpload.vue';
 import { Head, router } from '@inertiajs/vue3';
 import {
     AlertCircle,
@@ -158,10 +159,9 @@ const currentStatus = ref(props.accountStatus);
 const error = ref('');
 const isRefreshing = ref(false);
 
-// Variables pour l'upload de documents
-const uploading = ref(false);
-const uploadedDocuments = ref({ front: null, back: null });
-const documentType = ref('id_card'); // 'id_card' ou 'passport'
+// Variables pour l'upload de documents (nouveau système)
+const showUploadForm = ref(false);
+const isDocumentUploadComplete = ref(false);
 
 // États réactifs pour la gestion des virements
 const transferSettings = ref({
@@ -385,6 +385,69 @@ const nextAvailableDate = computed(() => {
         : null;
 });
 
+// Statut de vérification des documents
+const documentVerificationStatus = computed(() => {
+    const individual = props.accountDetails?.individual;
+    if (!individual?.verification) return null;
+    
+    const status = individual.verification.status;
+    const document = individual.verification.document;
+    
+    // Gestion des différents cas
+    switch (status) {
+        case 'verified':
+            return {
+                status: 'verified',
+                icon: CheckCircle,
+                color: 'text-green-600',
+                bgColor: 'bg-green-50',
+                title: 'Documents vérifiés',
+                message: 'Vos documents d\'identité ont été validés par Stripe.'
+            };
+        case 'pending':
+            return {
+                status: 'pending',
+                icon: Clock,
+                color: 'text-blue-600',
+                bgColor: 'bg-blue-50',
+                title: 'Vérification en cours',
+                message: 'Vos documents sont en cours de traitement. Cela peut prendre quelques minutes à quelques heures.'
+            };
+        case 'unverified':
+            if (document === 'unverified') {
+                return {
+                    status: 'required',
+                    icon: AlertCircle,
+                    color: 'text-red-600',
+                    bgColor: 'bg-red-50',
+                    title: 'Documents requis',
+                    message: 'Vous devez télécharger vos documents d\'identité pour activer les paiements.'
+                };
+            }
+            break;
+        case 'requires_input':
+            return {
+                status: 'requires_input',
+                icon: AlertCircle,
+                color: 'text-orange-600',
+                bgColor: 'bg-orange-50',
+                title: 'Action requise',
+                message: 'Stripe a besoin d\'informations supplémentaires pour vérifier vos documents.'
+            };
+        default:
+            return {
+                status: 'unknown',
+                icon: Info,
+                color: 'text-gray-600',
+                bgColor: 'bg-gray-50',
+                title: 'Statut inconnu',
+                message: `Statut: ${status}, Document: ${document}`
+            };
+    }
+    
+    return null;
+});
+
 // Requirements du compte Connect
 const accountRequirements = computed(() => {
     if (!props.accountDetails?.requirements) return [];
@@ -532,162 +595,29 @@ const completeRequirements = () => {
     }
 };
 
-// Gestion de l'upload de documents
-const handleDocumentUpload = (event, type) => {
-    const input = event.target;
-    const file = input.files?.[0];
+// Gestion de l'upload de documents (nouveau système)
+const handleUploadComplete = (result) => {
+    console.log('✅ Upload completed:', result);
+    const { showSuccess } = useToast();
+    showSuccess("✅ Documents uploadés avec succès !", `${result.uploadedFiles.length} document(s) envoyé(s) directement à Stripe pour vérification.`);
     
-    if (file) {
-        // Vérifier le type de fichier
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-        if (!allowedTypes.includes(file.type)) {
-            showWarning('Type de fichier invalide', 'Seuls les fichiers JPEG, PNG et PDF sont acceptés.');
-            return;
-        }
-        
-        // Vérifier la taille (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            showWarning('Fichier trop volumineux', 'La taille maximale est de 10MB.');
-            return;
-        }
-        
-        uploadedDocuments.value[type] = file;
-    }
+    isDocumentUploadComplete.value = true;
+    showUploadForm.value = false;
+    
+    // Recharger la page pour mettre à jour le statut
+    setTimeout(() => {
+        router.reload();
+    }, 1000);
 };
 
-const removeDocument = (type) => {
-    uploadedDocuments.value[type] = null;
+const handleUploadError = (error) => {
+    console.error('❌ Upload error:', error);
+    const { showError } = useToast();
+    showError("❌ Erreur lors de l'upload", error.message || "Une erreur est survenue lors de l'upload");
 };
 
-// Réinitialiser les documents quand on change de type
-const resetDocuments = () => {
-    uploadedDocuments.value = { front: null, back: null };
-};
-
-const uploadDocuments = async () => {
-    if (!uploadedDocuments.value.front) {
-        const documentLabel = documentType.value === 'passport' ? 'passeport' : 'carte d\'identité';
-        showWarning('Document manquant', `Veuillez sélectionner votre ${documentLabel}.`);
-        return;
-    }
-    
-    // Vérifier le verso seulement pour les cartes d'identité et permis de conduire
-    if (documentType.value === 'id_card' && !uploadedDocuments.value.back) {
-        showWarning('Document manquant', 'Veuillez sélectionner le verso de votre carte d\'identité. Les deux faces sont requises par Stripe.');
-        return;
-    }
-    
-    uploading.value = true;
-    
-    try {
-        // Étape 1: Upload du document principal vers Stripe Files API
-        const frontFileData = new FormData();
-        frontFileData.append('file', uploadedDocuments.value.front);
-        frontFileData.append('purpose', 'identity_document');
-        
-        const frontFileResult = await fetch('https://files.stripe.com/v1/files', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
-            },
-            body: frontFileData,
-        });
-        
-        const frontFileResponse = await frontFileResult.json();
-        
-        if (!frontFileResult.ok) {
-            throw new Error(frontFileResponse.error?.message || 'Erreur lors de l\'upload du document principal');
-        }
-        
-        let backFileResponse = null;
-        
-        // Étape 2: Upload du verso si nécessaire (carte d'identité)
-        if (uploadedDocuments.value.back && documentType.value === 'id_card') {
-            const backFileData = new FormData();
-            backFileData.append('file', uploadedDocuments.value.back);
-            backFileData.append('purpose', 'identity_document');
-            
-            const backFileResult = await fetch('https://files.stripe.com/v1/files', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${import.meta.env.VITE_STRIPE_KEY}`,
-                },
-                body: backFileData,
-            });
-            
-            backFileResponse = await backFileResult.json();
-            
-            if (!backFileResult.ok) {
-                throw new Error(backFileResponse.error?.message || 'Erreur lors de l\'upload du verso');
-            }
-        }
-        
-        // Étape 3: Créer un token de compte avec les IDs des fichiers
-        const stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
-        
-        const verificationDocument = {
-            front: frontFileResponse.id,
-        };
-        
-        // Ajouter le verso si disponible
-        if (backFileResponse) {
-            verificationDocument.back = backFileResponse.id;
-        }
-        
-        const tokenData = {
-            person: {
-                first_name: props.user?.firstname || '',
-                last_name: props.user?.lastname || '',
-                verification: {
-                    document: verificationDocument,
-                },
-            },
-            tos_shown_and_accepted: true,
-        };
-        
-        const tokenResult = await stripe.createToken('account', tokenData);
-        
-        if (tokenResult.error) {
-            throw new Error(tokenResult.error.message || 'Erreur lors de la création du token');
-        }
-        
-        // Étape 4: Envoyer le token au serveur pour mise à jour du compte
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        const serverResponse = await fetch('/stripe/update-account-with-token', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken || '',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                account_token: tokenResult.token.id,
-                document_type: documentType.value,
-            }),
-        });
-        
-        const serverResult = await serverResponse.json();
-        
-        if (serverResponse.ok && serverResult.success) {
-            const { showSuccess } = useToast();
-            showSuccess('✅ Documents uploadés avec succès !', 'Vos documents ont été envoyés pour vérification.');
-            
-            // Réinitialiser le formulaire
-            uploadedDocuments.value = { front: null, back: null };
-            
-            // Recharger la page pour mettre à jour le statut
-            router.reload();
-        } else {
-            throw new Error(serverResult.error || 'Erreur lors de la mise à jour du compte');
-        }
-    } catch (error) {
-        console.error('Erreur upload:', error);
-        const { showError } = useToast();
-        showError('❌ Erreur lors de l\'upload', error.message);
-    } finally {
-        uploading.value = false;
-    }
+const toggleUploadForm = () => {
+    showUploadForm.value = !showUploadForm.value;
 };
 
 
@@ -1112,133 +1042,89 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <!-- Formulaire d'upload de documents d'identité -->
-                        <div class="bg-white border border-gray-200 rounded-lg p-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                                <svg class="inline-block mr-2 h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                                Upload de documents d'identité
-                            </h3>
-                            
-                            <!-- Sélecteur de type de document -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Type de document</label>
-                                <select v-model="documentType" @change="resetDocuments" class="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="id_card">Carte d'identité ou Permis de conduire</option>
-                                    <option value="passport">Passeport</option>
-                                </select>
+                        <!-- Statut de vérification des documents d'identité -->
+                        <div v-if="documentVerificationStatus" class="bg-white border border-gray-200 rounded-lg p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                    <component :is="documentVerificationStatus.icon" class="mr-2 h-5 w-5" :class="documentVerificationStatus.color" />
+                                    Vérification des documents d'identité
+                                </h3>
+                                <!-- Statut badge -->
+                                <Badge :class="documentVerificationStatus.bgColor + ' ' + documentVerificationStatus.color">
+                                    {{ documentVerificationStatus.title }}
+                                </Badge>
                             </div>
                             
-                            <div class="grid grid-cols-1 gap-6 mb-6" :class="{ 'md:grid-cols-2': documentType === 'id_card', 'md:grid-cols-1': documentType === 'passport' }">
-                                <!-- Recto / Document principal -->
-                                <div class="space-y-3">
-                                    <label class="block text-sm font-medium text-gray-700">
-                                        {{ documentType === 'passport' ? 'Page d\'informations du passeport' : 'Carte d\'identité (recto)' }}
-                                    </label>
-                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                                        <input 
-                                            type="file" 
-                                            id="identity-front" 
-                                            class="hidden" 
-                                            accept="image/*,.pdf"
-                                            @change="handleDocumentUpload($event, 'front')"
-                                        />
-                                        <div v-if="!uploadedDocuments.front">
-                                            <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                            </svg>
-                                            <label for="identity-front" class="cursor-pointer">
-                                                <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                                    Cliquez pour uploader
-                                                </span>
-                                                <span class="text-sm text-gray-500"> ou glissez-déposez</span>
-                                            </label>
-                                            <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
-                                        </div>
-                                        <div v-else class="space-y-2">
-                                            <CheckCircle class="mx-auto h-8 w-8 text-green-500" />
-                                            <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.front.name }}</p>
-                                            <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.front.size / 1024) }} KB</p>
-                                            <button 
-                                                type="button"
-                                                @click="removeDocument('front')"
-                                                class="text-xs text-red-600 hover:text-red-800 underline"
-                                            >
-                                                Supprimer
-                                            </button>
-                                        </div>
+                            <!-- Message de statut -->
+                            <div class="mb-4 p-4 border rounded-lg" :class="documentVerificationStatus.bgColor + ' border-' + documentVerificationStatus.color.replace('text-', '').replace('-600', '-200')">
+                                <p class="text-sm" :class="documentVerificationStatus.color.replace('-600', '-800')">
+                                    {{ documentVerificationStatus.message }}
+                                </p>
+                                
+                                <!-- Messages spécifiques selon le statut -->
+                                <div v-if="documentVerificationStatus.status === 'pending'" class="mt-3">
+                                    <div class="flex items-center text-xs" :class="documentVerificationStatus.color.replace('-600', '-700')">
+                                        <Clock class="mr-1 h-3 w-3" />
+                                        <span>En mode test, la vérification est automatiquement acceptée</span>
                                     </div>
                                 </div>
-
-                                <!-- Verso (seulement pour carte d'identité) -->
-                                <div v-if="documentType === 'id_card'" class="space-y-3">
-                                    <label class="block text-sm font-medium text-gray-700">Carte d'identité (verso - requis)</label>
-                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                                        <input 
-                                            type="file" 
-                                            id="identity-back" 
-                                            class="hidden" 
-                                            accept="image/*,.pdf"
-                                            @change="handleDocumentUpload($event, 'back')"
-                                        />
-                                        <div v-if="!uploadedDocuments.back">
-                                            <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                            </svg>
-                                            <label for="identity-back" class="cursor-pointer">
-                                                <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                                    Cliquez pour uploader
-                                                </span>
-                                                <span class="text-sm text-gray-500"> ou glissez-déposez</span>
-                                            </label>
-                                            <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
-                                        </div>
-                                        <div v-else class="space-y-2">
-                                            <CheckCircle class="mx-auto h-8 w-8 text-green-500" />
-                                            <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.back.name }}</p>
-                                            <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.back.size / 1024) }} KB</p>
-                                            <button 
-                                                type="button"
-                                                @click="removeDocument('back')"
-                                                class="text-xs text-red-600 hover:text-red-800 underline"
-                                            >
-                                                Supprimer
-                                            </button>
-                                        </div>
+                                
+                                <div v-if="documentVerificationStatus.status === 'verified'" class="mt-3">
+                                    <div class="flex items-center text-xs text-green-700">
+                                        <CheckCircle class="mr-1 h-3 w-3" />
+                                        <span>Vous pouvez maintenant recevoir des paiements</span>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Bouton pour envoyer les documents -->
-                            <div class="flex justify-center mb-4">
+                            
+                            <!-- Actions selon le statut -->
+                            <div v-if="documentVerificationStatus.status === 'required'">
                                 <Button 
-                                    @click="uploadDocuments" 
-                                    :disabled="uploading || !uploadedDocuments.front || (documentType === 'id_card' && !uploadedDocuments.back)"
-                                    variant="default"
-                                    class="disabled:opacity-50"
+                                    @click="toggleUploadForm" 
+                                    :variant="showUploadForm ? 'outline' : 'default'"
+                                    class="w-full mb-4"
                                 >
-                                    <svg v-if="uploading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    {{ uploading ? 'Envoi en cours...' : 'Envoyer les documents' }}
+                                    <User class="mr-2 h-4 w-4" />
+                                    {{ showUploadForm ? 'Masquer le formulaire' : 'Télécharger mes documents' }}
+                                </Button>
+                                
+                                <!-- Composant d'upload via serveur -->
+                                <div v-if="showUploadForm">
+                                    <StripeServerUpload 
+                                        purpose="identity_document"
+                                        @upload-complete="handleUploadComplete"
+                                        @upload-error="handleUploadError"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div v-else-if="documentVerificationStatus.status === 'requires_input'">
+                                <Button @click="completeRequirements" class="w-full">
+                                    <AlertCircle class="mr-2 h-4 w-4" />
+                                    Fournir des informations supplémentaires
                                 </Button>
                             </div>
-
-                            <!-- Informations sur les documents acceptés -->
-                            <div class="bg-gray-50 rounded-lg p-4">
+                            
+                            <!-- Informations sur les documents (toujours visible) -->
+                            <div class="bg-gray-50 rounded-lg p-4" :class="{ 'mt-6': showUploadForm || documentVerificationStatus?.status !== 'required' }">
                                 <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
                                 <ul class="text-sm text-gray-600 space-y-1">
-                                    <li>• <strong>Carte d'identité française ou européenne</strong> (recto + verso requis)</li>
-                                    <li>• <strong>Passeport en cours de validité</strong> (page d'informations uniquement)</li>
-                                    <li>• <strong>Permis de conduire français</strong> (recto + verso requis)</li>
-                                    <li>• <strong>Carte de séjour</strong> (recto + verso requis pour les non-européens)</li>
+                                    <li>• <strong>Carte d'identité française ou européenne</strong></li>
+                                    <li>• <strong>Passeport en cours de validité</strong></li>
+                                    <li>• <strong>Permis de conduire français</strong></li>
+                                    <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
                                 </ul>
-                                <div class="mt-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
-                                    <p class="text-xs text-blue-800">
-                                        ℹ️ <strong>Important</strong> : Pour les cartes d'identité et permis de conduire, les deux faces sont obligatoires selon les exigences Stripe.
+                                <div class="mt-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
+                                    <p class="text-xs text-green-800">
+                                        <span class="mr-1">🔒</span> <strong>Upload sécurisé via serveur</strong> : Vos documents sont uploadés avec la clé secrète et automatiquement liés à votre compte Connect pour résoudre les requirements.
                                     </p>
+                                    
+                                    <!-- Information spécifique mode test -->
+                                    <div class="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                                        <p class="text-xs text-blue-800">
+                                            <span class="mr-1">🧪</span> <strong>Mode test</strong> : En environnement de test, Stripe accepte automatiquement les documents pour faciliter les tests. En production, la vérification prend quelques heures.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1391,19 +1277,19 @@ const formatAmount = (amount: number) => {
                         <div>
                             <strong>Comment fonctionne la configuration ?</strong><br />
                             <strong>Étape 1 :</strong> Configuration du compte avec formulaire sécurisé intégré<br />
-                            <strong>Étape 2 :</strong> Informations supplémentaires si demandées par Stripe
+                            <strong>Étape 2 :</strong> Upload direct de vos documents d'identité vers l'API Stripe
                         </div>
                         <div>
-                            <strong>Pourquoi utiliser le formulaire interne ?</strong><br />
-                            Plus simple, plus rapide et 100% sécurisé. Vos données sont envoyées directement à Stripe.
+                            <strong>Pourquoi l'upload via serveur avec clé secrète ?</strong><br />
+                            Plus fiable que l'upload côté client. Les documents sont uploadés avec la clé secrète et automatiquement liés au compte Connect pour résoudre immédiatement les requirements.
                         </div>
                         <div>
                             <strong>Quand vais-je recevoir mes paiements ?</strong><br />
-                            Automatiquement selon votre configuration une fois le compte activé.
+                            Automatiquement selon votre configuration une fois le compte activé et les documents vérifiés.
                         </div>
                         <div>
                             <strong>Mes données sont-elles sécurisées ?</strong><br />
-                            Oui, toutes vos informations sont protégées par le chiffrement bancaire de Stripe.
+                            Oui, vos documents sont uploadés via notre serveur sécurisé avec la clé secrète Stripe, puis automatiquement liés à votre compte Connect.
                         </div>
                     </div>
                 </CardContent>

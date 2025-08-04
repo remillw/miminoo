@@ -126,9 +126,9 @@ export function useToast() {
     };
 
     const showVerificationRequired = () => {
-        showWarning(
-            '🔒 Vérification requise',
-            'Votre profil doit être vérifié par notre équipe pour accéder à la page des paiements. Vous allez être redirigé vers le tableau de bord.'
+        showInfo(
+            '📄 Vérification d\'identité',
+            'Utilisez le formulaire d\'upload ci-dessous pour vérifier votre identité directement via notre système sécurisé.'
         );
     };
 

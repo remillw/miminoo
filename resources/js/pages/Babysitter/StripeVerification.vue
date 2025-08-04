@@ -2,9 +2,11 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import StripeFileUpload from '@/components/StripeFileUpload.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { AlertCircle, ArrowLeft, CheckCircle, ExternalLink, FileText, Info, Shield } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     verificationStatus: String,
@@ -25,6 +27,12 @@ const isLoading = ref(false);
 const isRefreshing = ref(false);
 const error = ref('');
 const verificationStatus = ref(props.verificationStatus || 'not_started');
+
+// Variables pour l'upload de documents
+const isDocumentUploadComplete = ref(false);
+
+// Composables
+const { showSuccess, showError } = useToast();
 
 const getStatusLabel = (status: string) => {
     switch (status) {
@@ -130,6 +138,24 @@ const checkVerificationStatus = async () => {
     } finally {
         isRefreshing.value = false;
     }
+};
+
+// Gestion de l'upload de documents
+const handleUploadComplete = (result) => {
+    console.log('✅ Upload completed:', result);
+    showSuccess("✅ Documents uploadés avec succès !", `${result.uploadedFiles.length} document(s) envoyé(s) directement à Stripe pour vérification.`);
+    
+    isDocumentUploadComplete.value = true;
+    
+    // Recharger la page pour mettre à jour le statut
+    setTimeout(() => {
+        router.reload();
+    }, 1000);
+};
+
+const handleUploadError = (error) => {
+    console.error('❌ Upload error:', error);
+    showError("❌ Erreur lors de l'upload", error.message || "Une erreur est survenue lors de l'upload");
 };
 
 onMounted(() => {
@@ -257,12 +283,48 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Bouton de vérification -->
-                    <div class="flex justify-center pt-4">
-                        <Button @click="startVerification" :disabled="isLoading" size="lg" class="px-8">
-                            <ExternalLink class="mr-2 h-5 w-5" />
-                            {{ isLoading ? 'Redirection...' : 'Commencer la vérification' }}
-                        </Button>
+                    <!-- Formulaire d'upload direct -->
+                    <div class="bg-white border border-gray-200 rounded-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">
+                                <svg class="inline-block mr-2 h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Upload de documents d'identité
+                            </h3>
+                        </div>
+                        
+                        <!-- Message de succès -->
+                        <div v-if="isDocumentUploadComplete" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div class="flex items-center">
+                                <CheckCircle class="mr-2 h-5 w-5 text-green-600" />
+                                <span class="text-sm font-medium text-green-800">Documents uploadés avec succès !</span>
+                            </div>
+                            <p class="text-sm text-green-700 mt-1">Vos documents ont été envoyés directement à Stripe pour vérification.</p>
+                        </div>
+                        
+                        <!-- Composant d'upload moderne -->
+                        <StripeFileUpload 
+                            purpose="identity_document"
+                            @upload-complete="handleUploadComplete"
+                            @upload-error="handleUploadError"
+                        />
+                        
+                        <!-- Informations sur les documents -->
+                        <div class="bg-gray-50 rounded-lg p-4 mt-6">
+                            <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li>• <strong>Carte d'identité française ou européenne</strong></li>
+                                <li>• <strong>Passeport en cours de validité</strong></li>
+                                <li>• <strong>Permis de conduire français</strong></li>
+                                <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
+                            </ul>
+                            <div class="mt-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                                <p class="text-xs text-blue-800">
+                                    <span class="mr-1">🚀</span> <strong>Nouveau</strong> : Upload direct et sécurisé vers Stripe ! Vos documents ne transitent plus par notre serveur.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Bouton de rafraîchissement du statut -->

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\StripeController;
 use App\Http\Controllers\StripeIdentityController;
 use App\Http\Controllers\StripeVerificationController;
+use App\Http\Controllers\StripeFileUploadController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\SettingsController;
@@ -351,6 +352,26 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/device-token/preferences', [App\Http\Controllers\DeviceTokenController::class, 'updatePreferences'])->name('device-token.preferences');
     Route::post('/clear-device-token-flag', [App\Http\Controllers\DeviceTokenController::class, 'clearRegistrationFlag'])->name('device-token.clear-flag');
 });
+
+// Routes pour l'upload direct de fichiers vers Stripe
+Route::middleware(['auth'])->prefix('stripe')->name('stripe.')->group(function () {
+    // 🚀 Upload direct côté frontend (recommandé)
+    Route::get('/upload-config', [StripeFileUploadController::class, 'getUploadConfig'])->name('upload-config');
+    
+    // ⚠️ Déprécié : Upload via serveur
+    Route::post('/upload-files', [StripeFileUploadController::class, 'uploadFiles'])->name('upload-files');
+    Route::post('/verification-session', [StripeFileUploadController::class, 'createVerificationSession'])->name('verification-session');
+    Route::get('/verification-status', [StripeFileUploadController::class, 'checkVerificationStatus'])->name('verification-status');
+});
+
+// Routes API pour la liaison des fichiers au compte Connect
+Route::middleware(['auth'])->prefix('api/stripe')->name('api.stripe.')->group(function () {
+    Route::post('/link-file-to-account', [StripeFileUploadController::class, 'linkFileToAccount'])->name('link-file-to-account');
+    Route::post('/link-files-to-account', [StripeFileUploadController::class, 'linkFilesToAccount'])->name('link-files-to-account');
+});
+
+// Webhook pour les événements de vérification d'identité Stripe
+Route::post('/stripe/identity/webhook', [StripeFileUploadController::class, 'handleVerificationWebhook'])->name('stripe.identity.webhook');
 
 // Support pour le broadcasting (authentification WebSocket)
 Broadcast::routes(['middleware' => ['auth']]);

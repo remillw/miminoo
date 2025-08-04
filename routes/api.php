@@ -9,6 +9,15 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+// Health check endpoint for deployment monitoring
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toISOString(),
+        'app' => config('app.name'),
+        'environment' => config('app.env'),
+    ]);
+});
 
 // Route pour recevoir les webhooks d'articles depuis votre SaaS
 Route::post('/webhook/articles', [WebhookController::class, 'handleArticles'])

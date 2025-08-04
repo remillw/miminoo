@@ -1061,15 +1061,15 @@ class StripeController extends Controller
         $documentType = $request->input('document_type', 'id_card');
         
         $rules = [
-            'front_document' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
+            'front' => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240', // 10MB max
             'document_type' => 'in:id_card,passport',
         ];
         
         // Le verso n'est requis que pour les cartes d'identité et permis de conduire
         if ($documentType === 'id_card') {
-            $rules['back_document'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
+            $rules['back'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
         } else {
-            $rules['back_document'] = 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240';
+            $rules['back'] = 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240';
         }
         
         $request->validate($rules);
@@ -1086,8 +1086,8 @@ class StripeController extends Controller
         try {
             $result = $this->stripeService->uploadIdentityDocuments(
                 $user,
-                $request->file('front_document'),
-                $request->file('back_document'),
+                $request->file('front'),
+                $request->file('back'),
                 $documentType
             );
 

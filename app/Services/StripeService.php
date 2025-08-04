@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\User;
 use Stripe\StripeClient;
-use Stripe\AccountToken;
 use Illuminate\Support\Facades\Log;
 use App\Models\Reservation;
 
@@ -2462,8 +2461,8 @@ class StripeService
                 $tokenData['account']['individual']['verification']['document']['back'] = $uploadedFiles['back'];
             }
 
-            // Créer le token - utiliser l'API REST directement
-            $accountToken = AccountToken::create($tokenData);
+            // Créer le token via le client Stripe
+            $accountToken = $this->stripe->accountTokens->create($tokenData);
 
             // Mettre à jour le compte avec le token
             $account = $this->stripe->accounts->update(

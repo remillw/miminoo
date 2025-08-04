@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/composables/useToast';
 import { router } from '@inertiajs/vue3';
+import StripeServerUpload from '@/components/StripeServerUpload.vue';
 import {
     AlertCircle,
     Building,
@@ -49,6 +50,8 @@ const currentStep = ref(1);
 const errorMessage = ref('');
 const documentUploadRequired = ref(false);
 const uploadedDocuments = ref<{ front?: File, back?: File }>({});
+const showDocumentUpload = ref(false);
+const isDocumentUploadComplete = ref(false);
 
 // Stripe.js
 let stripe: any = null;
@@ -91,9 +94,9 @@ const formData = reactive({
     // Conditions d'utilisation (jamais pré-remplie pour la sécurité)
     tos_acceptance: false,
     
-    // Documents d'identité (optionnels)
-    identity_document_front: null as File | null,
-    identity_document_back: null as File | null,
+    // Documents d'identité (optionnels) - seront gérés par StripeServerUpload
+    // identity_document_front: null as File | null,
+    // identity_document_back: null as File | null,
 });
 
 // Pré-remplir la date de naissance si disponible
@@ -264,13 +267,8 @@ const submitOnboarding = async () => {
         requestData.append('business_description', formData.business_description);
         requestData.append('mcc', formData.mcc);
         
-        // Ajouter les documents si présents
-        if (formData.identity_document_front) {
-            requestData.append('identity_document_front', formData.identity_document_front);
-        }
-        if (formData.identity_document_back) {
-            requestData.append('identity_document_back', formData.identity_document_back);
-        }
+        // Les documents sont maintenant gérés par StripeServerUpload séparément
+        // et automatiquement liés au compte Connect
         
         // Utiliser fetch au lieu de router.post pour supporter FormData
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -288,6 +286,28 @@ const submitOnboarding = async () => {
         
         if (response.ok && result.success) {
             showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
+            
+            // Si des documents sont en attente, les envoyer maintenant
+            if (pendingDocuments.value.length > 0) {
+                console.log('📎 Envoi des documents en attente...');
+                // Attendre un peu pour que le compte soit bien créé
+                setTimeout(async () => {
+                    await uploadPendingDocuments(result.stripe_account_id);
+                    // Rediriger après l'upload des documents
+                    setTimeout(() => {
+                        if (typeof window !== 'undefined') {
+                            window.location.href = '/babysitter/paiements';
+                        }
+                    }, 1000);
+                }, 2000);
+            } else {
+                // Rediriger directement
+                setTimeout(() => {
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/babysitter/paiements';
+                    }
+                }, 1500);
+            }
         } else {
             throw new Error(result.error || 'Erreur lors de la configuration du compte');
         }
@@ -517,10 +537,28 @@ const handleDocumentUpload = (event: Event, type: 'front' | 'back') => {
         if (type === 'front') {
             formData.identity_document_front = file;
             uploadedDocuments.value.front = file;
+            
+            // Ajouter aux documents en attente
+            const existingIndex = pendingDocuments.value.findIndex(f => f.name.includes('front'));
+            if (existingIndex >= 0) {
+                pendingDocuments.value[existingIndex] = file;
+            } else {
+                pendingDocuments.value.push(file);
+            }
         } else {
             formData.identity_document_back = file;
             uploadedDocuments.value.back = file;
+            
+            // Ajouter aux documents en attente
+            const existingIndex = pendingDocuments.value.findIndex(f => f.name.includes('back'));
+            if (existingIndex >= 0) {
+                pendingDocuments.value[existingIndex] = file;
+            } else {
+                pendingDocuments.value.push(file);
+            }
         }
+        
+        console.log('📁 Document ajouté aux documents en attente:', file.name, 'Total:', pendingDocuments.value.length);
         
         clearError();
     }
@@ -530,10 +568,46 @@ const removeDocument = (type: 'front' | 'back') => {
     if (type === 'front') {
         formData.identity_document_front = null;
         uploadedDocuments.value.front = undefined;
+        
+        // Retirer des documents en attente
+        const index = pendingDocuments.value.findIndex(f => f.name.includes('front'));
+        if (index >= 0) {
+            pendingDocuments.value.splice(index, 1);
+        }
     } else {
         formData.identity_document_back = null;
         uploadedDocuments.value.back = undefined;
+        
+        // Retirer des documents en attente
+        const index = pendingDocuments.value.findIndex(f => f.name.includes('back'));
+        if (index >= 0) {
+            pendingDocuments.value.splice(index, 1);
+        }
     }
+    
+    console.log('🗑️ Document retiré des documents en attente. Total:', pendingDocuments.value.length);
+};
+
+// Gestion de l'upload via StripeServerUpload
+const handleDocumentUploadComplete = (result: any) => {
+    console.log('✅ Documents uploadés dans l\'onboarding:', result);
+    isDocumentUploadComplete.value = true;
+    showDocumentUpload.value = false;
+    
+    const { showSuccess } = useToast();
+    showSuccess("✅ Documents uploadés !", `${result.uploadedFiles.length} document(s) envoyé(s) et lié(s) automatiquement à votre compte Stripe.`);
+    
+    // Pas besoin de recharger car l'onboarding continue
+};
+
+const handleDocumentUploadError = (error: any) => {
+    console.error('❌ Erreur upload documents dans onboarding:', error);
+    const { showError } = useToast();
+    showError("❌ Erreur lors de l'upload", error.message || "Une erreur est survenue lors de l'upload des documents");
+};
+
+const toggleDocumentUpload = () => {
+    showDocumentUpload.value = !showDocumentUpload.value;
 };
 </script>
 
@@ -801,6 +875,7 @@ const removeDocument = (type: 'front' | 'back') => {
                         </p>
                     </div>
 
+                    <!-- Sélection de documents (envoyés après création du compte) -->
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <!-- Document recto -->
                         <div class="space-y-3">
@@ -817,7 +892,7 @@ const removeDocument = (type: 'front' | 'back') => {
                                     <Upload class="mx-auto h-12 w-12 text-gray-400 mb-3" />
                                     <label for="identity-front" class="cursor-pointer">
                                         <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                            Cliquez pour uploader
+                                            Cliquez pour sélectionner
                                         </span>
                                         <span class="text-sm text-gray-500"> ou glissez-déposez</span>
                                     </label>
@@ -849,7 +924,7 @@ const removeDocument = (type: 'front' | 'back') => {
                                     <Upload class="mx-auto h-12 w-12 text-gray-400 mb-3" />
                                     <label for="identity-back" class="cursor-pointer">
                                         <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                            Cliquez pour uploader
+                                            Cliquez pour sélectionner
                                         </span>
                                         <span class="text-sm text-gray-500"> ou glissez-déposez</span>
                                     </label>
@@ -867,14 +942,26 @@ const removeDocument = (type: 'front' | 'back') => {
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-gray-50 p-4">
-                        <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
-                        <ul class="text-sm text-gray-600 space-y-1">
-                            <li>• Carte d'identité française ou européenne</li>
-                            <li>• Passeport en cours de validité</li>
-                            <li>• Permis de conduire français</li>
-                            <li>• Carte de séjour (pour les non-européens)</li>
+                    <!-- Informations sur les documents -->
+                    <div class="bg-blue-50 rounded-lg p-4 mt-6">
+                        <div class="flex items-center mb-2">
+                            <Info class="mr-2 h-4 w-4 text-blue-600" />
+                            <h4 class="font-medium text-blue-900">Documents collectés pour votre compte</h4>
+                        </div>
+                        <p class="text-xs text-blue-800 mb-3">
+                            Les documents sélectionnés seront automatiquement envoyés à Stripe <strong>après</strong> la création de votre compte Connect.
+                        </p>
+                        <ul class="text-xs text-blue-700 space-y-1">
+                            <li>• <strong>Carte d'identité</strong> française ou européenne</li>
+                            <li>• <strong>Passeport</strong> en cours de validité</li>
+                            <li>• <strong>Permis de conduire</strong> français</li>
+                            <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
                         </ul>
+                        <div class="mt-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
+                            <p class="text-xs text-green-800">
+                                <span class="mr-1">🔒</span> <strong>Sécurisé</strong> : Upload avec clé secrète et liaison automatique au compte Connect
+                            </p>
+                        </div>
                     </div>
                 </div>
 
