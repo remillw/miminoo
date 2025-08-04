@@ -17,8 +17,8 @@ import { CheckCircle, Clock, Search, Star } from 'lucide-vue-next';
                     dernière minute ou planifiée.
                 </p>
                 <div class="mb-4 flex w-full flex-col gap-3 sm:mb-6 sm:flex-row sm:w-auto">
-  <a href="/annonces" class="bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary text-center sm:px-6 sm:py-3 sm:text-base rounded-lg">
-    Trouver une babysitter
+  <a href="/creer-une-annonce" class="bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary text-center sm:px-6 sm:py-3 sm:text-base rounded-lg">
+    Publier une annonce
   </a>
   
   <a href="/comment-ca-marche" class="border border-primary text-primary px-4 py-2 text-sm hover:bg-orange-100 text-center sm:px-6 sm:py-3 sm:text-base rounded-lg">

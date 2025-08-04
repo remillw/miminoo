@@ -16,7 +16,6 @@
             <div class="hidden items-center gap-6 md:flex">
                 <a href="/" class="hover:text-primary text-base font-medium text-gray-700">Accueil</a>
                 <a href="/comment-ca-marche" class="hover:text-primary text-base font-medium text-gray-700">Comment ça marche ?</a>
-                <a href="/babysitters" class="hover:text-primary text-base font-medium text-gray-700">Annonces en cours</a>
             </div>
 
             <!-- Actions à droite -->

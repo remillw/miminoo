@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import Footer from '@/components/Footer.vue';
-import LandingHeader from '@/components/LandingHeader.vue';
 import MobileLoader from '@/components/MobileLoader.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
-import { useDeviceToken } from '@/composables/useDeviceToken';
 import { usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
@@ -18,9 +15,6 @@ interface Props {
 const props = defineProps<Props>();
 const page = usePage();
 
-// Utiliser votre système de détection mobile existant
-const { isMobileApp } = useDeviceToken();
-
 // État du loader
 const isLoading = ref(props.showLoader ?? false);
 
@@ -31,17 +25,19 @@ const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name
 const hasParentRole = computed(() => props.hasParentRole ?? userRoles.value.includes('parent'));
 const hasBabysitterRole = computed(() => props.hasBabysitterRole ?? userRoles.value.includes('babysitter'));
 
-// Computed pour savoir si on doit cacher header/footer
-const shouldHideHeaderFooter = computed(() => isMobileApp());
+// Détecter si on est sur mobile
+const isMobile = ref(false);
 
 onMounted(() => {
-    // Si on est dans l'app mobile et qu'on a pas de loader, en afficher un brièvement
-    if (isMobileApp() && !props.showLoader) {
-        isLoading.value = true;
-        setTimeout(() => {
-            isLoading.value = false;
-        }, 1500);
-    }
+    // Détecter mobile avec window.innerWidth et user agent
+    const checkMobile = () => {
+        isMobile.value = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
 });
 
 const handleLoaderComplete = () => {
@@ -50,13 +46,15 @@ const handleLoaderComplete = () => {
 </script>
 
 <template>
-    <!-- Loader mobile pour l'app native -->
+    <!-- Loader mobile -->
     <MobileLoader v-if="isLoading" @loaded="handleLoaderComplete" />
     
     <!-- Layout principal -->
     <div v-else class="bg-secondary flex min-h-screen flex-col">
-        <!-- Header seulement si pas dans l'app mobile -->
-        <LandingHeader v-if="!shouldHideHeaderFooter" />
+        <!-- Header uniquement sur desktop -->
+        <div v-if="!isMobile" class="hidden lg:block">
+            <!-- On peut ajouter un header desktop minimal ici si nécessaire -->
+        </div>
 
         <div class="flex flex-1">
             <UnifiedSidebar 
@@ -65,11 +63,10 @@ const handleLoaderComplete = () => {
                 :requestedMode="props.currentMode" 
             />
 
-            <!-- Main content optimisé pour l'app mobile -->
+            <!-- Main content optimisé pour mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
-                <div :class="[
-                    shouldHideHeaderFooter ? 'px-3 py-4' : 'px-4 py-6 sm:px-6 lg:px-8'
-                ]">
+                <!-- Container avec padding mobile optimisé -->
+                <div class="px-3 py-4 sm:px-4 sm:py-6 lg:px-8">
                     <div class="mx-auto max-w-7xl">
                         <slot />
                     </div>
@@ -77,26 +74,17 @@ const handleLoaderComplete = () => {
             </main>
         </div>
 
-        <!-- Footer seulement si pas dans l'app mobile -->
-        <Footer v-if="!shouldHideHeaderFooter" />
+        <!-- Footer uniquement sur desktop -->
+        <div v-if="!isMobile" class="hidden lg:block">
+            <!-- Footer desktop minimal ou aucun -->
+        </div>
     </div>
 </template>
 
 <style scoped>
 /* Styles spécifiques pour l'expérience mobile app-like */
-@supports (-webkit-touch-callout: none) {
-    /* Styles iOS spécifiques */
-    .bg-secondary {
-        /* Éviter le bounce scroll sur iOS */
-        overscroll-behavior: none;
-        /* Hauteur 100vh pour une expérience plein écran */
-        min-height: 100vh;
-        min-height: -webkit-fill-available;
-    }
-}
-
-/* Masquer le scrollbar sur mobile pour une expérience plus app-like */
 @media (max-width: 1023px) {
+    /* Masquer le scrollbar sur mobile pour une expérience plus app-like */
     ::-webkit-scrollbar {
         display: none;
     }
@@ -105,5 +93,14 @@ const handleLoaderComplete = () => {
     input, select, textarea {
         font-size: 16px;
     }
+}
+
+/* Styles pour l'expérience app native */
+.app-container {
+    /* Éviter le bounce scroll sur iOS */
+    overscroll-behavior: none;
+    /* Hauteur 100vh pour une expérience plein écran */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
 }
 </style>

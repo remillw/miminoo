@@ -107,11 +107,20 @@ const navLinks = [
     { name: 'Devenir babysitter', href: '/devenir-babysitter' },
 ];
 
-const authNavLinks = [
-    { name: 'Accueil', href: '/' },
-    { name: 'Comment ça marche', href: '/comment-ca-marche' },
-    { name: 'Annonces', href: '/annonces' },
-];
+// Liens de navigation dynamiques selon le rôle
+const authNavLinks = computed(() => {
+    const baseLinks = [
+        { name: 'Accueil', href: '/' },
+        { name: 'Comment ça marche', href: '/comment-ca-marche' },
+    ];
+    
+    // Ajouter le lien Annonces seulement pour les babysitters
+    if (user.value && userRoles.value.includes('babysitter')) {
+        baseLinks.push({ name: 'Annonces', href: '/annonces' });
+    }
+    
+    return baseLinks;
+});
 
 const toggleNotifications = () => {
     showNotifications.value = !showNotifications.value;

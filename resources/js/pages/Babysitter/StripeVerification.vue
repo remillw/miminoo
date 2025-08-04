@@ -2,7 +2,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import StripeFileUpload from '@/components/StripeFileUpload.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { AlertCircle, ArrowLeft, CheckCircle, ExternalLink, FileText, Info, Shield } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
@@ -303,12 +302,10 @@ onMounted(() => {
                             <p class="text-sm text-green-700 mt-1">Vos documents ont été envoyés directement à Stripe pour vérification.</p>
                         </div>
                         
-                        <!-- Composant d'upload moderne -->
-                        <StripeFileUpload 
-                            purpose="identity_document"
-                            @upload-complete="handleUploadComplete"
-                            @upload-error="handleUploadError"
-                        />
+                        <!-- Upload de documents désactivé temporairement -->
+                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                            <p class="text-sm text-gray-600">Upload de documents temporairement indisponible</p>
+                        </div>
                         
                         <!-- Informations sur les documents -->
                         <div class="bg-gray-50 rounded-lg p-4 mt-6">

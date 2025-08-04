@@ -61,7 +61,9 @@ Route::prefix('auth')->group(function () {
         ->name('social.unlink');
 });
 
-Route::get('/annonces', [AnnouncementController::class, 'index'])->name('announcements.index');
+Route::get('/annonces', [AnnouncementController::class, 'index'])
+    ->middleware(['auth', 'role:babysitter'])
+    ->name('announcements.index');
 
 // Route publique pour la configuration Stripe
 Route::get('api/stripe/config', [StripeController::class, 'getConfig']);

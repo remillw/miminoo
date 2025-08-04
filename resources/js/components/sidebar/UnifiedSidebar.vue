@@ -82,6 +82,34 @@ const links = computed(() => {
     return currentMode.value === 'parent' ? parentLinks : babysitterLinks;
 });
 
+// Menu mobile simplifié - seulement les liens essentiels
+const mobileMainLinks = computed(() => {
+    const parentMobileLinks = [
+        { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
+        { name: 'Annonces', href: '/creer-une-annonce', icon: PlusCircle },
+        { name: 'Messages', href: '/messagerie', icon: MessageCircle },
+    ];
+
+    const babysitterMobileLinks = [
+        { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
+        { name: 'Annonces', href: '/annonces', icon: Briefcase },
+        { name: 'Messages', href: '/messagerie', icon: MessageCircle },
+    ];
+
+    return currentMode.value === 'parent' ? parentMobileLinks : babysitterMobileLinks;
+});
+
+// Liens secondaires pour le menu "Plus" mobile
+const mobileSecondaryLinks = computed(() => {
+    const allLinks = links.value;
+    const mainLinks = mobileMainLinks.value;
+    
+    // Retourner tous les liens qui ne sont pas dans les liens principaux mobiles
+    return allLinks.filter(link => 
+        !mainLinks.some(mainLink => mainLink.href === link.href)
+    );
+});
+
 const page = usePage();
 const currentPath = computed(() => page.url);
 
@@ -178,9 +206,9 @@ const isActive = (href: string) => {
     <div class="fixed right-0 bottom-0 left-0 z-50 lg:hidden">
         <div class="border-t bg-white px-4 py-2 shadow-lg">
             <div class="flex items-center justify-around">
-                <!-- Les 3 premiers liens principaux -->
+                <!-- Les 3 liens principaux simplifiés -->
                 <Link
-                    v-for="link in links.slice(0, 3)"
+                    v-for="link in mobileMainLinks"
                     :key="link.name"
                     :href="link.href"
                     :class="['flex flex-col items-center gap-1 p-2 transition-colors', isActive(link.href) ? 'text-primary' : 'text-gray-500']"
@@ -189,18 +217,18 @@ const isActive = (href: string) => {
                     <span class="text-xs font-medium">{{ link.name.split(' ')[0] }}</span>
                 </Link>
                 
-                <!-- Bouton Plus pour ouvrir le menu complet -->
+                <!-- Bouton Réglages pour ouvrir le menu complet -->
                 <button 
                     @click="showMobileMenu = true"
                     class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors"
                 >
-                    <MoreHorizontal class="h-5 w-5" />
-                    <span class="text-xs font-medium">Plus</span>
+                    <Settings class="h-5 w-5" />
+                    <span class="text-xs font-medium">Réglages</span>
                 </button>
             </div>
         </div>
 
-        <!-- Menu mobile étendu en overlay -->
+        <!-- Menu mobile étendu en overlay (Page Réglages) -->
         <div 
             v-if="showMobileMenu" 
             class="fixed inset-0 z-50 bg-black bg-opacity-50"
@@ -212,30 +240,68 @@ const isActive = (href: string) => {
             >
                 <div class="p-4">
                     <div class="mb-4 flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-gray-900">Menu</h3>
+                        <h3 class="text-lg font-semibold text-gray-900">Réglages</h3>
                         <button @click="showMobileMenu = false" class="text-gray-400 hover:text-gray-600">
                             <X class="h-5 w-5" />
                         </button>
                     </div>
                     
-                    <nav class="space-y-2">
-                        <!-- Tous les liens du menu -->
-                        <Link
-                            v-for="link in links"
-                            :key="link.name"
-                            :href="link.href"
-                            @click="showMobileMenu = false"
-                            :class="[
-                                isActive(link.href) ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50',
-                                'group flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors',
-                            ]"
-                        >
-                            <component :is="link.icon" :class="[isActive(link.href) ? 'text-white' : 'text-gray-400', 'mr-3 h-5 w-5']" />
-                            {{ link.name }}
-                        </Link>
+                    <nav class="space-y-1">
+                        <!-- Section Compte -->
+                        <div class="mb-3">
+                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Compte</h4>
+                            <Link
+                                v-for="link in mobileSecondaryLinks.filter(l => ['Mon profil', 'Mes gardes', 'Mes annonces'].includes(l.name))"
+                                :key="link.name"
+                                :href="link.href"
+                                @click="showMobileMenu = false"
+                                :class="[
+                                    isActive(link.href) ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50',
+                                    'group flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors',
+                                ]"
+                            >
+                                <component :is="link.icon" :class="[isActive(link.href) ? 'text-white' : 'text-gray-400', 'mr-3 h-5 w-5']" />
+                                {{ link.name }}
+                            </Link>
+                        </div>
+
+                        <!-- Section Paiements -->
+                        <div class="mb-3">
+                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Paiements</h4>
+                            <Link
+                                v-for="link in mobileSecondaryLinks.filter(l => l.name.includes('Paiements'))"
+                                :key="link.name"
+                                :href="link.href"
+                                @click="showMobileMenu = false"
+                                :class="[
+                                    isActive(link.href) ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50',
+                                    'group flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors',
+                                ]"
+                            >
+                                <component :is="link.icon" :class="[isActive(link.href) ? 'text-white' : 'text-gray-400', 'mr-3 h-5 w-5']" />
+                                {{ link.name }}
+                            </Link>
+                        </div>
+
+                        <!-- Section Support & Légal (liens factices pour l'instant) -->
+                        <div class="mb-3">
+                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Support & Légal</h4>
+                            <button class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full text-left">
+                                <User class="mr-3 h-5 w-5 text-gray-400" />
+                                FAQ & Aide
+                            </button>
+                            <button class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full text-left">
+                                <Settings class="mr-3 h-5 w-5 text-gray-400" />
+                                Mentions légales
+                            </button>
+                            <button class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full text-left">
+                                <Settings class="mr-3 h-5 w-5 text-gray-400" />
+                                Politique de confidentialité
+                            </button>
+                        </div>
                         
                         <!-- Séparateur -->
-                        <div class="border-t border-gray-200 my-2"></div>
+                        <div class="border-t border-gray-200 my-3"></div>
                         
                         <!-- Lien de déconnexion -->
                         <Link
