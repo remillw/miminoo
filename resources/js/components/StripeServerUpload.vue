@@ -37,6 +37,7 @@
       type="file" 
       multiple 
       accept="image/jpeg,image/png,application/pdf"
+      capture="environment"
       @change="handleFileSelect"
       style="display: none"
     />

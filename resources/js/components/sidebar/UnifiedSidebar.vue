@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useUserMode } from '@/composables/useUserMode';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, MoreHorizontal, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
+import { Baby, Briefcase, Calendar, CreditCard, HelpCircle, Home, LogOut, MessageCircle, MoreHorizontal, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
 interface Props {
@@ -86,13 +86,13 @@ const links = computed(() => {
 const mobileMainLinks = computed(() => {
     const parentMobileLinks = [
         { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
-        { name: 'Annonces', href: '/creer-une-annonce', icon: PlusCircle },
+        { name: 'Réservations', href: '/mes-annonces-et-reservations', icon: Calendar },
         { name: 'Messages', href: '/messagerie', icon: MessageCircle },
     ];
 
     const babysitterMobileLinks = [
         { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
-        { name: 'Annonces', href: '/annonces', icon: Briefcase },
+        { name: 'Mes-annonces', href: '/babysitting', icon: Calendar },
         { name: 'Messages', href: '/messagerie', icon: MessageCircle },
     ];
 
@@ -217,13 +217,22 @@ const isActive = (href: string) => {
                     <span class="text-xs font-medium">{{ link.name.split(' ')[0] }}</span>
                 </Link>
                 
+                <!-- Bouton Aide/Chatbot -->
+                <button 
+                    @click="$event => { /* TODO: Ouvrir chatbot ou FAQ */ }"
+                    class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors hover:text-primary"
+                >
+                    <HelpCircle class="h-5 w-5" />
+                    <span class="text-xs font-medium">Aide</span>
+                </button>
+
                 <!-- Bouton Réglages pour ouvrir le menu complet -->
                 <button 
                     @click="showMobileMenu = true"
                     class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors"
                 >
                     <Settings class="h-5 w-5" />
-                    <span class="text-xs font-medium">Réglages</span>
+                    <span class="text-xs font-medium">Plus</span>
                 </button>
             </div>
         </div>

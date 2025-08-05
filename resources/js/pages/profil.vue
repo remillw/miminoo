@@ -998,7 +998,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                 >
                                     <Camera class="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
                                 </div>
-                                <input ref="avatarInput" type="file" accept="image/*" @change="handleAvatarChange" class="hidden" />
+                                <input ref="avatarInput" type="file" accept="image/*" capture="environment" @change="handleAvatarChange" class="hidden" />
                             </div>
                             <div>
                                 <h2 class="text-xl sm:text-2xl font-semibold text-gray-900">{{ fullName }}</h2>

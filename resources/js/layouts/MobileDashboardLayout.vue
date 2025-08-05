@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import MobileLoader from '@/components/MobileLoader.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
@@ -9,14 +8,10 @@ interface Props {
     currentMode?: 'parent' | 'babysitter';
     hasParentRole?: boolean;
     hasBabysitterRole?: boolean;
-    showLoader?: boolean;
 }
 
 const props = defineProps<Props>();
 const page = usePage();
-
-// État du loader
-const isLoading = ref(props.showLoader ?? false);
 
 // Récupérer les informations utilisateur depuis les props globales
 const user = computed(() => (page.props.auth as any)?.user);
@@ -40,22 +35,11 @@ onMounted(() => {
     return () => window.removeEventListener('resize', checkMobile);
 });
 
-const handleLoaderComplete = () => {
-    isLoading.value = false;
-};
 </script>
 
 <template>
-    <!-- Loader mobile -->
-    <MobileLoader v-if="isLoading" @loaded="handleLoaderComplete" />
-    
     <!-- Layout principal -->
-    <div v-else class="bg-secondary flex min-h-screen flex-col">
-        <!-- Header uniquement sur desktop -->
-        <div v-if="!isMobile" class="hidden lg:block">
-            <!-- On peut ajouter un header desktop minimal ici si nécessaire -->
-        </div>
-
+    <div class="bg-secondary flex min-h-screen flex-col">
         <div class="flex flex-1">
             <UnifiedSidebar 
                 :hasParentRole="hasParentRole" 
@@ -64,19 +48,14 @@ const handleLoaderComplete = () => {
             />
 
             <!-- Main content optimisé pour mobile -->
-            <main class="flex-1 pb-20 lg:pb-0">
+            <main class="flex-1 pb-20 lg:pb-0 overflow-x-hidden">
                 <!-- Container avec padding mobile optimisé -->
-                <div class="px-3 py-4 sm:px-4 sm:py-6 lg:px-8">
+                <div class="px-3 py-2 sm:px-4 sm:py-4 lg:px-8 lg:py-6">
                     <div class="mx-auto max-w-7xl">
                         <slot />
                     </div>
                 </div>
             </main>
-        </div>
-
-        <!-- Footer uniquement sur desktop -->
-        <div v-if="!isMobile" class="hidden lg:block">
-            <!-- Footer desktop minimal ou aucun -->
         </div>
     </div>
 </template>
@@ -93,6 +72,17 @@ const handleLoaderComplete = () => {
     input, select, textarea {
         font-size: 16px;
     }
+    
+    /* Smooth scrolling pour une expérience fluide */
+    * {
+        scroll-behavior: smooth;
+    }
+    
+    /* Optimisations pour les transitions */
+    button, a {
+        transition: all 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
 }
 
 /* Styles pour l'expérience app native */
@@ -102,5 +92,13 @@ const handleLoaderComplete = () => {
     /* Hauteur 100vh pour une expérience plein écran */
     min-height: 100vh;
     min-height: -webkit-fill-available;
+}
+
+/* GPU acceleration pour les animations */
+@media (max-width: 1023px) {
+    main {
+        transform: translateZ(0);
+        will-change: transform;
+    }
 }
 </style>

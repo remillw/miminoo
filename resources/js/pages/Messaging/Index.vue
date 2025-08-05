@@ -198,7 +198,7 @@
         </div>
 
         <!-- Version Mobile -->
-        <div class="flex h-[calc(100vh-140px)] flex-col bg-white lg:hidden">
+        <div class="flex h-[calc(100vh-140px)] flex-col bg-white lg:hidden pt-4">
             <!-- Liste des conversations (vue par défaut sur mobile) -->
             <div v-if="!selectedConversation || showConversationsList" class="flex h-full flex-col">
                 <!-- Header mobile -->

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
-import GlobalLayout from '@/layouts/GlobalLayout.vue';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router } from '@inertiajs/vue3';
 import { Calendar, Check, Clock, CreditCard, FileText, MapPin, Users } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
@@ -784,8 +784,8 @@ initializeChildren();
 </script>
 
 <template>
-    <GlobalLayout>
-        <div class="mx-auto max-w-xs px-4 pt-6 pb-6 sm:max-w-2xl sm:px-6 sm:pt-8 sm:pb-8 md:max-w-3xl md:px-8 md:pt-10 md:pb-10 lg:max-w-4xl">
+    <DashboardLayout :currentMode="'parent'" :hasParentRole="true" :hasBabysitterRole="false">
+        <div class="mx-auto max-w-xs px-4 pt-6 pb-6 sm:max-w-2xl sm:px-6 sm:pt-8 sm:pb-8 md:max-w-3xl md:px-8 md:pt-10 md:pb-10 lg:max-w-4xl"
             <!-- Header -->
             <div class="mb-6 text-center sm:mb-8 sm:text-left">
                 <h1 class="text-xl font-bold text-gray-800 sm:text-2xl">Créer une annonce</h1>
@@ -1281,7 +1281,7 @@ initializeChildren();
                 </Button>
             </div>
         </div>
-    </GlobalLayout>
+    </DashboardLayout>
 </template>
 
 <style scoped>
