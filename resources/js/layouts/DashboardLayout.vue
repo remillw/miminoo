@@ -2,6 +2,7 @@
 import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
 import MobileLoader from '@/components/MobileLoader.vue';
+import MobileAppDebug from '@/components/MobileAppDebug.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { useDeviceToken } from '@/composables/useDeviceToken';
 import { usePage } from '@inertiajs/vue3';
@@ -32,9 +33,39 @@ const hasParentRole = computed(() => props.hasParentRole ?? userRoles.value.incl
 const hasBabysitterRole = computed(() => props.hasBabysitterRole ?? userRoles.value.includes('babysitter'));
 
 // Computed pour savoir si on doit cacher header/footer
-const shouldHideHeaderFooter = computed(() => isMobileApp());
+const shouldHideHeaderFooter = computed(() => isMobileAppDetected.value || isMobileApp());
+
+// Force la détection mobile à être réactive
+const isMobileAppDetected = ref(false);
 
 onMounted(() => {
+    // Vérifier la détection mobile au montage
+    isMobileAppDetected.value = isMobileApp();
+    
+    // Réécouter les événements Expo
+    const handleExpoLoad = () => {
+        console.log('[DashboardLayout] Expo app détectée, mise à jour de l\'interface');
+        isMobileAppDetected.value = true;
+    };
+    
+    window.addEventListener('expo-app-loaded', handleExpoLoad);
+    
+    // Vérification périodique (fallback)
+    const checkInterval = setInterval(() => {
+        const wasDetected = isMobileAppDetected.value;
+        isMobileAppDetected.value = isMobileApp();
+        if (!wasDetected && isMobileAppDetected.value) {
+            console.log('[DashboardLayout] App mobile détectée via vérification périodique');
+            clearInterval(checkInterval);
+        }
+    }, 500);
+    
+    // Nettoyer après 5 secondes
+    setTimeout(() => {
+        clearInterval(checkInterval);
+        window.removeEventListener('expo-app-loaded', handleExpoLoad);
+    }, 5000);
+    
     // Pas de loader automatique sur l'app mobile
     // Le loader ne s'affiche que si explicitement demandé via props.showLoader
     if (props.showLoader) {
@@ -66,9 +97,9 @@ const handleLoaderComplete = () => {
             <!-- Main content optimisé pour l'app mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
                 <div :class="[
-                    shouldHideHeaderFooter ? 'px-3 py-4' : 'px-4 py-6 sm:px-6 lg:px-8'
+                    shouldHideHeaderFooter ? 'mobile-app-container' : 'px-4 py-6 sm:px-6 lg:px-8'
                 ]">
-                    <div class="mx-auto max-w-7xl">
+                    <div :class="shouldHideHeaderFooter ? '' : 'mx-auto max-w-7xl'">
                         <slot />
                     </div>
                 </div>
@@ -78,6 +109,9 @@ const handleLoaderComplete = () => {
         <!-- Footer seulement si pas dans l'app mobile -->
         <Footer v-if="!shouldHideHeaderFooter" />
     </div>
+    
+    <!-- Debug pour l'app mobile -->
+    <MobileAppDebug />
 </template>
 
 <style scoped>
@@ -93,6 +127,16 @@ const handleLoaderComplete = () => {
     }
 }
 
+/* Container spécifique pour l'app mobile */
+.mobile-app-container {
+    width: 100vw;
+    max-width: 100vw;
+    padding: 8px;
+    margin: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
 /* Masquer le scrollbar sur mobile pour une expérience plus app-like */
 @media (max-width: 1023px) {
     ::-webkit-scrollbar {
@@ -102,6 +146,12 @@ const handleLoaderComplete = () => {
     /* Éviter le zoom sur les inputs sur iOS */
     input, select, textarea {
         font-size: 16px;
+    }
+    
+    /* S'assurer que tout reste dans les bounds */
+    .mobile-app-container * {
+        max-width: 100%;
+        box-sizing: border-box;
     }
 }
 </style>

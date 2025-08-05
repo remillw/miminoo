@@ -13,12 +13,23 @@ export function useDeviceToken() {
     const listenForDeviceToken = () => {
         messageHandler = (event: MessageEvent) => {
             try {
+                // Vérification robuste des données
+                if (!event || !event.data) {
+                    return;
+                }
+                
                 // Pour Expo, les messages arrivent via postMessage
-                const message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                let message;
+                try {
+                    message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                } catch (parseError) {
+                    console.warn('useDeviceToken: Impossible de parser le message:', event.data);
+                    return;
+                }
 
-                if (message.type === 'DEVICE_TOKEN_RESPONSE') {
-                    deviceToken.value = message.token;
-                    platform.value = message.platform;
+                if (message && message.type === 'DEVICE_TOKEN_RESPONSE') {
+                    deviceToken.value = message.token || null;
+                    platform.value = message.platform || null;
                     notificationProvider.value = message.notification_provider || 'expo';
 
                     console.log('useDeviceToken: Token reçu de Expo:', {
@@ -37,24 +48,28 @@ export function useDeviceToken() {
 
         // Écouter l'événement personnalisé émis par le JavaScript injecté
         const deviceTokenReadyHandler = (event: CustomEvent) => {
-            console.log('=== deviceTokenReady event received ===');
-            const data = event.detail;
-            console.log('Event detail:', data);
-            
-            if (data && data.device_token) {
-                deviceToken.value = data.device_token;
-                platform.value = data.platform;
-                notificationProvider.value = data.notification_provider || 'expo';
+            try {
+                console.log('=== deviceTokenReady event received ===');
+                const data = event?.detail;
+                console.log('Event detail:', data);
+                
+                if (data && data.device_token) {
+                    deviceToken.value = data.device_token || null;
+                    platform.value = data.platform || null;
+                    notificationProvider.value = data.notification_provider || 'expo';
 
-                console.log('useDeviceToken: Token reçu via événement custom:', {
-                    platform: platform.value,
+                    console.log('useDeviceToken: Token reçu via événement custom:', {
+                        platform: platform.value,
                     provider: notificationProvider.value,
                     tokenPreview: deviceToken.value?.substring(0, 30) + '...',
                 });
                 
                 console.log('useDeviceToken: State updated - deviceToken.value:', !!deviceToken.value);
-            } else {
-                console.log('useDeviceToken: Event reçu mais pas de device_token valide');
+                } else {
+                    console.log('useDeviceToken: Event reçu mais pas de device_token valide');
+                }
+            } catch (error) {
+                console.error('useDeviceToken: Erreur lors du traitement de l\'événement custom:', error);
             }
         };
 
@@ -98,10 +113,15 @@ export function useDeviceToken() {
      * Vérifier si on est dans une app mobile
      */
     const isMobileApp = (): boolean => {
+        // Vérifier plusieurs indicateurs d'app mobile
         return !!(
             window.ReactNativeWebView || 
             (window as any).requestDeviceToken ||
-            window.navigator.userAgent.includes('TrouveTaBabySitter/Mobile')
+            window.navigator.userAgent.includes('TrouveTaBabySitter/Mobile') ||
+            // Vérifier si on reçoit des messages d'Expo
+            (window as any).__EXPO_WEBVIEW__ ||
+            // Vérifier un marqueur qu'on peut injecter depuis Expo
+            (window as any).isExpoApp
         );
     };
 
