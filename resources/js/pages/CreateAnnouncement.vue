@@ -785,7 +785,7 @@ initializeChildren();
 
 <template>
     <DashboardLayout :currentMode="'parent'" :hasParentRole="true" :hasBabysitterRole="false">
-        <div class="mx-auto max-w-xs px-4 pt-6 pb-6 sm:max-w-2xl sm:px-6 sm:pt-8 sm:pb-8 md:max-w-3xl md:px-8 md:pt-10 md:pb-10 lg:max-w-4xl"
+        <div class="mx-auto max-w-xs px-4 pt-6 pb-6 sm:max-w-2xl sm:px-6 sm:pt-8 sm:pb-8 md:max-w-3xl md:px-8 md:pt-10 md:pb-10 lg:max-w-4xl">
             <!-- Header -->
             <div class="mb-6 text-center sm:mb-8 sm:text-left">
                 <h1 class="text-xl font-bold text-gray-800 sm:text-2xl">Créer une annonce</h1>

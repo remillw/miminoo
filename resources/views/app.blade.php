@@ -27,9 +27,22 @@
     <body class="font-sans antialiased">
         @inertia
         <script>
-      const typebotInitScript = document.createElement("script");
-      typebotInitScript.type = "module";
-      typebotInitScript.innerHTML = `import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0/dist/web.js'
+      // Fonction pour détecter l'app mobile
+      function isMobileApp() {
+        return !!(
+          window.ReactNativeWebView || 
+          (window.requestDeviceToken) ||
+          window.navigator.userAgent.includes('TrouveTaBabySitter/Mobile') ||
+          (window.__EXPO_WEBVIEW__) ||
+          (window.isExpoApp)
+        );
+      }
+
+      // Ne charger le chatbot que si on n'est pas dans l'app mobile
+      if (!isMobileApp()) {
+        const typebotInitScript = document.createElement("script");
+        typebotInitScript.type = "module";
+        typebotInitScript.innerHTML = `import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0/dist/web.js'
 
 Typebot.initBubble({
   typebot: "customer-support-2lar6lt",
@@ -42,9 +55,12 @@ Typebot.initBubble({
   },
 });
 `;
-      document.addEventListener('DOMContentLoaded', function() {
-        document.body.append(typebotInitScript);
-      });
+        document.addEventListener('DOMContentLoaded', function() {
+          document.body.append(typebotInitScript);
+        });
+      } else {
+        console.log('🚫 Chatbot Typebot désactivé sur l\'app mobile');
+      }
     </script>
     </body>
 </html>

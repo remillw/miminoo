@@ -268,14 +268,14 @@
                                 <button
                                     v-if="!isServicePast(application.ad)"
                                     @click="viewMessaging"
-                                    class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    class="action-button action-button-view"
                                 >
                                     <MessageCircle class="h-4 w-4" />
                                     Message
                                 </button>
                                 <button
                                     @click="viewDetails(application)"
-                                    class="flex items-center gap-2 rounded-lg border border-blue-300 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50"
+                                    class="action-button action-button-edit"
                                 >
                                     <Eye class="h-4 w-4" />
                                     Voir l'annonce
@@ -351,7 +351,7 @@
                                 <button
                                     v-if="!isServicePast(reservation)"
                                     @click="viewMessaging"
-                                    class="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    class="action-button action-button-view"
                                 >
                                     <MessageCircle class="h-4 w-4" />
                                     Message
@@ -360,7 +360,7 @@
                                 <button
                                     v-if="reservation.can_review"
                                     @click="leaveReview(reservation.id)"
-                                    class="flex items-center gap-2 rounded-lg border border-yellow-300 px-3 py-2 text-sm text-yellow-700 hover:bg-yellow-50"
+                                    class="action-button action-button-warning"
                                 >
                                     <Star class="h-4 w-4" />
                                     Laisser un avis
@@ -519,3 +519,47 @@ const leaveReview = (reservationId: number) => {
     router.visit(`/avis/creer/${reservationId}`);
 };
 </script>
+
+<style scoped>
+/* Boutons d'action uniformisés */
+.action-button {
+    @apply flex items-center gap-1 lg:gap-2 rounded-lg px-3 py-2 text-xs lg:text-sm font-medium transition-colors;
+    min-height: 36px;
+    min-width: 80px;
+    justify-content: center;
+}
+
+.action-button-primary {
+    @apply bg-primary text-white hover:bg-primary/90;
+}
+
+.action-button-edit {
+    @apply border border-blue-300 text-blue-700 hover:bg-blue-50;
+}
+
+.action-button-view {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+
+.action-button-danger {
+    @apply border border-red-300 text-red-700 hover:bg-red-50;
+}
+
+.action-button-warning {
+    @apply border border-yellow-300 text-yellow-700 hover:bg-yellow-50;
+}
+
+/* Responsive pour mobile */
+@media (max-width: 640px) {
+    .action-button {
+        min-width: 70px;
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+    
+    .action-button .h-4 {
+        width: 14px;
+        height: 14px;
+    }
+}
+</style>

@@ -184,8 +184,13 @@ const initEcho = async () => {
 
 // Fonction pour quitter un canal
 const leaveChannel = (channelName: string) => {
-    if (currentEcho.value) {
-        currentEcho.value.leave(channelName);
+    if (currentEcho.value && channelName) {
+        try {
+            console.log('🚪 Quitter le canal:', channelName);
+            currentEcho.value.leave(channelName);
+        } catch (error) {
+            console.warn('⚠️ Erreur lors de la sortie du canal:', error);
+        }
     }
 };
 
@@ -406,22 +411,59 @@ function joinConversationChannel() {
         return;
     }
 
+    const channelName = `conversation.${props.conversation.id}`;
+    
+    // Vérifier si un canal existe déjà pour cette conversation
+    if (currentChannel.value && currentChannel.value.name === channelName) {
+        console.log('✅ Canal déjà connecté:', channelName);
+        return;
+    }
+    
+    // Quitter l'ancien canal s'il existe
+    if (currentChannel.value) {
+        console.log('🚪 Fermeture de l\' ancien canal:', currentChannel.value.name);
+        try {
+            currentEcho.value.leave(currentChannel.value.name);
+        } catch (error) {
+            console.warn('⚠️ Erreur lors de la fermeture de l\'ancien canal:', error);
+        }
+        currentChannel.value = null;
+    }
+
     console.log('🚀 Connexion au canal de conversation:', props.conversation.id);
     console.log('🚀 Echo disponible:', !!currentEcho.value);
     console.log('🚀 Utilisateur actuel:', currentUser.value?.id);
-
-    // Créer le canal privé pour cette conversation
-    const channelName = `conversation.${props.conversation.id}`;
     console.log('🚀 Nom du canal:', channelName);
     
     try {
-        currentChannel.value = currentEcho.value.private(channelName);
-        console.log('✅ Canal privé créé:', currentChannel.value);
+        // Vérifier si le canal existe déjà dans Echo
+        const existingChannels = (currentEcho.value as any).channels || {};
+        if (existingChannels[channelName]) {
+            console.log('🔄 Canal existant détecté, réutilisation:', channelName);
+            currentChannel.value = existingChannels[channelName];
+        } else {
+            console.log('🆕 Création d\'un nouveau canal:', channelName);
+            currentChannel.value = currentEcho.value.private(channelName);
+        }
+        
+        console.log('✅ Canal configuré:', currentChannel.value);
         
         // Ajouter tous les écouteurs sur le canal
         addChannelListeners();
     } catch (error) {
         console.error('❌ Erreur création canal:', error);
+        // Essayer une seule fois de nettoyer et recréer
+        try {
+            console.log('🔧 Tentative de nettoyage et recréation...');
+            currentEcho.value.leave(channelName);
+            setTimeout(() => {
+                currentChannel.value = currentEcho.value.private(channelName);
+                console.log('✅ Canal recréé avec succès');
+                addChannelListeners();
+            }, 1000);
+        } catch (retryError) {
+            console.error('❌ Échec de la recréation du canal:', retryError);
+        }
     }
 }
 
