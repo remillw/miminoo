@@ -1,5 +1,13 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-white">
+  <div v-if="isAppMobile" class="fixed inset-0 z-50 flex items-center justify-center bg-white">
+    <!-- Logo seul pour mobile -->
+    <img
+      src="/storage/trouve-ta-babysitter-logo.svg"
+      alt="Trouve ta Babysitter"
+      class="h-32 w-auto animate-pulse"
+    />
+  </div>
+  <div v-else class="fixed inset-0 z-50 flex items-center justify-center bg-white">
     <div class="flex flex-col items-center space-y-6">
       <!-- Logo animé -->
       <div class="relative">
@@ -31,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 
 interface Props {
   duration?: number;
@@ -44,6 +52,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   loaded: [];
 }>();
+
+// Détection de l'app mobile
+const isAppMobile = computed(() => {
+  return window.navigator.userAgent.includes('TrouveTaBabySitter/Mobile');
+});
 
 onMounted(() => {
   // Simuler un temps de chargement minimum

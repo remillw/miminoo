@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useUserMode } from '@/composables/useUserMode';
+import { useDeviceToken } from '@/composables/useDeviceToken';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Baby, Briefcase, Calendar, CreditCard, HelpCircle, Home, LogOut, MessageCircle, MoreHorizontal, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
@@ -12,6 +13,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const { currentMode, initializeMode, setMode } = useUserMode();
+const { isMobileApp } = useDeviceToken();
 
 // État pour le menu mobile étendu
 const showMobileMenu = ref(false);
@@ -92,7 +94,7 @@ const mobileMainLinks = computed(() => {
 
     const babysitterMobileLinks = [
         { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
-        { name: 'Mes-annonces', href: '/babysitting', icon: Calendar },
+        { name: 'Annonces', href: '/annonces', icon: Briefcase },
         { name: 'Messages', href: '/messagerie', icon: MessageCircle },
     ];
 
@@ -217,14 +219,23 @@ const isActive = (href: string) => {
                     <span class="text-xs font-medium">{{ link.name.split(' ')[0] }}</span>
                 </Link>
                 
-                <!-- Bouton Aide/Chatbot -->
-                <button 
-                    @click="$event => { /* TODO: Ouvrir chatbot ou FAQ */ }"
+                <!-- Bouton contextuel: + pour parent, Profil pour babysitter -->
+                <Link 
+                    v-if="currentMode === 'parent'"
+                    href="/creer-une-annonce"
                     class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors hover:text-primary"
                 >
-                    <HelpCircle class="h-5 w-5" />
-                    <span class="text-xs font-medium">Aide</span>
-                </button>
+                    <PlusCircle class="h-5 w-5" />
+                    <span class="text-xs font-medium">Créer</span>
+                </Link>
+                <Link 
+                    v-else
+                    href="/babysitting"
+                    class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors hover:text-primary"
+                >
+                    <Calendar class="h-5 w-5" />
+                    <span class="text-xs font-medium">Mes gardes</span>
+                </Link>
 
                 <!-- Bouton Réglages pour ouvrir le menu complet -->
                 <button 
@@ -295,10 +306,6 @@ const isActive = (href: string) => {
                         <!-- Section Support & Légal (liens factices pour l'instant) -->
                         <div class="mb-3">
                             <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Support & Légal</h4>
-                            <button class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full text-left">
-                                <User class="mr-3 h-5 w-5 text-gray-400" />
-                                FAQ & Aide
-                            </button>
                             <button class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full text-left">
                                 <Settings class="mr-3 h-5 w-5 text-gray-400" />
                                 Mentions légales

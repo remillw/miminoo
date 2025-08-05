@@ -2,79 +2,79 @@
     <Head title="Mes candidatures et réservations" />
 
     <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
-        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
             <!-- En-tête avec statistiques -->
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Mes candidatures et réservations</h1>
-                <p class="mt-2 text-gray-600">Suivez l'état de vos candidatures et gérez vos réservations</p>
+            <div class="mb-6 lg:mb-8">
+                <h1 class="text-xl sm:text-3xl font-bold text-gray-900">Mes candidatures et réservations</h1>
+                <p class="mt-1 lg:mt-2 text-sm sm:text-base text-gray-600">Suivez l'état de vos candidatures et gérez vos réservations</p>
                 
                 <!-- Statistiques -->
-                <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
-                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <Briefcase class="h-8 w-8 text-gray-400" />
+                <div class="mt-4 lg:mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-5">
+                    <div class="overflow-hidden rounded-lg bg-white p-3 sm:p-4 lg:p-6 shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <Briefcase class="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                             </div>
-                            <div class="ml-5 w-0 flex-1">
+                            <div class="sm:ml-3 lg:ml-5 sm:w-0 sm:flex-1">
                                 <dl>
-                                    <dt class="truncate text-sm font-medium text-gray-500">Total candidatures</dt>
-                                    <dd class="text-lg font-medium text-gray-900">{{ stats.total_applications }}</dd>
+                                    <dt class="truncate text-xs sm:text-sm font-medium text-gray-500">Total candidatures</dt>
+                                    <dd class="text-base sm:text-lg font-medium text-gray-900">{{ stats.total_applications }}</dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
 
-                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <Clock class="h-8 w-8 text-yellow-400" />
+                    <div class="overflow-hidden rounded-lg bg-white p-3 sm:p-4 lg:p-6 shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <Clock class="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400" />
                             </div>
-                            <div class="ml-5 w-0 flex-1">
+                            <div class="sm:ml-3 lg:ml-5 sm:w-0 sm:flex-1">
                                 <dl>
-                                    <dt class="truncate text-sm font-medium text-gray-500">En attente</dt>
-                                    <dd class="text-lg font-medium text-gray-900">{{ stats.pending_applications }}</dd>
+                                    <dt class="truncate text-xs sm:text-sm font-medium text-gray-500">En attente</dt>
+                                    <dd class="text-base sm:text-lg font-medium text-gray-900">{{ stats.pending_applications }}</dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
 
-                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <Calendar class="h-8 w-8 text-blue-400" />
+                    <div class="overflow-hidden rounded-lg bg-white p-3 sm:p-4 lg:p-6 shadow col-span-2 sm:col-span-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <Calendar class="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
                             </div>
-                            <div class="ml-5 w-0 flex-1">
+                            <div class="sm:ml-3 lg:ml-5 sm:w-0 sm:flex-1">
                                 <dl>
-                                    <dt class="truncate text-sm font-medium text-gray-500">Total réservations</dt>
-                                    <dd class="text-lg font-medium text-gray-900">{{ stats.total_reservations }}</dd>
+                                    <dt class="truncate text-xs sm:text-sm font-medium text-gray-500">Réservations</dt>
+                                    <dd class="text-base sm:text-lg font-medium text-gray-900">{{ stats.total_reservations }}</dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
 
-                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <CheckCircle class="h-8 w-8 text-green-400" />
+                    <div class="overflow-hidden rounded-lg bg-white p-3 sm:p-4 lg:p-6 shadow hidden md:block">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <CheckCircle class="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
                             </div>
-                            <div class="ml-5 w-0 flex-1">
+                            <div class="sm:ml-3 lg:ml-5 sm:w-0 sm:flex-1">
                                 <dl>
-                                    <dt class="truncate text-sm font-medium text-gray-500">Terminées</dt>
-                                    <dd class="text-lg font-medium text-gray-900">{{ stats.completed_reservations }}</dd>
+                                    <dt class="truncate text-xs sm:text-sm font-medium text-gray-500">Terminées</dt>
+                                    <dd class="text-base sm:text-lg font-medium text-gray-900">{{ stats.completed_reservations }}</dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
 
-                    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <DollarSign class="h-8 w-8 text-green-500" />
+                    <div class="overflow-hidden rounded-lg bg-white p-3 sm:p-4 lg:p-6 shadow col-span-2 md:col-span-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <DollarSign class="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
                             </div>
-                            <div class="ml-5 w-0 flex-1">
+                            <div class="sm:ml-3 lg:ml-5 sm:w-0 sm:flex-1">
                                 <dl>
-                                    <dt class="truncate text-sm font-medium text-gray-500">Gains totaux</dt>
-                                    <dd class="text-lg font-medium text-gray-900">{{ formatAmount(stats.total_earned) }}€</dd>
+                                    <dt class="truncate text-xs sm:text-sm font-medium text-gray-500">Gains totaux</dt>
+                                    <dd class="text-base sm:text-lg font-medium text-gray-900">{{ formatAmount(stats.total_earned) }}€</dd>
                                 </dl>
                             </div>
                         </div>
@@ -83,9 +83,9 @@
             </div>
 
             <!-- Filtres -->
-            <div class="mb-8 rounded-lg bg-white p-6 shadow">
-                <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div class="mb-6 lg:mb-8 rounded-lg bg-white p-4 lg:p-6 shadow">
+                <h3 class="mb-3 lg:mb-4 text-base lg:text-lg font-semibold text-gray-900">Filtres</h3>
+                <div class="grid grid-cols-1 gap-3 lg:gap-4 md:grid-cols-4">
                     <div>
                         <Label for="application-status">Statut des candidatures</Label>
                         <Select v-model="tempApplicationStatusFilter">
@@ -135,16 +135,16 @@
             </div>
 
             <!-- Vue avec onglets -->
-            <div class="mb-6">
+            <div class="mb-4 lg:mb-6">
                 <div class="border-b border-gray-200">
-                    <div class="-mb-px flex space-x-8">
+                    <div class="-mb-px flex space-x-4 sm:space-x-8">
                         <button
                             @click="activeTab = 'candidatures'"
                             :class="{
                                 'border-primary text-primary': activeTab === 'candidatures',
                                 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'candidatures',
                             }"
-                            class="border-b-2 px-1 py-2 text-sm font-medium"
+                            class="border-b-2 px-1 py-2 text-xs sm:text-sm font-medium"
                         >
                             Mes candidatures ({{ applications.length }})
                         </button>
@@ -154,7 +154,7 @@
                                 'border-primary text-primary': activeTab === 'reservations',
                                 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'reservations',
                             }"
-                            class="border-b-2 px-1 py-2 text-sm font-medium"
+                            class="border-b-2 px-1 py-2 text-xs sm:text-sm font-medium"
                         >
                             Mes réservations ({{ reservations.length }})
                         </button>

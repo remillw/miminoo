@@ -1,87 +1,87 @@
 <template>
     <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
-        <div class="min-h-screen bg-secondary py-8">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="min-h-screen bg-gray-50 lg:bg-secondary py-4 lg:py-8">
+            <div class="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
                 <!-- En-tête -->
-                <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-gray-900">Mes annonces et réservations</h1>
-                    <p class="mt-2 text-gray-600">Gérez vos annonces de garde et suivez vos réservations</p>
+                <div class="mb-4 lg:mb-8">
+                    <h1 class="text-xl sm:text-3xl font-bold text-gray-900">Mes annonces et réservations</h1>
+                    <p class="mt-1 lg:mt-2 text-sm sm:text-base text-gray-600">Gérez vos annonces de garde et suivez vos réservations</p>
                 </div>
 
                 <!-- Statistiques -->
-                <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-5">
-                    <div class="rounded-lg bg-white p-6 shadow">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <FileText class="h-8 w-8 text-blue-600" />
+                <div class="mb-6 lg:mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
+                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <FileText class="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                             </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Annonces totales</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ stats.total_announcements }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="rounded-lg bg-white p-6 shadow">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <StarIcon class="h-8 w-8 text-green-600" />
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Annonces actives</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ stats.active_announcements }}</p>
+                            <div class="sm:ml-4">
+                                <p class="text-xs sm:text-sm font-medium text-gray-600">Annonces</p>
+                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.total_announcements }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-6 shadow">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <Calendar class="h-8 w-8 text-orange-600" />
+                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <StarIcon class="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
                             </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Réservations</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ stats.total_reservations }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="rounded-lg bg-white p-6 shadow">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <Check class="h-8 w-8 text-purple-600" />
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Gardes terminées</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ stats.completed_reservations }}</p>
+                            <div class="sm:ml-4">
+                                <p class="text-xs sm:text-sm font-medium text-gray-600">Actives</p>
+                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.active_announcements }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-6 shadow">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <Euro class="h-8 w-8 text-indigo-600" />
+                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <Calendar class="h-6 w-6 sm:h-8 sm:w-8 text-orange-600" />
                             </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Total dépensé</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ formatAmount(stats.total_spent) }}€</p>
+                            <div class="sm:ml-4">
+                                <p class="text-xs sm:text-sm font-medium text-gray-600">Réservations</p>
+                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.total_reservations }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow hidden sm:block">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <Check class="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
+                            </div>
+                            <div class="sm:ml-4">
+                                <p class="text-xs sm:text-sm font-medium text-gray-600">Terminées</p>
+                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.completed_reservations }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow col-span-2 sm:col-span-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center">
+                            <div class="flex-shrink-0 mb-2 sm:mb-0">
+                                <Euro class="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
+                            </div>
+                            <div class="sm:ml-4">
+                                <p class="text-xs sm:text-sm font-medium text-gray-600">Total dépensé</p>
+                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ formatAmount(stats.total_spent) }}€</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Onglets -->
-                <div class="mb-6">
+                <div class="mb-4 lg:mb-6">
                     <div class="border-b border-gray-200">
-                        <nav class="-mb-px flex space-x-8">
+                        <nav class="-mb-px flex space-x-4 sm:space-x-8">
                             <button
                                 @click="activeTab = 'announcements'"
                                 :class="{
                                     'border-primary text-primary': activeTab === 'announcements',
                                     'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'announcements',
                                 }"
-                                class="border-b-2 px-1 py-2 text-sm font-medium"
+                                class="border-b-2 px-1 py-2 text-xs sm:text-sm font-medium"
                             >
                                 Mes annonces ({{ announcements.data.length }})
                             </button>
@@ -91,7 +91,7 @@
                                     'border-primary text-primary': activeTab === 'reservations',
                                     'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'reservations',
                                 }"
-                                class="border-b-2 px-1 py-2 text-sm font-medium"
+                                class="border-b-2 px-1 py-2 text-xs sm:text-sm font-medium"
                             >
                                 Mes réservations ({{ reservations.data.length }})
                             </button>
@@ -100,11 +100,11 @@
                 </div>
 
                 <!-- Filtres -->
-                <div class="mt-6">
-                    <div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                        <h3 class="mb-4 text-lg font-semibold text-gray-900">Filtres</h3>
+                <div class="mt-4 lg:mt-6">
+                    <div class="mb-4 lg:mb-6 rounded-lg border border-gray-200 bg-white p-4 lg:p-6 shadow-sm">
+                        <h3 class="mb-3 lg:mb-4 text-base lg:text-lg font-semibold text-gray-900">Filtres</h3>
 
-                        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div class="grid grid-cols-1 gap-3 lg:gap-4 md:grid-cols-3">
                             <!-- Filtre par date -->
                             <div class="space-y-2">
                                 <Label class="text-sm font-medium text-gray-700">Période</Label>
@@ -184,13 +184,13 @@
                         @load-more="handleLoadMoreAnnouncements"
                         @error="handleError"
                     >
-                        <div v-if="allAnnouncements.length > 0" class="space-y-6">
+                        <div v-if="allAnnouncements.length > 0" class="space-y-4 lg:space-y-6">
                             <div
                                 v-for="announcement in allAnnouncements"
                                 :key="announcement.id"
                                 class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
                             >
-                                <div class="p-6">
+                                <div class="p-4 lg:p-6">
                                     <!-- En-tête de l'annonce -->
                                     <div class="mb-4 flex items-start justify-between">
                                         <div class="flex-1">

@@ -34,10 +34,21 @@ const hasBabysitterRole = computed(() => props.hasBabysitterRole ?? userRoles.va
 // Computed pour savoir si on doit cacher header/footer
 const shouldHideHeaderFooter = computed(() => isMobileApp());
 
+// Vérifier si c'est le premier chargement
+const isFirstLoad = ref(false);
+
 onMounted(() => {
-    // Si on est dans l'app mobile et qu'on a pas de loader, en afficher un brièvement
-    if (isMobileApp() && !props.showLoader) {
+    // Vérifier si c'est le premier chargement de l'app
+    const hasLoadedBefore = sessionStorage.getItem('appHasLoaded');
+    
+    // Si on est dans l'app mobile et c'est le premier chargement
+    if (isMobileApp() && !hasLoadedBefore && !props.showLoader) {
         isLoading.value = true;
+        isFirstLoad.value = true;
+        
+        // Marquer que l'app a déjà été chargée
+        sessionStorage.setItem('appHasLoaded', 'true');
+        
         setTimeout(() => {
             isLoading.value = false;
         }, 1500);
