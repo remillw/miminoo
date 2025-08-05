@@ -19,7 +19,7 @@
                                     v-else 
                                     class="flex h-full w-full items-center justify-center rounded-full bg-white/20 ring-4 ring-white/20"
                                 >
-                                    <User class="h-8 w-8 text-white/70" />
+                                    <UserIcon class="h-8 w-8 text-white/70" />
                                 </div>
                                 
                                 <!-- Bouton upload mobile -->
@@ -396,7 +396,7 @@ import {
     Shield, 
     Smartphone, 
     Trash2, 
-    User, 
+    User as UserIcon, 
     Users, 
     Baby 
 } from 'lucide-vue-next';
