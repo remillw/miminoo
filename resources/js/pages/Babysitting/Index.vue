@@ -2,7 +2,7 @@
     <Head title="Mes candidatures et réservations" />
 
     <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
-        <div class="mx-auto max-w-7xl px-3 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <div class="mx-auto max-w-7xl px-2 py-4 sm:px-6 lg:px-8 lg:py-6">
             <!-- En-tête avec statistiques -->
             <div class="mb-6 lg:mb-8">
                 <h1 class="text-xl sm:text-3xl font-bold text-gray-900">Mes candidatures et réservations</h1>

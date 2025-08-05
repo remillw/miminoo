@@ -1,62 +1,28 @@
 <template>
-  <div v-if="isAppMobile" class="fixed inset-0 z-50 flex items-center justify-center bg-white">
-    <!-- Logo seul pour mobile -->
+  <!-- Logo seul pour mobile et desktop -->
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-white">
     <img
       src="/storage/trouve-ta-babysitter-logo.svg"
       alt="Trouve ta Babysitter"
-      class="h-32 w-auto animate-pulse"
+      class="h-24 w-auto"
     />
-  </div>
-  <div v-else class="fixed inset-0 z-50 flex items-center justify-center bg-white">
-    <div class="flex flex-col items-center space-y-6">
-      <!-- Logo animé -->
-      <div class="relative">
-        <img
-          src="/storage/trouve-ta-babysitter-logo.svg"
-          alt="Trouve ta Babysitter"
-          class="h-24 w-auto animate-pulse"
-        />
-        <!-- Cercle de chargement autour du logo -->
-        <div class="absolute -inset-4">
-          <div class="animate-spin rounded-full border-4 border-gray-200 border-t-primary h-32 w-32"></div>
-        </div>
-      </div>
-      
-      <!-- Texte de chargement -->
-      <div class="text-center">
-        <h2 class="text-xl font-semibold text-gray-900 mb-2">Trouve ta Babysitter</h2>
-        <p class="text-gray-600 animate-pulse">Chargement...</p>
-      </div>
-      
-      <!-- Points de chargement animés -->
-      <div class="flex space-x-1">
-        <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-        <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-        <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 300ms"></div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted } from 'vue';
 
 interface Props {
   duration?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  duration: 2000
+  duration: 1500
 });
 
 const emit = defineEmits<{
   loaded: [];
 }>();
-
-// Détection de l'app mobile
-const isAppMobile = computed(() => {
-  return window.navigator.userAgent.includes('TrouveTaBabySitter/Mobile');
-});
 
 onMounted(() => {
   // Simuler un temps de chargement minimum

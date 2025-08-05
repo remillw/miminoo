@@ -98,7 +98,11 @@ export function useDeviceToken() {
      * Vérifier si on est dans une app mobile
      */
     const isMobileApp = (): boolean => {
-        return !!(window.ReactNativeWebView || (window as any).requestDeviceToken);
+        return !!(
+            window.ReactNativeWebView || 
+            (window as any).requestDeviceToken ||
+            window.navigator.userAgent.includes('TrouveTaBabySitter/Mobile')
+        );
     };
 
     /**

@@ -1,7 +1,7 @@
 <template>
     <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
         <div class="min-h-screen bg-gray-50 lg:bg-secondary py-4 lg:py-8">
-            <div class="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
                 <!-- En-tête -->
                 <div class="mb-4 lg:mb-8">
                     <h1 class="text-xl sm:text-3xl font-bold text-gray-900">Mes annonces et réservations</h1>
