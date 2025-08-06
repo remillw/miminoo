@@ -1,25 +1,11 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/composables/useToast';
-import { router } from '@inertiajs/vue3';
-import StripeServerUpload from '@/components/StripeServerUpload.vue';
-import {
-    AlertCircle,
-    Building,
-    CheckCircle,
-    CreditCard,
-    FileText,
-    Info,
-    Shield,
-    Upload,
-    User,
-} from 'lucide-vue-next';
+import { AlertCircle, Building, CheckCircle, CreditCard, FileText, Info, Shield, Upload, User } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 interface Props {
@@ -49,7 +35,7 @@ const isLoading = ref(false);
 const currentStep = ref(1);
 const errorMessage = ref('');
 const documentUploadRequired = ref(false);
-const uploadedDocuments = ref<{ front?: File, back?: File }>({});
+const uploadedDocuments = ref<{ front?: File; back?: File }>({});
 const showDocumentUpload = ref(false);
 const isDocumentUploadComplete = ref(false);
 
@@ -59,7 +45,6 @@ let stripe: any = null;
 // Autocomplete Google Places
 const isGoogleLoaded = ref(false);
 let autocomplete: any;
-
 
 // Récupérer les anciennes valeurs depuis la session Laravel (preserved on error)
 const oldData = (window as any)?.Laravel?.oldInput || {};
@@ -71,29 +56,29 @@ const formData = reactive({
     last_name: oldData.last_name || props.user.lastname || '',
     email: oldData.email || props.user.email || '',
     phone: oldData.phone || props.user.phone || '',
-    
+
     // Date de naissance
     dob_day: oldData.dob_day || '',
     dob_month: oldData.dob_month || '',
     dob_year: oldData.dob_year || '',
-    
+
     // Adresse (vide pour permettre la saisie libre avec autocomplete)
     address_line1: oldData.address_line1 || '',
     address_city: oldData.address_city || '',
     address_postal_code: oldData.address_postal_code || '',
     address_country: oldData.address_country || 'FR',
-    
+
     // Informations bancaires
     account_holder_name: oldData.account_holder_name || `${props.user.firstname} ${props.user.lastname}`.trim(),
     iban: oldData.iban || '',
-    
+
     // Profil business
-    business_description: oldData.business_description || 'Services de garde d\'enfants et babysitting',
+    business_description: oldData.business_description || "Services de garde d'enfants et babysitting",
     mcc: oldData.mcc || '8299',
-    
+
     // Conditions d'utilisation (jamais pré-remplie pour la sécurité)
     tos_acceptance: false,
-    
+
     // Documents d'identité (optionnels) - seront gérés par StripeServerUpload
     // identity_document_front: null as File | null,
     // identity_document_back: null as File | null,
@@ -128,35 +113,34 @@ const steps = computed(() => {
             icon: CreditCard,
         },
     ];
-    
+
     if (documentUploadRequired.value) {
         baseSteps.push({
             id: 4,
-            title: 'Documents d\'identité',
+            title: "Documents d'identité",
             description: 'Ajoutez vos documents de vérification',
             icon: FileText,
         });
     }
-    
+
     baseSteps.push({
         id: documentUploadRequired.value ? 5 : 4,
         title: 'Finalisation',
         description: 'Acceptez les conditions et finalisez',
         icon: Shield,
     });
-    
+
     return baseSteps;
 });
 
-const currentStepData = computed(() => steps.value.find(step => step.id === currentStep.value));
+const currentStepData = computed(() => steps.value.find((step) => step.id === currentStep.value));
 
-const maxSteps = computed(() => documentUploadRequired.value ? 5 : 4);
+const maxSteps = computed(() => (documentUploadRequired.value ? 5 : 4));
 
 const canProceedToNext = computed(() => {
     switch (currentStep.value) {
         case 1:
-            return formData.first_name && formData.last_name && formData.email && 
-                   formData.dob_day && formData.dob_month && formData.dob_year;
+            return formData.first_name && formData.last_name && formData.email && formData.dob_day && formData.dob_month && formData.dob_year;
         case 2:
             return formData.address_line1 && formData.address_city && formData.address_postal_code;
         case 3:
@@ -206,10 +190,10 @@ const submitOnboarding = async () => {
         // Formater le numéro de téléphone pour Stripe (format international)
         const formatPhoneForStripe = (phone: string) => {
             if (!phone) return undefined;
-            
+
             // Nettoyer le numéro (garder seulement les chiffres)
             const cleanPhone = phone.replace(/[^0-9]/g, '');
-            
+
             // Convertir les formats français vers +33
             if (cleanPhone.length === 10 && cleanPhone.startsWith('0')) {
                 // Format 0781191375 -> +33781191375
@@ -221,12 +205,12 @@ const submitOnboarding = async () => {
                 // Format 33781191375 -> +33781191375
                 return '+' + cleanPhone;
             }
-            
+
             // Si déjà au format +33, le retourner tel quel
             if (phone.startsWith('+33')) {
                 return phone;
             }
-            
+
             // Sinon, assumer que c'est un numéro français
             return cleanPhone.length >= 9 ? '+33' + cleanPhone.replace(/^0/, '') : undefined;
         };
@@ -257,7 +241,7 @@ const submitOnboarding = async () => {
         if (accountTokenResult.error) {
             throw new Error(accountTokenResult.error.message);
         }
-        
+
         // Préparer les données pour l'envoi
         const requestData = new FormData();
         requestData.append('account_token', accountTokenResult.token.id);
@@ -266,10 +250,10 @@ const submitOnboarding = async () => {
         requestData.append('account_holder_name', formData.account_holder_name);
         requestData.append('business_description', formData.business_description);
         requestData.append('mcc', formData.mcc);
-        
+
         // Les documents sont maintenant gérés par StripeServerUpload séparément
         // et automatiquement liés au compte Connect
-        
+
         // Utiliser fetch au lieu de router.post pour supporter FormData
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const response = await fetch('/stripe/internal-onboarding', {
@@ -277,16 +261,16 @@ const submitOnboarding = async () => {
             headers: {
                 'X-CSRF-TOKEN': csrfToken || '',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
+                Accept: 'application/json',
             },
-            body: requestData
+            body: requestData,
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             showSuccess('✅ Compte configuré avec succès !', 'Votre compte Stripe Connect est maintenant configuré');
-            
+
             // Si des documents sont en attente, les envoyer maintenant
             if (pendingDocuments.value.length > 0) {
                 console.log('📎 Envoi des documents en attente...');
@@ -393,7 +377,7 @@ const initAutocomplete = async () => {
 
     autocomplete = new (window as any).google.maps.places.Autocomplete(input, {
         types: ['address'],
-        componentRestrictions: { country: 'fr' }
+        componentRestrictions: { country: 'fr' },
     });
 
     // Configuration des champs retournés
@@ -449,14 +433,16 @@ const isIbanValid = computed(() => {
 // Validation du téléphone français
 const isPhoneValid = computed(() => {
     if (!formData.phone) return true; // Optionnel
-    
+
     const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
-    
+
     // Numéro français: 10 chiffres commençant par 0, ou 9 chiffres sans le 0
-    return (cleanPhone.length === 10 && cleanPhone.startsWith('0')) ||
-           (cleanPhone.length === 9 && !cleanPhone.startsWith('0')) ||
-           (cleanPhone.startsWith('33') && cleanPhone.length === 11) ||
-           formData.phone.startsWith('+33');
+    return (
+        (cleanPhone.length === 10 && cleanPhone.startsWith('0')) ||
+        (cleanPhone.length === 9 && !cleanPhone.startsWith('0')) ||
+        (cleanPhone.startsWith('33') && cleanPhone.length === 11) ||
+        formData.phone.startsWith('+33')
+    );
 });
 
 // Fonction pour vider l'erreur quand l'utilisateur modifie un champ
@@ -497,16 +483,15 @@ const checkDocumentRequirements = async () => {
             documentUploadRequired.value = true;
             return;
         }
-        
+
         const response = await fetch(`/stripe/account-requirements/${props.stripeAccountId}`);
         const data = await response.json();
-        
+
         if (response.ok && data.requirements) {
             // Vérifier si des documents d'identité sont requis
             const allRequirements = [...(data.requirements.currently_due || []), ...(data.requirements.eventually_due || [])];
-            documentUploadRequired.value = allRequirements.some(req => 
-                req.includes('individual.verification.document') || 
-                req.includes('verification.document')
+            documentUploadRequired.value = allRequirements.some(
+                (req) => req.includes('individual.verification.document') || req.includes('verification.document'),
             );
         }
     } catch (error) {
@@ -519,7 +504,7 @@ const checkDocumentRequirements = async () => {
 const handleDocumentUpload = (event: Event, type: 'front' | 'back') => {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    
+
     if (file) {
         // Vérifier le type de fichier
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
@@ -527,19 +512,19 @@ const handleDocumentUpload = (event: Event, type: 'front' | 'back') => {
             showError('❌ Type de fichier invalide', 'Seuls les fichiers JPEG, PNG et PDF sont acceptés');
             return;
         }
-        
+
         // Vérifier la taille (max 10MB)
         if (file.size > 10 * 1024 * 1024) {
             showError('❌ Fichier trop volumineux', 'La taille maximale est de 10MB');
             return;
         }
-        
+
         if (type === 'front') {
             formData.identity_document_front = file;
             uploadedDocuments.value.front = file;
-            
+
             // Ajouter aux documents en attente
-            const existingIndex = pendingDocuments.value.findIndex(f => f.name.includes('front'));
+            const existingIndex = pendingDocuments.value.findIndex((f) => f.name.includes('front'));
             if (existingIndex >= 0) {
                 pendingDocuments.value[existingIndex] = file;
             } else {
@@ -548,18 +533,18 @@ const handleDocumentUpload = (event: Event, type: 'front' | 'back') => {
         } else {
             formData.identity_document_back = file;
             uploadedDocuments.value.back = file;
-            
+
             // Ajouter aux documents en attente
-            const existingIndex = pendingDocuments.value.findIndex(f => f.name.includes('back'));
+            const existingIndex = pendingDocuments.value.findIndex((f) => f.name.includes('back'));
             if (existingIndex >= 0) {
                 pendingDocuments.value[existingIndex] = file;
             } else {
                 pendingDocuments.value.push(file);
             }
         }
-        
+
         console.log('📁 Document ajouté aux documents en attente:', file.name, 'Total:', pendingDocuments.value.length);
-        
+
         clearError();
     }
 };
@@ -568,35 +553,35 @@ const removeDocument = (type: 'front' | 'back') => {
     if (type === 'front') {
         formData.identity_document_front = null;
         uploadedDocuments.value.front = undefined;
-        
+
         // Retirer des documents en attente
-        const index = pendingDocuments.value.findIndex(f => f.name.includes('front'));
+        const index = pendingDocuments.value.findIndex((f) => f.name.includes('front'));
         if (index >= 0) {
             pendingDocuments.value.splice(index, 1);
         }
     } else {
         formData.identity_document_back = null;
         uploadedDocuments.value.back = undefined;
-        
+
         // Retirer des documents en attente
-        const index = pendingDocuments.value.findIndex(f => f.name.includes('back'));
+        const index = pendingDocuments.value.findIndex((f) => f.name.includes('back'));
         if (index >= 0) {
             pendingDocuments.value.splice(index, 1);
         }
     }
-    
+
     console.log('🗑️ Document retiré des documents en attente. Total:', pendingDocuments.value.length);
 };
 
 // Gestion de l'upload via StripeServerUpload
 const handleDocumentUploadComplete = (result: any) => {
-    console.log('✅ Documents uploadés dans l\'onboarding:', result);
+    console.log("✅ Documents uploadés dans l'onboarding:", result);
     isDocumentUploadComplete.value = true;
     showDocumentUpload.value = false;
-    
+
     const { showSuccess } = useToast();
-    showSuccess("✅ Documents uploadés !", `${result.uploadedFiles.length} document(s) envoyé(s) et lié(s) automatiquement à votre compte Stripe.`);
-    
+    showSuccess('✅ Documents uploadés !', `${result.uploadedFiles.length} document(s) envoyé(s) et lié(s) automatiquement à votre compte Stripe.`);
+
     // Pas besoin de recharger car l'onboarding continue
 };
 
@@ -614,15 +599,12 @@ const toggleDocumentUpload = () => {
 <template>
     <div class="space-y-6">
         <!-- Progress bar -->
-        <div class="w-full bg-gray-200 rounded-full h-2">
-            <div 
-                class="bg-primary h-2 rounded-full transition-all duration-300"
-                :style="{ width: `${(currentStep / maxSteps) * 100}%` }"
-            ></div>
+        <div class="h-2 w-full rounded-full bg-gray-200">
+            <div class="bg-primary h-2 rounded-full transition-all duration-300" :style="{ width: `${(currentStep / maxSteps) * 100}%` }"></div>
         </div>
 
-        <!-- Step indicator -->  
-        <div class="flex justify-between items-center">
+        <!-- Step indicator -->
+        <div class="flex items-center justify-between">
             <div
                 v-for="step in steps"
                 :key="step.id"
@@ -630,13 +612,13 @@ const toggleDocumentUpload = () => {
                 :class="step.id <= currentStep ? 'text-primary' : 'text-gray-400'"
             >
                 <div
-                    class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
+                    class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium"
                     :class="step.id <= currentStep ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'"
                 >
-                    <component v-if="step.id <= currentStep" :is="step.icon" class="w-4 h-4" />
+                    <component v-if="step.id <= currentStep" :is="step.icon" class="h-4 w-4" />
                     <span v-else>{{ step.id }}</span>
                 </div>
-                <span class="hidden sm:block text-sm font-medium">{{ step.title }}</span>
+                <span class="hidden text-sm font-medium sm:block">{{ step.title }}</span>
             </div>
         </div>
 
@@ -655,31 +637,15 @@ const toggleDocumentUpload = () => {
                         <AlertCircle class="mr-2 h-4 w-4 text-red-500" />
                         <p class="text-sm text-red-700">{{ errorMessage }}</p>
                     </div>
-                    
+
                     <!-- Bouton de fallback pour l'onboarding externe si erreur française -->
                     <div v-if="errorMessage.includes('Configuration requise pour les comptes français')" class="mt-3 flex gap-2">
-                        <Button 
-                            @click="startExternalOnboarding" 
-                            variant="outline" 
-                            size="sm"
-                            class="text-xs"
-                        >
+                        <Button @click="startExternalOnboarding" variant="outline" size="sm" class="text-xs">
                             Utiliser la configuration Stripe externe
                         </Button>
-                        <button 
-                            @click="errorMessage = ''" 
-                            class="text-xs text-red-600 hover:text-red-800 underline"
-                        >
-                            Fermer
-                        </button>
+                        <button @click="errorMessage = ''" class="text-xs text-red-600 underline hover:text-red-800">Fermer</button>
                     </div>
-                    <button 
-                        v-else
-                        @click="errorMessage = ''" 
-                        class="mt-2 text-xs text-red-600 hover:text-red-800 underline"
-                    >
-                        Fermer
-                    </button>
+                    <button v-else @click="errorMessage = ''" class="mt-2 text-xs text-red-600 underline hover:text-red-800">Fermer</button>
                 </div>
 
                 <!-- Étape 1: Informations personnelles -->
@@ -687,36 +653,17 @@ const toggleDocumentUpload = () => {
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                             <Label for="first_name">Prénom</Label>
-                            <Input
-                                id="first_name"
-                                v-model="formData.first_name"
-                                placeholder="Votre prénom"
-                                @input="clearError"
-                                required
-                            />
+                            <Input id="first_name" v-model="formData.first_name" placeholder="Votre prénom" @input="clearError" required />
                         </div>
                         <div>
                             <Label for="last_name">Nom</Label>
-                            <Input
-                                id="last_name"
-                                v-model="formData.last_name"
-                                placeholder="Votre nom"
-                                @input="clearError"
-                                required
-                            />
+                            <Input id="last_name" v-model="formData.last_name" placeholder="Votre nom" @input="clearError" required />
                         </div>
                     </div>
 
                     <div>
                         <Label for="email">Email</Label>
-                        <Input
-                            id="email"
-                            v-model="formData.email"
-                            type="email"
-                            placeholder="votre.email@exemple.com"
-                            @input="clearError"
-                            required
-                        />
+                        <Input id="email" v-model="formData.email" type="email" placeholder="votre.email@exemple.com" @input="clearError" required />
                     </div>
 
                     <div>
@@ -728,9 +675,7 @@ const toggleDocumentUpload = () => {
                             placeholder="06 12 34 56 78 ou +33 6 12 34 56 78"
                             :class="!isPhoneValid ? 'border-red-500' : ''"
                         />
-                        <p v-if="!isPhoneValid" class="mt-1 text-sm text-red-600">
-                            Format de téléphone invalide (ex: 06 12 34 56 78)
-                        </p>
+                        <p v-if="!isPhoneValid" class="mt-1 text-sm text-red-600">Format de téléphone invalide (ex: 06 12 34 56 78)</p>
                         <p v-else class="mt-1 text-xs text-gray-500">Format français accepté : 06 12 34 56 78</p>
                     </div>
 
@@ -771,8 +716,8 @@ const toggleDocumentUpload = () => {
                                     <SelectValue placeholder="Année" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem 
-                                        v-for="year in Array.from({length: 50}, (_, i) => new Date().getFullYear() - 16 - i)"
+                                    <SelectItem
+                                        v-for="year in Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - 16 - i)"
                                         :key="year"
                                         :value="year.toString()"
                                     >
@@ -793,7 +738,11 @@ const toggleDocumentUpload = () => {
                             v-model="formData.address_line1"
                             placeholder="123 rue de la République, Paris"
                             autocomplete="address-line1"
-                            @focus="() => { if (!isGoogleLoaded) loadGooglePlaces(); }"
+                            @focus="
+                                () => {
+                                    if (!isGoogleLoaded) loadGooglePlaces();
+                                }
+                            "
                             @input="clearError"
                             required
                         />
@@ -803,47 +752,31 @@ const toggleDocumentUpload = () => {
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                             <Label for="address_postal_code">Code postal</Label>
-                            <Input
-                                id="address_postal_code"
-                                v-model="formData.address_postal_code"
-                                placeholder="75001"
-                                maxlength="5"
-                                required
-                            />
+                            <Input id="address_postal_code" v-model="formData.address_postal_code" placeholder="75001" maxlength="5" required />
                         </div>
                         <div>
                             <Label for="address_city">Ville</Label>
-                            <Input
-                                id="address_city"
-                                v-model="formData.address_city"
-                                placeholder="Paris"
-                                required
-                            />
+                            <Input id="address_city" v-model="formData.address_city" placeholder="Paris" required />
                         </div>
                     </div>
                 </div>
 
                 <!-- Étape 3: Informations bancaires -->
                 <div v-if="currentStep === 3" class="space-y-4">
-                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 mb-6">
-                        <div class="flex items-center mb-2">
+                    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                        <div class="mb-2 flex items-center">
                             <Shield class="mr-2 h-4 w-4 text-blue-600" />
                             <span class="text-sm font-medium text-blue-900">Sécurité bancaire</span>
                         </div>
                         <p class="text-sm text-blue-800">
-                            Vos informations bancaires sont transmises directement à Stripe de manière sécurisée 
-                            et chiffrée. Nous ne les stockons jamais sur nos serveurs.
+                            Vos informations bancaires sont transmises directement à Stripe de manière sécurisée et chiffrée. Nous ne les stockons
+                            jamais sur nos serveurs.
                         </p>
                     </div>
 
                     <div>
                         <Label for="account_holder_name">Titulaire du compte</Label>
-                        <Input
-                            id="account_holder_name"
-                            v-model="formData.account_holder_name"
-                            placeholder="Prénom Nom"
-                            required
-                        />
+                        <Input id="account_holder_name" v-model="formData.account_holder_name" placeholder="Prénom Nom" required />
                     </div>
 
                     <div>
@@ -851,27 +784,30 @@ const toggleDocumentUpload = () => {
                         <Input
                             id="iban"
                             v-model="formData.iban"
-                            @input="(e) => { onIbanInput(e); clearError(); }"
+                            @input="
+                                (e) => {
+                                    onIbanInput(e);
+                                    clearError();
+                                }
+                            "
                             placeholder="FR76 1234 5678 9012 3456 7890 123"
                             :class="!isIbanValid ? 'border-red-500' : ''"
                             required
                         />
-                        <p v-if="!isIbanValid" class="mt-1 text-sm text-red-600">
-                            Format IBAN invalide
-                        </p>
+                        <p v-if="!isIbanValid" class="mt-1 text-sm text-red-600">Format IBAN invalide</p>
                     </div>
                 </div>
 
                 <!-- Étape 4: Documents d'identité (conditionnelle) -->
                 <div v-if="currentStep === 4 && documentUploadRequired" class="space-y-6">
-                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 mb-6">
-                        <div class="flex items-center mb-2">
+                    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                        <div class="mb-2 flex items-center">
                             <FileText class="mr-2 h-4 w-4 text-blue-600" />
                             <span class="text-sm font-medium text-blue-900">Documents d'identité (optionnel)</span>
                         </div>
                         <p class="text-sm text-blue-800">
-                            Ces documents peuvent être requis par Stripe pour la vérification de votre compte.
-                            Vous pouvez les ajouter maintenant ou les envoyer plus tard si nécessaire.
+                            Ces documents peuvent être requis par Stripe pour la vérification de votre compte. Vous pouvez les ajouter maintenant ou
+                            les envoyer plus tard si nécessaire.
                         </p>
                     </div>
 
@@ -880,31 +816,27 @@ const toggleDocumentUpload = () => {
                         <!-- Document recto -->
                         <div class="space-y-3">
                             <Label>Document d'identité (recto)</Label>
-                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                                <input 
-                                    type="file" 
-                                    id="identity-front" 
-                                    class="hidden" 
+                            <div class="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:border-gray-400">
+                                <input
+                                    type="file"
+                                    id="identity-front"
+                                    class="hidden"
                                     accept="image/*,.pdf"
                                     @change="(e) => handleDocumentUpload(e, 'front')"
                                 />
                                 <div v-if="!uploadedDocuments.front">
-                                    <Upload class="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                                    <Upload class="mx-auto mb-3 h-12 w-12 text-gray-400" />
                                     <label for="identity-front" class="cursor-pointer">
-                                        <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                            Cliquez pour sélectionner
-                                        </span>
+                                        <span class="text-sm font-medium text-blue-600 hover:text-blue-500"> Cliquez pour sélectionner </span>
                                         <span class="text-sm text-gray-500"> ou glissez-déposez</span>
                                     </label>
-                                    <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
+                                    <p class="mt-2 text-xs text-gray-500">PNG, JPG, PDF jusqu'à 10MB</p>
                                 </div>
                                 <div v-else class="space-y-2">
                                     <CheckCircle class="mx-auto h-8 w-8 text-green-500" />
                                     <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.front.name }}</p>
                                     <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.front.size / 1024) }} KB</p>
-                                    <Button variant="outline" size="sm" @click="removeDocument('front')">
-                                        Supprimer
-                                    </Button>
+                                    <Button variant="outline" size="sm" @click="removeDocument('front')"> Supprimer </Button>
                                 </div>
                             </div>
                         </div>
@@ -912,54 +844,52 @@ const toggleDocumentUpload = () => {
                         <!-- Document verso (optionnel) -->
                         <div class="space-y-3">
                             <Label>Document d'identité (verso - optionnel)</Label>
-                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                                <input 
-                                    type="file" 
-                                    id="identity-back" 
-                                    class="hidden" 
+                            <div class="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:border-gray-400">
+                                <input
+                                    type="file"
+                                    id="identity-back"
+                                    class="hidden"
                                     accept="image/*,.pdf"
                                     @change="(e) => handleDocumentUpload(e, 'back')"
                                 />
                                 <div v-if="!uploadedDocuments.back">
-                                    <Upload class="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                                    <Upload class="mx-auto mb-3 h-12 w-12 text-gray-400" />
                                     <label for="identity-back" class="cursor-pointer">
-                                        <span class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                            Cliquez pour sélectionner
-                                        </span>
+                                        <span class="text-sm font-medium text-blue-600 hover:text-blue-500"> Cliquez pour sélectionner </span>
                                         <span class="text-sm text-gray-500"> ou glissez-déposez</span>
                                     </label>
-                                    <p class="text-xs text-gray-500 mt-2">PNG, JPG, PDF jusqu'à 10MB</p>
+                                    <p class="mt-2 text-xs text-gray-500">PNG, JPG, PDF jusqu'à 10MB</p>
                                 </div>
                                 <div v-else class="space-y-2">
                                     <CheckCircle class="mx-auto h-8 w-8 text-green-500" />
                                     <p class="text-sm font-medium text-gray-900">{{ uploadedDocuments.back.name }}</p>
                                     <p class="text-xs text-gray-500">{{ Math.round(uploadedDocuments.back.size / 1024) }} KB</p>
-                                    <Button variant="outline" size="sm" @click="removeDocument('back')">
-                                        Supprimer
-                                    </Button>
+                                    <Button variant="outline" size="sm" @click="removeDocument('back')"> Supprimer </Button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Informations sur les documents -->
-                    <div class="bg-blue-50 rounded-lg p-4 mt-6">
-                        <div class="flex items-center mb-2">
+                    <div class="mt-6 rounded-lg bg-blue-50 p-4">
+                        <div class="mb-2 flex items-center">
                             <Info class="mr-2 h-4 w-4 text-blue-600" />
                             <h4 class="font-medium text-blue-900">Documents collectés pour votre compte</h4>
                         </div>
-                        <p class="text-xs text-blue-800 mb-3">
-                            Les documents sélectionnés seront automatiquement envoyés à Stripe <strong>après</strong> la création de votre compte Connect.
+                        <p class="mb-3 text-xs text-blue-800">
+                            Les documents sélectionnés seront automatiquement envoyés à Stripe <strong>après</strong> la création de votre compte
+                            Connect.
                         </p>
-                        <ul class="text-xs text-blue-700 space-y-1">
+                        <ul class="space-y-1 text-xs text-blue-700">
                             <li>• <strong>Carte d'identité</strong> française ou européenne</li>
                             <li>• <strong>Passeport</strong> en cours de validité</li>
                             <li>• <strong>Permis de conduire</strong> français</li>
                             <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
                         </ul>
-                        <div class="mt-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
+                        <div class="mt-3 rounded border-l-4 border-green-400 bg-green-50 p-2">
                             <p class="text-xs text-green-800">
-                                <span class="mr-1">🔒</span> <strong>Sécurisé</strong> : Upload avec clé secrète et liaison automatique au compte Connect
+                                <span class="mr-1">🔒</span> <strong>Sécurisé</strong> : Upload avec clé secrète et liaison automatique au compte
+                                Connect
                             </p>
                         </div>
                     </div>
@@ -968,25 +898,27 @@ const toggleDocumentUpload = () => {
                 <!-- Étape 4/5: Finalisation -->
                 <div v-if="(currentStep === 4 && !documentUploadRequired) || (currentStep === 5 && documentUploadRequired)" class="space-y-6">
                     <div class="rounded-lg border border-green-200 bg-green-50 p-4">
-                        <div class="flex items-center mb-2">
+                        <div class="mb-2 flex items-center">
                             <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
                             <span class="text-sm font-medium text-green-900">Récapitulatif</span>
                         </div>
-                        <div class="text-sm text-green-800 space-y-1">
+                        <div class="space-y-1 text-sm text-green-800">
                             <p><strong>Nom:</strong> {{ formData.first_name }} {{ formData.last_name }}</p>
                             <p><strong>Email:</strong> {{ formData.email }}</p>
-                            <p><strong>Adresse:</strong> {{ formData.address_line1 }}, {{ formData.address_postal_code }} {{ formData.address_city }}</p>
+                            <p>
+                                <strong>Adresse:</strong> {{ formData.address_line1 }}, {{ formData.address_postal_code }} {{ formData.address_city }}
+                            </p>
                             <p><strong>Compte:</strong> {{ formData.account_holder_name }}</p>
                         </div>
                     </div>
 
                     <div class="space-y-4">
-                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 mb-4">
-                            <div class="flex items-center mb-1">
+                        <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                            <div class="mb-1 flex items-center">
                                 <Shield class="mr-2 h-4 w-4 text-blue-600" />
                                 <span class="text-sm font-medium text-blue-900">Sécurité renforcée avec Account Tokens</span>
                             </div>
-                            <ul class="text-xs text-blue-800 space-y-1">
+                            <ul class="space-y-1 text-xs text-blue-800">
                                 <li>• Vos données sont envoyées directement à Stripe (pas via nos serveurs)</li>
                                 <li>• Chiffrement bancaire de niveau militaire</li>
                                 <li>• Méthode recommandée pour les comptes français (conformité DSP2)</li>
@@ -995,15 +927,9 @@ const toggleDocumentUpload = () => {
                         </div>
 
                         <div class="flex items-start space-x-3">
-                            <input
-                                id="tos_acceptance"
-                                v-model="formData.tos_acceptance"
-                                type="checkbox"
-                                class="mt-1"
-                                required
-                            />
+                            <input id="tos_acceptance" v-model="formData.tos_acceptance" type="checkbox" class="mt-1" required />
                             <Label for="tos_acceptance" class="text-sm">
-                                J'accepte les 
+                                J'accepte les
                                 <a href="#" class="text-blue-600 hover:underline">conditions d'utilisation de Stripe</a>
                                 et confirme que les informations fournies sont exactes.
                             </Label>
@@ -1013,28 +939,11 @@ const toggleDocumentUpload = () => {
 
                 <!-- Boutons de navigation -->
                 <div class="flex justify-between pt-6">
-                    <Button
-                        v-if="currentStep > 1"
-                        variant="outline"
-                        @click="previousStep"
-                        :disabled="isLoading"
-                    >
-                        Précédent
-                    </Button>
+                    <Button v-if="currentStep > 1" variant="outline" @click="previousStep" :disabled="isLoading"> Précédent </Button>
                     <div v-else></div>
 
-                    <Button
-                        v-if="currentStep < maxSteps"
-                        @click="nextStep"
-                        :disabled="!canProceedToNext || isLoading"
-                    >
-                        Suivant
-                    </Button>
-                    <Button
-                        v-else
-                        @click="submitOnboarding"
-                        :disabled="!canProceedToNext || isLoading"
-                    >
+                    <Button v-if="currentStep < maxSteps" @click="nextStep" :disabled="!canProceedToNext || isLoading"> Suivant </Button>
+                    <Button v-else @click="submitOnboarding" :disabled="!canProceedToNext || isLoading">
                         <div v-if="isLoading" class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                         {{ isLoading ? 'Configuration...' : 'Finaliser mon compte' }}
                     </Button>

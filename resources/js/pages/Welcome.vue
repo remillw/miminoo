@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import Babysitterlist from '@/components/Babysitterlist.vue';
 import HeroSection from '@/components/HeroSection.vue';
 import HowItWorksSection from '@/components/HowItWorksSection.vue';
 import ReassuranceSection from '@/components/ReassuranceSection.vue';
 import SectionReview from '@/components/SectionReview.vue';
 import TrustSection from '@/components/TrustSection.vue';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 
 import { onMounted } from 'vue';
-
 
 const page = usePage();
 
@@ -25,7 +23,7 @@ onMounted(() => {
         <HeroSection />
         <HowItWorksSection />
         <TrustSection />
-      <!--  <Babysitterlist /> -->
+        <!--  <Babysitterlist /> -->
         <SectionReview />
         <ReassuranceSection />
     </GlobalLayout>

@@ -4,14 +4,14 @@ import DataTable from '@/components/DataTable.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/composables/useToast';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
 import type { Column } from '@/types/datatable';
 import { Head, router } from '@inertiajs/vue3';
 import { CheckCircle, Clock, Eye, Mail, MessageSquare, Phone, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Contact {
     id: number;
@@ -128,7 +128,7 @@ const updateContactStatus = async (contactId: number, status: 'unread' | 'read' 
     try {
         // Récupération du token CSRF
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        
+
         if (!csrfToken) {
             showError('❌ Erreur', 'Token CSRF manquant');
             return;
@@ -139,7 +139,7 @@ const updateContactStatus = async (contactId: number, status: 'unread' | 'read' 
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
+                Accept: 'application/json',
             },
             body: JSON.stringify({
                 status,

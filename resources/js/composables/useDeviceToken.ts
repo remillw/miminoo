@@ -17,7 +17,7 @@ export function useDeviceToken() {
                 if (!event || !event.data) {
                     return;
                 }
-                
+
                 // Pour Expo, les messages arrivent via postMessage
                 let message;
                 try {
@@ -52,7 +52,7 @@ export function useDeviceToken() {
                 console.log('=== deviceTokenReady event received ===');
                 const data = event?.detail;
                 console.log('Event detail:', data);
-                
+
                 if (data && data.device_token) {
                     deviceToken.value = data.device_token || null;
                     platform.value = data.platform || null;
@@ -60,16 +60,16 @@ export function useDeviceToken() {
 
                     console.log('useDeviceToken: Token reçu via événement custom:', {
                         platform: platform.value,
-                    provider: notificationProvider.value,
-                    tokenPreview: deviceToken.value?.substring(0, 30) + '...',
-                });
-                
-                console.log('useDeviceToken: State updated - deviceToken.value:', !!deviceToken.value);
+                        provider: notificationProvider.value,
+                        tokenPreview: deviceToken.value?.substring(0, 30) + '...',
+                    });
+
+                    console.log('useDeviceToken: State updated - deviceToken.value:', !!deviceToken.value);
                 } else {
                     console.log('useDeviceToken: Event reçu mais pas de device_token valide');
                 }
             } catch (error) {
-                console.error('useDeviceToken: Erreur lors du traitement de l\'événement custom:', error);
+                console.error("useDeviceToken: Erreur lors du traitement de l'événement custom:", error);
             }
         };
 
@@ -115,7 +115,7 @@ export function useDeviceToken() {
     const isMobileApp = (): boolean => {
         // Vérifier plusieurs indicateurs d'app mobile
         return !!(
-            window.ReactNativeWebView || 
+            window.ReactNativeWebView ||
             (window as any).requestDeviceToken ||
             window.navigator.userAgent.includes('TrouveTaBabySitter/Mobile') ||
             // Vérifier si on reçoit des messages d'Expo
@@ -133,7 +133,7 @@ export function useDeviceToken() {
         console.log('deviceToken.value:', deviceToken.value);
         console.log('platform.value:', platform.value);
         console.log('notificationProvider.value:', notificationProvider.value);
-        
+
         if (!deviceToken.value) {
             console.log('No device token available');
             return null;
@@ -144,10 +144,10 @@ export function useDeviceToken() {
             platform: platform.value || 'unknown',
             notification_provider: notificationProvider.value,
         };
-        
+
         console.log('Returning device token data:', {
             ...data,
-            device_token: data.device_token.substring(0, 20) + '...'
+            device_token: data.device_token.substring(0, 20) + '...',
         });
 
         return data;

@@ -11,13 +11,13 @@ export function useUserMode() {
     // Initialiser depuis localStorage au premier chargement
     const initializeMode = (hasParentRole: boolean, hasBabysitterRole: boolean, serverMode?: UserMode) => {
         let mode: UserMode;
-        
+
         console.log('🔧 Initialisation mode:', { hasParentRole, hasBabysitterRole, serverMode });
-        
+
         // PRIORITÉ 1: localStorage (pour respecter le choix de l'utilisateur)
         const stored = localStorage.getItem(STORAGE_KEY) as UserMode | null;
         console.log('🔍 Mode localStorage:', stored);
-        
+
         if (stored && (stored === 'parent' || stored === 'babysitter')) {
             // Vérifier que l'utilisateur a bien ce rôle
             if ((stored === 'parent' && hasParentRole) || (stored === 'babysitter' && hasBabysitterRole)) {
@@ -39,7 +39,7 @@ export function useUserMode() {
             mode = hasParentRole ? 'parent' : 'babysitter';
             console.log('🆕 Mode par défaut:', mode);
         }
-        
+
         currentMode.value = mode;
         localStorage.setItem(STORAGE_KEY, mode);
         console.log('💾 Mode final sauvegardé:', mode);
@@ -64,4 +64,4 @@ export function useUserMode() {
         setMode,
         getMode,
     };
-} 
+}

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Users, TrendingUp, ShieldAlert, FileText, Star, CreditCard, UserCheck, ArrowLeft } from 'lucide-vue-next';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowLeft, CreditCard, FileText, ShieldAlert, Star, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
 
 const form = useForm({
     firstname: '',
@@ -70,7 +70,10 @@ const toggleRole = (role: string) => {
                             <UserCheck class="h-4 w-4" />
                             <span>Babysitters</span>
                         </Link>
-                        <Link href="/admin/moderation-babysitters" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
+                        <Link
+                            href="/admin/moderation-babysitters"
+                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
+                        >
                             <ShieldAlert class="h-4 w-4" />
                             <span>Modération</span>
                         </Link>
@@ -95,9 +98,7 @@ const toggleRole = (role: string) => {
                 <Card class="max-w-2xl">
                     <CardHeader>
                         <CardTitle>Créer un nouvel utilisateur</CardTitle>
-                        <CardDescription>
-                            Remplissez les informations ci-dessous pour créer un nouveau compte utilisateur.
-                        </CardDescription>
+                        <CardDescription> Remplissez les informations ci-dessous pour créer un nouveau compte utilisateur. </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form @submit.prevent="submit" class="space-y-6">
@@ -133,13 +134,7 @@ const toggleRole = (role: string) => {
 
                             <div>
                                 <Label for="email">Email *</Label>
-                                <Input
-                                    id="email"
-                                    v-model="form.email"
-                                    type="email"
-                                    required
-                                    :class="{ 'border-red-500': form.errors.email }"
-                                />
+                                <Input id="email" v-model="form.email" type="email" required :class="{ 'border-red-500': form.errors.email }" />
                                 <p v-if="form.errors.email" class="mt-1 text-sm text-red-500">
                                     {{ form.errors.email }}
                                 </p>
@@ -147,12 +142,7 @@ const toggleRole = (role: string) => {
 
                             <div>
                                 <Label for="phone">Téléphone</Label>
-                                <Input
-                                    id="phone"
-                                    v-model="form.phone"
-                                    type="tel"
-                                    :class="{ 'border-red-500': form.errors.phone }"
-                                />
+                                <Input id="phone" v-model="form.phone" type="tel" :class="{ 'border-red-500': form.errors.phone }" />
                                 <p v-if="form.errors.phone" class="mt-1 text-sm text-red-500">
                                     {{ form.errors.phone }}
                                 </p>
@@ -175,12 +165,7 @@ const toggleRole = (role: string) => {
                                 </div>
                                 <div>
                                     <Label for="password_confirmation">Confirmer le mot de passe *</Label>
-                                    <Input
-                                        id="password_confirmation"
-                                        v-model="form.password_confirmation"
-                                        type="password"
-                                        required
-                                    />
+                                    <Input id="password_confirmation" v-model="form.password_confirmation" type="password" required />
                                 </div>
                             </div>
 
@@ -189,11 +174,7 @@ const toggleRole = (role: string) => {
                                 <Label>Rôles *</Label>
                                 <div class="mt-2 space-y-2">
                                     <div class="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="parent"
-                                            :checked="form.roles.includes('parent')"
-                                            @update:checked="() => toggleRole('parent')"
-                                        />
+                                        <Checkbox id="parent" :checked="form.roles.includes('parent')" @update:checked="() => toggleRole('parent')" />
                                         <Label for="parent" class="cursor-pointer">Parent</Label>
                                     </div>
                                     <div class="flex items-center space-x-2">
@@ -212,22 +193,17 @@ const toggleRole = (role: string) => {
 
                             <!-- Adresse -->
                             <div class="border-t pt-6">
-                                <h3 class="text-lg font-medium mb-4">Adresse (optionnel)</h3>
-                                
+                                <h3 class="mb-4 text-lg font-medium">Adresse (optionnel)</h3>
+
                                 <div>
                                     <Label for="address">Adresse</Label>
-                                    <Input
-                                        id="address"
-                                        v-model="form.address"
-                                        type="text"
-                                        :class="{ 'border-red-500': form.errors.address }"
-                                    />
+                                    <Input id="address" v-model="form.address" type="text" :class="{ 'border-red-500': form.errors.address }" />
                                     <p v-if="form.errors.address" class="mt-1 text-sm text-red-500">
                                         {{ form.errors.address }}
                                     </p>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div class="mt-4 grid grid-cols-2 gap-4">
                                     <div>
                                         <Label for="postal_code">Code postal</Label>
                                         <Input
@@ -242,12 +218,7 @@ const toggleRole = (role: string) => {
                                     </div>
                                     <div>
                                         <Label for="country">Pays</Label>
-                                        <Input
-                                            id="country"
-                                            v-model="form.country"
-                                            type="text"
-                                            :class="{ 'border-red-500': form.errors.country }"
-                                        />
+                                        <Input id="country" v-model="form.country" type="text" :class="{ 'border-red-500': form.errors.country }" />
                                         <p v-if="form.errors.country" class="mt-1 text-sm text-red-500">
                                             {{ form.errors.country }}
                                         </p>
@@ -261,7 +232,7 @@ const toggleRole = (role: string) => {
                                     <Link href="/admin/parents">Annuler</Link>
                                 </Button>
                                 <Button type="submit" :disabled="form.processing">
-                                    {{ form.processing ? 'Création...' : 'Créer l\'utilisateur' }}
+                                    {{ form.processing ? 'Création...' : "Créer l'utilisateur" }}
                                 </Button>
                             </div>
                         </form>
@@ -270,4 +241,4 @@ const toggleRole = (role: string) => {
             </main>
         </div>
     </div>
-</template> 
+</template>

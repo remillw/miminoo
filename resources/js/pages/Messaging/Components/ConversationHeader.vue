@@ -95,12 +95,12 @@
 </template>
 
 <script setup>
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
 import { router } from '@inertiajs/vue3';
 import { Calendar, CheckCircle, Clock, CreditCard, FileText, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import CancelReservationModal from './CancelReservationModal.vue';
-import { useToast } from '@/composables/useToast';
-import { useStatusColors } from '@/composables/useStatusColors';
 
 const props = defineProps({
     conversation: Object,
@@ -344,7 +344,7 @@ function handleCancellationSuccess(result) {
     if (result.type === 'announcement_cancelled') {
         // Afficher le toast de succès
         showSuccess('Annonce annulée avec succès', 'Toutes les candidatures ont été annulées et les babysitters notifiées');
-        
+
         // Annonce complète annulée - mettre à jour le statut local avant de rediriger
         if (props.conversation) {
             props.conversation.status = 'cancelled';
@@ -352,14 +352,14 @@ function handleCancellationSuccess(result) {
                 props.conversation.reservation.status = 'cancelled_by_parent';
             }
         }
-        
+
         // Émettre l'événement de mise à jour pour la sidebar
-        emit('reservation-updated', { 
-            ...result, 
+        emit('reservation-updated', {
+            ...result,
             conversation: props.conversation,
-            type: 'announcement_cancelled'
+            type: 'announcement_cancelled',
         });
-        
+
         // Redirection différée pour laisser le temps à la sidebar de se mettre à jour
         setTimeout(() => {
             router.visit(route('parent.announcements-reservations'), {

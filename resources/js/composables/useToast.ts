@@ -127,17 +127,14 @@ export function useToast() {
 
     const showVerificationRequired = () => {
         showInfo(
-            '📄 Vérification d\'identité',
-            'Utilisez le formulaire d\'upload ci-dessous pour vérifier votre identité directement via notre système sécurisé.'
+            "📄 Vérification d'identité",
+            "Utilisez le formulaire d'upload ci-dessous pour vérifier votre identité directement via notre système sécurisé.",
         );
     };
 
     const handleAuthError = () => {
-        showError(
-            '🔐 Session expirée',
-            'Votre session a expiré. Vous allez être redirigé vers la page de connexion.'
-        );
-        
+        showError('🔐 Session expirée', 'Votre session a expiré. Vous allez être redirigé vers la page de connexion.');
+
         // Redirection après 2 secondes
         setTimeout(() => {
             window.location.href = '/connexion';

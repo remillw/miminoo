@@ -1,71 +1,71 @@
 <template>
     <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
-        <div class="min-h-screen bg-gray-50 lg:bg-secondary py-4 lg:py-8">
+        <div class="lg:bg-secondary min-h-screen bg-gray-50 py-4 lg:py-8">
             <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
                 <!-- En-tête -->
                 <div class="mb-4 lg:mb-8">
-                    <h1 class="text-xl sm:text-3xl font-bold text-gray-900">Mes annonces et réservations</h1>
-                    <p class="mt-1 lg:mt-2 text-sm sm:text-base text-gray-600">Gérez vos annonces de garde et suivez vos réservations</p>
+                    <h1 class="text-xl font-bold text-gray-900 sm:text-3xl">Mes annonces et réservations</h1>
+                    <p class="mt-1 text-sm text-gray-600 sm:text-base lg:mt-2">Gérez vos annonces de garde et suivez vos réservations</p>
                 </div>
 
                 <!-- Statistiques -->
-                <div class="mb-6 lg:mb-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
-                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow">
+                <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 lg:mb-8">
+                    <div class="rounded-lg bg-white p-3 shadow sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
-                            <div class="flex-shrink-0 mb-2 sm:mb-0">
-                                <FileText class="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+                            <div class="mb-2 flex-shrink-0 sm:mb-0">
+                                <FileText class="h-6 w-6 text-blue-600 sm:h-8 sm:w-8" />
                             </div>
                             <div class="sm:ml-4">
-                                <p class="text-xs sm:text-sm font-medium text-gray-600">Annonces</p>
-                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.total_announcements }}</p>
+                                <p class="text-xs font-medium text-gray-600 sm:text-sm">Annonces</p>
+                                <p class="text-lg font-bold text-gray-900 sm:text-2xl">{{ stats.total_announcements }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow">
+                    <div class="rounded-lg bg-white p-3 shadow sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
-                            <div class="flex-shrink-0 mb-2 sm:mb-0">
-                                <StarIcon class="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+                            <div class="mb-2 flex-shrink-0 sm:mb-0">
+                                <StarIcon class="h-6 w-6 text-green-600 sm:h-8 sm:w-8" />
                             </div>
                             <div class="sm:ml-4">
-                                <p class="text-xs sm:text-sm font-medium text-gray-600">Actives</p>
-                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.active_announcements }}</p>
+                                <p class="text-xs font-medium text-gray-600 sm:text-sm">Actives</p>
+                                <p class="text-lg font-bold text-gray-900 sm:text-2xl">{{ stats.active_announcements }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow">
+                    <div class="rounded-lg bg-white p-3 shadow sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
-                            <div class="flex-shrink-0 mb-2 sm:mb-0">
-                                <Calendar class="h-6 w-6 sm:h-8 sm:w-8 text-orange-600" />
+                            <div class="mb-2 flex-shrink-0 sm:mb-0">
+                                <Calendar class="h-6 w-6 text-orange-600 sm:h-8 sm:w-8" />
                             </div>
                             <div class="sm:ml-4">
-                                <p class="text-xs sm:text-sm font-medium text-gray-600">Réservations</p>
-                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.total_reservations }}</p>
+                                <p class="text-xs font-medium text-gray-600 sm:text-sm">Réservations</p>
+                                <p class="text-lg font-bold text-gray-900 sm:text-2xl">{{ stats.total_reservations }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow hidden sm:block">
+                    <div class="hidden rounded-lg bg-white p-3 shadow sm:block sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
-                            <div class="flex-shrink-0 mb-2 sm:mb-0">
-                                <Check class="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
+                            <div class="mb-2 flex-shrink-0 sm:mb-0">
+                                <Check class="h-6 w-6 text-purple-600 sm:h-8 sm:w-8" />
                             </div>
                             <div class="sm:ml-4">
-                                <p class="text-xs sm:text-sm font-medium text-gray-600">Terminées</p>
-                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ stats.completed_reservations }}</p>
+                                <p class="text-xs font-medium text-gray-600 sm:text-sm">Terminées</p>
+                                <p class="text-lg font-bold text-gray-900 sm:text-2xl">{{ stats.completed_reservations }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="rounded-lg bg-white p-3 sm:p-6 shadow col-span-2 sm:col-span-1">
+                    <div class="col-span-2 rounded-lg bg-white p-3 shadow sm:col-span-1 sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
-                            <div class="flex-shrink-0 mb-2 sm:mb-0">
-                                <Euro class="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600" />
+                            <div class="mb-2 flex-shrink-0 sm:mb-0">
+                                <Euro class="h-6 w-6 text-indigo-600 sm:h-8 sm:w-8" />
                             </div>
                             <div class="sm:ml-4">
-                                <p class="text-xs sm:text-sm font-medium text-gray-600">Total dépensé</p>
-                                <p class="text-lg sm:text-2xl font-bold text-gray-900">{{ formatAmount(stats.total_spent) }}€</p>
+                                <p class="text-xs font-medium text-gray-600 sm:text-sm">Total dépensé</p>
+                                <p class="text-lg font-bold text-gray-900 sm:text-2xl">{{ formatAmount(stats.total_spent) }}€</p>
                             </div>
                         </div>
                     </div>
@@ -81,7 +81,7 @@
                                     'border-primary text-primary': activeTab === 'announcements',
                                     'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'announcements',
                                 }"
-                                class="border-b-2 px-1 py-2 text-xs sm:text-sm font-medium"
+                                class="border-b-2 px-1 py-2 text-xs font-medium sm:text-sm"
                             >
                                 Mes annonces ({{ announcements.data.length }})
                             </button>
@@ -91,7 +91,7 @@
                                     'border-primary text-primary': activeTab === 'reservations',
                                     'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'reservations',
                                 }"
-                                class="border-b-2 px-1 py-2 text-xs sm:text-sm font-medium"
+                                class="border-b-2 px-1 py-2 text-xs font-medium sm:text-sm"
                             >
                                 Mes réservations ({{ reservations.data.length }})
                             </button>
@@ -101,10 +101,10 @@
 
                 <!-- Filtres -->
                 <div class="mt-4 lg:mt-6">
-                    <div class="mb-4 lg:mb-6 rounded-lg border border-gray-200 bg-white p-4 lg:p-6 shadow-sm">
-                        <h3 class="mb-3 lg:mb-4 text-base lg:text-lg font-semibold text-gray-900">Filtres</h3>
+                    <div class="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm lg:mb-6 lg:p-6">
+                        <h3 class="mb-3 text-base font-semibold text-gray-900 lg:mb-4 lg:text-lg">Filtres</h3>
 
-                        <div class="grid grid-cols-1 gap-3 lg:gap-4 md:grid-cols-3">
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-3 lg:gap-4">
                             <!-- Filtre par date -->
                             <div class="space-y-2">
                                 <Label class="text-sm font-medium text-gray-700">Période</Label>
@@ -230,10 +230,7 @@
                                             <Edit class="h-4 w-4" />
                                             Modifier
                                         </button>
-                                        <button
-                                            @click="viewAnnouncement(announcement)"
-                                            class="action-button action-button-view"
-                                        >
+                                        <button @click="viewAnnouncement(announcement)" class="action-button action-button-view">
                                             <Eye class="h-4 w-4" />
                                             Voir l'annonce
                                         </button>
@@ -363,11 +360,7 @@
 
                                     <!-- Actions -->
                                     <div class="flex items-center gap-3">
-                                        <button
-                                            v-if="!isServicePast(reservation)"
-                                            @click="viewMessaging"
-                                            class="action-button action-button-view"
-                                        >
+                                        <button v-if="!isServicePast(reservation)" @click="viewMessaging" class="action-button action-button-view">
                                             <MessageCircle class="h-4 w-4" />
                                             Message
                                         </button>
@@ -751,30 +744,73 @@ const confirmCancelAnnouncement = () => {
 <style scoped>
 /* Boutons d'action uniformisés */
 .action-button {
-    @apply flex items-center gap-1 lg:gap-2 rounded-lg px-3 py-2 text-xs lg:text-sm font-medium transition-colors;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem; /* gap-1 */
+    border-radius: 0.5rem; /* rounded-lg */
+    padding: 0.5rem 0.75rem; /* px-3 py-2 */
+    font-size: 0.75rem; /* text-xs */
+    line-height: 1rem;
+    font-weight: 500; /* font-medium */
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
     min-height: 36px;
     min-width: 80px;
     justify-content: center;
 }
 
+@media (min-width: 1024px) {
+    .action-button {
+        gap: 0.5rem; /* lg:gap-2 */
+        font-size: 0.875rem; /* lg:text-sm */
+        line-height: 1.25rem;
+    }
+}
+
 .action-button-primary {
-    @apply bg-primary text-white hover:bg-primary/90;
+    background-color: rgb(var(--primary));
+    color: white;
+}
+
+.action-button-primary:hover {
+    background-color: rgb(var(--primary) / 0.9);
 }
 
 .action-button-edit {
-    @apply border border-blue-300 text-blue-700 hover:bg-blue-50;
+    border: 1px solid #93c5fd; /* border-blue-300 */
+    color: #1d4ed8; /* text-blue-700 */
+}
+
+.action-button-edit:hover {
+    background-color: #eff6ff; /* bg-blue-50 */
 }
 
 .action-button-view {
-    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+    border: 1px solid #d1d5db; /* border-gray-300 */
+    color: #374151; /* text-gray-700 */
+}
+
+.action-button-view:hover {
+    background-color: #f9fafb; /* bg-gray-50 */
 }
 
 .action-button-danger {
-    @apply border border-red-300 text-red-700 hover:bg-red-50;
+    border: 1px solid #fca5a5; /* border-red-300 */
+    color: #b91c1c; /* text-red-700 */
+}
+
+.action-button-danger:hover {
+    background-color: #fef2f2; /* bg-red-50 */
 }
 
 .action-button-warning {
-    @apply border border-yellow-300 text-yellow-700 hover:bg-yellow-50;
+    border: 1px solid #fde047; /* border-yellow-300 */
+    color: #a16207; /* text-yellow-700 */
+}
+
+.action-button-warning:hover {
+    background-color: #fefce8; /* bg-yellow-50 */
 }
 
 /* Responsive pour mobile */
@@ -784,7 +820,7 @@ const confirmCancelAnnouncement = () => {
         padding: 8px 12px;
         font-size: 11px;
     }
-    
+
     .action-button .h-4 {
         width: 14px;
         height: 14px;

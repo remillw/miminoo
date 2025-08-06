@@ -259,15 +259,12 @@
         />
 
         <!-- Modal d'archivage moderne -->
-        <ArchiveConfirmationModal
-            v-model:open="showArchiveModal"
-            @confirm="handleArchiveConversation"
-            @cancel="showArchiveModal = false"
-        />
+        <ArchiveConfirmationModal v-model:open="showArchiveModal" @confirm="handleArchiveConversation" @cancel="showArchiveModal = false" />
     </div>
 </template>
 
 <script setup>
+import ArchiveConfirmationModal from '@/components/ui/archive-confirmation-modal.vue';
 import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
 import { router } from '@inertiajs/vue3';
@@ -276,7 +273,6 @@ import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
 import CancelConfirmationModal from './CancelConfirmationModal.vue';
 import ReservationModal from './ReservationModal.vue';
-import ArchiveConfirmationModal from '@/components/ui/archive-confirmation-modal.vue';
 
 const props = defineProps({
     application: Object,

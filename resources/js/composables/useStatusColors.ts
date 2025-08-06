@@ -7,320 +7,320 @@ export interface StatusColorConfig {
 export function useStatusColors() {
     // Couleurs uniformisées pour tous les statuts de réservation
     const reservationStatusColors: Record<string, StatusColorConfig> = {
-        'pending_payment': {
+        pending_payment: {
             text: 'text-yellow-800',
             badge: 'bg-yellow-100 text-yellow-800',
-            background: 'bg-yellow-50 border-yellow-200'
+            background: 'bg-yellow-50 border-yellow-200',
         },
-        'paid': {
+        paid: {
             text: 'text-blue-800',
             badge: 'bg-blue-100 text-blue-800',
-            background: 'bg-blue-50 border-blue-200'
+            background: 'bg-blue-50 border-blue-200',
         },
-        'active': {
+        active: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'service_completed': {
+        service_completed: {
             text: 'text-purple-800',
             badge: 'bg-purple-100 text-purple-800',
-            background: 'bg-purple-50 border-purple-200'
+            background: 'bg-purple-50 border-purple-200',
         },
-        'completed': {
+        completed: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
+            background: 'bg-gray-50 border-gray-200',
         },
-        'cancelled_by_parent': {
+        cancelled_by_parent: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'cancelled_by_babysitter': {
+        cancelled_by_babysitter: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'cancelled': {
+        cancelled: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'refunded': {
+        refunded: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
-        }
+            background: 'bg-green-50 border-green-200',
+        },
     };
 
     // Couleurs pour les statuts d'annonces
     const announcementStatusColors: Record<string, StatusColorConfig> = {
-        'active': {
+        active: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'paused': {
+        paused: {
             text: 'text-yellow-800',
             badge: 'bg-yellow-100 text-yellow-800',
-            background: 'bg-yellow-50 border-yellow-200'
+            background: 'bg-yellow-50 border-yellow-200',
         },
-        'booked': {
+        booked: {
             text: 'text-blue-800',
             badge: 'bg-blue-100 text-blue-800',
-            background: 'bg-blue-50 border-blue-200'
+            background: 'bg-blue-50 border-blue-200',
         },
-        'completed': {
+        completed: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
+            background: 'bg-gray-50 border-gray-200',
         },
-        'cancelled': {
+        cancelled: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'expired': {
+        expired: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
-        }
+            background: 'bg-gray-50 border-gray-200',
+        },
     };
 
     // Couleurs pour les statuts de candidatures
     const applicationStatusColors: Record<string, StatusColorConfig> = {
-        'pending': {
+        pending: {
             text: 'text-yellow-800',
             badge: 'bg-yellow-100 text-yellow-800',
-            background: 'bg-yellow-50 border-yellow-200'
+            background: 'bg-yellow-50 border-yellow-200',
         },
-        'counter_offered': {
+        counter_offered: {
             text: 'text-blue-800',
             badge: 'bg-blue-100 text-blue-800',
-            background: 'bg-blue-50 border-blue-200'
+            background: 'bg-blue-50 border-blue-200',
         },
-        'accepted': {
+        accepted: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'declined': {
+        declined: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'cancelled': {
+        cancelled: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'archived': {
+        archived: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
-        }
+            background: 'bg-gray-50 border-gray-200',
+        },
     };
 
     // Couleurs pour les statuts de fonds
     const fundsStatusColors: Record<string, StatusColorConfig> = {
-        'pending_service': {
+        pending_service: {
             text: 'text-yellow-800',
             badge: 'bg-yellow-100 text-yellow-800',
-            background: 'bg-yellow-50 border-yellow-200'
+            background: 'bg-yellow-50 border-yellow-200',
         },
-        'held_for_validation': {
+        held_for_validation: {
             text: 'text-blue-800',
             badge: 'bg-blue-100 text-blue-800',
-            background: 'bg-blue-50 border-blue-200'
+            background: 'bg-blue-50 border-blue-200',
         },
-        'released': {
+        released: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'disputed': {
+        disputed: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
-        }
+            background: 'bg-red-50 border-red-200',
+        },
     };
 
     // Couleurs pour les statuts de compte Stripe
     const stripeAccountStatusColors: Record<string, StatusColorConfig> = {
-        'pending': {
+        pending: {
             text: 'text-yellow-800',
             badge: 'bg-yellow-100 text-yellow-800',
-            background: 'bg-yellow-50 border-yellow-200'
+            background: 'bg-yellow-50 border-yellow-200',
         },
-        'active': {
+        active: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'restricted': {
+        restricted: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'rejected': {
+        rejected: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'inactive': {
+        inactive: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
-        }
+            background: 'bg-gray-50 border-gray-200',
+        },
     };
 
     // Couleurs pour les statuts de virements Stripe
     const payoutStatusColors: Record<string, StatusColorConfig> = {
-        'pending': {
+        pending: {
             text: 'text-yellow-800',
             badge: 'bg-yellow-100 text-yellow-800',
-            background: 'bg-yellow-50 border-yellow-200'
+            background: 'bg-yellow-50 border-yellow-200',
         },
-        'in_transit': {
+        in_transit: {
             text: 'text-blue-800',
             badge: 'bg-blue-100 text-blue-800',
-            background: 'bg-blue-50 border-blue-200'
+            background: 'bg-blue-50 border-blue-200',
         },
-        'paid': {
+        paid: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'failed': {
+        failed: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'canceled': {
+        canceled: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
+            background: 'bg-gray-50 border-gray-200',
         },
-        'cancelled': {
+        cancelled: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
-        }
+            background: 'bg-gray-50 border-gray-200',
+        },
     };
 
     // Couleurs pour les statuts de contact
     const contactStatusColors: Record<string, StatusColorConfig> = {
-        'unread': {
+        unread: {
             text: 'text-orange-800',
             badge: 'bg-orange-100 text-orange-800',
-            background: 'bg-orange-50 border-orange-200'
+            background: 'bg-orange-50 border-orange-200',
         },
-        'read': {
+        read: {
             text: 'text-blue-800',
             badge: 'bg-blue-100 text-blue-800',
-            background: 'bg-blue-50 border-blue-200'
+            background: 'bg-blue-50 border-blue-200',
         },
-        'replied': {
+        replied: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
-        }
+            background: 'bg-green-50 border-green-200',
+        },
     };
 
     // Couleurs pour les statuts utilisateur
     const userStatusColors: Record<string, StatusColorConfig> = {
-        'approved': {
+        approved: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'pending': {
+        pending: {
             text: 'text-yellow-800',
             badge: 'bg-yellow-100 text-yellow-800',
-            background: 'bg-yellow-50 border-yellow-200'
+            background: 'bg-yellow-50 border-yellow-200',
         },
-        'suspended': {
+        suspended: {
             text: 'text-red-800',
             badge: 'bg-red-100 text-red-800',
-            background: 'bg-red-50 border-red-200'
+            background: 'bg-red-50 border-red-200',
         },
-        'active': {
+        active: {
             text: 'text-green-800',
             badge: 'bg-green-100 text-green-800',
-            background: 'bg-green-50 border-green-200'
+            background: 'bg-green-50 border-green-200',
         },
-        'inactive': {
+        inactive: {
             text: 'text-gray-800',
             badge: 'bg-gray-100 text-gray-800',
-            background: 'bg-gray-50 border-gray-200'
-        }
+            background: 'bg-gray-50 border-gray-200',
+        },
     };
 
     // Textes français pour les statuts
     const statusTexts: Record<string, Record<string, string>> = {
         reservation: {
-            'pending_payment': 'En attente de paiement',
-            'paid': 'Payé',
-            'active': 'En cours',
-            'service_completed': 'Service terminé',
-            'completed': 'Terminé',
-            'cancelled_by_parent': 'Annulé par le parent',
-            'cancelled_by_babysitter': 'Annulé par la babysitter',
-            'cancelled': 'Annulé',
-            'refunded': 'Remboursé'
+            pending_payment: 'En attente de paiement',
+            paid: 'Payé',
+            active: 'En cours',
+            service_completed: 'Service terminé',
+            completed: 'Terminé',
+            cancelled_by_parent: 'Annulé par le parent',
+            cancelled_by_babysitter: 'Annulé par la babysitter',
+            cancelled: 'Annulé',
+            refunded: 'Remboursé',
         },
         announcement: {
-            'active': 'Active',
-            'paused': 'En pause',
-            'booked': 'Réservée',
-            'completed': 'Terminée',
-            'cancelled': 'Annulée',
-            'expired': 'Expirée'
+            active: 'Active',
+            paused: 'En pause',
+            booked: 'Réservée',
+            completed: 'Terminée',
+            cancelled: 'Annulée',
+            expired: 'Expirée',
         },
         application: {
-            'pending': 'En attente',
-            'counter_offered': 'Contre-offre',
-            'accepted': 'Acceptée',
-            'declined': 'Refusée',
-            'cancelled': 'Annulée',
-            'archived': 'Archivée'
+            pending: 'En attente',
+            counter_offered: 'Contre-offre',
+            accepted: 'Acceptée',
+            declined: 'Refusée',
+            cancelled: 'Annulée',
+            archived: 'Archivée',
         },
         funds: {
-            'pending_service': 'En attente',
-            'held_for_validation': 'Bloqué 24h',
-            'released': 'Disponible',
-            'disputed': 'Réclamation',
-            'cancelled': 'Annulé - Rien reçu',
-            'refunded': 'Remboursé - Rien reçu'
+            pending_service: 'En attente',
+            held_for_validation: 'Bloqué 24h',
+            released: 'Disponible',
+            disputed: 'Réclamation',
+            cancelled: 'Annulé - Rien reçu',
+            refunded: 'Remboursé - Rien reçu',
         },
         stripeAccount: {
-            'pending': 'En attente',
-            'active': 'Actif',
-            'restricted': 'Restreint',
-            'rejected': 'Rejeté',
-            'inactive': 'Inactif'
+            pending: 'En attente',
+            active: 'Actif',
+            restricted: 'Restreint',
+            rejected: 'Rejeté',
+            inactive: 'Inactif',
         },
         payout: {
-            'pending': 'En attente',
-            'in_transit': 'En cours',
-            'paid': 'Effectué',
-            'failed': 'Échec',
-            'canceled': 'Annulé',
-            'cancelled': 'Annulé'
+            pending: 'En attente',
+            in_transit: 'En cours',
+            paid: 'Effectué',
+            failed: 'Échec',
+            canceled: 'Annulé',
+            cancelled: 'Annulé',
         },
         contact: {
-            'unread': 'Non lu',
-            'read': 'Lu',
-            'replied': 'Répondu'
+            unread: 'Non lu',
+            read: 'Lu',
+            replied: 'Répondu',
         },
         user: {
-            'approved': 'Approuvé',
-            'pending': 'En attente',
-            'suspended': 'Suspendu',
-            'active': 'Actif',
-            'inactive': 'Inactif'
-        }
+            approved: 'Approuvé',
+            pending: 'En attente',
+            suspended: 'Suspendu',
+            active: 'Actif',
+            inactive: 'Inactif',
+        },
     };
 
     // Fonctions helper
@@ -370,10 +370,10 @@ export function useStatusColors() {
         getPayoutStatusColor,
         getContactStatusColor,
         getUserStatusColor,
-        
+
         // Fonction pour obtenir le texte
         getStatusText,
-        
+
         // Export des objets de configuration complets si nécessaire
         reservationStatusColors,
         announcementStatusColors,
@@ -383,6 +383,6 @@ export function useStatusColors() {
         payoutStatusColors,
         contactStatusColors,
         userStatusColors,
-        statusTexts
+        statusTexts,
     };
-} 
+}

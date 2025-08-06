@@ -13,8 +13,8 @@ import LandingHeader from '@/components/LandingHeader.vue';
 
             <!-- Main content avec padding pour mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
-                <div class="py-6 px-4 sm:px-6 lg:px-8">
-                    <div class="max-w-7xl mx-auto">
+                <div class="px-4 py-6 sm:px-6 lg:px-8">
+                    <div class="mx-auto max-w-7xl">
                         <slot />
                     </div>
                 </div>

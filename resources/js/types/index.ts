@@ -368,4 +368,4 @@ export type ExtendedUser = User & {
 
 export type UserWithRole = User & {
     role: string;
-}; 
+};

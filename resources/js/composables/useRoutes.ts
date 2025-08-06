@@ -23,8 +23,6 @@ export function useRoutes() {
         profile: () => '/profil',
     };
 
-    
-
     // Routes pour les paramètres
     const settingsRoutes = {
         profile: () => '/profil',
@@ -61,11 +59,11 @@ export function useRoutes() {
         authRoutes,
         appRoutes,
         settingsRoutes,
-        
+
         // Fonctions utilitaires
         route,
         routeExists,
         currentRoute,
         isCurrentRoute,
     };
-} 
+}

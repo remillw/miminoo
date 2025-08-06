@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useUserMode } from '@/composables/useUserMode';
 import { useDeviceToken } from '@/composables/useDeviceToken';
+import { useUserMode } from '@/composables/useUserMode';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Baby, Briefcase, Calendar, CreditCard, HelpCircle, Home, LogOut, MessageCircle, MoreHorizontal, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
+import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
 interface Props {
@@ -105,11 +105,9 @@ const mobileMainLinks = computed(() => {
 const mobileSecondaryLinks = computed(() => {
     const allLinks = links.value;
     const mainLinks = mobileMainLinks.value;
-    
+
     // Retourner tous les liens qui ne sont pas dans les liens principaux mobiles
-    return allLinks.filter(link => 
-        !mainLinks.some(mainLink => mainLink.href === link.href)
-    );
+    return allLinks.filter((link) => !mainLinks.some((mainLink) => mainLink.href === link.href));
 });
 
 const page = usePage();
@@ -218,30 +216,23 @@ const isActive = (href: string) => {
                     <component :is="link.icon" class="h-5 w-5" />
                     <span class="text-xs font-medium">{{ link.name.split(' ')[0] }}</span>
                 </Link>
-                
+
                 <!-- Bouton contextuel: + pour parent, Profil pour babysitter -->
-                <Link 
+                <Link
                     v-if="currentMode === 'parent'"
                     href="/creer-une-annonce"
-                    class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors hover:text-primary"
+                    class="hover:text-primary flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors"
                 >
                     <PlusCircle class="h-5 w-5" />
                     <span class="text-xs font-medium">Créer</span>
                 </Link>
-                <Link 
-                    v-else
-                    href="/babysitting"
-                    class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors hover:text-primary"
-                >
+                <Link v-else href="/babysitting" class="hover:text-primary flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors">
                     <Calendar class="h-5 w-5" />
                     <span class="text-xs font-medium">Mes gardes</span>
                 </Link>
 
                 <!-- Bouton Réglages pour ouvrir le menu complet -->
-                <button 
-                    @click="showMobileMenu = true"
-                    class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors"
-                >
+                <button @click="showMobileMenu = true" class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors">
                     <Settings class="h-5 w-5" />
                     <span class="text-xs font-medium">Plus</span>
                 </button>
@@ -249,15 +240,8 @@ const isActive = (href: string) => {
         </div>
 
         <!-- Menu mobile étendu en overlay (Page Réglages) -->
-        <div 
-            v-if="showMobileMenu" 
-            class="fixed inset-0 z-50 bg-black bg-opacity-50"
-            @click="showMobileMenu = false"
-        >
-            <div 
-                class="absolute bottom-0 left-0 right-0 max-h-96 overflow-y-auto bg-white rounded-t-xl shadow-lg"
-                @click.stop
-            >
+        <div v-if="showMobileMenu" class="bg-opacity-50 fixed inset-0 z-50 bg-black" @click="showMobileMenu = false">
+            <div class="absolute right-0 bottom-0 left-0 max-h-96 overflow-y-auto rounded-t-xl bg-white shadow-lg" @click.stop>
                 <div class="p-4">
                     <div class="mb-4 flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-gray-900">Réglages</h3>
@@ -265,13 +249,13 @@ const isActive = (href: string) => {
                             <X class="h-5 w-5" />
                         </button>
                     </div>
-                    
+
                     <nav class="space-y-1">
                         <!-- Section Compte -->
                         <div class="mb-3">
-                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Compte</h4>
+                            <h4 class="mb-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">Compte</h4>
                             <Link
-                                v-for="link in mobileSecondaryLinks.filter(l => ['Mon profil', 'Mes gardes', 'Mes annonces'].includes(l.name))"
+                                v-for="link in mobileSecondaryLinks.filter((l) => ['Mon profil', 'Mes gardes', 'Mes annonces'].includes(l.name))"
                                 :key="link.name"
                                 :href="link.href"
                                 @click="showMobileMenu = false"
@@ -287,9 +271,9 @@ const isActive = (href: string) => {
 
                         <!-- Section Paiements -->
                         <div class="mb-3">
-                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Paiements</h4>
+                            <h4 class="mb-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">Paiements</h4>
                             <Link
-                                v-for="link in mobileSecondaryLinks.filter(l => l.name.includes('Paiements'))"
+                                v-for="link in mobileSecondaryLinks.filter((l) => l.name.includes('Paiements'))"
                                 :key="link.name"
                                 :href="link.href"
                                 @click="showMobileMenu = false"
@@ -305,26 +289,30 @@ const isActive = (href: string) => {
 
                         <!-- Section Support & Légal (liens factices pour l'instant) -->
                         <div class="mb-3">
-                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Support & Légal</h4>
-                            <button class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full text-left">
+                            <h4 class="mb-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">Support & Légal</h4>
+                            <button
+                                class="group flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                            >
                                 <Settings class="mr-3 h-5 w-5 text-gray-400" />
                                 Mentions légales
                             </button>
-                            <button class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors w-full text-left">
+                            <button
+                                class="group flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                            >
                                 <Settings class="mr-3 h-5 w-5 text-gray-400" />
                                 Politique de confidentialité
                             </button>
                         </div>
-                        
+
                         <!-- Séparateur -->
-                        <div class="border-t border-gray-200 my-3"></div>
-                        
+                        <div class="my-3 border-t border-gray-200"></div>
+
                         <!-- Lien de déconnexion -->
                         <Link
                             href="/deconnexion"
                             method="post"
                             @click="showMobileMenu = false"
-                            class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                            class="group flex items-center rounded-lg px-3 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                         >
                             <LogOut class="mr-3 h-5 w-5 text-red-500" />
                             Déconnexion

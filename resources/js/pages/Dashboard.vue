@@ -5,9 +5,9 @@ import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
 import MobileAppDebug from '@/components/MobileAppDebug.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
-import { useUserMode } from '@/composables/useUserMode';
 import { useDeviceToken } from '@/composables/useDeviceToken';
 import { useToast } from '@/composables/useToast';
+import { useUserMode } from '@/composables/useUserMode';
 
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
@@ -57,24 +57,24 @@ const page = usePage();
 // Initialiser le mode au montage du composant
 onMounted(() => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
-    
+
     // Vérifier si on doit afficher le toast de vérification
     if (props.showVerificationToast) {
         console.log('🔒 Dashboard: Utilisateur redirigé depuis paiements - Affichage toast de vérification');
         showVerificationRequired();
     }
-    
+
     // Détection mobile
     isMobileAppDetected.value = isMobileApp();
-    
+
     // Réécouter les événements Expo
     const handleExpoLoad = () => {
-        console.log('[Dashboard] Expo app détectée, mise à jour de l\'interface');
+        console.log("[Dashboard] Expo app détectée, mise à jour de l'interface");
         isMobileAppDetected.value = true;
     };
-    
+
     window.addEventListener('expo-app-loaded', handleExpoLoad);
-    
+
     // Vérification périodique (fallback)
     const checkInterval = setInterval(() => {
         const wasDetected = isMobileAppDetected.value;
@@ -84,7 +84,7 @@ onMounted(() => {
             clearInterval(checkInterval);
         }
     }, 500);
-    
+
     // Nettoyer après 5 secondes
     setTimeout(() => {
         clearInterval(checkInterval);
@@ -99,7 +99,7 @@ const currentContent = computed(() => {
 </script>
 
 <template>
-    <div class="flex min-h-screen flex-col bg-secondary">
+    <div class="bg-secondary flex min-h-screen flex-col">
         <Head title="Dashboard" />
 
         <!-- Header seulement si pas dans l'app mobile -->
@@ -111,9 +111,7 @@ const currentContent = computed(() => {
 
             <!-- Contenu principal dynamique -->
             <main class="flex-1 pb-20 lg:pb-6">
-                <div :class="[
-                    shouldHideHeaderFooter ? 'mobile-app-container' : 'p-6'
-                ]">
+                <div :class="[shouldHideHeaderFooter ? 'mobile-app-container' : 'p-6']">
                     <div :class="shouldHideHeaderFooter ? '' : 'mx-auto max-w-7xl'">
                         <component :is="currentContent" :currentMode="currentMode" v-bind="$props" />
                     </div>
@@ -124,7 +122,7 @@ const currentContent = computed(() => {
         <!-- Footer seulement si pas dans l'app mobile -->
         <Footer v-if="!shouldHideHeaderFooter" />
     </div>
-    
+
     <!-- Debug pour l'app mobile -->
     <MobileAppDebug />
 </template>

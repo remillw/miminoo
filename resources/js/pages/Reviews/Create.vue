@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-secondary py-8">
+    <div class="bg-secondary min-h-screen py-8">
         <div class="mx-auto max-w-2xl px-4">
             <!-- En-tête -->
             <div class="mb-8 text-center">

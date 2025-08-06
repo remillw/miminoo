@@ -197,7 +197,7 @@ const formatRequirement = (requirement: string) => {
     const mapping: { [key: string]: string } = {
         'individual.verification.document': "🆔 Pièce d'identité",
         'individual.verification.additional_document': '📄 Document complémentaire',
-        'external_account': '🏦 Coordonnées bancaires (IBAN)',
+        external_account: '🏦 Coordonnées bancaires (IBAN)',
         'tos_acceptance.date': '✍️ Acceptation des conditions',
         'business_profile.url': '🌐 Site web professionnel',
         'business_profile.mcc': "🏷️ Code d'activité",
@@ -210,9 +210,9 @@ const formatRequirement = (requirement: string) => {
         'individual.first_name': '👤 Prénom',
         'individual.last_name': '👤 Nom de famille',
         'individual.phone': '📞 Numéro de téléphone',
-        'individual.id_number': '🆔 Numéro d\'identité nationale',
+        'individual.id_number': "🆔 Numéro d'identité nationale",
         'individual.ssn_last_4': '🔢 Numéro de sécurité sociale',
-        'business_profile.product_description': '📝 Description de l\'activité',
+        'business_profile.product_description': "📝 Description de l'activité",
     };
 
     return mapping[requirement] || `⚠️ ${requirement}`;
@@ -289,7 +289,7 @@ onMounted(() => {
 <template>
     <Head title="Configuration du compte de paiement" />
 
-    <div class="min-h-screen bg-secondary py-8">
+    <div class="bg-secondary min-h-screen py-8">
         <div class="mx-auto max-w-4xl px-4">
             <!-- Header -->
             <div class="mb-8">
@@ -344,9 +344,7 @@ onMounted(() => {
                                     <div v-if="accountDetails?.individual">
                                         <strong>Vérification :</strong>
                                         <span
-                                            :class="
-                                                accountDetails.individual.verification.status === 'verified' ? 'text-green-600' : 'text-primary'
-                                            "
+                                            :class="accountDetails.individual.verification.status === 'verified' ? 'text-green-600' : 'text-primary'"
                                         >
                                             {{ accountDetails.individual.verification.status === 'verified' ? 'Vérifié' : 'En cours' }}
                                         </span>
@@ -480,79 +478,80 @@ onMounted(() => {
                         </CardHeader>
                         <CardContent class="space-y-4">
                             <!-- Erreurs critiques (currently_due et past_due) -->
-                            <div v-if="criticalRequirements.length > 0" class="rounded-lg bg-red-50 border border-red-200 p-4">
-                                <div class="flex items-center mb-3">
+                            <div v-if="criticalRequirements.length > 0" class="rounded-lg border border-red-200 bg-red-50 p-4">
+                                <div class="mb-3 flex items-center">
                                     <AlertCircle class="mr-2 h-5 w-5 text-red-600" />
                                     <span class="text-sm font-medium text-red-900">Action requise immédiatement</span>
                                 </div>
-                                <p class="text-sm text-red-800 mb-3">
+                                <p class="mb-3 text-sm text-red-800">
                                     Ces informations sont nécessaires pour que votre compte fonctionne correctement :
                                 </p>
                                 <ul class="space-y-2">
-                                    <li v-for="requirement in criticalRequirements" :key="requirement" 
-                                        class="flex items-center text-sm text-red-800">
-                                        <span class="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
+                                    <li v-for="requirement in criticalRequirements" :key="requirement" class="flex items-center text-sm text-red-800">
+                                        <span class="mr-3 h-2 w-2 rounded-full bg-red-500"></span>
                                         {{ formatRequirement(requirement) }}
                                     </li>
                                 </ul>
                             </div>
 
                             <!-- Avertissements (pending_verification) -->
-                            <div v-if="pendingRequirements.length > 0" class="rounded-lg bg-orange-50 border border-orange-200 p-4">
-                                <div class="flex items-center mb-3">
+                            <div v-if="pendingRequirements.length > 0" class="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                                <div class="mb-3 flex items-center">
                                     <Clock class="mr-2 h-5 w-5 text-orange-600" />
                                     <span class="text-sm font-medium text-orange-900">Vérification en cours</span>
                                 </div>
-                                <p class="text-sm text-orange-800 mb-3">
-                                    Stripe vérifie actuellement ces informations :
-                                </p>
+                                <p class="mb-3 text-sm text-orange-800">Stripe vérifie actuellement ces informations :</p>
                                 <ul class="space-y-2">
-                                    <li v-for="requirement in pendingRequirements" :key="requirement" 
-                                        class="flex items-center text-sm text-orange-800">
-                                        <span class="w-2 h-2 bg-orange-500 rounded-full mr-3"></span>
+                                    <li
+                                        v-for="requirement in pendingRequirements"
+                                        :key="requirement"
+                                        class="flex items-center text-sm text-orange-800"
+                                    >
+                                        <span class="mr-3 h-2 w-2 rounded-full bg-orange-500"></span>
                                         {{ formatRequirement(requirement) }}
                                     </li>
                                 </ul>
                             </div>
 
                             <!-- Informations futures (eventually_due) -->
-                            <div v-if="futureRequirements.length > 0" class="rounded-lg bg-blue-50 border border-blue-200 p-4">
-                                <div class="flex items-center mb-3">
+                            <div v-if="futureRequirements.length > 0" class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                <div class="mb-3 flex items-center">
                                     <FileText class="mr-2 h-5 w-5 text-blue-600" />
                                     <span class="text-sm font-medium text-blue-900">À fournir prochainement</span>
                                 </div>
-                                <p class="text-sm text-blue-800 mb-3">
-                                    Ces informations seront demandées dans le futur :
-                                </p>
+                                <p class="mb-3 text-sm text-blue-800">Ces informations seront demandées dans le futur :</p>
                                 <ul class="space-y-2">
-                                    <li v-for="requirement in futureRequirements" :key="requirement" 
-                                        class="flex items-center text-sm text-blue-800">
-                                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                                    <li v-for="requirement in futureRequirements" :key="requirement" class="flex items-center text-sm text-blue-800">
+                                        <span class="mr-3 h-2 w-2 rounded-full bg-blue-500"></span>
                                         {{ formatRequirement(requirement) }}
                                     </li>
                                 </ul>
                             </div>
 
                             <!-- Compte créé mais pas d'erreurs spécifiques -->
-                            <div v-if="!hasRequiredActions" class="rounded-lg bg-green-50 border border-green-200 p-4">
-                                <div class="flex items-center mb-2">
+                            <div v-if="!hasRequiredActions" class="rounded-lg border border-green-200 bg-green-50 p-4">
+                                <div class="mb-2 flex items-center">
                                     <CheckCircle class="mr-2 h-5 w-5 text-green-600" />
                                     <span class="text-sm font-medium text-green-900">Compte créé avec succès</span>
                                 </div>
                                 <p class="text-sm text-green-800">
-                                    Votre compte a été créé avec succès ! Stripe traite actuellement vos informations. 
-                                    Cela peut prendre quelques minutes à quelques heures.
+                                    Votre compte a été créé avec succès ! Stripe traite actuellement vos informations. Cela peut prendre quelques
+                                    minutes à quelques heures.
                                 </p>
                             </div>
 
                             <!-- Informations du compte -->
                             <div class="rounded-lg bg-gray-50 p-4">
-                                <h3 class="text-sm font-medium text-gray-900 mb-2">Informations du compte</h3>
-                                <div class="text-sm text-gray-600 space-y-1">
+                                <h3 class="mb-2 text-sm font-medium text-gray-900">Informations du compte</h3>
+                                <div class="space-y-1 text-sm text-gray-600">
                                     <div><strong>ID du compte :</strong> {{ stripeAccountId }}</div>
                                     <div><strong>Statut :</strong> {{ currentStatus || 'En cours de vérification' }}</div>
-                                    <div v-if="accountDetails"><strong>Paiements activés :</strong> {{ accountDetails.charges_enabled ? '✅ Oui' : '❌ Non' }}</div>
-                                    <div v-if="accountDetails"><strong>Virements activés :</strong> {{ accountDetails.payouts_enabled ? '✅ Oui' : '❌ Non' }}</div>
+                                    <div v-if="accountDetails">
+                                        <strong>Paiements activés :</strong> {{ accountDetails.charges_enabled ? '✅ Oui' : '❌ Non' }}
+                                    </div>
+                                    <div v-if="accountDetails">
+                                        <strong>Virements activés :</strong> {{ accountDetails.payouts_enabled ? '✅ Oui' : '❌ Non' }}
+                                    </div>
                                 </div>
                             </div>
 
@@ -562,9 +561,9 @@ onMounted(() => {
                                     <RefreshCw :class="['mr-2 h-4 w-4', isLoading && 'animate-spin']" />
                                     Vérifier le statut
                                 </Button>
-                                <Button 
-                                    @click="startOnboarding" 
-                                    :disabled="isLoading" 
+                                <Button
+                                    @click="startOnboarding"
+                                    :disabled="isLoading"
                                     class="flex-1"
                                     :class="hasRequiredActions ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
                                 >
@@ -594,7 +593,7 @@ onMounted(() => {
                                 </div>
                                 <div>
                                     <p class="text-sm text-gray-600">En cours</p>
-                                    <p class="text-lg font-semibold text-primary">{{ formatCurrency(totalPending) }}</p>
+                                    <p class="text-primary text-lg font-semibold">{{ formatCurrency(totalPending) }}</p>
                                 </div>
                             </div>
                         </CardContent>

@@ -32,7 +32,7 @@
                 @click="sendMessage"
                 :disabled="!canSend || isSending"
                 class="flex items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                :class="mobile ? 'h-8 w-8 min-h-[32px] min-w-[32px]' : 'h-10 w-10 min-h-[40px] min-w-[40px]'"
+                :class="mobile ? 'h-8 min-h-[32px] w-8 min-w-[32px]' : 'h-10 min-h-[40px] w-10 min-w-[40px]'"
                 :title="isSending ? 'Envoi en cours...' : 'Envoyer le message'"
             >
                 <div v-if="isSending" class="animate-spin rounded-full border-b-2 border-white" :class="mobile ? 'h-3 w-3' : 'h-4 w-4'"></div>

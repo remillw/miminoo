@@ -4,7 +4,6 @@ import type { DashboardStats, Notification, User } from '@/types';
 import { router } from '@inertiajs/vue3';
 import { Bell, Calendar, Clock, FileText, MessageCircle, Plus, Star, Users } from 'lucide-vue-next';
 import { onMounted } from 'vue';
-import { route } from 'ziggy-js';
 
 interface CompletedReservation {
     id: number;

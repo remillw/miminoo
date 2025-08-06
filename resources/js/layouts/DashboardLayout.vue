@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
-import MobileLoader from '@/components/MobileLoader.vue';
 import MobileAppDebug from '@/components/MobileAppDebug.vue';
+import MobileLoader from '@/components/MobileLoader.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { useDeviceToken } from '@/composables/useDeviceToken';
 import { usePage } from '@inertiajs/vue3';
@@ -41,15 +41,15 @@ const isMobileAppDetected = ref(false);
 onMounted(() => {
     // Vérifier la détection mobile au montage
     isMobileAppDetected.value = isMobileApp();
-    
+
     // Réécouter les événements Expo
     const handleExpoLoad = () => {
-        console.log('[DashboardLayout] Expo app détectée, mise à jour de l\'interface');
+        console.log("[DashboardLayout] Expo app détectée, mise à jour de l'interface");
         isMobileAppDetected.value = true;
     };
-    
+
     window.addEventListener('expo-app-loaded', handleExpoLoad);
-    
+
     // Vérification périodique (fallback)
     const checkInterval = setInterval(() => {
         const wasDetected = isMobileAppDetected.value;
@@ -59,13 +59,13 @@ onMounted(() => {
             clearInterval(checkInterval);
         }
     }, 500);
-    
+
     // Nettoyer après 5 secondes
     setTimeout(() => {
         clearInterval(checkInterval);
         window.removeEventListener('expo-app-loaded', handleExpoLoad);
     }, 5000);
-    
+
     // Pas de loader automatique sur l'app mobile
     // Le loader ne s'affiche que si explicitement demandé via props.showLoader
     if (props.showLoader) {
@@ -81,24 +81,18 @@ const handleLoaderComplete = () => {
 <template>
     <!-- Loader mobile pour l'app native -->
     <MobileLoader v-if="isLoading" @loaded="handleLoaderComplete" />
-    
+
     <!-- Layout principal -->
     <div v-else class="bg-secondary flex min-h-screen flex-col">
         <!-- Header seulement si pas dans l'app mobile -->
         <LandingHeader v-if="!shouldHideHeaderFooter" />
 
         <div class="flex flex-1">
-            <UnifiedSidebar 
-                :hasParentRole="hasParentRole" 
-                :hasBabysitterRole="hasBabysitterRole" 
-                :requestedMode="props.currentMode" 
-            />
+            <UnifiedSidebar :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="props.currentMode" />
 
             <!-- Main content optimisé pour l'app mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
-                <div :class="[
-                    shouldHideHeaderFooter ? 'mobile-app-container' : 'px-4 py-6 sm:px-6 lg:px-8'
-                ]">
+                <div :class="[shouldHideHeaderFooter ? 'mobile-app-container' : 'px-4 py-6 sm:px-6 lg:px-8']">
                     <div :class="shouldHideHeaderFooter ? '' : 'mx-auto max-w-7xl'">
                         <slot />
                     </div>
@@ -109,7 +103,7 @@ const handleLoaderComplete = () => {
         <!-- Footer seulement si pas dans l'app mobile -->
         <Footer v-if="!shouldHideHeaderFooter" />
     </div>
-    
+
     <!-- Debug pour l'app mobile -->
     <MobileAppDebug />
 </template>
@@ -142,12 +136,14 @@ const handleLoaderComplete = () => {
     ::-webkit-scrollbar {
         display: none;
     }
-    
+
     /* Éviter le zoom sur les inputs sur iOS */
-    input, select, textarea {
+    input,
+    select,
+    textarea {
         font-size: 16px;
     }
-    
+
     /* S'assurer que tout reste dans les bounds */
     .mobile-app-container * {
         max-width: 100%;

@@ -1,12 +1,26 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import DataTable from '@/components/DataTable.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { Users, TrendingUp, ShieldAlert, FileText, Star, CreditCard, UserCheck, ArrowLeft, Mail, Phone, MapPin, Calendar, Edit } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { Head, Link } from '@inertiajs/vue3';
+import {
+    ArrowLeft,
+    Calendar,
+    CreditCard,
+    Edit,
+    FileText,
+    Mail,
+    MapPin,
+    Phone,
+    ShieldAlert,
+    Star,
+    TrendingUp,
+    UserCheck,
+    Users,
+} from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface Address {
     id: number;
@@ -172,7 +186,10 @@ const reviewsColumns = [
                             <UserCheck class="h-4 w-4" />
                             <span>Babysitters</span>
                         </Link>
-                        <Link href="/admin/moderation-babysitters" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
+                        <Link
+                            href="/admin/moderation-babysitters"
+                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
+                        >
                             <ShieldAlert class="h-4 w-4" />
                             <span>Modération</span>
                         </Link>
@@ -193,7 +210,7 @@ const reviewsColumns = [
             </nav>
 
             <main class="flex-1 p-6">
-                <div class="max-w-4xl mx-auto space-y-6">
+                <div class="mx-auto max-w-4xl space-y-6">
                     <!-- Informations générales -->
                     <Card>
                         <CardHeader>
@@ -203,11 +220,7 @@ const reviewsColumns = [
                                     <CardDescription>Détails du compte utilisateur</CardDescription>
                                 </div>
                                 <div class="flex items-center space-x-2">
-                                    <Badge 
-                                        v-for="role in user.roles" 
-                                        :key="role.id" 
-                                        variant="outline"
-                                    >
+                                    <Badge v-for="role in user.roles" :key="role.id" variant="outline">
                                         {{ role.label }}
                                     </Badge>
                                     <Badge :class="getUserStatusColor(user.status).badge">
@@ -226,7 +239,7 @@ const reviewsColumns = [
                                             <p class="font-medium">{{ user.firstname }} {{ user.lastname }}</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="flex items-center space-x-3">
                                         <Mail class="h-5 w-5 text-gray-400" />
                                         <div>
@@ -234,7 +247,7 @@ const reviewsColumns = [
                                             <p class="font-medium">{{ user.email }}</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div v-if="user.phone" class="flex items-center space-x-3">
                                         <Phone class="h-5 w-5 text-gray-400" />
                                         <div>
@@ -243,17 +256,17 @@ const reviewsColumns = [
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="space-y-4">
                                     <div v-if="user.address" class="flex items-start space-x-3">
-                                        <MapPin class="h-5 w-5 text-gray-400 mt-0.5" />
+                                        <MapPin class="mt-0.5 h-5 w-5 text-gray-400" />
                                         <div>
                                             <p class="text-sm text-gray-500">Adresse</p>
                                             <p class="font-medium">{{ user.address.address }}</p>
                                             <p class="text-sm text-gray-600">{{ user.address.postal_code }}, {{ user.address.country }}</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="flex items-center space-x-3">
                                         <Calendar class="h-5 w-5 text-gray-400" />
                                         <div>
@@ -280,19 +293,23 @@ const reviewsColumns = [
                                         {{ getStatusText('user', user.babysitter_profile.verification_status) }}
                                     </Badge>
                                 </div>
-                                
+
                                 <div v-if="user.babysitter_profile.experience_years" class="flex items-center justify-between">
                                     <span class="text-sm text-gray-500">Expérience</span>
-                                    <span class="font-medium">{{ user.babysitter_profile.experience_years }} année{{ user.babysitter_profile.experience_years > 1 ? 's' : '' }}</span>
+                                    <span class="font-medium"
+                                        >{{ user.babysitter_profile.experience_years }} année{{
+                                            user.babysitter_profile.experience_years > 1 ? 's' : ''
+                                        }}</span
+                                    >
                                 </div>
-                                
+
                                 <div v-if="user.babysitter_profile.hourly_rate" class="flex items-center justify-between">
                                     <span class="text-sm text-gray-500">Tarif horaire</span>
                                     <span class="font-medium">{{ user.babysitter_profile.hourly_rate }}€/h</span>
                                 </div>
-                                
-                                <div v-if="user.babysitter_profile.bio" class="pt-4 border-t">
-                                    <p class="text-sm text-gray-500 mb-2">Bio</p>
+
+                                <div v-if="user.babysitter_profile.bio" class="border-t pt-4">
+                                    <p class="mb-2 text-sm text-gray-500">Bio</p>
                                     <p class="text-sm">{{ user.babysitter_profile.bio }}</p>
                                 </div>
                             </div>
@@ -300,26 +317,14 @@ const reviewsColumns = [
                     </Card>
 
                     <!-- Navigation entre les sections -->
-                    <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
-                        <Button
-                            @click="activeSection = 'ads'"
-                            :variant="activeSection === 'ads' ? 'default' : 'ghost'"
-                            size="sm"
-                        >
+                    <div class="flex w-fit space-x-1 rounded-lg bg-gray-100 p-1">
+                        <Button @click="activeSection = 'ads'" :variant="activeSection === 'ads' ? 'default' : 'ghost'" size="sm">
                             Annonces ({{ user.ads?.length || 0 }})
                         </Button>
-                        <Button
-                            @click="activeSection = 'applications'"
-                            :variant="activeSection === 'applications' ? 'default' : 'ghost'"
-                            size="sm"
-                        >
+                        <Button @click="activeSection = 'applications'" :variant="activeSection === 'applications' ? 'default' : 'ghost'" size="sm">
                             Candidatures ({{ user.applications?.length || 0 }})
                         </Button>
-                        <Button
-                            @click="activeSection = 'reviews'"
-                            :variant="activeSection === 'reviews' ? 'default' : 'ghost'"
-                            size="sm"
-                        >
+                        <Button @click="activeSection = 'reviews'" :variant="activeSection === 'reviews' ? 'default' : 'ghost'" size="sm">
                             Avis ({{ user.reviews?.length || 0 }})
                         </Button>
                     </div>
@@ -343,9 +348,7 @@ const reviewsColumns = [
                             </template>
                         </DataTable>
                         <Card v-else>
-                            <CardContent class="py-8 text-center text-gray-500">
-                                Aucune annonce trouvée
-                            </CardContent>
+                            <CardContent class="py-8 text-center text-gray-500"> Aucune annonce trouvée </CardContent>
                         </Card>
                     </div>
 
@@ -368,9 +371,7 @@ const reviewsColumns = [
                             </template>
                         </DataTable>
                         <Card v-else>
-                            <CardContent class="py-8 text-center text-gray-500">
-                                Aucune candidature trouvée
-                            </CardContent>
+                            <CardContent class="py-8 text-center text-gray-500"> Aucune candidature trouvée </CardContent>
                         </Card>
                     </div>
 
@@ -400,13 +401,11 @@ const reviewsColumns = [
                             </template>
                         </DataTable>
                         <Card v-else>
-                            <CardContent class="py-8 text-center text-gray-500">
-                                Aucun avis trouvé
-                            </CardContent>
+                            <CardContent class="py-8 text-center text-gray-500"> Aucun avis trouvé </CardContent>
                         </Card>
                     </div>
                 </div>
             </main>
         </div>
     </div>
-</template> 
+</template>

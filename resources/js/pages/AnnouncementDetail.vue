@@ -1,21 +1,10 @@
 <script setup lang="ts">
-import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/composables/useToast';
-import { useStatusColors } from '@/composables/useStatusColors';
 import { useDateFormat } from '@/composables/useDateFormat';
-import { router } from '@inertiajs/vue3';
-import { Calendar, MapPin, Clock, Star, Users, Heart, MessageCircle, UserCheck, ShieldCheck } from 'lucide-vue-next';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
+import GlobalLayout from '@/layouts/GlobalLayout.vue';
+import type { Address, Announcement, Child, Review, User } from '@/types';
 import { computed, ref } from 'vue';
-import { route } from 'ziggy-js';
-import type { 
-    Announcement, 
-    Child, 
-    User, 
-    Review, 
-    Address
-} from '@/types';
 
 interface Parent extends User {
     // Hérite de toutes les propriétés de User

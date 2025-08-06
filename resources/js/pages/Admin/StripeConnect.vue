@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/composables/useToast';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { AlertCircle, CheckCircle, Clock, CreditCard, Eye, RefreshCw, ShieldAlert, Trash2, TrendingUp, Users, XCircle } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
@@ -391,7 +391,7 @@ onMounted(() => {
                             <Clock class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
-                            <div class="text-2xl font-bold text-primary">{{ stats.pending_accounts }}</div>
+                            <div class="text-primary text-2xl font-bold">{{ stats.pending_accounts }}</div>
                             <p class="text-muted-foreground text-xs">Configuration requise</p>
                         </CardContent>
                     </Card>
@@ -497,7 +497,7 @@ onMounted(() => {
                                             <div v-for="balance in account.balance.available" :key="balance.currency" class="text-sm">
                                                 {{ formatCurrency(balance.amount, balance.currency) }}
                                             </div>
-                                            <div v-if="account.balance.pending.length > 0" class="text-xs text-primary">
+                                            <div v-if="account.balance.pending.length > 0" class="text-primary text-xs">
                                                 + {{ account.balance.pending.map((p) => formatCurrency(p.amount, p.currency)).join(', ') }} en attente
                                             </div>
                                         </div>
@@ -567,7 +567,7 @@ onMounted(() => {
                     <div v-for="balance in selectedAccount.balance.available" :key="balance.currency" class="text-sm">
                         Disponible : {{ formatCurrency(balance.amount, balance.currency) }}
                     </div>
-                    <div v-for="balance in selectedAccount.balance.pending" :key="balance.currency" class="text-sm text-primary">
+                    <div v-for="balance in selectedAccount.balance.pending" :key="balance.currency" class="text-primary text-sm">
                         En attente : {{ formatCurrency(balance.amount, balance.currency) }}
                     </div>
                 </div>
@@ -693,7 +693,7 @@ onMounted(() => {
                                 </ul>
                             </div>
                             <div v-if="selectedAccount.stripe_account.requirements.eventually_due.length > 0">
-                                <span class="font-medium text-primary">Éventuellement requis :</span>
+                                <span class="text-primary font-medium">Éventuellement requis :</span>
                                 <ul class="ml-4 list-inside list-disc">
                                     <li v-for="req in selectedAccount.stripe_account.requirements.eventually_due" :key="req">
                                         {{ req }}

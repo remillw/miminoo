@@ -53,25 +53,28 @@
                         <!-- Message de l'utilisateur actuel -->
                         <div v-else class="flex justify-end" :class="mobile ? 'max-w-[85%]' : 'max-w-[70%]'">
                             <div class="flex flex-col items-end">
-                                <div 
-                                    class="message-bubble rounded-2xl text-white shadow-sm" 
+                                <div
+                                    class="message-bubble rounded-2xl text-white shadow-sm"
                                     :class="[
                                         mobile ? 'px-3 py-2' : 'px-4 py-3',
-                                        message.status === 'sending' ? 'bg-blue-400' : 
-                                        message.status === 'failed' ? 'bg-red-500' : 'bg-blue-600'
+                                        message.status === 'sending' ? 'bg-blue-400' : message.status === 'failed' ? 'bg-red-500' : 'bg-blue-600',
                                     ]"
                                 >
                                     <p :class="mobile ? 'text-sm' : ''" v-html="filterSensitiveInfo(message.message)"></p>
                                 </div>
                                 <div class="mt-1 flex items-center gap-2">
                                     <p class="text-xs text-gray-500">{{ formatTime(message.created_at) }}</p>
-                                    
+
                                     <!-- Indicateurs de statut -->
                                     <div v-if="message.status === 'sending'" class="flex items-center gap-1">
-                                        <div class="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></div>
+                                        <div class="h-2 w-2 animate-pulse rounded-full bg-blue-400"></div>
                                         <span class="text-xs text-blue-500">envoi...</span>
                                     </div>
-                                    <div v-else-if="message.status === 'failed'" class="flex items-center gap-1 cursor-pointer" @click="retryMessage(message)">
+                                    <div
+                                        v-else-if="message.status === 'failed'"
+                                        class="flex cursor-pointer items-center gap-1"
+                                        @click="retryMessage(message)"
+                                    >
                                         <span class="text-xs text-red-500">❌ échec - cliquer pour renvoyer</span>
                                     </div>
                                     <span v-else-if="message.read_at" class="text-xs font-medium text-blue-500">lu</span>
@@ -135,14 +138,14 @@ const initEcho = async () => {
             VITE_REVERB_APP_KEY: import.meta.env.VITE_REVERB_APP_KEY,
             VITE_REVERB_HOST: import.meta.env.VITE_REVERB_HOST,
             VITE_REVERB_PORT: import.meta.env.VITE_REVERB_PORT,
-            VITE_REVERB_SCHEME: import.meta.env.VITE_REVERB_SCHEME
+            VITE_REVERB_SCHEME: import.meta.env.VITE_REVERB_SCHEME,
         });
-        
+
         if (window.Echo) {
             currentEcho.value = window.Echo;
             echoReady.value = true;
             console.log('✅ Echo déjà disponible');
-            
+
             // Vérifier l'état de la connexion
             if ((window.Echo as any).connector?.pusher?.connection) {
                 const connection = (window.Echo as any).connector.pusher.connection;
@@ -165,7 +168,7 @@ const initEcho = async () => {
             currentEcho.value = window.Echo;
             echoReady.value = true;
             console.log('✅ Echo initialisé avec succès après attente');
-            
+
             // Vérifier l'état de la connexion
             if ((window.Echo as any).connector?.pusher?.connection) {
                 const connection = (window.Echo as any).connector.pusher.connection;
@@ -310,15 +313,15 @@ function scrollToBottom() {
 
 function filterSensitiveInfo(text: string): string {
     if (!text) return '';
-    
+
     // Vérifier si le paiement est effectué
     const isPaymentCompleted = props.conversation?.status === 'active' || props.conversation?.deposit_paid;
-    
+
     if (isPaymentCompleted) {
         // Si le paiement est fait, pas de filtrage
         return text;
     }
-    
+
     // Patterns pour détecter les numéros de téléphone
     const phonePatterns = [
         // Numéros français (06, 07, etc.)
@@ -328,20 +331,26 @@ function filterSensitiveInfo(text: string): string {
         // Patterns simples pour 10 chiffres consécutifs
         /\b\d{10}\b/g,
         // Numéros avec espaces ou tirets
-        /\b\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b/g
+        /\b\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b/g,
     ];
-    
+
     let filteredText = text;
-    
+
     // Remplacer les numéros de téléphone par un message de restriction
-    phonePatterns.forEach(pattern => {
-        filteredText = filteredText.replace(pattern, '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">🔒 Numéro masqué - Paiement requis</span>');
+    phonePatterns.forEach((pattern) => {
+        filteredText = filteredText.replace(
+            pattern,
+            '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">🔒 Numéro masqué - Paiement requis</span>',
+        );
     });
-    
+
     // Patterns pour détecter d'autres infos sensibles
     const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-    filteredText = filteredText.replace(emailPattern, '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">🔒 Email masqué - Paiement requis</span>');
-    
+    filteredText = filteredText.replace(
+        emailPattern,
+        '<span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">🔒 Email masqué - Paiement requis</span>',
+    );
+
     return filteredText;
 }
 
@@ -412,20 +421,20 @@ function joinConversationChannel() {
     }
 
     const channelName = `conversation.${props.conversation.id}`;
-    
+
     // Vérifier si un canal existe déjà pour cette conversation
     if (currentChannel.value && currentChannel.value.name === channelName) {
         console.log('✅ Canal déjà connecté:', channelName);
         return;
     }
-    
+
     // Quitter l'ancien canal s'il existe
     if (currentChannel.value) {
-        console.log('🚪 Fermeture de l\' ancien canal:', currentChannel.value.name);
+        console.log("🚪 Fermeture de l' ancien canal:", currentChannel.value.name);
         try {
             currentEcho.value.leave(currentChannel.value.name);
         } catch (error) {
-            console.warn('⚠️ Erreur lors de la fermeture de l\'ancien canal:', error);
+            console.warn("⚠️ Erreur lors de la fermeture de l'ancien canal:", error);
         }
         currentChannel.value = null;
     }
@@ -434,7 +443,7 @@ function joinConversationChannel() {
     console.log('🚀 Echo disponible:', !!currentEcho.value);
     console.log('🚀 Utilisateur actuel:', currentUser.value?.id);
     console.log('🚀 Nom du canal:', channelName);
-    
+
     try {
         // Vérifier si le canal existe déjà dans Echo
         const existingChannels = (currentEcho.value as any).channels || {};
@@ -442,12 +451,12 @@ function joinConversationChannel() {
             console.log('🔄 Canal existant détecté, réutilisation:', channelName);
             currentChannel.value = existingChannels[channelName];
         } else {
-            console.log('🆕 Création d\'un nouveau canal:', channelName);
+            console.log("🆕 Création d'un nouveau canal:", channelName);
             currentChannel.value = currentEcho.value.private(channelName);
         }
-        
+
         console.log('✅ Canal configuré:', currentChannel.value);
-        
+
         // Ajouter tous les écouteurs sur le canal
         addChannelListeners();
     } catch (error) {
@@ -472,16 +481,16 @@ function onNewMessage(e: any) {
     const messageSenderId = String(e.message?.sender_id);
     const currentUserId = String(currentUser.value?.id);
     const isMyMessage = messageSenderId === currentUserId;
-    
+
     console.log('📨 Nouveau message:', {
         id: e.message.id,
         from: isMyMessage ? 'moi' : `user ${messageSenderId}`,
-        message: e.message.message?.substring(0, 50) + '...'
+        message: e.message.message?.substring(0, 50) + '...',
     });
 
     // Vérifier si le message existe déjà dans la liste
-    const messageExists = messages.value.some(msg => msg.id === e.message.id);
-    
+    const messageExists = messages.value.some((msg) => msg.id === e.message.id);
+
     if (!messageExists) {
         console.log('✅ Ajout du message à la liste');
         messages.value.push(e.message);
@@ -497,7 +506,7 @@ function onNewMessage(e: any) {
             scrollToBottom();
         });
     } else {
-        console.log('⚠️ Message déjà présent, pas d\'ajout');
+        console.log("⚠️ Message déjà présent, pas d'ajout");
     }
 }
 
@@ -522,12 +531,12 @@ function addChannelListeners() {
     // Utiliser directement Pusher car Laravel Echo ne capture pas l'événement
     if (channel.subscription) {
         console.log('📡 Configuration écoute directe Pusher pour message.sent');
-        
+
         channel.subscription.bind('message.sent', (data: any) => {
             console.log('📨 ÉVÉNEMENT MESSAGE.SENT CAPTURÉ DIRECTEMENT:', data);
             onNewMessage(data);
         });
-        
+
         channel.subscription.bind('messages.read', (data: any) => {
             console.log('👁️ ÉVÉNEMENT MESSAGES.READ CAPTURÉ DIRECTEMENT:', data);
             // Marquer mes messages comme lus si c'est l'autre utilisateur qui les a lus
@@ -570,7 +579,7 @@ function addChannelListeners() {
         console.log('✅ État du canal après abonnement:', {
             name: channel.name,
             subscribed: channel.subscription?.subscribed,
-            state: channel.subscription?.state
+            state: channel.subscription?.state,
         });
     });
 
@@ -584,19 +593,19 @@ defineExpose({
     reloadMessages: loadMessages,
     addMessageLocally: (message: any) => {
         // Vérifier si le message existe déjà (même logique que onNewMessage)
-        const messageExists = messages.value.some(msg => msg.id === message.id);
-        
+        const messageExists = messages.value.some((msg) => msg.id === message.id);
+
         if (!messageExists) {
             console.log('⚡ Ajout immédiat du message (local):', message.id);
             messages.value.push(message);
             nextTick(scrollToBottom);
         } else {
-            console.log('⚠️ Message local déjà présent, pas d\'ajout');
+            console.log("⚠️ Message local déjà présent, pas d'ajout");
         }
     },
     confirmMessage: (tempId: string, realMessage: any) => {
         // Remplacer le message temporaire par le vrai message du serveur
-        const tempIndex = messages.value.findIndex(msg => msg.id === tempId);
+        const tempIndex = messages.value.findIndex((msg) => msg.id === tempId);
         if (tempIndex >= 0) {
             console.log('✅ Remplacement message temporaire par le vrai:', { tempId, realMessage });
             messages.value[tempIndex] = realMessage;
@@ -608,7 +617,7 @@ defineExpose({
     },
     markMessageAsFailed: (tempId: string, error: string) => {
         // Marquer le message comme échoué
-        const tempIndex = messages.value.findIndex(msg => msg.id === tempId);
+        const tempIndex = messages.value.findIndex((msg) => msg.id === tempId);
         if (tempIndex >= 0) {
             console.error('❌ Marquage message comme échoué:', { tempId, error });
             messages.value[tempIndex].status = 'failed';

@@ -8,10 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import type { Child, User } from '@/types';
 import { router } from '@inertiajs/vue3';
 import { Calendar, Check, Clock, CreditCard, FileText, MapPin, Users } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
-import type { User, Child, Address } from '@/types';
 
 const role = 'parent';
 
@@ -816,11 +816,14 @@ initializeChildren();
                             class="group flex h-10 w-10 transform cursor-pointer items-center justify-center rounded-full border-2 transition-all duration-300 hover:scale-105 sm:h-12 sm:w-12 sm:border-3 md:h-14 md:w-14"
                             :class="{
                                 // Étape actuelle
-                                'border-primary bg-primary scale-105 text-white shadow-md shadow-orange-200 sm:scale-110 sm:shadow-lg': getStepState(step) === 'current',
+                                'border-primary bg-primary scale-105 text-white shadow-md shadow-orange-200 sm:scale-110 sm:shadow-lg':
+                                    getStepState(step) === 'current',
                                 // Étape complétée sans erreur
-                                'border-green-500 bg-green-500 text-white shadow-md shadow-green-200 sm:shadow-lg': getStepState(step) === 'completed',
+                                'border-green-500 bg-green-500 text-white shadow-md shadow-green-200 sm:shadow-lg':
+                                    getStepState(step) === 'completed',
                                 // Étape avec erreurs
-                                'animate-pulse border-red-500 bg-red-500 text-white shadow-md shadow-red-200 sm:shadow-lg': getStepState(step) === 'error',
+                                'animate-pulse border-red-500 bg-red-500 text-white shadow-md shadow-red-200 sm:shadow-lg':
+                                    getStepState(step) === 'error',
                                 // Étape accessible
                                 'bg-secondary text-primary border-orange-200 hover:border-orange-300 hover:bg-orange-100':
                                     getStepState(step) === 'available',
@@ -864,7 +867,9 @@ initializeChildren();
 
                             <!-- Indicateur d'erreurs sous le titre -->
                             <div v-if="hasStepErrors(step)" class="mt-1 text-xs text-red-600">
-                                <span class="hidden sm:inline">{{ stepErrors[step]?.length }} erreur{{ stepErrors[step]?.length > 1 ? 's' : '' }}</span>
+                                <span class="hidden sm:inline"
+                                    >{{ stepErrors[step]?.length }} erreur{{ stepErrors[step]?.length > 1 ? 's' : '' }}</span
+                                >
                                 <span class="sm:hidden">!</span>
                             </div>
 
@@ -915,7 +920,9 @@ initializeChildren();
                                 </svg>
                                 <h3 class="text-xs font-medium text-orange-800 sm:text-sm">Adresse email requise</h3>
                             </div>
-                            <p class="mt-1 text-xs text-orange-700 sm:text-sm">Renseignez votre email pour recevoir les candidatures et gérer votre annonce.</p>
+                            <p class="mt-1 text-xs text-orange-700 sm:text-sm">
+                                Renseignez votre email pour recevoir les candidatures et gérer votre annonce.
+                            </p>
                         </div>
                         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                             <div>
@@ -964,7 +971,9 @@ initializeChildren();
                                     <Label class="text-sm font-medium sm:text-base">Horaires</Label>
                                     <Button type="button" variant="outline" size="sm" @click="toggleTimeInputType" class="text-xs">
                                         <Clock class="mr-1 h-3 w-3" />
-                                        <span class="hidden sm:inline">{{ timeInputType === 'select' ? 'Saisie manuelle' : 'Sélection rapide' }}</span>
+                                        <span class="hidden sm:inline">{{
+                                            timeInputType === 'select' ? 'Saisie manuelle' : 'Sélection rapide'
+                                        }}</span>
                                         <span class="sm:hidden">{{ timeInputType === 'select' ? 'Manuel' : 'Rapide' }}</span>
                                     </Button>
                                 </div>
@@ -1011,7 +1020,9 @@ initializeChildren();
                                     <div class="space-y-2">
                                         <Label for="start_time_manual" class="text-xs sm:text-sm">Heure de début</Label>
                                         <div class="relative">
-                                            <Clock class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
+                                            <Clock
+                                                class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4"
+                                            />
                                             <Input
                                                 id="start_time_manual"
                                                 type="time"
@@ -1030,7 +1041,9 @@ initializeChildren();
                                     <div class="space-y-2">
                                         <Label for="end_time_manual" class="text-xs sm:text-sm">Heure de fin</Label>
                                         <div class="relative">
-                                            <Clock class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
+                                            <Clock
+                                                class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4"
+                                            />
                                             <Input
                                                 id="end_time_manual"
                                                 type="time"
@@ -1048,12 +1061,7 @@ initializeChildren();
                                 </div>
 
                                 <p class="text-xs text-gray-500">
-                                   
-                                    {{
-                                        timeInputType === 'select'
-                                            ? ''
-                                            : "Saisissez l'heure au format HH:MM (ex: 14:30)"
-                                    }}
+                                    {{ timeInputType === 'select' ? '' : "Saisissez l'heure au format HH:MM (ex: 14:30)" }}
                                 </p>
                             </div>
 
@@ -1128,13 +1136,27 @@ initializeChildren();
                                 >
                                     <div class="space-y-2">
                                         <Label :for="`child-name-${index}`" class="text-xs sm:text-sm">Prénom de l'enfant {{ index + 1 }}</Label>
-                                        <Input :id="`child-name-${index}`" v-model="child.nom" placeholder="ex: Sophie" required class="text-sm sm:text-base" />
+                                        <Input
+                                            :id="`child-name-${index}`"
+                                            v-model="child.nom"
+                                            placeholder="ex: Sophie"
+                                            required
+                                            class="text-sm sm:text-base"
+                                        />
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="space-y-2">
                                             <Label :for="`child-age-${index}`" class="text-xs sm:text-sm">Âge</Label>
-                                            <Input :id="`child-age-${index}`" v-model="child.age" type="number" min="1" max="18" required class="text-sm sm:text-base" />
+                                            <Input
+                                                :id="`child-age-${index}`"
+                                                v-model="child.age"
+                                                type="number"
+                                                min="1"
+                                                max="18"
+                                                required
+                                                class="text-sm sm:text-base"
+                                            />
                                         </div>
                                         <div class="space-y-2">
                                             <Label :for="`child-unit-${index}`" class="text-xs sm:text-sm">Âge en </Label>
@@ -1172,8 +1194,8 @@ initializeChildren();
                                     />
                                 </div>
                                 <p class="text-xs text-gray-500">
-                                    Adresse permettant de géolocaliser et prévenir les babysitters les plus proches. Seuls la ville et le code
-                                    postal seront affichés publiquement.
+                                    Adresse permettant de géolocaliser et prévenir les babysitters les plus proches. Seuls la ville et le code postal
+                                    seront affichés publiquement.
                                 </p>
                             </div>
                         </div>
@@ -1191,7 +1213,7 @@ initializeChildren();
                                     v-model="form.additional_info"
                                     placeholder="Allergies, routines, activités préférées, consignes particulières, autres informations utiles pour les babysitters..."
                                     rows="4"
-                                    class="text-sm sm:rows-6 sm:text-base"
+                                    class="sm:rows-6 text-sm sm:text-base"
                                 />
                                 <p class="text-xs text-gray-500">
                                     ℹ️ Ce champ est optionnel. Vous pouvez passer cette étape si vous n'avez pas d'informations particulières à

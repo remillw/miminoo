@@ -1,6 +1,6 @@
 <template>
     <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
-        <div class="min-h-screen bg-secondary py-8">
+        <div class="bg-secondary min-h-screen py-8">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <!-- En-tête -->
                 <div class="mb-8">

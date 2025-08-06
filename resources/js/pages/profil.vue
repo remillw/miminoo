@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import type { AgeRange, BabysitterProfile as BabysitterProfileType, Child, Language, Skill, User } from '@/types';
 import { router } from '@inertiajs/vue3';
 import {
     AlertCircle,
-    Baby,
     Building,
     Camera,
     CheckCircle,
@@ -24,20 +24,10 @@ import {
     Shield,
     Trash2,
     TrendingUp,
-    Users,
     X,
 } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
-import type { 
-    User, 
-    Child, 
-    Address, 
-    Language, 
-    Skill, 
-    AgeRange,
-    BabysitterProfile as BabysitterProfileType 
-} from '@/types';
 
 interface ExtendedUser extends User {
     parentProfile?: {
@@ -247,15 +237,15 @@ const viewMyProfile = () => {
             const slug = createBabysitterSlug(props.user);
             url = route('babysitter.show', { slug });
         } else {
-            showError('Impossible d\'afficher le profil public - Rôle incompatible');
+            showError("Impossible d'afficher le profil public - Rôle incompatible");
             return;
         }
-        
+
         // Ouvrir le profil dans un nouvel onglet
         window.open(url, '_blank');
     } catch (error) {
         console.error('❌ Erreur création profil:', error);
-        showError('Impossible d\'afficher le profil public - Erreur de génération du lien');
+        showError("Impossible d'afficher le profil public - Erreur de génération du lien");
     }
 };
 
@@ -481,7 +471,7 @@ const submitForm = async () => {
                 onError: (errors) => {
                     console.error('❌ Erreurs de validation:', errors);
                     // Les erreurs 500 sont maintenant gérées globalement
-                    
+
                     showError('Erreur lors de la mise à jour du profil');
                 },
             },
@@ -573,8 +563,8 @@ const requestVerification = async () => {
     // Vérifier que le profil est complété à au moins 50%
     if (currentMode.value === 'babysitter' && babysitterProfileCompletion.value < 50) {
         showError(
-            'Profil incomplet', 
-            `Votre profil doit être complété à au moins 50% pour demander une vérification. Actuellement: ${babysitterProfileCompletion.value}%`
+            'Profil incomplet',
+            `Votre profil doit être complété à au moins 50% pour demander une vérification. Actuellement: ${babysitterProfileCompletion.value}%`,
         );
         return;
     }
@@ -591,7 +581,7 @@ const requestVerification = async () => {
             {
                 onSuccess: (page: any) => {
                     console.log('✅ Réponse serveur onSuccess:', page);
-                    
+
                     // Vérifier d'abord les flash messages dans la page Inertia
                     if (page.props?.flash?.success) {
                         showSuccess('✅ Demande envoyée !', page.props.flash.success);
@@ -601,8 +591,8 @@ const requestVerification = async () => {
                     } else {
                         // Fallback si pas de flash message
                         showSuccess(
-                            'Demande envoyée !', 
-                            'Votre demande de vérification a été envoyée avec succès. Nos modérateurs vont examiner votre profil sous 24h.'
+                            'Demande envoyée !',
+                            'Votre demande de vérification a été envoyée avec succès. Nos modérateurs vont examiner votre profil sous 24h.',
                         );
                     }
 
@@ -768,8 +758,8 @@ console.log('🔍 Données utilisateur Profil:', {
         <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <!-- Titre -->
             <div class="mb-4 sm:mb-6">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Mon profil</h1>
-                <p class="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">Gérez vos informations personnelles</p>
+                <h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">Mon profil</h1>
+                <p class="mt-1 text-sm text-gray-600 sm:mt-2 sm:text-base">Gérez vos informations personnelles</p>
             </div>
 
             <!-- ENCADRÉ VÉRIFICATION EN HAUT -->
@@ -780,13 +770,13 @@ console.log('🔍 Données utilisateur Profil:', {
                             <!-- Bouton de fermeture -->
                             <button
                                 @click="closeVerificationBanner"
-                                class="absolute top-1 right-1 sm:top-2 sm:right-2 flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-blue-400 transition-colors hover:bg-blue-100 hover:text-blue-600"
+                                class="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full text-blue-400 transition-colors hover:bg-blue-100 hover:text-blue-600 sm:top-2 sm:right-2 sm:h-6 sm:w-6"
                                 title="Masquer cette bannière"
                             >
                                 <X class="h-3 w-3 sm:h-4 sm:w-4" />
                             </button>
 
-                            <p class="pr-6 sm:pr-8 text-sm sm:text-base text-blue-800">
+                            <p class="pr-6 text-sm text-blue-800 sm:pr-8 sm:text-base">
                                 <template v-if="verificationStatus === 'pending'">
                                     Votre demande de vérification est en cours d'examen par nos modérateurs. Vous recevrez un email dès que votre
                                     compte sera validé ou si des modifications sont nécessaires.
@@ -811,9 +801,9 @@ console.log('🔍 Données utilisateur Profil:', {
                     <div class="mt-2 flex items-center gap-2 md:mt-0">
                         <div
                             v-if="verificationStatus === 'pending'"
-                            class="flex items-center gap-1 sm:gap-2 rounded-md bg-yellow-100 px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-yellow-800"
+                            class="flex items-center gap-1 rounded-md bg-yellow-100 px-2 py-1 text-xs text-yellow-800 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                         >
-                            <div class="h-1.5 w-1.5 sm:h-2 sm:w-2 animate-pulse rounded-full bg-yellow-500"></div>
+                            <div class="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-500 sm:h-2 sm:w-2"></div>
                             <span class="hidden sm:inline">Vérification en cours</span>
                             <span class="sm:hidden">En cours</span>
                         </div>
@@ -821,16 +811,18 @@ console.log('🔍 Données utilisateur Profil:', {
                             v-else-if="verificationStatus === 'rejected'"
                             @click="requestVerification"
                             :disabled="isRequestingVerification"
-                            class="bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
+                            class="bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
                         >
-                            <span class="hidden sm:inline">{{ isRequestingVerification ? 'Envoi en cours...' : 'Soumettre une nouvelle demande' }}</span>
+                            <span class="hidden sm:inline">{{
+                                isRequestingVerification ? 'Envoi en cours...' : 'Soumettre une nouvelle demande'
+                            }}</span>
                             <span class="sm:hidden">{{ isRequestingVerification ? 'Envoi...' : 'Nouvelle demande' }}</span>
                         </Button>
                         <Button
                             v-else
                             @click="requestVerification"
                             :disabled="isRequestingVerification || verificationStatus === 'pending'"
-                            class="bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
+                            class="bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
                         >
                             <span class="hidden sm:inline">
                                 {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
@@ -847,7 +839,7 @@ console.log('🔍 Données utilisateur Profil:', {
             <div v-if="currentMode === 'babysitter' && props.hasBabysitterRole" class="mb-4 sm:mb-6">
                 <div
                     :class="[
-                        'rounded-lg border p-4 sm:p-6 shadow-sm transition-all duration-300',
+                        'rounded-lg border p-4 shadow-sm transition-all duration-300 sm:p-6',
                         babysitterProfileCompletion >= 80
                             ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50'
                             : babysitterProfileCompletion >= 50
@@ -855,10 +847,10 @@ console.log('🔍 Données utilisateur Profil:', {
                               : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50',
                     ]"
                 >
-                    <div class="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <div class="mb-3 flex items-center gap-2 sm:mb-4 sm:gap-3">
                         <div
                             :class="[
-                                'flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full transition-all duration-300',
+                                'flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 sm:h-8 sm:w-8',
                                 babysitterProfileCompletion >= 80
                                     ? 'bg-green-100'
                                     : babysitterProfileCompletion >= 50
@@ -866,7 +858,12 @@ console.log('🔍 Données utilisateur Profil:', {
                                       : 'bg-red-100',
                             ]"
                         >
-                            <svg v-if="babysitterProfileCompletion >= 80" class="h-3 w-3 sm:h-5 sm:w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg
+                                v-if="babysitterProfileCompletion >= 80"
+                                class="h-3 w-3 text-green-600 sm:h-5 sm:w-5"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                            >
                                 <path
                                     fill-rule="evenodd"
                                     d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -875,7 +872,7 @@ console.log('🔍 Données utilisateur Profil:', {
                             </svg>
                             <svg
                                 v-else-if="babysitterProfileCompletion >= 50"
-                                class="h-3 w-3 sm:h-5 sm:w-5 text-yellow-600"
+                                class="h-3 w-3 text-yellow-600 sm:h-5 sm:w-5"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                             >
@@ -885,7 +882,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            <svg v-else class="h-3 w-3 sm:h-5 sm:w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg v-else class="h-3 w-3 text-red-600 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                     fill-rule="evenodd"
                                     d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
@@ -894,10 +891,10 @@ console.log('🔍 Données utilisateur Profil:', {
                             </svg>
                         </div>
                         <div class="flex-1">
-                            <h2 class="text-lg sm:text-xl font-bold text-gray-900">🚀 Complétez votre profil pour attirer plus de parents !</h2>
+                            <h2 class="text-lg font-bold text-gray-900 sm:text-xl">🚀 Complétez votre profil pour attirer plus de parents !</h2>
                             <p
                                 :class="[
-                                    'text-xs sm:text-sm font-medium',
+                                    'text-xs font-medium sm:text-sm',
                                     babysitterProfileCompletion >= 80
                                         ? 'text-green-700'
                                         : babysitterProfileCompletion >= 50
@@ -919,10 +916,10 @@ console.log('🔍 Données utilisateur Profil:', {
                             <span class="font-medium text-gray-700">Progression de votre profil babysitter</span>
                             <span class="font-bold text-gray-900">{{ babysitterProfileCompletion }}% complété</span>
                         </div>
-                        <div class="relative h-2 sm:h-3 w-full rounded-full bg-white/50 shadow-inner">
+                        <div class="relative h-2 w-full rounded-full bg-white/50 shadow-inner sm:h-3">
                             <div
                                 :class="[
-                                    'h-2 sm:h-3 rounded-full shadow-sm transition-all duration-500 ease-out',
+                                    'h-2 rounded-full shadow-sm transition-all duration-500 ease-out sm:h-3',
                                     babysitterProfileCompletion >= 80
                                         ? 'bg-gradient-to-r from-green-400 to-green-600'
                                         : babysitterProfileCompletion >= 50
@@ -934,8 +931,8 @@ console.log('🔍 Données utilisateur Profil:', {
                                 <div class="h-full w-full rounded-full bg-white/20"></div>
                             </div>
                             <!-- Indicateurs de seuils -->
-                            <div class="absolute top-0 left-1/2 h-2 sm:h-3 w-0.5 -translate-x-0.5 transform rounded-full bg-white/60"></div>
-                            <div class="absolute top-0 left-4/5 h-2 sm:h-3 w-0.5 -translate-x-0.5 transform rounded-full bg-white/60"></div>
+                            <div class="absolute top-0 left-1/2 h-2 w-0.5 -translate-x-0.5 transform rounded-full bg-white/60 sm:h-3"></div>
+                            <div class="absolute top-0 left-4/5 h-2 w-0.5 -translate-x-0.5 transform rounded-full bg-white/60 sm:h-3"></div>
                         </div>
                         <div class="flex justify-between text-xs text-gray-500">
                             <span>0%</span>
@@ -947,23 +944,31 @@ console.log('🔍 Données utilisateur Profil:', {
 
                     <!-- Bouton et statut de vérification -->
                     <div class="mt-6 flex justify-center">
-                        <div v-if="verificationStatus === 'pending'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm border border-yellow-200">
+                        <div
+                            v-if="verificationStatus === 'pending'"
+                            class="flex items-center gap-3 rounded-lg border border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm"
+                        >
                             <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
                             <span class="text-sm font-medium text-yellow-800">✨ Vérification en cours...</span>
                         </div>
-                        <div v-else-if="verificationStatus === 'verified'" class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-3 shadow-sm border border-green-200">
+                        <div
+                            v-else-if="verificationStatus === 'verified'"
+                            class="flex items-center gap-3 rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-3 shadow-sm"
+                        >
                             <CheckCircle class="h-5 w-5 text-green-500" />
                             <span class="text-sm font-medium text-green-800">Profil vérifié</span>
                         </div>
                         <div v-else-if="verificationStatus === 'rejected'" class="space-y-4">
-                            <div class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-red-50 to-pink-50 px-6 py-3 shadow-sm border border-red-200">
+                            <div
+                                class="flex items-center gap-3 rounded-lg border border-red-200 bg-gradient-to-r from-red-50 to-pink-50 px-6 py-3 shadow-sm"
+                            >
                                 <AlertCircle class="h-5 w-5 text-red-500" />
                                 <span class="text-sm font-medium text-red-800">❌ Demande rejetée</span>
                             </div>
                             <Button
                                 @click="requestVerification"
                                 :disabled="isRequestingVerification"
-                                class="bg-primary hover:bg-orange-500 text-white"
+                                class="bg-primary text-white hover:bg-orange-500"
                             >
                                 {{ isRequestingVerification ? 'Envoi en cours...' : 'Soumettre une nouvelle demande' }}
                             </Button>
@@ -972,7 +977,7 @@ console.log('🔍 Données utilisateur Profil:', {
                             v-else
                             @click="requestVerification"
                             :disabled="isRequestingVerification"
-                            class="bg-primary hover:bg-orange-500 text-white"
+                            class="bg-primary text-white hover:bg-orange-500"
                         >
                             {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
                         </Button>
@@ -981,29 +986,36 @@ console.log('🔍 Données utilisateur Profil:', {
             </div>
 
             <!-- Header Card -->
-            <Card class="mb-4 sm:mb-6 py-0">
+            <Card class="mb-4 py-0 sm:mb-6">
                 <CardHeader class="from-primary/40 to-secondary/10 rounded-t-xl bg-gradient-to-b py-3 sm:py-5">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div class="flex items-center gap-3 sm:gap-6">
                             <div class="relative">
                                 <img
                                     :src="avatarPreview || user.avatar_url || user.avatar || '/storage/babysitter-test.png'"
                                     :alt="`Avatar de ${fullName}`"
-                                    class="h-16 w-16 sm:h-24 sm:w-24 rounded-full border-2 sm:border-4 border-white object-cover shadow-lg"
+                                    class="h-16 w-16 rounded-full border-2 border-white object-cover shadow-lg sm:h-24 sm:w-24 sm:border-4"
                                 />
                                 <div
                                     v-if="isEditing"
                                     @click="triggerAvatarInput"
-                                    class="absolute right-0 bottom-0 cursor-pointer rounded-full bg-white p-1 sm:p-2 shadow-md transition-colors hover:bg-gray-50"
+                                    class="absolute right-0 bottom-0 cursor-pointer rounded-full bg-white p-1 shadow-md transition-colors hover:bg-gray-50 sm:p-2"
                                 >
-                                    <Camera class="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" />
+                                    <Camera class="h-3 w-3 text-gray-500 sm:h-4 sm:w-4" />
                                 </div>
-                                <input ref="avatarInput" type="file" accept="image/*" capture="environment" @change="handleAvatarChange" class="hidden" />
+                                <input
+                                    ref="avatarInput"
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    @change="handleAvatarChange"
+                                    class="hidden"
+                                />
                             </div>
                             <div>
-                                <h2 class="text-xl sm:text-2xl font-semibold text-gray-900">{{ fullName }}</h2>
-                                <p class="text-xs sm:text-sm text-gray-500">{{ userInfo }}</p>
-                                <div class="mt-1 flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+                                <h2 class="text-xl font-semibold text-gray-900 sm:text-2xl">{{ fullName }}</h2>
+                                <p class="text-xs text-gray-500 sm:text-sm">{{ userInfo }}</p>
+                                <div class="mt-1 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                                     <div
                                         :class="[
                                             'rounded-full px-2 py-1 text-xs font-medium',
@@ -1022,13 +1034,13 @@ console.log('🔍 Données utilisateur Profil:', {
                             </div>
                         </div>
 
-                        <div v-if="!isEditing" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                        <div v-if="!isEditing" class="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
                             <Button @click="viewMyProfile" variant="outline" class="flex items-center justify-center gap-2 text-sm">
                                 <ExternalLink class="h-3 w-3 sm:h-4 sm:w-4" />
                                 <span class="hidden sm:inline">Voir mon profil</span>
                                 <span class="sm:hidden">Mon profil</span>
                             </Button>
-                            <Button @click="toggleEdit" class="bg-primary hover:bg-orange-500 text-sm"> 
+                            <Button @click="toggleEdit" class="bg-primary text-sm hover:bg-orange-500">
                                 <span class="hidden sm:inline">Modifier</span>
                                 <span class="sm:hidden">Éditer</span>
                             </Button>
@@ -1056,13 +1068,13 @@ console.log('🔍 Données utilisateur Profil:', {
                         <div class="space-y-1 sm:space-y-2">
                             <Label for="email" class="text-sm">Email</Label>
                             <div class="relative">
-                                <Mail class="absolute top-1/2 left-2 sm:left-3 h-3 w-3 sm:h-4 sm:w-4 -translate-y-1/2 text-gray-400" />
+                                <Mail class="absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                                 <Input
                                     id="email"
                                     type="email"
                                     v-model="form.email"
                                     :disabled="!isEditing || isGoogleOnlyUser"
-                                    class="pl-8 sm:pl-10 text-sm"
+                                    class="pl-8 text-sm sm:pl-10"
                                     required
                                 />
                             </div>
@@ -1071,9 +1083,9 @@ console.log('🔍 Données utilisateur Profil:', {
 
                         <!-- Message informatif pour les utilisateurs Google -->
                         <div v-if="isGoogleOnlyUser" class="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
-                            <div class="flex items-start sm:items-center space-x-2 sm:space-x-3">
+                            <div class="flex items-start space-x-2 sm:items-center sm:space-x-3">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-4 w-4 sm:h-5 sm:w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="h-4 w-4 text-green-600 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 20 20">
                                         <path
                                             fill-rule="evenodd"
                                             d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -1083,7 +1095,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                 </div>
                                 <div class="flex-1">
                                     <h4 class="text-sm font-medium text-green-900">Compte connecté via Google</h4>
-                                    <p class="mt-1 text-xs sm:text-sm text-green-700">
+                                    <p class="mt-1 text-xs text-green-700 sm:text-sm">
                                         Vos informations de connexion sont sécurisées et gérées directement par Google.
                                     </p>
                                 </div>
@@ -1109,13 +1121,13 @@ console.log('🔍 Données utilisateur Profil:', {
                         <div class="space-y-1 sm:space-y-2">
                             <Label for="address" class="text-sm">Adresse</Label>
                             <div class="relative">
-                                <MapPin class="absolute top-1/2 left-2 sm:left-3 h-3 w-3 sm:h-4 sm:w-4 -translate-y-1/2 text-gray-400" />
+                                <MapPin class="absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
                                 <Input
                                     id="address-input"
                                     v-model="addressData.address"
                                     :disabled="!isEditing"
                                     placeholder="Votre adresse complète"
-                                    class="pr-8 sm:pr-10 pl-8 sm:pl-10 text-sm"
+                                    class="pr-8 pl-8 text-sm sm:pr-10 sm:pl-10"
                                     @input="onAddressChange"
                                     required
                                 />
@@ -1124,9 +1136,16 @@ console.log('🔍 Données utilisateur Profil:', {
 
                         <!-- Enfants (seulement en mode parent) -->
                         <div v-if="currentMode === 'parent' && hasParentRole" class="space-y-3 sm:space-y-4">
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                <Label class="text-base sm:text-lg font-medium">Enfants</Label>
-                                <Button v-if="isEditing" type="button" @click="addChild" variant="outline" size="sm" class="flex items-center gap-1 sm:gap-2 text-sm self-start sm:self-auto">
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <Label class="text-base font-medium sm:text-lg">Enfants</Label>
+                                <Button
+                                    v-if="isEditing"
+                                    type="button"
+                                    @click="addChild"
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex items-center gap-1 self-start text-sm sm:gap-2 sm:self-auto"
+                                >
                                     <Plus class="h-3 w-3 sm:h-4 sm:w-4" />
                                     <span class="hidden sm:inline">Ajouter un enfant</span>
                                     <span class="sm:hidden">Ajouter</span>
@@ -1137,10 +1156,16 @@ console.log('🔍 Données utilisateur Profil:', {
                                 <div
                                     v-for="(enfant, index) in form.children"
                                     :key="index"
-                                    class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 rounded-lg border bg-gray-50 p-2 sm:p-3"
+                                    class="flex flex-col items-stretch gap-2 rounded-lg border bg-gray-50 p-2 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
                                 >
                                     <div class="flex-1">
-                                        <Input v-model="enfant.nom" :disabled="!isEditing" placeholder="Prénom de l'enfant (ex: Sophie)" required class="text-sm" />
+                                        <Input
+                                            v-model="enfant.nom"
+                                            :disabled="!isEditing"
+                                            placeholder="Prénom de l'enfant (ex: Sophie)"
+                                            required
+                                            class="text-sm"
+                                        />
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <div class="w-16 sm:w-20">
@@ -1158,12 +1183,19 @@ console.log('🔍 Données utilisateur Profil:', {
                                         <select
                                             v-model="enfant.unite"
                                             :disabled="!isEditing"
-                                            class="rounded-md border border-gray-300 bg-white px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm disabled:bg-gray-100"
+                                            class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs disabled:bg-gray-100 sm:px-3 sm:py-2 sm:text-sm"
                                         >
                                             <option value="mois">mois</option>
                                             <option value="ans">ans</option>
                                         </select>
-                                        <Button v-if="isEditing" type="button" @click="removeChild(index)" variant="destructive" size="sm" class="p-1 sm:p-2">
+                                        <Button
+                                            v-if="isEditing"
+                                            type="button"
+                                            @click="removeChild(index)"
+                                            variant="destructive"
+                                            size="sm"
+                                            class="p-1 sm:p-2"
+                                        >
                                             <Trash2 class="h-3 w-3 sm:h-4 sm:w-4" />
                                         </Button>
                                     </div>
@@ -1171,10 +1203,10 @@ console.log('🔍 Données utilisateur Profil:', {
 
                                 <div
                                     v-if="form.children.length === 0 && isEditing"
-                                    class="cursor-pointer rounded-lg border border-dashed border-gray-300 p-4 sm:p-6 text-center text-gray-500 transition-colors hover:bg-gray-50"
+                                    class="cursor-pointer rounded-lg border border-dashed border-gray-300 p-4 text-center text-gray-500 transition-colors hover:bg-gray-50 sm:p-6"
                                     @click="addChild"
                                 >
-                                    <Plus class="mx-auto mb-1 sm:mb-2 h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
+                                    <Plus class="mx-auto mb-1 h-5 w-5 text-gray-400 sm:mb-2 sm:h-6 sm:w-6" />
                                     <p class="text-sm">Cliquez ici pour ajouter votre premier enfant</p>
                                 </div>
                             </div>
@@ -1195,16 +1227,16 @@ console.log('🔍 Données utilisateur Profil:', {
                                 v-if="user.role === 'babysitter' && babysitterProfile?.verification_status === 'verified'"
                                 class="border-b border-gray-200 pb-4 sm:pb-6"
                             >
-                                <h3 class="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-gray-900">Compte de paiement</h3>
+                                <h3 class="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg">Compte de paiement</h3>
 
                                 <!-- Compte configuré -->
                                 <div v-if="(user as any).stripe_account_status === 'active'" class="space-y-3 sm:space-y-4">
                                     <div class="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
                                         <div class="flex items-center">
-                                            <CheckCircle class="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                                            <CheckCircle class="mr-1 h-4 w-4 text-green-600 sm:mr-2 sm:h-5 sm:w-5" />
                                             <span class="text-sm font-medium text-green-800">Compte configuré et vérifié</span>
                                         </div>
-                                        <p class="mt-1 text-xs sm:text-sm text-green-700">
+                                        <p class="mt-1 text-xs text-green-700 sm:text-sm">
                                             Vous pouvez recevoir des paiements. Les virements sont effectués chaque vendredi.
                                         </p>
                                     </div>
@@ -1212,7 +1244,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                     <div class="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
                                         <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
                                             <div class="flex items-center">
-                                                <CreditCard class="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                <CreditCard class="mr-1 h-4 w-4 text-blue-600 sm:mr-2 sm:h-5 sm:w-5" />
                                                 <span class="text-sm font-medium text-gray-900">Paiements</span>
                                             </div>
                                             <p class="mt-1 text-xs text-gray-600">Activés</p>
@@ -1220,7 +1252,7 @@ console.log('🔍 Données utilisateur Profil:', {
 
                                         <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
                                             <div class="flex items-center">
-                                                <Building class="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                                                <Building class="mr-1 h-4 w-4 text-green-600 sm:mr-2 sm:h-5 sm:w-5" />
                                                 <span class="text-sm font-medium text-gray-900">Virements</span>
                                             </div>
                                             <p class="mt-1 text-xs text-gray-600">Activés</p>
@@ -1228,7 +1260,7 @@ console.log('🔍 Données utilisateur Profil:', {
 
                                         <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
                                             <div class="flex items-center">
-                                                <Shield class="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                <Shield class="mr-1 h-4 w-4 text-blue-600 sm:mr-2 sm:h-5 sm:w-5" />
                                                 <span class="text-sm font-medium text-gray-900">Vérification</span>
                                             </div>
                                             <p class="mt-1 text-xs text-gray-600">Complète</p>
@@ -1237,7 +1269,7 @@ console.log('🔍 Données utilisateur Profil:', {
 
                                     <div class="flex gap-2 sm:gap-3">
                                         <Button variant="outline" @click="router.visit('/stripe/connect')" class="flex-1 text-sm">
-                                            <TrendingUp class="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                                            <TrendingUp class="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
                                             <span class="hidden sm:inline">Consulter les revenus</span>
                                             <span class="sm:hidden">Revenus</span>
                                         </Button>
@@ -1329,11 +1361,11 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
 
                         <!-- Boutons d'action -->
-                        <div v-if="isEditing" class="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 border-t pt-4 sm:pt-6">
-                            <Button type="button" @click="toggleEdit" variant="outline" :disabled="isLoading" class="order-2 sm:order-1 text-sm"> 
-                                Annuler 
+                        <div v-if="isEditing" class="flex flex-col justify-end gap-3 border-t pt-4 sm:flex-row sm:gap-4 sm:pt-6">
+                            <Button type="button" @click="toggleEdit" variant="outline" :disabled="isLoading" class="order-2 text-sm sm:order-1">
+                                Annuler
                             </Button>
-                            <Button type="submit" class="bg-primary hover:bg-orange-500 order-1 sm:order-2 text-sm" :disabled="isLoading">
+                            <Button type="submit" class="bg-primary order-1 text-sm hover:bg-orange-500 sm:order-2" :disabled="isLoading">
                                 {{ isLoading ? 'Enregistrement...' : 'Enregistrer les modifications' }}
                             </Button>
                         </div>

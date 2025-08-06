@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Briefcase, Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, MoreHorizontal, Settings, User, X } from 'lucide-vue-next';
+import { Briefcase, Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, Settings, User, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const showFullMenu = ref(false);
@@ -78,10 +78,10 @@ const isCurrentRoute = (href: string) => {
                 <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-600' : 'text-gray-400', 'mb-1 h-5 w-5']" />
                 <span class="text-xs font-medium">{{ item.label }}</span>
             </Link>
-            
+
             <!-- Bouton Menu pour ouvrir le menu complet -->
-            <button 
-                @click="showFullMenu = !showFullMenu" 
+            <button
+                @click="showFullMenu = !showFullMenu"
                 class="flex flex-col items-center justify-center rounded-lg px-1 py-2 text-gray-600 transition-colors"
             >
                 <Menu class="mb-1 h-5 w-5 text-gray-400" />
@@ -112,16 +112,16 @@ const isCurrentRoute = (href: string) => {
                         <component :is="item.icon" :class="[isCurrentRoute(item.href) ? 'text-blue-500' : 'text-gray-400', 'mr-3 h-5 w-5']" />
                         {{ item.label }}
                     </Link>
-                    
+
                     <!-- Séparateur -->
-                    <div class="border-t border-gray-200 my-2"></div>
-                    
+                    <div class="my-2 border-t border-gray-200"></div>
+
                     <!-- Lien de déconnexion -->
                     <Link
                         href="/deconnexion"
                         method="post"
                         @click="showFullMenu = false"
-                        class="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        class="group flex items-center rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                     >
                         <LogOut class="mr-3 h-5 w-5 text-red-500" />
                         Déconnexion

@@ -1,5 +1,5 @@
 <template>
-    <div v-if="showDebug" class="fixed top-2 left-2 z-50 bg-black/80 text-white text-xs p-2 rounded max-w-xs">
+    <div v-if="showDebug" class="fixed top-2 left-2 z-50 max-w-xs rounded bg-black/80 p-2 text-xs text-white">
         <div>Mobile: {{ isMobile ? '✅' : '❌' }}</div>
         <div>ReactNativeWebView: {{ hasReactNative ? '✅' : '❌' }}</div>
         <div>requestDeviceToken: {{ hasRequestDeviceToken ? '✅' : '❌' }}</div>
@@ -8,18 +8,12 @@
         <div>Should Hide H/F: {{ shouldHide ? '✅' : '❌' }}</div>
         <button @click="showDebug = false" class="mt-1 text-red-400">Fermer</button>
     </div>
-    <button 
-        v-else 
-        @click="showDebug = true" 
-        class="fixed top-2 left-2 z-50 bg-blue-600 text-white text-xs px-2 py-1 rounded"
-    >
-        Debug
-    </button>
+    <button v-else @click="showDebug = true" class="fixed top-2 left-2 z-50 rounded bg-blue-600 px-2 py-1 text-xs text-white">Debug</button>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
 import { useDeviceToken } from '@/composables/useDeviceToken';
+import { computed, ref } from 'vue';
 
 const { isMobileApp } = useDeviceToken();
 const showDebug = ref(false);

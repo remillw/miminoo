@@ -227,12 +227,12 @@ const formatDate = (dateString: string) => {
         </div>
 
         <!-- DataTable -->
-        <DataTable 
-            :data="babysitters.data" 
-            :columns="columns" 
+        <DataTable
+            :data="babysitters.data"
+            :columns="columns"
             :pagination="babysitters.meta"
             :links="babysitters.links"
-            search-placeholder="Rechercher une babysitter..." 
+            search-placeholder="Rechercher une babysitter..."
             empty-message="Aucune babysitter trouvée"
         >
             <!-- Colonne babysitter -->

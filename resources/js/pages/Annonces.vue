@@ -129,12 +129,16 @@ const resetFilters = () => {
     age.value = '';
     date.value = '';
     lieu.value = '';
-    
+
     // Faire une requête pour obtenir toutes les annonces
-    router.get(route('announcements.index'), {}, {
-        preserveState: false,
-        preserveScroll: false,
-    });
+    router.get(
+        route('announcements.index'),
+        {},
+        {
+            preserveState: false,
+            preserveScroll: false,
+        },
+    );
 };
 
 // Recherche en temps réel
@@ -184,16 +188,16 @@ const enableGeolocation = async () => {
 // Filtre actuel pour InfiniteScroll - exclure les coordonnées de géolocalisation pour éviter les conflits
 const currentFilters = computed(() => {
     const filters: any = {};
-    
+
     if (searchQuery.value) filters.search = searchQuery.value;
     if (tarif.value > 10) filters.min_rate = tarif.value;
     if (age.value) filters.age_range = age.value;
     if (date.value) filters.date = date.value;
     if (lieu.value) filters.location = lieu.value;
-    
+
     // Ne pas inclure les coordonnées dans les paramètres de pagination infinie
     // car elles sont gérées séparément dans applyFilters()
-    
+
     return filters;
 });
 
@@ -290,9 +294,13 @@ const handleError = (error: string) => {
 };
 
 // Watcher pour réinitialiser les données quand les filtres changent
-watch(() => props.announcements.data, (newData) => {
-    allAnnouncements.value = [...newData];
-}, { deep: true });
+watch(
+    () => props.announcements.data,
+    (newData) => {
+        allAnnouncements.value = [...newData];
+    },
+    { deep: true },
+);
 
 // Charger la position au montage si elle existe
 onMounted(() => {

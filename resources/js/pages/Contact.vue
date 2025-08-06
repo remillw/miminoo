@@ -106,31 +106,36 @@ function toggleFaq(index: number) {
                         <div
                             class="fade-in transform rounded-3xl bg-white p-8 shadow-2xl transition-all duration-300 hover:scale-[1.02] lg:col-span-2"
                         >
-                                                         <h2 class="mb-6 flex items-center text-2xl font-bold text-gray-800">
-                                 <div class="bg-primary mr-3 flex h-8 w-8 items-center justify-center rounded-full">
-                                     <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                         <path
-                                             stroke-linecap="round"
-                                             stroke-linejoin="round"
-                                             stroke-width="2"
-                                             d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                                         ></path>
-                                     </svg>
-                                 </div>
-                                 Envoyez-nous un message
-                             </h2>
+                            <h2 class="mb-6 flex items-center text-2xl font-bold text-gray-800">
+                                <div class="bg-primary mr-3 flex h-8 w-8 items-center justify-center rounded-full">
+                                    <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                        ></path>
+                                    </svg>
+                                </div>
+                                Envoyez-nous un message
+                            </h2>
 
-                             <!-- Message informatif si connecté -->
-                             <div v-if="props.userInfo" class="mb-6 rounded-lg bg-blue-50 border border-blue-200 p-4">
-                                 <div class="flex items-center">
-                                     <svg class="h-5 w-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                     </svg>
-                                     <span class="text-sm text-blue-800">
-                                         Nous avons pré-rempli le formulaire avec vos informations de compte. Vous pouvez les modifier si nécessaire.
-                                     </span>
-                                 </div>
-                             </div>
+                            <!-- Message informatif si connecté -->
+                            <div v-if="props.userInfo" class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                                <div class="flex items-center">
+                                    <svg class="mr-2 h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        ></path>
+                                    </svg>
+                                    <span class="text-sm text-blue-800">
+                                        Nous avons pré-rempli le formulaire avec vos informations de compte. Vous pouvez les modifier si nécessaire.
+                                    </span>
+                                </div>
+                            </div>
 
                             <form v-if="!submitted" @submit.prevent="submitForm" class="space-y-6">
                                 <div>

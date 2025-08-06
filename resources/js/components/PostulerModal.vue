@@ -180,7 +180,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/composables/useToast';
 import { AlertCircle, Baby, Calculator, Calendar, Clock, Euro, Info, Loader, MapPin, MessageSquare, Send, User, Users, X } from 'lucide-vue-next';
 import { computed, nextTick, ref, watch } from 'vue';
-import { route } from 'ziggy-js';
 
 interface Props {
     isOpen: boolean;

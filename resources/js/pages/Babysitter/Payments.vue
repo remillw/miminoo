@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import StripeOnboardingForm from '@/components/StripeOnboardingForm.vue';
+import StripeServerUpload from '@/components/StripeServerUpload.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import StripeOnboardingForm from '@/components/StripeOnboardingForm.vue';
-import StripeServerUpload from '@/components/StripeServerUpload.vue';
 import { Head, router } from '@inertiajs/vue3';
 import {
     AlertCircle,
@@ -14,12 +16,9 @@ import {
     Clock,
     CreditCard,
     Download,
-    ExternalLink,
-    Eye,
     Info,
     Minus,
     RefreshCw,
-    Settings,
     Shield,
     TrendingDown,
     TrendingUp,
@@ -27,8 +26,6 @@ import {
     Wallet,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
-import { useStatusColors } from '@/composables/useStatusColors';
-import { useToast } from '@/composables/useToast';
 
 interface AccountDetails {
     id: string;
@@ -226,7 +223,7 @@ const connectAccountStatus = computed(() => {
 });
 
 // Statut d'onboarding simplifié
-const onboardingStatus = ref<{status: string, message?: string} | null>(null);
+const onboardingStatus = ref<{ status: string; message?: string } | null>(null);
 
 // Analyse simplifiée des requirements Connect
 const connectRequirementsAnalysis = computed(() => {
@@ -236,31 +233,28 @@ const connectRequirementsAnalysis = computed(() => {
             hasRequirements: false,
             criticalRequirements: [],
             pendingRequirements: [],
-            futureRequirements: []
+            futureRequirements: [],
         };
     }
 
     const requirements = props.accountDetails.requirements;
-    
+
     return {
         hasAccount: true,
-        hasRequirements: 
+        hasRequirements:
             (requirements.currently_due?.length || 0) > 0 ||
             (requirements.past_due?.length || 0) > 0 ||
             (requirements.eventually_due?.length || 0) > 0,
-        criticalRequirements: [
-            ...(requirements.currently_due || []),
-            ...(requirements.past_due || [])
-        ],
+        criticalRequirements: [...(requirements.currently_due || []), ...(requirements.past_due || [])],
         pendingRequirements: requirements.pending_verification || [],
-        futureRequirements: requirements.eventually_due || []
+        futureRequirements: requirements.eventually_due || [],
     };
 });
 
 // Statut des requirements Connect simplifiée
 const requirementsStatus = computed(() => {
     const analysis = connectRequirementsAnalysis.value;
-    
+
     if (!analysis.hasAccount) {
         return {
             icon: Clock,
@@ -270,7 +264,7 @@ const requirementsStatus = computed(() => {
             step: 'waiting_for_account',
             canComplete: false,
             isBlocking: false,
-            priority: 'none'
+            priority: 'none',
         };
     }
 
@@ -285,7 +279,7 @@ const requirementsStatus = computed(() => {
             canComplete: true,
             isBlocking: true,
             priority: 'critical',
-            requirements: analysis.criticalRequirements
+            requirements: analysis.criticalRequirements,
         };
     }
 
@@ -300,7 +294,7 @@ const requirementsStatus = computed(() => {
             canComplete: false,
             isBlocking: false,
             priority: 'pending',
-            requirements: analysis.pendingRequirements
+            requirements: analysis.pendingRequirements,
         };
     }
 
@@ -315,7 +309,7 @@ const requirementsStatus = computed(() => {
             canComplete: true,
             isBlocking: false,
             priority: 'future',
-            requirements: analysis.futureRequirements
+            requirements: analysis.futureRequirements,
         };
     }
 
@@ -328,7 +322,7 @@ const requirementsStatus = computed(() => {
         step: 'verified',
         canComplete: false,
         isBlocking: false,
-        priority: 'completed'
+        priority: 'completed',
     };
 });
 
@@ -344,12 +338,9 @@ const totalPending = computed(() => {
     // Calculer le total des fonds en attente de futurs transferts
     // Cela inclut les réservations payées dont les fonds seront libérés plus tard
     if (!props.recentTransactions) return 0;
-    
+
     return props.recentTransactions
-        .filter(transaction => 
-            transaction.funds_status === 'pending_service' || 
-            transaction.funds_status === 'held_for_validation'
-        )
+        .filter((transaction) => transaction.funds_status === 'pending_service' || transaction.funds_status === 'held_for_validation')
         .reduce((sum, transaction) => sum + transaction.amount, 0);
 });
 
@@ -366,11 +357,8 @@ const nextAvailableDate = computed(() => {
     // Trouver la prochaine transaction dont les fonds seront libérés
     const now = new Date();
     const nextRelease = props.recentTransactions
-        .filter(transaction => 
-            transaction.funds_status === 'held_for_validation' && 
-            transaction.funds_release_date
-        )
-        .map(transaction => new Date(transaction.funds_release_date!))
+        .filter((transaction) => transaction.funds_status === 'held_for_validation' && transaction.funds_release_date)
+        .map((transaction) => new Date(transaction.funds_release_date!))
         .filter((releaseDate) => releaseDate > now)
         .sort((a, b) => a.getTime() - b.getTime())[0];
 
@@ -389,10 +377,10 @@ const nextAvailableDate = computed(() => {
 const documentVerificationStatus = computed(() => {
     const individual = props.accountDetails?.individual;
     if (!individual?.verification) return null;
-    
+
     const status = individual.verification.status;
     const document = individual.verification.document;
-    
+
     // Gestion des différents cas
     switch (status) {
         case 'verified':
@@ -402,7 +390,7 @@ const documentVerificationStatus = computed(() => {
                 color: 'text-green-600',
                 bgColor: 'bg-green-50',
                 title: 'Documents vérifiés',
-                message: 'Vos documents d\'identité ont été validés par Stripe.'
+                message: "Vos documents d'identité ont été validés par Stripe.",
             };
         case 'pending':
             return {
@@ -411,7 +399,7 @@ const documentVerificationStatus = computed(() => {
                 color: 'text-blue-600',
                 bgColor: 'bg-blue-50',
                 title: 'Vérification en cours',
-                message: 'Vos documents sont en cours de traitement. Cela peut prendre quelques minutes à quelques heures.'
+                message: 'Vos documents sont en cours de traitement. Cela peut prendre quelques minutes à quelques heures.',
             };
         case 'unverified':
             if (document === 'unverified') {
@@ -421,7 +409,7 @@ const documentVerificationStatus = computed(() => {
                     color: 'text-red-600',
                     bgColor: 'bg-red-50',
                     title: 'Documents requis',
-                    message: 'Vous devez télécharger vos documents d\'identité pour activer les paiements.'
+                    message: "Vous devez télécharger vos documents d'identité pour activer les paiements.",
                 };
             }
             break;
@@ -432,7 +420,7 @@ const documentVerificationStatus = computed(() => {
                 color: 'text-orange-600',
                 bgColor: 'bg-orange-50',
                 title: 'Action requise',
-                message: 'Stripe a besoin d\'informations supplémentaires pour vérifier vos documents.'
+                message: "Stripe a besoin d'informations supplémentaires pour vérifier vos documents.",
             };
         default:
             return {
@@ -441,10 +429,10 @@ const documentVerificationStatus = computed(() => {
                 color: 'text-gray-600',
                 bgColor: 'bg-gray-50',
                 title: 'Statut inconnu',
-                message: `Statut: ${status}, Document: ${document}`
+                message: `Statut: ${status}, Document: ${document}`,
             };
     }
-    
+
     return null;
 });
 
@@ -500,37 +488,40 @@ const formatRequirement = (requirement: string) => {
         'individual.first_name': 'Prénom',
         'individual.last_name': 'Nom',
         'individual.phone': 'Numéro de téléphone',
-        'individual.verification.document': 'Document d\'identité',
+        'individual.verification.document': "Document d'identité",
         'individual.verification.additional_document': 'Document supplémentaire',
-        'individual.id_number': 'Numéro d\'identification'
+        'individual.id_number': "Numéro d'identification",
     };
 
     return mapping[requirement] || requirement;
 };
-
 
 const refreshAccountStatus = async () => {
     if (isRefreshing.value) return;
 
     isRefreshing.value = true;
 
-    router.get('/api/stripe/account-status', {}, {
-        onSuccess: (page) => {
-            if (page.props && page.props.status) {
-                currentStatus.value = page.props.status;
-                // Recharger la page pour avoir les dernières données
-                setTimeout(() => {
-                    router.reload();
-                }, 1000);
-            }
+    router.get(
+        '/api/stripe/account-status',
+        {},
+        {
+            onSuccess: (page) => {
+                if (page.props && page.props.status) {
+                    currentStatus.value = page.props.status;
+                    // Recharger la page pour avoir les dernières données
+                    setTimeout(() => {
+                        router.reload();
+                    }, 1000);
+                }
+            },
+            onError: (errors) => {
+                console.error('Erreur lors de la vérification du statut:', errors);
+            },
+            onFinish: () => {
+                isRefreshing.value = false;
+            },
         },
-        onError: (errors) => {
-            console.error('Erreur lors de la vérification du statut:', errors);
-        },
-        onFinish: () => {
-            isRefreshing.value = false;
-        }
-    });
+    );
 };
 
 const formatDate = (timestamp: number) => {
@@ -556,7 +547,7 @@ const updateTransferSettings = () => {
         weekly_anchor: transferSettings.value.weekly_anchor,
         monthly_anchor: transferSettings.value.monthly_anchor,
     };
-    
+
     router.post('/babysitter/paiements/configure-schedule', payload, {
         onSuccess: () => {
             console.log('✅ Configuration des virements mise à jour');
@@ -599,11 +590,14 @@ const completeRequirements = () => {
 const handleUploadComplete = (result) => {
     console.log('✅ Upload completed:', result);
     const { showSuccess } = useToast();
-    showSuccess("✅ Documents uploadés avec succès !", `${result.uploadedFiles.length} document(s) envoyé(s) directement à Stripe pour vérification.`);
-    
+    showSuccess(
+        '✅ Documents uploadés avec succès !',
+        `${result.uploadedFiles.length} document(s) envoyé(s) directement à Stripe pour vérification.`,
+    );
+
     isDocumentUploadComplete.value = true;
     showUploadForm.value = false;
-    
+
     // Recharger la page pour mettre à jour le statut
     setTimeout(() => {
         router.reload();
@@ -620,13 +614,11 @@ const toggleUploadForm = () => {
     showUploadForm.value = !showUploadForm.value;
 };
 
-
 onMounted(() => {
     // Vérifier si l'utilisateur arrive d'une redirection backend (par exemple manque de stripe account)
     const urlParams = new URLSearchParams(window.location.search);
-    const redirectedFromPayments = urlParams.get('redirected_from') === 'payments' || 
-                                  sessionStorage.getItem('redirected_from_payments') === 'true';
-    
+    const redirectedFromPayments = urlParams.get('redirected_from') === 'payments' || sessionStorage.getItem('redirected_from_payments') === 'true';
+
     if (redirectedFromPayments) {
         showVerificationRequired();
         // Nettoyer les paramètres/storage
@@ -652,7 +644,7 @@ onMounted(() => {
     // Détecter si l'utilisateur revient d'une vérification Stripe
     if (urlParams.get('verification') === 'completed') {
         console.log('🎉 Vérification terminée ! Actualisation du statut...');
-        
+
         // Actualiser le statut après vérification
         setTimeout(() => {
             refreshAccountStatus();
@@ -700,17 +692,12 @@ const getFundsStatusVariant = (status: BabysitterReservation['funds_status']) =>
     }
 };
 
-
-
 const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
         style: 'currency',
         currency: 'EUR',
     }).format(amount);
 };
-
-
-
 </script>
 
 <template>
@@ -755,7 +742,14 @@ const formatAmount = (amount: number) => {
                     <p class="mb-4 text-gray-600">{{ connectAccountStatus.description }}</p>
 
                     <!-- Formulaire d'onboarding interne -->
-                    <div v-if="connectAccountStatus.step === 'not_created' || connectAccountStatus.step === 'pending' || connectAccountStatus.step === 'action_required'" class="space-y-4">
+                    <div
+                        v-if="
+                            connectAccountStatus.step === 'not_created' ||
+                            connectAccountStatus.step === 'pending' ||
+                            connectAccountStatus.step === 'action_required'
+                        "
+                        class="space-y-4"
+                    >
                         <!-- Erreur -->
                         <div v-if="error" class="rounded-md border border-red-200 bg-red-50 p-4">
                             <div class="flex items-center">
@@ -764,64 +758,79 @@ const formatAmount = (amount: number) => {
                             </div>
                         </div>
 
-                        <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                        <div class="border-primary/20 bg-primary/5 rounded-lg border p-4">
                             <div class="mb-2 flex items-center">
-                                <Info class="mr-2 h-4 w-4 text-primary" />
-                                <span class="text-sm font-medium text-primary">
-                                    {{ connectAccountStatus.step === 'not_created' ? 'Configuration de votre compte de paiement' : 'Finalisation de votre compte' }}
+                                <Info class="text-primary mr-2 h-4 w-4" />
+                                <span class="text-primary text-sm font-medium">
+                                    {{
+                                        connectAccountStatus.step === 'not_created'
+                                            ? 'Configuration de votre compte de paiement'
+                                            : 'Finalisation de votre compte'
+                                    }}
                                 </span>
                             </div>
-                            <p class="text-sm text-primary/80">
-                                {{ connectAccountStatus.step === 'not_created' 
-                                    ? 'Remplissez les informations ci-dessous pour configurer votre compte Stripe Connect.' 
-                                    : 'Complétez les informations manquantes pour finaliser votre compte.' }}
+                            <p class="text-primary/80 text-sm">
+                                {{
+                                    connectAccountStatus.step === 'not_created'
+                                        ? 'Remplissez les informations ci-dessous pour configurer votre compte Stripe Connect.'
+                                        : 'Complétez les informations manquantes pour finaliser votre compte.'
+                                }}
                             </p>
                         </div>
 
                         <!-- Affichage des requirements manquants -->
                         <div v-if="accountRequirements.length > 0" class="space-y-3">
-                            <div v-for="requirement in accountRequirements" :key="requirement.title" 
-                                 class="rounded-lg border p-3"
-                                 :class="{
-                                     'border-red-200 bg-red-50': requirement.type === 'error',
-                                     'border-orange-200 bg-orange-50': requirement.type === 'warning'
-                                 }">
-                                <div class="flex items-center mb-2">
+                            <div
+                                v-for="requirement in accountRequirements"
+                                :key="requirement.title"
+                                class="rounded-lg border p-3"
+                                :class="{
+                                    'border-red-200 bg-red-50': requirement.type === 'error',
+                                    'border-orange-200 bg-orange-50': requirement.type === 'warning',
+                                }"
+                            >
+                                <div class="mb-2 flex items-center">
                                     <AlertCircle v-if="requirement.type === 'error'" class="mr-2 h-4 w-4 text-red-600" />
                                     <Clock v-else class="mr-2 h-4 w-4 text-orange-600" />
-                                    <span class="text-sm font-medium" 
-                                          :class="{
-                                              'text-red-800': requirement.type === 'error',
-                                              'text-orange-800': requirement.type === 'warning'
-                                          }">{{ requirement.title }}</span>
+                                    <span
+                                        class="text-sm font-medium"
+                                        :class="{
+                                            'text-red-800': requirement.type === 'error',
+                                            'text-orange-800': requirement.type === 'warning',
+                                        }"
+                                        >{{ requirement.title }}</span
+                                    >
                                 </div>
-                                <p class="text-sm mb-2" 
-                                   :class="{
-                                       'text-red-700': requirement.type === 'error',
-                                       'text-orange-700': requirement.type === 'warning'
-                                   }">{{ requirement.description }}</p>
-                                <ul class="space-y-1 text-xs" 
+                                <p
+                                    class="mb-2 text-sm"
+                                    :class="{
+                                        'text-red-700': requirement.type === 'error',
+                                        'text-orange-700': requirement.type === 'warning',
+                                    }"
+                                >
+                                    {{ requirement.description }}
+                                </p>
+                                <ul
+                                    class="space-y-1 text-xs"
                                     :class="{
                                         'text-red-600': requirement.type === 'error',
-                                        'text-orange-600': requirement.type === 'warning'
-                                    }">
-                                    <li v-for="item in requirement.items" :key="item">
-                                        • {{ formatRequirement(item) }}
-                                    </li>
+                                        'text-orange-600': requirement.type === 'warning',
+                                    }"
+                                >
+                                    <li v-for="item in requirement.items" :key="item">• {{ formatRequirement(item) }}</li>
                                 </ul>
                             </div>
                         </div>
 
                         <div class="onboarding-form">
-                            <StripeOnboardingForm 
-                                v-if="user" 
-                                :user="user" 
-                                :account-status="accountStatus" 
+                            <StripeOnboardingForm
+                                v-if="user"
+                                :user="user"
+                                :account-status="accountStatus"
                                 :stripe-account-id="stripeAccountId"
                                 :google-places-api-key="googlePlacesApiKey"
                             />
                         </div>
-                        
                     </div>
 
                     <!-- Compte configuré -->
@@ -942,13 +951,14 @@ const formatAmount = (amount: number) => {
                 <CardHeader>
                     <div class="flex items-center justify-between">
                         <CardTitle class="flex items-center">
-                            <div 
+                            <div
                                 class="mr-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
                                 :class="{
                                     'bg-red-100 text-red-800': requirementsStatus.isBlocking,
-                                    'bg-orange-100 text-orange-800': requirementsStatus.priority === 'future' || requirementsStatus.priority === 'pending',
+                                    'bg-orange-100 text-orange-800':
+                                        requirementsStatus.priority === 'future' || requirementsStatus.priority === 'pending',
                                     'bg-green-100 text-green-800': requirementsStatus.priority === 'completed',
-                                    'bg-gray-100 text-gray-800': requirementsStatus.priority === 'none'
+                                    'bg-gray-100 text-gray-800': requirementsStatus.priority === 'none',
                                 }"
                             >
                                 2
@@ -957,13 +967,9 @@ const formatAmount = (amount: number) => {
                                 <div class="flex items-center">
                                     <Shield class="mr-2 h-5 w-5" />
                                     Informations supplémentaires
-                                    <span v-if="requirementsStatus.isBlocking" class="ml-2 text-xs font-medium text-red-600">
-                                        (REQUIS)
-                                    </span>
+                                    <span v-if="requirementsStatus.isBlocking" class="ml-2 text-xs font-medium text-red-600"> (REQUIS) </span>
                                 </div>
-                                <p class="text-sm font-normal text-gray-600">
-                                    Vérification d'identité et documents
-                                </p>
+                                <p class="text-sm font-normal text-gray-600">Vérification d'identité et documents</p>
                             </div>
                         </CardTitle>
                         <div class="flex items-center gap-2">
@@ -986,9 +992,7 @@ const formatAmount = (amount: number) => {
                                 <Info class="mr-2 h-4 w-4 text-gray-600" />
                                 <span class="text-sm font-medium text-gray-800">Étape suivante</span>
                             </div>
-                            <p class="mt-1 text-sm text-gray-700">
-                                Configurez d'abord votre compte Stripe Connect (étape 1).
-                            </p>
+                            <p class="mt-1 text-sm text-gray-700">Configurez d'abord votre compte Stripe Connect (étape 1).</p>
                         </div>
                     </div>
 
@@ -999,16 +1003,12 @@ const formatAmount = (amount: number) => {
                                 <AlertCircle class="mr-2 h-4 w-4 text-red-600" />
                                 <span class="text-sm font-medium text-red-900">🚨 Informations requises</span>
                             </div>
-                            <p class="text-sm text-red-800 mb-2">
-                                Stripe demande des informations supplémentaires pour finaliser votre compte.
-                            </p>
-                            
+                            <p class="mb-2 text-sm text-red-800">Stripe demande des informations supplémentaires pour finaliser votre compte.</p>
+
                             <div v-if="requirementsStatus.requirements" class="mt-3">
-                                <p class="text-xs font-medium text-red-900 mb-1">Informations manquantes :</p>
+                                <p class="mb-1 text-xs font-medium text-red-900">Informations manquantes :</p>
                                 <ul class="space-y-1 text-xs text-red-800">
-                                    <li v-for="req in requirementsStatus.requirements" :key="req">
-                                        • {{ formatRequirement(req) }}
-                                    </li>
+                                    <li v-for="req in requirementsStatus.requirements" :key="req">• {{ formatRequirement(req) }}</li>
                                 </ul>
                             </div>
                         </div>
@@ -1028,24 +1028,20 @@ const formatAmount = (amount: number) => {
                                 <Info class="mr-2 h-4 w-4 text-blue-600" />
                                 <span class="text-sm font-medium text-blue-900">📅 Informations à fournir prochainement</span>
                             </div>
-                            <p class="text-sm text-blue-800 mb-2">
-                                Ces informations seront bientôt requises. Vous pouvez les fournir maintenant.
-                            </p>
-                            
+                            <p class="mb-2 text-sm text-blue-800">Ces informations seront bientôt requises. Vous pouvez les fournir maintenant.</p>
+
                             <div v-if="requirementsStatus.requirements" class="mt-3">
-                                <p class="text-xs font-medium text-blue-900 mb-1">Informations qui seront requises :</p>
+                                <p class="mb-1 text-xs font-medium text-blue-900">Informations qui seront requises :</p>
                                 <ul class="space-y-1 text-xs text-blue-800">
-                                    <li v-for="req in requirementsStatus.requirements" :key="req">
-                                        • {{ formatRequirement(req) }}
-                                    </li>
+                                    <li v-for="req in requirementsStatus.requirements" :key="req">• {{ formatRequirement(req) }}</li>
                                 </ul>
                             </div>
                         </div>
 
                         <!-- Statut de vérification des documents d'identité -->
-                        <div v-if="documentVerificationStatus" class="bg-white border border-gray-200 rounded-lg p-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <div v-if="documentVerificationStatus" class="rounded-lg border border-gray-200 bg-white p-6">
+                            <div class="mb-4 flex items-center justify-between">
+                                <h3 class="flex items-center text-lg font-medium text-gray-900">
                                     <component :is="documentVerificationStatus.icon" class="mr-2 h-5 w-5" :class="documentVerificationStatus.color" />
                                     Vérification des documents d'identité
                                 </h3>
@@ -1054,13 +1050,20 @@ const formatAmount = (amount: number) => {
                                     {{ documentVerificationStatus.title }}
                                 </Badge>
                             </div>
-                            
+
                             <!-- Message de statut -->
-                            <div class="mb-4 p-4 border rounded-lg" :class="documentVerificationStatus.bgColor + ' border-' + documentVerificationStatus.color.replace('text-', '').replace('-600', '-200')">
+                            <div
+                                class="mb-4 rounded-lg border p-4"
+                                :class="
+                                    documentVerificationStatus.bgColor +
+                                    ' border-' +
+                                    documentVerificationStatus.color.replace('text-', '').replace('-600', '-200')
+                                "
+                            >
                                 <p class="text-sm" :class="documentVerificationStatus.color.replace('-600', '-800')">
                                     {{ documentVerificationStatus.message }}
                                 </p>
-                                
+
                                 <!-- Messages spécifiques selon le statut -->
                                 <div v-if="documentVerificationStatus.status === 'pending'" class="mt-3">
                                     <div class="flex items-center text-xs" :class="documentVerificationStatus.color.replace('-600', '-700')">
@@ -1068,7 +1071,7 @@ const formatAmount = (amount: number) => {
                                         <span>En mode test, la vérification est automatiquement acceptée</span>
                                     </div>
                                 </div>
-                                
+
                                 <div v-if="documentVerificationStatus.status === 'verified'" class="mt-3">
                                     <div class="flex items-center text-xs text-green-700">
                                         <CheckCircle class="mr-1 h-3 w-3" />
@@ -1076,53 +1079,55 @@ const formatAmount = (amount: number) => {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Actions selon le statut -->
                             <div v-if="documentVerificationStatus.status === 'required'">
-                                <Button 
-                                    @click="toggleUploadForm" 
-                                    :variant="showUploadForm ? 'outline' : 'default'"
-                                    class="w-full mb-4"
-                                >
+                                <Button @click="toggleUploadForm" :variant="showUploadForm ? 'outline' : 'default'" class="mb-4 w-full">
                                     <User class="mr-2 h-4 w-4" />
                                     {{ showUploadForm ? 'Masquer le formulaire' : 'Télécharger mes documents' }}
                                 </Button>
-                                
+
                                 <!-- Composant d'upload via serveur -->
                                 <div v-if="showUploadForm">
-                                    <StripeServerUpload 
+                                    <StripeServerUpload
                                         purpose="identity_document"
                                         @upload-complete="handleUploadComplete"
                                         @upload-error="handleUploadError"
                                     />
                                 </div>
                             </div>
-                            
+
                             <div v-else-if="documentVerificationStatus.status === 'requires_input'">
                                 <Button @click="completeRequirements" class="w-full">
                                     <AlertCircle class="mr-2 h-4 w-4" />
                                     Fournir des informations supplémentaires
                                 </Button>
                             </div>
-                            
+
                             <!-- Informations sur les documents (toujours visible) -->
-                            <div class="bg-gray-50 rounded-lg p-4" :class="{ 'mt-6': showUploadForm || documentVerificationStatus?.status !== 'required' }">
-                                <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
-                                <ul class="text-sm text-gray-600 space-y-1">
+                            <div
+                                class="rounded-lg bg-gray-50 p-4"
+                                :class="{ 'mt-6': showUploadForm || documentVerificationStatus?.status !== 'required' }"
+                            >
+                                <h4 class="mb-2 font-medium text-gray-900">Types de documents acceptés</h4>
+                                <ul class="space-y-1 text-sm text-gray-600">
                                     <li>• <strong>Carte d'identité française ou européenne</strong></li>
                                     <li>• <strong>Passeport en cours de validité</strong></li>
                                     <li>• <strong>Permis de conduire français</strong></li>
                                     <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
                                 </ul>
-                                <div class="mt-3 p-2 bg-green-50 rounded border-l-4 border-green-400">
+                                <div class="mt-3 rounded border-l-4 border-green-400 bg-green-50 p-2">
                                     <p class="text-xs text-green-800">
-                                        <span class="mr-1">🔒</span> <strong>Upload sécurisé via serveur</strong> : Vos documents sont uploadés avec la clé secrète et automatiquement liés à votre compte Connect pour résoudre les requirements.
+                                        <span class="mr-1">🔒</span> <strong>Upload sécurisé via serveur</strong> : Vos documents sont uploadés avec
+                                        la clé secrète et automatiquement liés à votre compte Connect pour résoudre les requirements.
                                     </p>
-                                    
+
                                     <!-- Information spécifique mode test -->
-                                    <div class="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                                    <div class="mt-2 rounded border-l-4 border-blue-400 bg-blue-50 p-2">
                                         <p class="text-xs text-blue-800">
-                                            <span class="mr-1">🧪</span> <strong>Mode test</strong> : En environnement de test, Stripe accepte automatiquement les documents pour faciliter les tests. En production, la vérification prend quelques heures.
+                                            <span class="mr-1">🧪</span> <strong>Mode test</strong> : En environnement de test, Stripe accepte
+                                            automatiquement les documents pour faciliter les tests. En production, la vérification prend quelques
+                                            heures.
                                         </p>
                                     </div>
                                 </div>
@@ -1166,11 +1171,7 @@ const formatAmount = (amount: number) => {
                 </CardHeader>
                 <CardContent>
                     <div class="space-y-4">
-                        <div
-                            v-for="transaction in recentTransactions"
-                            :key="transaction.id"
-                            class="rounded-lg border p-4"
-                        >
+                        <div v-for="transaction in recentTransactions" :key="transaction.id" class="rounded-lg border p-4">
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <h4 class="font-medium text-gray-900">{{ transaction.description }}</h4>
@@ -1186,7 +1187,7 @@ const formatAmount = (amount: number) => {
                                     </Badge>
                                 </div>
                             </div>
-                            
+
                             <div v-if="transaction.funds_message" class="mt-3 text-sm">
                                 <div class="flex items-center gap-2">
                                     <Info class="h-4 w-4 text-gray-400" />
@@ -1206,7 +1207,7 @@ const formatAmount = (amount: number) => {
                             <div v-if="transaction.funds_status === 'released'" class="mt-2 text-sm">
                                 <div class="flex items-center gap-2">
                                     <CheckCircle class="h-4 w-4 text-green-500" />
-                                    <span class="text-green-600 font-medium">✓ Fonds disponibles sur votre compte</span>
+                                    <span class="font-medium text-green-600">✓ Fonds disponibles sur votre compte</span>
                                 </div>
                             </div>
                         </div>
@@ -1226,9 +1227,7 @@ const formatAmount = (amount: number) => {
                         <Download class="mr-2 h-5 w-5" />
                         Historique des virements
                     </CardTitle>
-                    <CardDescription>
-                        Les virements effectués vers votre compte bancaire
-                    </CardDescription>
+                    <CardDescription> Les virements effectués vers votre compte bancaire </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div class="space-y-3">
@@ -1281,7 +1280,8 @@ const formatAmount = (amount: number) => {
                         </div>
                         <div>
                             <strong>Pourquoi l'upload via serveur avec clé secrète ?</strong><br />
-                            Plus fiable que l'upload côté client. Les documents sont uploadés avec la clé secrète et automatiquement liés au compte Connect pour résoudre immédiatement les requirements.
+                            Plus fiable que l'upload côté client. Les documents sont uploadés avec la clé secrète et automatiquement liés au compte
+                            Connect pour résoudre immédiatement les requirements.
                         </div>
                         <div>
                             <strong>Quand vais-je recevoir mes paiements ?</strong><br />
@@ -1289,7 +1289,8 @@ const formatAmount = (amount: number) => {
                         </div>
                         <div>
                             <strong>Mes données sont-elles sécurisées ?</strong><br />
-                            Oui, vos documents sont uploadés via notre serveur sécurisé avec la clé secrète Stripe, puis automatiquement liés à votre compte Connect.
+                            Oui, vos documents sont uploadés via notre serveur sécurisé avec la clé secrète Stripe, puis automatiquement liés à votre
+                            compte Connect.
                         </div>
                     </div>
                 </CardContent>
@@ -1301,16 +1302,14 @@ const formatAmount = (amount: number) => {
                         <TrendingDown class="mr-2 h-5 w-5" />
                         Déductions (remboursements parents)
                     </CardTitle>
-                    <CardDescription>
-                        Montants déduits de votre compte suite aux remboursements de parents
-                    </CardDescription>
+                    <CardDescription> Montants déduits de votre compte suite aux remboursements de parents </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div class="space-y-3">
                         <div
                             v-for="transaction in props.deductionTransactions"
                             :key="`deduction-${transaction.id}`"
-                            class="flex items-center justify-between border-b border-gray-100 py-3 last:border-b-0 bg-red-50 rounded-lg px-3"
+                            class="flex items-center justify-between rounded-lg border-b border-gray-100 bg-red-50 px-3 py-3 last:border-b-0"
                         >
                             <div class="flex items-center">
                                 <div class="mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
@@ -1318,9 +1317,7 @@ const formatAmount = (amount: number) => {
                                 </div>
                                 <div>
                                     <p class="font-medium text-gray-900">{{ transaction.description }}</p>
-                                    <p class="text-sm text-gray-500">
-                                        Parent: {{ transaction.parent_name }} - {{ transaction.ad_title }}
-                                    </p>
+                                    <p class="text-sm text-gray-500">Parent: {{ transaction.parent_name }} - {{ transaction.ad_title }}</p>
                                     <p v-if="transaction.date" class="text-xs text-gray-400">
                                         {{ new Date(transaction.date).toLocaleDateString('fr-FR') }}
                                     </p>
@@ -1330,15 +1327,12 @@ const formatAmount = (amount: number) => {
                                 <p class="font-semibold text-red-600">
                                     {{ formatAmount(transaction.amount) }}
                                 </p>
-                                <Badge variant="destructive" class="text-xs">
-                                    Déduction
-                                </Badge>
+                                <Badge variant="destructive" class="text-xs"> Déduction </Badge>
                             </div>
                         </div>
                     </div>
                 </CardContent>
             </Card>
-
         </div>
     </DashboardLayout>
 </template>

@@ -6,20 +6,17 @@ export function useGlobalErrorHandler() {
     // Fonction pour vérifier si c'est une erreur de session expirée
     const isSessionExpiredError = (error: any): boolean => {
         // Vérifier différents formats d'erreurs
-        const errorMessage = 
-            error?.message || 
-            error?.data?.message || 
-            error?.response?.data?.message || 
-            error?.responseText || 
-            JSON.stringify(error) || 
-            '';
+        const errorMessage =
+            error?.message || error?.data?.message || error?.response?.data?.message || error?.responseText || JSON.stringify(error) || '';
 
-        return errorMessage.toLowerCase().includes('login not defined') ||
-               errorMessage.toLowerCase().includes('route [login] not defined') ||
-               errorMessage.toLowerCase().includes('routenotfoundexception') ||
-               errorMessage.toLowerCase().includes('unauthenticated') ||
-               errorMessage.toLowerCase().includes('session expired') ||
-               (error?.status === 500 && errorMessage.includes('undefined'));
+        return (
+            errorMessage.toLowerCase().includes('login not defined') ||
+            errorMessage.toLowerCase().includes('route [login] not defined') ||
+            errorMessage.toLowerCase().includes('routenotfoundexception') ||
+            errorMessage.toLowerCase().includes('unauthenticated') ||
+            errorMessage.toLowerCase().includes('session expired') ||
+            (error?.status === 500 && errorMessage.includes('undefined'))
+        );
     };
 
     // Intercepter les requêtes fetch globalement
@@ -27,7 +24,7 @@ export function useGlobalErrorHandler() {
     window.fetch = async (...args) => {
         try {
             const response = await originalFetch.apply(window, args);
-            
+
             // Vérifier les erreurs 500 seulement pour les erreurs de session
             if (response.status === 500) {
                 try {
@@ -48,10 +45,10 @@ export function useGlobalErrorHandler() {
                     }
                 } catch (e) {
                     // Si on ne peut pas parser la réponse, ignorer silencieusement
-                    console.warn('Impossible de parser la réponse d\'erreur 500:', e);
+                    console.warn("Impossible de parser la réponse d'erreur 500:", e);
                 }
             }
-            
+
             return response;
         } catch (error) {
             // Vérifier les erreurs de réseau seulement pour les vraies erreurs de session
@@ -91,6 +88,6 @@ export function useGlobalErrorHandler() {
     return {
         isSessionExpiredError,
         installGlobalHandlers,
-        uninstallGlobalHandlers
+        uninstallGlobalHandlers,
     };
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDeviceToken } from '@/composables/useDeviceToken';
-import LoginMobile from '@/pages/auth/LoginMobile.vue';
 import Login from '@/pages/auth/Login.vue';
+import LoginMobile from '@/pages/auth/LoginMobile.vue';
 import { computed } from 'vue';
 
 interface Props {
@@ -21,9 +21,5 @@ const LoginComponent = computed(() => {
 </script>
 
 <template>
-    <component 
-        :is="LoginComponent" 
-        :status="props.status" 
-        :canResetPassword="props.canResetPassword"
-    />
+    <component :is="LoginComponent" :status="props.status" :canResetPassword="props.canResetPassword" />
 </template>

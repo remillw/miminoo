@@ -7,24 +7,23 @@ import ReassuranceSection from '../components/ReassuranceSection.vue';
 
 <template>
     <GlobalLayout>
-        <div class="flex items-center justify-center bg-secondary px-4 py-10">
+        <div class="bg-secondary flex items-center justify-center px-4 py-10">
             <div class="w-full max-w-4xl text-center">
                 <h1 class="mb-6 text-4xl font-bold text-gray-900 md:text-5xl">Comment fonctionne la plateforme ?</h1>
 
                 <p class="mx-auto mb-12 max-w-2xl text-lg leading-relaxed text-gray-600 md:text-xl">
-                    Découvrez comment la plateforme vous aide à trouver la babysitter idéale en toute confiance, que ce soit pour une garde d'urgence ou
-                    planifiée.
+                    Découvrez comment la plateforme vous aide à trouver la babysitter idéale en toute confiance, que ce soit pour une garde d'urgence
+                    ou planifiée.
                 </p>
 
                 <div class="relative flex flex-col items-center justify-center gap-4 sm:flex-row">
                     <div class="relative order-1">
                         <a
-  href="/creer-une-annonce"
-  class="inline-block bg-primary transform rounded-lg px-8 py-3 text-lg font-medium text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-primary hover:shadow-xl"
->
-  Créer une annonce
-</a>
-
+                            href="/creer-une-annonce"
+                            class="bg-primary hover:bg-primary inline-block transform rounded-lg px-8 py-3 text-lg font-medium text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                        >
+                            Créer une annonce
+                        </a>
 
                         <div class="absolute -top-3 -right-3 z-10">
                             <div class="relative">
@@ -38,12 +37,11 @@ import ReassuranceSection from '../components/ReassuranceSection.vue';
                     </div>
 
                     <a
-  href="/annonces"
-  class="inline-block border-primary text-primary hover:bg-primary order-2 rounded-lg border px-8 py-3 text-lg font-medium transition-colors hover:text-white"
->
-  Voir les annonces en cours
-</a>
-
+                        href="/annonces"
+                        class="border-primary text-primary hover:bg-primary order-2 inline-block rounded-lg border px-8 py-3 text-lg font-medium transition-colors hover:text-white"
+                    >
+                        Voir les annonces en cours
+                    </a>
                 </div>
             </div>
         </div>

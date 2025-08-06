@@ -33,34 +33,26 @@ const handleLoaderComplete = () => {
 <template>
     <!-- Loader mobile pour l'app native -->
     <MobileLoader v-if="isLoading" @loaded="handleLoaderComplete" />
-    
+
     <!-- Layout d'authentification mobile -->
-    <div v-else class="min-h-screen bg-gradient-to-br from-primary/5 to-orange-50">
+    <div v-else class="from-primary/5 min-h-screen bg-gradient-to-br to-orange-50">
         <!-- Container principal centré -->
         <div class="flex min-h-screen items-center justify-center px-4 py-8">
             <div class="w-full max-w-md space-y-8">
                 <!-- Logo et titre -->
                 <div class="text-center">
-                    <img
-                        src="/storage/trouve-ta-babysitter-logo.svg"
-                        alt="Trouve ta Babysitter"
-                        class="mx-auto h-16 w-auto"
-                    />
-                    <h1 class="mt-6 text-2xl font-bold text-gray-900">
-                        Trouve ta Babysitter
-                    </h1>
-                    <p class="mt-2 text-sm text-gray-600">
-                        La solution de garde d'enfants de confiance
-                    </p>
+                    <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta Babysitter" class="mx-auto h-16 w-auto" />
+                    <h1 class="mt-6 text-2xl font-bold text-gray-900">Trouve ta Babysitter</h1>
+                    <p class="mt-2 text-sm text-gray-600">La solution de garde d'enfants de confiance</p>
                 </div>
 
                 <!-- Contenu principal (formulaire de connexion) -->
-                <div class="bg-white rounded-2xl shadow-xl p-6 space-y-6">
+                <div class="space-y-6 rounded-2xl bg-white p-6 shadow-xl">
                     <slot />
                 </div>
 
                 <!-- Footer mobile -->
-                <div class="text-center text-xs text-gray-500 space-y-2">
+                <div class="space-y-2 text-center text-xs text-gray-500">
                     <p>&copy; 2024 Trouve ta Babysitter</p>
                     <div class="flex justify-center space-x-4">
                         <button class="hover:text-primary transition-colors">CGU</button>
@@ -91,9 +83,11 @@ const handleLoaderComplete = () => {
     ::-webkit-scrollbar {
         display: none;
     }
-    
+
     /* Éviter le zoom sur les inputs sur iOS */
-    input, select, textarea {
+    input,
+    select,
+    textarea {
         font-size: 16px !important;
     }
 }

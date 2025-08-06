@@ -28,27 +28,22 @@ onMounted(() => {
     const checkMobile = () => {
         isMobile.value = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
 });
-
 </script>
 
 <template>
     <!-- Layout principal -->
     <div class="bg-secondary flex min-h-screen flex-col">
         <div class="flex flex-1">
-            <UnifiedSidebar 
-                :hasParentRole="hasParentRole" 
-                :hasBabysitterRole="hasBabysitterRole" 
-                :requestedMode="props.currentMode" 
-            />
+            <UnifiedSidebar :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="props.currentMode" />
 
             <!-- Main content optimisé pour mobile -->
-            <main class="flex-1 pb-20 lg:pb-0 overflow-x-hidden">
+            <main class="flex-1 overflow-x-hidden pb-20 lg:pb-0">
                 <!-- Container avec padding mobile optimisé -->
                 <div class="px-3 py-2 sm:px-4 sm:py-4 lg:px-8 lg:py-6">
                     <div class="mx-auto max-w-7xl">
@@ -67,19 +62,22 @@ onMounted(() => {
     ::-webkit-scrollbar {
         display: none;
     }
-    
+
     /* Éviter le zoom sur les inputs sur iOS */
-    input, select, textarea {
+    input,
+    select,
+    textarea {
         font-size: 16px;
     }
-    
+
     /* Smooth scrolling pour une expérience fluide */
     * {
         scroll-behavior: smooth;
     }
-    
+
     /* Optimisations pour les transitions */
-    button, a {
+    button,
+    a {
         transition: all 0.2s ease;
         -webkit-tap-highlight-color: transparent;
     }

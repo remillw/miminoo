@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-secondary py-8">
+    <div class="bg-secondary min-h-screen py-8">
         <div class="mx-auto max-w-2xl px-4">
             <!-- En-tête -->
             <div class="mb-8 text-center">
@@ -131,10 +131,10 @@
 </template>
 
 <script setup>
+import { useStatusColors } from '@/composables/useStatusColors';
 import { router } from '@inertiajs/vue3';
 import { AlertTriangle, Calendar, Clock, FileText } from 'lucide-vue-next';
 import { reactive, ref } from 'vue';
-import { useStatusColors } from '@/composables/useStatusColors';
 
 const props = defineProps({
     reservation: Object,

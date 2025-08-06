@@ -29,100 +29,110 @@
             <div class="mb-4 flex items-center gap-2">
                 <div class="flex h-5 w-5 items-center justify-center rounded-full bg-pink-100">
                     <svg class="h-3 w-3 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                        <path
+                            fill-rule="evenodd"
+                            d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                            clip-rule="evenodd"
+                        />
                     </svg>
                 </div>
                 <h2 class="text-lg font-semibold text-gray-900">Photos supplémentaires</h2>
                 <span class="text-sm text-gray-500">(optionnel)</span>
             </div>
-            
+
             <div class="space-y-4">
                 <p class="text-sm text-gray-600">
-                    Ajoutez des photos supplémentaires en plus de votre photo de profil principale (avatar). 
-                    Cela permet aux parents de mieux vous connaître et augmente vos chances d'être contacté !
+                    Ajoutez des photos supplémentaires en plus de votre photo de profil principale (avatar). Cela permet aux parents de mieux vous
+                    connaître et augmente vos chances d'être contacté !
                 </p>
                 <!-- Grille des photos existantes -->
                 <div v-if="profilePhotos.length > 0" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                    <div 
-                        v-for="(photo, index) in profilePhotos" 
+                    <div
+                        v-for="(photo, index) in profilePhotos"
                         :key="index"
-                        class="relative group aspect-square overflow-hidden rounded-lg border-2 border-gray-200 hover:border-primary transition-colors"
+                        class="group hover:border-primary relative aspect-square overflow-hidden rounded-lg border-2 border-gray-200 transition-colors"
                     >
-                        <img 
-                            :src="photo" 
+                        <img
+                            :src="photo"
                             :alt="`Photo de profil ${index + 1}`"
                             class="h-full w-full object-cover"
                             @error="handleImageError(index, photo)"
                             @load="handleImageLoad(index)"
                         />
                         <!-- Indicateur de chargement -->
-                        <div 
-                            v-if="imageLoadingStates[index]"
-                            class="absolute inset-0 bg-gray-100 flex items-center justify-center"
-                        >
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <div v-if="imageLoadingStates[index]" class="absolute inset-0 flex items-center justify-center bg-gray-100">
+                            <div class="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
                         </div>
                         <!-- Indicateur d'erreur -->
-                        <div 
-                            v-if="imageErrorStates[index]"
-                            class="absolute inset-0 bg-gray-100 flex items-center justify-center text-gray-500"
-                        >
+                        <div v-if="imageErrorStates[index]" class="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-500">
                             <div class="text-center">
                                 <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                                    />
                                 </svg>
-                                <p class="text-xs mt-1">Erreur</p>
+                                <p class="mt-1 text-xs">Erreur</p>
                             </div>
                         </div>
-                        <div 
+                        <div
                             v-if="isEditing"
-                            class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center"
+                            class="bg-opacity-0 group-hover:bg-opacity-30 absolute inset-0 flex items-center justify-center transition-all duration-200"
                         >
                             <button
                                 @click="removePhoto(index)"
-                                class="opacity-0 group-hover:opacity-100 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all"
+                                class="rounded-full bg-red-500 p-2 text-white opacity-0 transition-all group-hover:opacity-100 hover:bg-red-600"
                                 type="button"
                             >
                                 <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd"
+                                    />
                                 </svg>
                             </button>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Zone d'upload -->
                 <div v-if="isEditing && profilePhotos.length < 6" class="space-y-3">
-                    <div 
+                    <div
                         @click="triggerFileInput"
                         @dragover.prevent
                         @drop.prevent="handleDrop"
-                        class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary hover:bg-gray-50 transition-colors cursor-pointer"
+                        class="hover:border-primary cursor-pointer rounded-lg border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:bg-gray-50"
                     >
                         <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
                         </svg>
                         <div class="mt-4">
                             <p class="text-sm font-medium text-gray-900">Cliquez pour ajouter des photos</p>
                             <p class="text-xs text-gray-500">ou glissez-déposez vos images ici</p>
-                            <p class="text-xs text-gray-400 mt-1">PNG, JPG jusqu'à 5MB (max 6 photos)</p>
+                            <p class="mt-1 text-xs text-gray-400">PNG, JPG jusqu'à 5MB (max 6 photos)</p>
                         </div>
                     </div>
-                    
-                    <input
-                        ref="fileInput"
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        @change="handleFileSelect"
-                        class="hidden"
-                    />
+
+                    <input ref="fileInput" type="file" multiple accept="image/*" @change="handleFileSelect" class="hidden" />
                 </div>
-                
+
                 <!-- Message si pas de photos -->
-                <div v-if="profilePhotos.length === 0" class="text-center py-8 text-gray-500">
+                <div v-if="profilePhotos.length === 0" class="py-8 text-center text-gray-500">
                     <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
                     </svg>
                     <p class="mt-2 text-sm">Aucune photo supplémentaire ajoutée</p>
                     <p class="text-xs text-gray-400">Votre avatar est votre photo de profil principale</p>
@@ -135,7 +145,7 @@
         <div class="rounded-lg border bg-white p-6 shadow-sm">
             <div class="mb-4 flex items-center gap-2">
                 <div class="flex h-5 w-5 items-center justify-center rounded-full bg-orange-100">
-                    <svg class="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="text-primary h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                         <path
                             d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"
                         />
@@ -357,7 +367,7 @@
         <div class="rounded-lg border bg-white p-6 shadow-sm">
             <div class="mb-4 flex items-center gap-2">
                 <div class="flex h-5 w-5 items-center justify-center rounded-full bg-orange-100">
-                    <svg class="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="text-primary h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                     </svg>
                 </div>
@@ -510,14 +520,18 @@
             <div class="mb-4 flex items-center gap-2">
                 <div class="flex h-5 w-5 items-center justify-center rounded-full bg-yellow-100">
                     <svg class="h-3 w-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        <path
+                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                        />
                     </svg>
                 </div>
                 <h2 class="text-lg font-semibold text-gray-900">Avis des parents</h2>
                 <div class="flex items-center gap-2">
                     <div class="flex items-center gap-1">
                         <svg class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            <path
+                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                            />
                         </svg>
                         <span class="text-sm font-medium text-gray-900">{{ props.averageRating?.toFixed(1) || 0 }}</span>
                     </div>
@@ -526,11 +540,7 @@
             </div>
 
             <div class="space-y-4">
-                <div
-                    v-for="review in props.reviews"
-                    :key="review.id"
-                    class="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0"
-                >
+                <div v-for="review in props.reviews" :key="review.id" class="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
                     <div class="mb-3 flex items-start gap-3">
                         <img
                             :src="review.reviewer.avatar || '/storage/default-avatar.png'"
@@ -539,9 +549,7 @@
                         />
                         <div class="flex-1">
                             <div class="flex items-center gap-2">
-                                <h4 class="font-medium text-gray-900">
-                                    {{ review.reviewer.firstname }} {{ review.reviewer.lastname }}
-                                </h4>
+                                <h4 class="font-medium text-gray-900">{{ review.reviewer.firstname }} {{ review.reviewer.lastname }}</h4>
                                 <div class="flex items-center gap-1">
                                     <template v-for="i in 5" :key="i">
                                         <svg
@@ -550,7 +558,9 @@
                                             fill="currentColor"
                                             viewBox="0 0 20 20"
                                         >
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            <path
+                                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                                            />
                                         </svg>
                                     </template>
                                 </div>
@@ -571,15 +581,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import type { AgeRange, BabysitterProfile as BabysitterProfileType, Language, Review, Skill } from '@/types';
 import { Plus, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
-import type { 
-    Language, 
-    Skill, 
-    AgeRange, 
-    BabysitterProfile as BabysitterProfileType,
-    Review
-} from '@/types';
 
 // Types Language, Skill, AgeRange importés depuis @/types
 
@@ -630,35 +634,31 @@ const imageErrorStates = ref<boolean[]>([]);
 const initializePhotos = () => {
     console.log('🔄 Initialisation des photos...');
     console.log('Props babysitterProfile:', props.babysitterProfile);
-    
+
     let photosToLoad: string[] = [];
-    
+
     // Récupérer les photos depuis le profil utilisateur si disponibles
     if (props.babysitterProfile && props.babysitterProfile.additional_photos_urls) {
-        photosToLoad = Array.isArray(props.babysitterProfile.additional_photos_urls) 
-            ? props.babysitterProfile.additional_photos_urls 
-            : [];
+        photosToLoad = Array.isArray(props.babysitterProfile.additional_photos_urls) ? props.babysitterProfile.additional_photos_urls : [];
         console.log('📸 Photos depuis additional_photos_urls:', photosToLoad);
     } else if (props.babysitterProfile && props.babysitterProfile.profile_photos) {
         // Fallback si additional_photos_urls n'est pas disponible
-        photosToLoad = Array.isArray(props.babysitterProfile.profile_photos) 
-            ? props.babysitterProfile.profile_photos 
-            : [];
+        photosToLoad = Array.isArray(props.babysitterProfile.profile_photos) ? props.babysitterProfile.profile_photos : [];
         console.log('📸 Photos depuis profile_photos:', photosToLoad);
     }
-    
+
     // Mettre à jour les photos
     profilePhotos.value = [...photosToLoad];
-    
+
     // Initialiser les états de chargement et d'erreur
     imageLoadingStates.value = new Array(profilePhotos.value.length).fill(false); // Commencer par false
     imageErrorStates.value = new Array(profilePhotos.value.length).fill(false);
-    
+
     console.log('✅ Photos initialisées:', {
         count: profilePhotos.value.length,
         photos: profilePhotos.value,
         loadingStates: imageLoadingStates.value,
-        errorStates: imageErrorStates.value
+        errorStates: imageErrorStates.value,
     });
 };
 
@@ -737,7 +737,7 @@ watch(
             form.value.is_available = newProfile.is_available !== undefined ? newProfile.is_available : true;
             form.value.has_driving_license = newProfile.has_driving_license || false;
             form.value.has_vehicle = newProfile.has_vehicle || false;
-            
+
             // Réinitialiser les photos quand les props changent
             initializePhotos();
         }
@@ -833,47 +833,47 @@ const handleFiles = async (files: File[]) => {
     const maxFiles = 6;
     const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    
+
     // Vérifier le nombre total de photos
     const remainingSlots = maxFiles - profilePhotos.value.length;
     if (remainingSlots <= 0) {
         alert('Vous avez déjà atteint le maximum de 6 photos');
         return;
     }
-    
+
     // Limiter le nombre de fichiers à traiter
     const filesToProcess = files.slice(0, remainingSlots);
-    
+
     for (const file of filesToProcess) {
         // Vérifier le type de fichier
         if (!allowedTypes.includes(file.type)) {
             alert(`Le fichier ${file.name} n'est pas un format d'image supporté`);
             continue;
         }
-        
+
         // Vérifier la taille
         if (file.size > maxSize) {
             alert(`Le fichier ${file.name} est trop volumineux (max 5MB)`);
             continue;
         }
-        
+
         // Créer une URL temporaire pour l'aperçu
         const reader = new FileReader();
         reader.onload = (e) => {
             if (e.target?.result) {
                 const newIndex = profilePhotos.value.length;
                 profilePhotos.value.push(e.target.result as string);
-                
+
                 // Mettre à jour les états
                 imageLoadingStates.value.push(false); // Pas de chargement pour base64
                 imageErrorStates.value.push(false);
-                
+
                 console.log(`📷 Nouvelle photo ajoutée à l'index ${newIndex}`);
             }
         };
         reader.readAsDataURL(file);
     }
-    
+
     // Réinitialiser l'input file
     if (fileInput.value) {
         fileInput.value.value = '';

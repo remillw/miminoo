@@ -3,10 +3,10 @@ import AdminLayout from '@/components/AdminLayout.vue';
 import DataTable from '@/components/DataTable.vue';
 import { Button } from '@/components/ui/button';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
-import { useToast } from '@/composables/useToast';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
+import type { User } from '@/types';
 import type { Column } from '@/types/datatable';
-import type { User, Address, ParentProfile } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Edit, Eye, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -158,7 +158,9 @@ const formatDate = (dateString: string) => {
             <div class="min-w-0 flex-1">
                 <h2 class="text-2xl leading-7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Gestion des Parents</h2>
                 <p class="mt-1 text-sm text-gray-500">
-                    {{ parents.meta?.total || 0 }} parent{{ (parents.meta?.total || 0) !== 1 ? 's' : '' }} enregistré{{ (parents.meta?.total || 0) !== 1 ? 's' : '' }}
+                    {{ parents.meta?.total || 0 }} parent{{ (parents.meta?.total || 0) !== 1 ? 's' : '' }} enregistré{{
+                        (parents.meta?.total || 0) !== 1 ? 's' : ''
+                    }}
                 </p>
             </div>
             <div class="mt-4 flex md:mt-0 md:ml-4">
@@ -172,12 +174,12 @@ const formatDate = (dateString: string) => {
         </div>
 
         <!-- DataTable -->
-        <DataTable 
-            :data="parents.data" 
-            :columns="columns" 
+        <DataTable
+            :data="parents.data"
+            :columns="columns"
             :pagination="parents.meta"
             :links="parents.links"
-            search-placeholder="Rechercher un parent..." 
+            search-placeholder="Rechercher un parent..."
             empty-message="Aucun parent trouvé"
         >
             <!-- Colonne parent -->

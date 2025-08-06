@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/composables/useToast';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Users, TrendingUp, ShieldAlert, FileText, Star, CreditCard, UserCheck, ArrowLeft } from 'lucide-vue-next';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowLeft, CreditCard, FileText, ShieldAlert, Star, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
 
 interface Address {
     id: number;
@@ -46,7 +46,7 @@ const form = useForm({
     email: props.user.email,
     phone: props.user.phone || '',
     status: props.user.status,
-    roles: props.user.roles.map(role => role.name),
+    roles: props.user.roles.map((role) => role.name),
     address: props.user.address?.address || '',
     postal_code: props.user.address?.postal_code || '',
     country: props.user.address?.country || 'France',
@@ -55,17 +55,11 @@ const form = useForm({
 const submit = () => {
     form.put(`/admin/utilisateurs/${props.user.id}`, {
         onSuccess: () => {
-            showSuccess(
-                'Utilisateur modifié',
-                'Les informations de l\'utilisateur ont été mises à jour avec succès.'
-            );
+            showSuccess('Utilisateur modifié', "Les informations de l'utilisateur ont été mises à jour avec succès.");
         },
         onError: () => {
-            showError(
-                'Erreur',
-                'Une erreur est survenue lors de la modification de l\'utilisateur.'
-            );
-        }
+            showError('Erreur', "Une erreur est survenue lors de la modification de l'utilisateur.");
+        },
     });
 };
 
@@ -119,7 +113,10 @@ const statusOptions = [
                             <UserCheck class="h-4 w-4" />
                             <span>Babysitters</span>
                         </Link>
-                        <Link href="/admin/moderation-babysitters" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
+                        <Link
+                            href="/admin/moderation-babysitters"
+                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
+                        >
                             <ShieldAlert class="h-4 w-4" />
                             <span>Modération</span>
                         </Link>
@@ -143,9 +140,7 @@ const statusOptions = [
                 <Card class="max-w-2xl">
                     <CardHeader>
                         <CardTitle>Modifier l'utilisateur</CardTitle>
-                        <CardDescription>
-                            Modifiez les informations de {{ user.firstname }} {{ user.lastname }}.
-                        </CardDescription>
+                        <CardDescription> Modifiez les informations de {{ user.firstname }} {{ user.lastname }}. </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form @submit.prevent="submit" class="space-y-6">
@@ -180,13 +175,7 @@ const statusOptions = [
 
                             <div>
                                 <Label for="email">Email *</Label>
-                                <Input
-                                    id="email"
-                                    v-model="form.email"
-                                    type="email"
-                                    required
-                                    :class="{ 'border-red-500': form.errors.email }"
-                                />
+                                <Input id="email" v-model="form.email" type="email" required :class="{ 'border-red-500': form.errors.email }" />
                                 <p v-if="form.errors.email" class="mt-1 text-sm text-red-500">
                                     {{ form.errors.email }}
                                 </p>
@@ -194,12 +183,7 @@ const statusOptions = [
 
                             <div>
                                 <Label for="phone">Téléphone</Label>
-                                <Input
-                                    id="phone"
-                                    v-model="form.phone"
-                                    type="tel"
-                                    :class="{ 'border-red-500': form.errors.phone }"
-                                />
+                                <Input id="phone" v-model="form.phone" type="tel" :class="{ 'border-red-500': form.errors.phone }" />
                             </div>
 
                             <div>
@@ -209,11 +193,7 @@ const statusOptions = [
                                         <SelectValue placeholder="Sélectionner un statut" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem 
-                                            v-for="option in statusOptions" 
-                                            :key="option.value" 
-                                            :value="option.value"
-                                        >
+                                        <SelectItem v-for="option in statusOptions" :key="option.value" :value="option.value">
                                             {{ option.label }}
                                         </SelectItem>
                                     </SelectContent>
@@ -227,11 +207,7 @@ const statusOptions = [
                                 <Label>Rôles *</Label>
                                 <div class="mt-2 space-y-2">
                                     <div class="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="parent"
-                                            :checked="form.roles.includes('parent')"
-                                            @update:checked="() => toggleRole('parent')"
-                                        />
+                                        <Checkbox id="parent" :checked="form.roles.includes('parent')" @update:checked="() => toggleRole('parent')" />
                                         <Label for="parent" class="cursor-pointer">Parent</Label>
                                     </div>
                                     <div class="flex items-center space-x-2">
@@ -243,11 +219,7 @@ const statusOptions = [
                                         <Label for="babysitter" class="cursor-pointer">Babysitter</Label>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="admin"
-                                            :checked="form.roles.includes('admin')"
-                                            @update:checked="() => toggleRole('admin')"
-                                        />
+                                        <Checkbox id="admin" :checked="form.roles.includes('admin')" @update:checked="() => toggleRole('admin')" />
                                         <Label for="admin" class="cursor-pointer">Administrateur</Label>
                                     </div>
                                 </div>
@@ -257,33 +229,21 @@ const statusOptions = [
                             </div>
 
                             <div class="border-t pt-6">
-                                <h3 class="text-lg font-medium mb-4">Adresse</h3>
-                                
+                                <h3 class="mb-4 text-lg font-medium">Adresse</h3>
+
                                 <div>
                                     <Label for="address">Adresse</Label>
-                                    <Input
-                                        id="address"
-                                        v-model="form.address"
-                                        type="text"
-                                    />
+                                    <Input id="address" v-model="form.address" type="text" />
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div class="mt-4 grid grid-cols-2 gap-4">
                                     <div>
                                         <Label for="postal_code">Code postal</Label>
-                                        <Input
-                                            id="postal_code"
-                                            v-model="form.postal_code"
-                                            type="text"
-                                        />
+                                        <Input id="postal_code" v-model="form.postal_code" type="text" />
                                     </div>
                                     <div>
                                         <Label for="country">Pays</Label>
-                                        <Input
-                                            id="country"
-                                            v-model="form.country"
-                                            type="text"
-                                        />
+                                        <Input id="country" v-model="form.country" type="text" />
                                     </div>
                                 </div>
                             </div>
@@ -293,7 +253,7 @@ const statusOptions = [
                                     <Link href="/admin/parents">Annuler</Link>
                                 </Button>
                                 <Button type="submit" :disabled="form.processing">
-                                    {{ form.processing ? 'Modification...' : 'Modifier l\'utilisateur' }}
+                                    {{ form.processing ? 'Modification...' : "Modifier l'utilisateur" }}
                                 </Button>
                             </div>
                         </form>
@@ -302,4 +262,4 @@ const statusOptions = [
             </main>
         </div>
     </div>
-</template> 
+</template>

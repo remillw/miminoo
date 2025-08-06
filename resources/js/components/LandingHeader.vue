@@ -113,12 +113,12 @@ const authNavLinks = computed(() => {
         { name: 'Accueil', href: '/' },
         { name: 'Comment ça marche', href: '/comment-ca-marche' },
     ];
-    
+
     // Ajouter le lien Annonces seulement pour les babysitters
     if (user.value && userRoles.value.includes('babysitter')) {
         baseLinks.push({ name: 'Annonces', href: '/annonces' });
     }
-    
+
     return baseLinks;
 });
 

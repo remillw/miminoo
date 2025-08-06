@@ -67,14 +67,14 @@ const handleGoogleAuth = async () => {
 <template>
     <MobileAuthLayout>
         <Head title="Connexion" />
-        
+
         <!-- Boutons de connexion sociale optimisés mobile -->
-        <div class="space-y-3 mb-6">
+        <div class="mb-6 space-y-3">
             <!-- Bouton Google -->
             <button
                 @click="handleGoogleAuth"
                 type="button"
-                class="w-full flex items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
+                class="focus:ring-primary flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:outline-none"
             >
                 <svg class="h-5 w-5" viewBox="0 0 24 24">
                     <path
@@ -99,7 +99,7 @@ const handleGoogleAuth = async () => {
         </div>
 
         <!-- Séparateur -->
-        <div class="flex items-center mb-6">
+        <div class="mb-6 flex items-center">
             <div class="flex-1 border-t border-gray-300"></div>
             <div class="mx-4 text-sm text-gray-500">ou</div>
             <div class="flex-1 border-t border-gray-300"></div>
@@ -108,7 +108,7 @@ const handleGoogleAuth = async () => {
         <!-- Formulaire de connexion -->
         <form @submit.prevent="submit" class="space-y-4">
             <div>
-                <Label for="email" class="block text-sm font-medium mb-2">Email</Label>
+                <Label for="email" class="mb-2 block text-sm font-medium">Email</Label>
                 <div class="relative">
                     <Mail class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <Input
@@ -117,7 +117,7 @@ const handleGoogleAuth = async () => {
                         v-model="form.email"
                         autocomplete="email"
                         required
-                        class="pl-10 py-3 text-base"
+                        class="py-3 pl-10 text-base"
                         placeholder="votre@email.com"
                     />
                 </div>
@@ -125,7 +125,7 @@ const handleGoogleAuth = async () => {
             </div>
 
             <div>
-                <Label for="password" class="block text-sm font-medium mb-2">Mot de passe</Label>
+                <Label for="password" class="mb-2 block text-sm font-medium">Mot de passe</Label>
                 <div class="relative">
                     <Lock class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <Input
@@ -134,7 +134,7 @@ const handleGoogleAuth = async () => {
                         v-model="form.password"
                         required
                         autocomplete="current-password"
-                        class="pl-10 pr-10 py-3 text-base"
+                        class="py-3 pr-10 pl-10 text-base"
                         placeholder="••••••••"
                     />
                     <button
@@ -155,22 +155,14 @@ const handleGoogleAuth = async () => {
                     <Checkbox id="remember" v-model:checked="form.remember" />
                     <Label for="remember" class="text-sm text-gray-600">Se souvenir de moi</Label>
                 </div>
-                
-                <TextLink
-                    v-if="canResetPassword"
-                    :href="route('password.request')"
-                    class="text-sm text-primary hover:text-primary/80"
-                >
+
+                <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-primary hover:text-primary/80 text-sm">
                     Mot de passe oublié ?
                 </TextLink>
             </div>
 
             <!-- Bouton de connexion -->
-            <Button
-                type="submit"
-                :disabled="form.processing"
-                class="w-full py-3 text-base font-medium"
-            >
+            <Button type="submit" :disabled="form.processing" class="w-full py-3 text-base font-medium">
                 <LoaderCircle v-if="form.processing" class="mr-2 h-4 w-4 animate-spin" />
                 Se connecter
             </Button>
@@ -180,9 +172,7 @@ const handleGoogleAuth = async () => {
         <div class="mt-6 text-center">
             <p class="text-sm text-gray-600">
                 Pas encore de compte ?
-                <TextLink :href="route('register')" class="text-primary hover:text-primary/80 font-medium">
-                    Créer un compte
-                </TextLink>
+                <TextLink :href="route('register')" class="text-primary hover:text-primary/80 font-medium"> Créer un compte </TextLink>
             </p>
         </div>
     </MobileAuthLayout>

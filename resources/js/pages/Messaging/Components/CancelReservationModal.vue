@@ -131,8 +131,8 @@
                                     <h4 class="font-medium text-yellow-800">Conséquences de l'annulation</h4>
                                     <div class="mt-2 text-sm text-yellow-700">
                                         <div v-if="reservation?.can_be_cancelled_free">
-                                            <p class="font-medium text-green-700 mb-2">✓ Annulation gratuite (plus de 48h)</p>
-                                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                            <p class="mb-2 font-medium text-green-700">✓ Annulation gratuite (plus de 48h)</p>
+                                            <ul class="list-inside list-disc space-y-1 text-xs">
                                                 <li>Aucune pénalité sur votre profil</li>
                                                 <li>Le parent sera automatiquement remboursé (moins les frais)</li>
                                                 <li>Vous ne recevrez aucun paiement pour cette réservation</li>
@@ -140,8 +140,8 @@
                                             </ul>
                                         </div>
                                         <div v-else>
-                                            <p class="font-medium text-red-700 mb-2">⚠️ Annulation tardive (moins de 48h)</p>
-                                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                            <p class="mb-2 font-medium text-red-700">⚠️ Annulation tardive (moins de 48h)</p>
+                                            <ul class="list-inside list-disc space-y-1 text-xs">
                                                 <li class="text-red-600">Impact négatif sur votre taux d'annulation</li>
                                                 <li class="text-red-600">Un avis négatif automatique sera ajouté à votre profil</li>
                                                 <li>Le parent sera automatiquement remboursé (moins les frais)</li>
@@ -157,14 +157,14 @@
                         <!-- Processus automatique -->
                         <div class="rounded-lg bg-blue-50 p-4">
                             <div class="flex items-start gap-3">
-                                <div class="mt-0.5 h-5 w-5 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <div class="h-2 w-2 bg-blue-600 rounded-full"></div>
+                                <div class="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                                    <div class="h-2 w-2 rounded-full bg-blue-600"></div>
                                 </div>
                                 <div>
                                     <h4 class="font-medium text-blue-800">Traitement automatique</h4>
                                     <div class="mt-2 text-sm text-blue-700">
                                         <p class="mb-2">Le système va automatiquement :</p>
-                                        <ul class="list-disc list-inside space-y-1 text-xs">
+                                        <ul class="list-inside list-disc space-y-1 text-xs">
                                             <li>Annuler le transfert de fonds vers votre compte</li>
                                             <li>Rembourser le parent (montant payé moins les frais)</li>
                                             <li>Envoyer les notifications appropriées</li>
@@ -301,24 +301,24 @@ function getTimeBeforeService() {
 
 function getRefundDetails() {
     if (!props.reservation) return { amount: 0, description: '' };
-    
+
     const totalPaid = props.reservation.total_deposit || 0; // 13€ exemple
     const serviceFees = props.reservation.service_fee || 2; // 2€
-    const stripeRefundFees = Math.round((0.25 + ((totalPaid - serviceFees) * 0.015)) * 100) / 100; // ~0.41€
-    
+    const stripeRefundFees = Math.round((0.25 + (totalPaid - serviceFees) * 0.015) * 100) / 100; // ~0.41€
+
     const refundAmount = Math.max(0, totalPaid - serviceFees - stripeRefundFees);
-    
+
     return {
         amount: refundAmount.toFixed(2),
-        description: `Montant payé ${totalPaid}€ - Frais service ${serviceFees}€ - Frais Stripe ${stripeRefundFees}€`
+        description: `Montant payé ${totalPaid}€ - Frais service ${serviceFees}€ - Frais Stripe ${stripeRefundFees}€`,
     };
 }
 
 function getPenaltyDetails() {
     const timeBeforeService = getTimeBeforeService();
-    
+
     if (timeBeforeService < 24) {
-        return "Aucun remboursement - Acompte définitivement perdu";
+        return 'Aucun remboursement - Acompte définitivement perdu';
     } else {
         const refund = getRefundDetails();
         return `Remboursement partiel: ${refund.amount}€ (frais déduits)`;
@@ -327,11 +327,11 @@ function getPenaltyDetails() {
 
 function getBabysitterAmount() {
     if (!props.reservation) return 0;
-    
+
     const totalPaid = props.reservation.total_deposit || 0;
     const serviceFees = props.reservation.service_fee || 2;
-    const stripeFees = Math.round(((totalPaid * 0.029) + 0.25) * 100) / 100;
-    
+    const stripeFees = Math.round((totalPaid * 0.029 + 0.25) * 100) / 100;
+
     return Math.max(0, totalPaid - serviceFees - stripeFees).toFixed(2);
 }
 
@@ -359,7 +359,7 @@ async function confirmCancellation() {
         } else {
             // Annuler juste cette réservation
             const reason = props.userRole === 'parent' ? 'parent_unavailable' : 'babysitter_unavailable';
-            
+
             endpoint = route('reservations.cancel', props.reservation.id);
             payload = {
                 reason: reason,

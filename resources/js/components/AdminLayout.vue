@@ -1,17 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
 import { Badge } from '@/components/ui/badge';
-import { 
-    TrendingUp, 
-    Users, 
-    UserCheck, 
-    ShieldAlert, 
-    FileText, 
-    Star, 
-    CreditCard,
-    MessageSquare
-} from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { CreditCard, FileText, MessageSquare, ShieldAlert, Star, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 interface Props {
     title: string;
@@ -22,7 +13,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
     activeSection: '',
-    headerActions: false
+    headerActions: false,
 });
 
 interface User {
@@ -49,7 +40,7 @@ const stats = computed(() => {
 const badgeStats = computed(() => {
     return {
         pending_verifications: adminStats.value.pending_verifications || stats.value.pending_verifications || 0,
-        unread_contacts: adminStats.value.unread_contacts || stats.value.unread_contacts || 0
+        unread_contacts: adminStats.value.unread_contacts || stats.value.unread_contacts || 0,
     };
 });
 
@@ -65,7 +56,7 @@ const getNavItemClass = (section: string) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-secondary">
+    <div class="bg-secondary min-h-screen">
         <!-- Header -->
         <header class="bg-white shadow">
             <div class="flex h-16 items-center justify-between px-6">
@@ -79,13 +70,8 @@ const getNavItemClass = (section: string) => {
                 </div>
 
                 <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-600">
-                        Bonjour, {{ auth.user?.firstname }} {{ auth.user?.lastname }}
-                    </span>
-                    <Link
-                        href="/dashboard"
-                        class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                    >
+                    <span class="text-sm text-gray-600"> Bonjour, {{ auth.user?.firstname }} {{ auth.user?.lastname }} </span>
+                    <Link href="/dashboard" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
                         Retour au dashboard
                     </Link>
                 </div>
@@ -115,10 +101,7 @@ const getNavItemClass = (section: string) => {
                         <Link href="/admin/moderation-babysitters" :class="getNavItemClass('moderation')">
                             <ShieldAlert class="h-4 w-4" />
                             <span class="flex-1">Modération</span>
-                            <Badge 
-                                v-if="badgeStats.pending_verifications > 0" 
-                                class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full"
-                            >
+                            <Badge v-if="badgeStats.pending_verifications > 0" class="ml-auto rounded-full bg-red-500 px-2 py-1 text-xs text-white">
                                 {{ badgeStats.pending_verifications }}
                             </Badge>
                         </Link>
@@ -136,10 +119,7 @@ const getNavItemClass = (section: string) => {
                         <Link href="/admin/contacts" :class="getNavItemClass('contacts')">
                             <MessageSquare class="h-4 w-4" />
                             <span class="flex-1">Contacts</span>
-                            <Badge 
-                                v-if="badgeStats.unread_contacts > 0" 
-                                class="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded-full"
-                            >
+                            <Badge v-if="badgeStats.unread_contacts > 0" class="ml-auto rounded-full bg-orange-500 px-2 py-1 text-xs text-white">
                                 {{ badgeStats.unread_contacts }}
                             </Badge>
                         </Link>
@@ -158,4 +138,4 @@ const getNavItemClass = (section: string) => {
             </main>
         </div>
     </div>
-</template> 
+</template>

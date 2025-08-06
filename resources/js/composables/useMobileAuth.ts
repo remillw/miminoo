@@ -19,20 +19,20 @@ export function useMobileAuth() {
 
             // Construire l'URL d'authentification avec les paramètres du device token si disponibles
             let authUrl = route('google.redirect');
-            
+
             if (deviceTokenData) {
                 const params = new URLSearchParams({
                     device_token: deviceTokenData.device_token,
                     platform: deviceTokenData.platform,
                     notification_provider: deviceTokenData.notification_provider,
-                    mobile_auth: 'true'
+                    mobile_auth: 'true',
                 });
                 authUrl += '?' + params.toString();
-                
+
                 console.log('Google Auth: Ajout des paramètres device token:', {
                     platform: deviceTokenData.platform,
                     provider: deviceTokenData.notification_provider,
-                    tokenPreview: deviceTokenData.device_token.substring(0, 20) + '...'
+                    tokenPreview: deviceTokenData.device_token.substring(0, 20) + '...',
                 });
             }
 

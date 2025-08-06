@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { router } from '@inertiajs/vue3';
 import { Baby, Users } from 'lucide-vue-next';
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
 
 interface Props {
@@ -60,10 +60,10 @@ const completeRegistration = () => {
 </script>
 
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-secondary p-3 sm:p-4">
+    <div class="bg-secondary flex min-h-screen items-center justify-center p-3 sm:p-4">
         <Card class="w-full max-w-xs shadow-2xl sm:max-w-lg md:max-w-xl lg:max-w-2xl">
             <CardHeader class="text-center">
-                <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta babysitter logo" class="mx-auto mb-3 w-32 sm:mb-4 sm:w-40 md:w-48">
+                <img src="/storage/trouve-ta-babysitter-logo.svg" alt="Trouve ta babysitter logo" class="mx-auto mb-3 w-32 sm:mb-4 sm:w-40 md:w-48" />
                 <CardTitle class="mb-2 text-xl font-bold text-gray-800 sm:text-2xl md:text-3xl">
                     {{ existingUser ? 'Finalisons votre profil' : 'Bienvenue !' }}
                 </CardTitle>
@@ -74,9 +74,7 @@ const completeRegistration = () => {
                             : 'Pour finaliser votre inscription, choisissez vos rôles sur la plateforme'
                     }}
                 </p>
-                <p class="mt-2 text-xs text-gray-500 sm:text-sm">
-                    Vous pouvez choisir un ou plusieurs rôles selon vos besoins
-                </p>
+                <p class="mt-2 text-xs text-gray-500 sm:text-sm">Vous pouvez choisir un ou plusieurs rôles selon vos besoins</p>
             </CardHeader>
 
             <CardContent class="space-y-4 sm:space-y-6">
@@ -174,10 +172,10 @@ const completeRegistration = () => {
                 </div>
 
                 <!-- Informations supplémentaires -->
-                <div v-if="isRoleSelected('babysitter')" class="rounded-lg border border-grey bg-secondary p-3 sm:p-4">
+                <div v-if="isRoleSelected('babysitter')" class="border-grey bg-secondary rounded-lg border p-3 sm:p-4">
                     <div class="flex items-start gap-2 sm:gap-3">
                         <div class="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-white sm:h-5 sm:w-5">
-                            <svg class="h-2.5 w-2.5 text-primary sm:h-3 sm:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="text-primary h-2.5 w-2.5 sm:h-3 sm:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
@@ -187,7 +185,7 @@ const completeRegistration = () => {
                             </svg>
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-primary sm:text-sm">À savoir pour les babysitters</p>
+                            <p class="text-primary text-xs font-bold sm:text-sm">À savoir pour les babysitters</p>
                             <p class="mt-1 text-xs text-black sm:text-sm">
                                 {{
                                     existingUser && isGoogleUser
@@ -210,8 +208,8 @@ const completeRegistration = () => {
                         <div>
                             <p class="text-xs font-medium text-green-800 sm:text-sm">Profil mixte sélectionné</p>
                             <p class="mt-1 text-xs text-green-700 sm:text-sm">
-                                Parfait ! Vous pourrez à la fois chercher des babysitters et proposer vos services de garde. 
-                                Vous aurez accès à toutes les fonctionnalités de la plateforme.
+                                Parfait ! Vous pourrez à la fois chercher des babysitters et proposer vos services de garde. Vous aurez accès à toutes
+                                les fonctionnalités de la plateforme.
                             </p>
                         </div>
                     </div>
@@ -219,26 +217,25 @@ const completeRegistration = () => {
 
                 <!-- Bouton de validation -->
                 <div class="pt-3 sm:pt-4">
-    <Button
-        @click="completeRegistration"
-        :disabled="!hasSelectedRoles || isLoading"
-        class="bg-primary w-full text-white hover:bg-primary cursor-pointer py-2.5 text-sm font-semibold sm:py-3 sm:text-lg"
-        size="lg"
-    >
-        <span v-if="isLoading">{{ existingUser ? 'Mise à jour...' : 'Création en cours...' }}</span>
-        <span v-else-if="selectedRoles.length > 1">
-            {{ existingUser ? 'Configurer comme parent ET babysitter' : 'Créer mon compte mixte' }}
-        </span>
-        <span v-else-if="selectedRoles.includes('parent')">
-            {{ existingUser ? 'Configurer comme parent' : 'Créer mon compte parent' }}
-        </span>
-        <span v-else-if="selectedRoles.includes('babysitter')">
-            {{ existingUser ? 'Configurer comme babysitter' : 'Créer mon compte babysitter' }}
-        </span>
-        <span v-else>Sélectionnez au moins un rôle</span>
-    </Button>
-</div>
-
+                    <Button
+                        @click="completeRegistration"
+                        :disabled="!hasSelectedRoles || isLoading"
+                        class="bg-primary hover:bg-primary w-full cursor-pointer py-2.5 text-sm font-semibold text-white sm:py-3 sm:text-lg"
+                        size="lg"
+                    >
+                        <span v-if="isLoading">{{ existingUser ? 'Mise à jour...' : 'Création en cours...' }}</span>
+                        <span v-else-if="selectedRoles.length > 1">
+                            {{ existingUser ? 'Configurer comme parent ET babysitter' : 'Créer mon compte mixte' }}
+                        </span>
+                        <span v-else-if="selectedRoles.includes('parent')">
+                            {{ existingUser ? 'Configurer comme parent' : 'Créer mon compte parent' }}
+                        </span>
+                        <span v-else-if="selectedRoles.includes('babysitter')">
+                            {{ existingUser ? 'Configurer comme babysitter' : 'Créer mon compte babysitter' }}
+                        </span>
+                        <span v-else>Sélectionnez au moins un rôle</span>
+                    </Button>
+                </div>
 
                 <!-- Retour à la connexion -->
                 <div class="border-t pt-3 text-center sm:pt-4">

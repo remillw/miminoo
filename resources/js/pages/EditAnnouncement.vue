@@ -1,6 +1,6 @@
 <template>
     <DashboardLayout :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole">
-        <div class="min-h-screen bg-secondary py-8">
+        <div class="bg-secondary min-h-screen py-8">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
                 <!-- En-tête -->
                 <div class="mb-8">
@@ -22,8 +22,8 @@
                     <form @submit.prevent="submit" class="space-y-6">
                         <!-- Titre (généré automatiquement) -->
                         <div>
-                            <label for="title" class="mb-2 block text-sm font-medium text-gray-700"> 
-                                Titre de l'annonce 
+                            <label for="title" class="mb-2 block text-sm font-medium text-gray-700">
+                                Titre de l'annonce
                                 <span class="text-sm font-normal text-gray-500">(généré automatiquement)</span>
                             </label>
                             <input
@@ -31,12 +31,10 @@
                                 v-model="form.title"
                                 type="text"
                                 disabled
-                                class="w-full rounded-lg border border-gray-300 px-3 py-2 bg-gray-100 text-gray-600 cursor-not-allowed"
+                                class="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
                                 placeholder="Le titre sera généré automatiquement en fonction des dates et enfants"
                             />
-                            <p class="mt-1 text-sm text-gray-500">
-                                Le titre est généré automatiquement à partir des dates et prénoms des enfants
-                            </p>
+                            <p class="mt-1 text-sm text-gray-500">Le titre est généré automatiquement à partir des dates et prénoms des enfants</p>
                         </div>
 
                         <!-- Informations complémentaires -->
@@ -260,10 +258,10 @@ const form = useForm({
 const generateTitle = () => {
     if (dateOnly.value && timeStart.value && timeEnd.value && form.children.length > 0) {
         const childrenNames = form.children
-            .filter(child => child.nom.trim() !== '')
-            .map(child => child.nom.trim())
+            .filter((child) => child.nom.trim() !== '')
+            .map((child) => child.nom.trim())
             .join(', ');
-        
+
         if (childrenNames) {
             const date = new Date(dateOnly.value).toLocaleDateString('fr-FR');
             form.title = `Garde de ${childrenNames} le ${date} de ${timeStart.value} à ${timeEnd.value}`;
@@ -287,9 +285,13 @@ watch([dateOnly, timeEnd], () => {
 });
 
 // Watcher pour les noms d'enfants
-watch(() => form.children, () => {
-    generateTitle();
-}, { deep: true });
+watch(
+    () => form.children,
+    () => {
+        generateTitle();
+    },
+    { deep: true },
+);
 
 // Gestion des enfants
 const addChild = () => {

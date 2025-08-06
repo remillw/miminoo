@@ -6,7 +6,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import { useToast } from '@/composables/useToast';
 import type { Column } from '@/types/datatable';
 import { Head, router } from '@inertiajs/vue3';
-import { Trash2, Star, StarHalf, Eye } from 'lucide-vue-next';
+import { Eye, Star, StarHalf, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface User {
@@ -97,26 +97,20 @@ const deleteReview = (review: Review) => {
 
 const confirmDelete = () => {
     if (!reviewToDelete.value) return;
-    
+
     isDeleting.value = true;
     router.delete(`/admin/avis/${reviewToDelete.value.id}`, {
         onSuccess: () => {
-            showSuccess(
-                'Avis supprimé',
-                `L'avis a été supprimé avec succès.`
-            );
+            showSuccess('Avis supprimé', `L'avis a été supprimé avec succès.`);
             showDeleteModal.value = false;
             reviewToDelete.value = null;
         },
         onError: () => {
-            showError(
-                'Erreur',
-                'Une erreur est survenue lors de la suppression de l\'avis.'
-            );
+            showError('Erreur', "Une erreur est survenue lors de la suppression de l'avis.");
         },
         onFinish: () => {
             isDeleting.value = false;
-        }
+        },
     });
 };
 
@@ -124,15 +118,15 @@ const renderStars = (rating: number) => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
-    
+
     for (let i = 0; i < fullStars; i++) {
         stars.push('full');
     }
-    
+
     if (hasHalfStar) {
         stars.push('half');
     }
-    
+
     return stars;
 };
 
@@ -150,36 +144,25 @@ const formatDate = (dateString: string) => {
 
     <AdminLayout title="Gestion des Avis">
         <!-- Header Section -->
-        <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="mb-6 md:flex md:items-center md:justify-between">
             <div class="min-w-0 flex-1">
-                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                    Gestion des Avis
-                </h2>
-                <p class="mt-1 text-sm text-gray-500">
-                    {{ reviews.length }} avis {{ reviews.length !== 1 ? 'enregistrés' : 'enregistré' }}
-                </p>
+                <h2 class="text-2xl leading-7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Gestion des Avis</h2>
+                <p class="mt-1 text-sm text-gray-500">{{ reviews.length }} avis {{ reviews.length !== 1 ? 'enregistrés' : 'enregistré' }}</p>
             </div>
         </div>
 
         <!-- DataTable -->
-        <DataTable
-            :data="reviews"
-            :columns="columns"
-            search-placeholder="Rechercher un avis..."
-            empty-message="Aucun avis trouvé"
-        >
+        <DataTable :data="reviews" :columns="columns" search-placeholder="Rechercher un avis..." empty-message="Aucun avis trouvé">
             <!-- Colonne évaluateur -->
             <template #reviewer="{ item }">
                 <div class="flex items-center space-x-3">
-                    <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
                         <span class="text-xs font-medium text-gray-600">
                             {{ item.reviewer.firstname.charAt(0) }}{{ item.reviewer.lastname.charAt(0) }}
                         </span>
                     </div>
                     <div>
-                        <div class="font-medium text-gray-900">
-                            {{ item.reviewer.firstname }} {{ item.reviewer.lastname }}
-                        </div>
+                        <div class="font-medium text-gray-900">{{ item.reviewer.firstname }} {{ item.reviewer.lastname }}</div>
                         <div class="text-sm text-gray-500">
                             {{ item.reviewer.email }}
                         </div>
@@ -190,15 +173,13 @@ const formatDate = (dateString: string) => {
             <!-- Colonne évalué -->
             <template #reviewee="{ item }">
                 <div class="flex items-center space-x-3">
-                    <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
                         <span class="text-xs font-medium text-gray-600">
                             {{ item.reviewee.firstname.charAt(0) }}{{ item.reviewee.lastname.charAt(0) }}
                         </span>
                     </div>
                     <div>
-                        <div class="font-medium text-gray-900">
-                            {{ item.reviewee.firstname }} {{ item.reviewee.lastname }}
-                        </div>
+                        <div class="font-medium text-gray-900">{{ item.reviewee.firstname }} {{ item.reviewee.lastname }}</div>
                         <div class="text-sm text-gray-500">
                             {{ item.reviewee.email }}
                         </div>
@@ -210,14 +191,8 @@ const formatDate = (dateString: string) => {
             <template #rating="{ item }">
                 <div class="flex items-center space-x-1">
                     <template v-for="(star, index) in renderStars(item.rating)" :key="index">
-                        <Star
-                            v-if="star === 'full'"
-                            class="h-4 w-4 fill-yellow-400 text-yellow-400"
-                        />
-                        <StarHalf
-                            v-else
-                            class="h-4 w-4 fill-yellow-400 text-yellow-400"
-                        />
+                        <Star v-if="star === 'full'" class="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <StarHalf v-else class="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     </template>
                     <span class="ml-1 text-sm text-gray-600">{{ item.rating }}/5</span>
                 </div>
@@ -255,7 +230,10 @@ const formatDate = (dateString: string) => {
             confirm-text="Supprimer"
             :loading="isDeleting"
             @confirm="confirmDelete"
-            @cancel="reviewToDelete = null; showDeleteModal = false"
+            @cancel="
+                reviewToDelete = null;
+                showDeleteModal = false;
+            "
         />
     </AdminLayout>
-</template> 
+</template>

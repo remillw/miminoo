@@ -1,7 +1,6 @@
-import { ref, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
-import { toast } from 'vue-sonner';
 import type { Message, User } from '@/types/global';
+import { onMounted, onUnmounted, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import { route as ziggyRoute } from 'ziggy-js';
 
 // Fonction route sécurisée pour SSR
@@ -34,7 +33,7 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
     const typingUsers = ref<TypingUser[]>([]);
     const isConnected = ref(false);
     const isLoading = ref(false);
-    
+
     let channel: any = null;
     let typingTimer: number | null = null;
 
@@ -44,15 +43,15 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
         channel = window.Echo.private(`conversation.${conversationId}`)
             .listen('.message.sent', (e: any) => {
                 console.log('Nouveau message reçu:', e);
-                
+
                 // Ajouter le message à la liste
                 messages.value.push(e.message);
-                
+
                 // Notification si le message n'est pas de l'utilisateur actuel
                 if (e.message.sender_id !== currentUser.id) {
                     toast.success(`Nouveau message de ${e.message.sender.name}`);
                 }
-                
+
                 // Scroll automatique vers le bas
                 setTimeout(() => {
                     const messagesContainer = document.querySelector('.messages-container');
@@ -63,12 +62,12 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
             })
             .listen('.user.typing', (e: any) => {
                 console.log('Utilisateur en train de taper:', e);
-                
+
                 if (e.user_id === currentUser.id) return; // Ignorer ses propres événements
-                
+
                 if (e.is_typing) {
                     // Ajouter ou mettre à jour l'utilisateur qui tape
-                    const existingIndex = typingUsers.value.findIndex(u => u.user_id === e.user_id);
+                    const existingIndex = typingUsers.value.findIndex((u) => u.user_id === e.user_id);
                     if (existingIndex >= 0) {
                         typingUsers.value[existingIndex] = e;
                     } else {
@@ -76,7 +75,7 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
                     }
                 } else {
                     // Supprimer l'utilisateur qui ne tape plus
-                    typingUsers.value = typingUsers.value.filter(u => u.user_id !== e.user_id);
+                    typingUsers.value = typingUsers.value.filter((u) => u.user_id !== e.user_id);
                 }
             })
             .subscribed(() => {
@@ -106,7 +105,7 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                 },
                 body: JSON.stringify({ message: messageText }),
             });
@@ -117,11 +116,11 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
                 return true;
             } else {
                 const errorData = await response.json();
-                toast.error(errorData.message || 'Erreur lors de l\'envoi du message');
+                toast.error(errorData.message || "Erreur lors de l'envoi du message");
                 return false;
             }
         } catch (error) {
-            console.error('Erreur lors de l\'envoi du message:', error);
+            console.error("Erreur lors de l'envoi du message:", error);
             toast.error('Erreur de connexion');
             return false;
         }
@@ -135,7 +134,7 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                'Accept': 'application/json',
+                Accept: 'application/json',
             },
             body: JSON.stringify({ is_typing: isTyping }),
         }).catch(console.error);
@@ -143,12 +142,12 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
 
     const handleTyping = () => {
         sendTypingIndicator(true);
-        
+
         // Annuler le timer précédent
         if (typingTimer) {
             clearTimeout(typingTimer);
         }
-        
+
         // Arrêter l'indicateur après 2 secondes d'inactivité
         typingTimer = window.setTimeout(() => {
             sendTypingIndicator(false);
@@ -157,19 +156,19 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
 
     const loadMessages = async () => {
         if (!conversationId) return;
-        
+
         isLoading.value = true;
         try {
             const response = await fetch(route('conversations.messages', { conversation: conversationId }), {
                 headers: {
-                    'Accept': 'application/json',
+                    Accept: 'application/json',
                 },
             });
 
             if (response.ok) {
                 const data = await response.json();
                 messages.value = data.messages;
-                
+
                 // Scroll vers le bas après chargement
                 setTimeout(() => {
                     const messagesContainer = document.querySelector('.messages-container');
@@ -207,6 +206,6 @@ export function useRealTimeChat(conversationId: number, currentUser: User) {
         handleTyping,
         loadMessages,
         joinConversation,
-        leaveConversation
+        leaveConversation,
     };
-} 
+}

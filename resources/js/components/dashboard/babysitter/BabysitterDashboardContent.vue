@@ -252,12 +252,9 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div v-if="completedReservations.length > 3" class="text-center">
-                            <button
-                                @click="viewAllPendingReviews"
-                                class="text-xs text-yellow-600 hover:text-yellow-800"
-                            >
+                            <button @click="viewAllPendingReviews" class="text-xs text-yellow-600 hover:text-yellow-800">
                                 Voir {{ completedReservations.length - 3 }} autres
                             </button>
                         </div>
@@ -269,11 +266,10 @@
 </template>
 
 <script setup>
+import { useStatusColors } from '@/composables/useStatusColors';
 import { router } from '@inertiajs/vue3';
 import { AlertTriangle, Bell, Calendar, Clock, DollarSign, FileText, MapPin, Search, Star, Users } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
-import { route } from 'ziggy-js';
-import { useStatusColors } from '@/composables/useStatusColors';
 
 const props = defineProps({
     user: Object,
@@ -287,7 +283,7 @@ const props = defineProps({
     recentReviews: Array,
     completedReservations: {
         type: Array,
-        default: () => []
+        default: () => [],
     },
 });
 

@@ -1,27 +1,9 @@
 <script setup lang="ts">
-import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/composables/useToast';
 import { useStatusColors } from '@/composables/useStatusColors';
-import { router } from '@inertiajs/vue3';
-import { 
-    Calendar, Clock, MapPin, Star, Users, Car, 
-    CheckCircle, Shield, MessageCircle, Heart,
-    Baby, Award, Globe
-} from 'lucide-vue-next';
+import { useToast } from '@/composables/useToast';
+import GlobalLayout from '@/layouts/GlobalLayout.vue';
+import type { Address, BabysitterProfile, Review, User } from '@/types';
 import { computed, ref } from 'vue';
-import { route } from 'ziggy-js';
-import type { 
-    User, 
-    Language, 
-    Skill, 
-    AgeRange, 
-    Review, 
-    Address,
-    BabysitterProfile
-} from '@/types';
 
 interface Experience {
     id: number;
@@ -109,7 +91,7 @@ const additionalPhotos = computed(() => {
         return props.profile.additional_photos_urls;
     }
     if (props.profile.profile_photos) {
-        return props.profile.profile_photos.map(photo => {
+        return props.profile.profile_photos.map((photo) => {
             if (photo.startsWith('data:image')) {
                 return photo;
             }
@@ -170,7 +152,6 @@ const formatReviewDate = (dateString: string) => {
 
     <GlobalLayout>
         <div class="bg-secondary min-h-screen p-4">
-            
             <div class="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3">
                 <!-- Section principale -->
                 <div class="space-y-6 lg:col-span-2">
@@ -213,9 +194,7 @@ const formatReviewDate = (dateString: string) => {
                                     </span>
                                     <span v-if="profile.address && profile.experience_years"> | </span>
                                     <span v-if="profile.address">{{ getCity(profile.address) }}</span>
-                                    <span v-if="profile.available_radius_km">
-                                        | Rayon {{ profile.available_radius_km }} km</span
-                                    >
+                                    <span v-if="profile.available_radius_km"> | Rayon {{ profile.available_radius_km }} km</span>
                                 </p>
 
                                 <div class="mb-3 flex items-center space-x-4">
@@ -227,17 +206,19 @@ const formatReviewDate = (dateString: string) => {
                                                 ></path>
                                             </svg>
                                         </div>
-                                        <span v-if="!profile.review_stats.average_rating" class="text-sm font-medium text-gray-900">Nouveau profil</span>
+                                        <span v-if="!profile.review_stats.average_rating" class="text-sm font-medium text-gray-900"
+                                            >Nouveau profil</span
+                                        >
                                         <div v-else class="flex items-center gap-2">
-                                            <span class="text-sm font-medium text-gray-900">{{ profile.review_stats.average_rating.toFixed(1) }}</span>
+                                            <span class="text-sm font-medium text-gray-900">{{
+                                                profile.review_stats.average_rating.toFixed(1)
+                                            }}</span>
                                             <span class="text-sm text-gray-500">({{ profile.review_stats.total_reviews }} avis)</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div v-if="profile.hourly_rate" class="text-primary text-lg font-semibold">
-                                    {{ profile.hourly_rate }}€/heure
-                                </div>
+                                <div v-if="profile.hourly_rate" class="text-primary text-lg font-semibold">{{ profile.hourly_rate }}€/heure</div>
                             </div>
                         </div>
                     </div>
@@ -254,16 +235,16 @@ const formatReviewDate = (dateString: string) => {
                     <div v-if="additionalPhotos.length > 0" class="rounded-2xl bg-white p-6 shadow-sm">
                         <h2 class="mb-4 text-xl font-bold text-gray-900">Photos</h2>
                         <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
-                            <div 
-                                v-for="(photo, index) in additionalPhotos" 
+                            <div
+                                v-for="(photo, index) in additionalPhotos"
                                 :key="index"
-                                class="aspect-square overflow-hidden rounded-lg border border-gray-200 hover:border-primary transition-colors cursor-pointer"
+                                class="hover:border-primary aspect-square cursor-pointer overflow-hidden rounded-lg border border-gray-200 transition-colors"
                                 @click="openPhotoModal(photo, index)"
                             >
-                                <img 
-                                    :src="photo" 
+                                <img
+                                    :src="photo"
                                     :alt="`Photo ${index + 1} de ${profile.user.firstname}`"
-                                    class="h-full w-full object-cover hover:scale-105 transition-transform duration-200"
+                                    class="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
                                     @error="handlePhotoError"
                                 />
                             </div>
@@ -313,7 +294,9 @@ const formatReviewDate = (dateString: string) => {
                                 <div class="flex-1">
                                     <h3 class="font-semibold text-gray-900">{{ formation.title }}</h3>
                                     <p class="mb-1 text-sm text-gray-500">
-                                        <span v-if="formation.duration">{{ formatDate(formation.start_date) }} - {{ formatDate(formation.end_date) }}</span>
+                                        <span v-if="formation.duration"
+                                            >{{ formatDate(formation.start_date) }} - {{ formatDate(formation.end_date) }}</span
+                                        >
                                     </p>
                                     <p v-if="formation.organization" class="text-sm text-gray-600">{{ formation.organization }}</p>
                                     <p v-if="formation.description" class="mt-1 text-sm text-gray-600">{{ formation.description }}</p>
@@ -329,7 +312,9 @@ const formatReviewDate = (dateString: string) => {
                             <div class="flex items-center gap-2">
                                 <div class="flex items-center gap-1">
                                     <svg class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        <path
+                                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                                        />
                                     </svg>
                                     <span class="text-sm font-medium text-gray-900">{{ profile.review_stats.average_rating?.toFixed(1) || 0 }}</span>
                                 </div>
@@ -338,11 +323,7 @@ const formatReviewDate = (dateString: string) => {
                         </div>
 
                         <div class="space-y-4">
-                            <div
-                                v-for="review in profile.reviews"
-                                :key="review.id"
-                                class="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0"
-                            >
+                            <div v-for="review in profile.reviews" :key="review.id" class="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
                                 <div class="mb-3 flex items-start gap-3">
                                     <img
                                         :src="review.reviewer.avatar || '/storage/default-avatar.png'"
@@ -362,7 +343,9 @@ const formatReviewDate = (dateString: string) => {
                                                         fill="currentColor"
                                                         viewBox="0 0 20 20"
                                                     >
-                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                        <path
+                                                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                                                        />
                                                     </svg>
                                                 </template>
                                             </div>
@@ -390,10 +373,7 @@ const formatReviewDate = (dateString: string) => {
                     </div>
 
                     <!-- Transport -->
-                    <div
-                        v-if="profile.has_driving_license || profile.has_vehicle"
-                        class="rounded-2xl bg-white p-6 shadow-sm"
-                    >
+                    <div v-if="profile.has_driving_license || profile.has_vehicle" class="rounded-2xl bg-white p-6 shadow-sm">
                         <h3 class="mb-4 text-lg font-bold text-gray-900">Transport</h3>
                         <div class="space-y-3">
                             <div v-if="profile.has_driving_license" class="flex items-center space-x-3">
@@ -422,9 +402,7 @@ const formatReviewDate = (dateString: string) => {
                     <!-- Tranches d'âge -->
                     <div class="rounded-2xl bg-white p-6 shadow-sm">
                         <h3 class="mb-4 text-lg font-bold text-gray-900">Tranches d'âge acceptées</h3>
-                        <div v-if="profile.comfortable_with_all_ages" class="font-medium text-green-700">
-                            À l'aise avec toutes les tranches d'âge
-                        </div>
+                        <div v-if="profile.comfortable_with_all_ages" class="font-medium text-green-700">À l'aise avec toutes les tranches d'âge</div>
                         <div v-else class="flex flex-wrap gap-2">
                             <span
                                 v-for="ageRange in acceptedAgeRanges"
@@ -493,12 +471,7 @@ const formatReviewDate = (dateString: string) => {
                                         profile.documents_verified ? 'border-green-500 bg-green-500' : 'border-gray-300',
                                     ]"
                                 >
-                                    <svg
-                                        v-if="profile.documents_verified"
-                                        class="h-2 w-2 text-white"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                    >
+                                    <svg v-if="profile.documents_verified" class="h-2 w-2 text-white" fill="currentColor" viewBox="0 0 20 20">
                                         <path
                                             fill-rule="evenodd"
                                             d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -506,9 +479,7 @@ const formatReviewDate = (dateString: string) => {
                                         ></path>
                                     </svg>
                                 </div>
-                                <span :class="profile.documents_verified ? 'text-gray-900' : 'text-gray-500'">
-                                    Identité vérifiée
-                                </span>
+                                <span :class="profile.documents_verified ? 'text-gray-900' : 'text-gray-500'"> Identité vérifiée </span>
                             </div>
                             <div class="flex items-center space-x-3">
                                 <div class="flex h-4 w-4 items-center justify-center rounded-full border-2 border-green-500 bg-green-500">
@@ -527,56 +498,52 @@ const formatReviewDate = (dateString: string) => {
                 </div>
             </div>
         </div>
-        
+
         <!-- Modal pour afficher les photos en grand -->
-        <div 
-            v-if="showPhotoModal" 
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
-            @click="closePhotoModal"
-        >
+        <div v-if="showPhotoModal" class="bg-opacity-75 fixed inset-0 z-50 flex items-center justify-center bg-black" @click="closePhotoModal">
             <div class="relative max-h-screen max-w-screen-lg p-4">
                 <!-- Bouton fermer -->
                 <button
                     @click="closePhotoModal"
-                    class="absolute top-4 right-4 z-10 rounded-full bg-black bg-opacity-50 p-2 text-white hover:bg-opacity-75 transition-colors"
+                    class="bg-opacity-50 hover:bg-opacity-75 absolute top-4 right-4 z-10 rounded-full bg-black p-2 text-white transition-colors"
                 >
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-                
+
                 <!-- Navigation précédent -->
                 <button
                     v-if="currentPhotoIndex > 0"
                     @click.stop="prevPhoto"
-                    class="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black bg-opacity-50 p-2 text-white hover:bg-opacity-75 transition-colors"
+                    class="bg-opacity-50 hover:bg-opacity-75 absolute top-1/2 left-4 z-10 -translate-y-1/2 rounded-full bg-black p-2 text-white transition-colors"
                 >
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                
+
                 <!-- Navigation suivant -->
                 <button
                     v-if="currentPhotoIndex < additionalPhotos.length - 1"
                     @click.stop="nextPhoto"
-                    class="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black bg-opacity-50 p-2 text-white hover:bg-opacity-75 transition-colors"
+                    class="bg-opacity-50 hover:bg-opacity-75 absolute top-1/2 right-4 z-10 -translate-y-1/2 rounded-full bg-black p-2 text-white transition-colors"
                 >
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </button>
-                
+
                 <!-- Image -->
-                <img 
-                    :src="currentPhoto" 
+                <img
+                    :src="currentPhoto"
                     :alt="`Photo ${currentPhotoIndex + 1} de ${profile.user.firstname}`"
                     class="max-h-full max-w-full rounded-lg object-contain"
                     @click.stop
                 />
-                
+
                 <!-- Indicateur de position -->
-                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black bg-opacity-50 px-3 py-1 text-sm text-white">
+                <div class="bg-opacity-50 absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black px-3 py-1 text-sm text-white">
                     {{ currentPhotoIndex + 1 }} / {{ additionalPhotos.length }}
                 </div>
             </div>

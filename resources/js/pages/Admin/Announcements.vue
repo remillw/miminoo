@@ -3,13 +3,13 @@ import AdminLayout from '@/components/AdminLayout.vue';
 import DataTable from '@/components/DataTable.vue';
 import { Button } from '@/components/ui/button';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
-import { useToast } from '@/composables/useToast';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { useToast } from '@/composables/useToast';
+import type { Address, Announcement, PaginatedData, User } from '@/types';
 import type { Column } from '@/types/datatable';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-vue-next';
+import { Edit, Eye, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
-import type { Address, User, Announcement, PaginatedData } from '@/types';
 
 interface Parent extends User {
     // Propriétés spécifiques au parent si nécessaire
@@ -103,13 +103,17 @@ const columns: Column<ExtendedAnnouncement>[] = [
 ];
 
 const search = () => {
-    router.get('/admin/annonces', {
-        search: searchTerm.value,
-        status: statusFilter.value,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+    router.get(
+        '/admin/annonces',
+        {
+            search: searchTerm.value,
+            status: statusFilter.value,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+        },
+    );
 };
 
 const viewAnnouncement = (announcement: ExtendedAnnouncement) => {
@@ -118,7 +122,7 @@ const viewAnnouncement = (announcement: ExtendedAnnouncement) => {
 };
 
 const editAnnouncement = (announcementId: number) => {
-            router.visit(`/admin/admin-annonces/${announcementId}/modifier`);
+    router.visit(`/admin/admin-annonces/${announcementId}/modifier`);
 };
 
 const deleteAnnouncement = (announcement: ExtendedAnnouncement) => {
@@ -128,26 +132,20 @@ const deleteAnnouncement = (announcement: ExtendedAnnouncement) => {
 
 const confirmDelete = () => {
     if (!announcementToDelete.value) return;
-    
+
     isDeleting.value = true;
     router.delete(`/admin/annonces/${announcementToDelete.value.id}`, {
         onSuccess: () => {
-            showSuccess(
-                'Annonce supprimée',
-                `L'annonce "${announcementToDelete.value?.title}" a été supprimée avec succès.`
-            );
+            showSuccess('Annonce supprimée', `L'annonce "${announcementToDelete.value?.title}" a été supprimée avec succès.`);
             showDeleteModal.value = false;
             announcementToDelete.value = null;
         },
         onError: () => {
-            showError(
-                'Erreur',
-                'Une erreur est survenue lors de la suppression de l\'annonce.'
-            );
+            showError('Erreur', "Une erreur est survenue lors de la suppression de l'annonce.");
         },
         onFinish: () => {
             isDeleting.value = false;
-        }
+        },
     });
 };
 
@@ -167,16 +165,16 @@ const formatDate = (dateString: string) => {
 
     <AdminLayout title="Gestion des Annonces">
         <!-- Header Section -->
-        <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="mb-6 md:flex md:items-center md:justify-between">
             <div class="min-w-0 flex-1">
-                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                    Gestion des Annonces
-                </h2>
+                <h2 class="text-2xl leading-7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Gestion des Annonces</h2>
                 <p class="mt-1 text-sm text-gray-500">
-                    {{ announcements.meta?.total || 0 }} annonce{{ (announcements.meta?.total || 0) > 1 ? 's' : '' }} trouvée{{ (announcements.meta?.total || 0) > 1 ? 's' : '' }}
+                    {{ announcements.meta?.total || 0 }} annonce{{ (announcements.meta?.total || 0) > 1 ? 's' : '' }} trouvée{{
+                        (announcements.meta?.total || 0) > 1 ? 's' : ''
+                    }}
                 </p>
             </div>
-            <div class="mt-4 flex md:ml-4 md:mt-0">
+            <div class="mt-4 flex md:mt-0 md:ml-4">
                 <Button as-child>
                     <Link href="/admin/annonces/creer">
                         <Plus class="mr-2 h-4 w-4" />
@@ -201,7 +199,7 @@ const formatDate = (dateString: string) => {
                     <div class="font-medium text-gray-900">
                         {{ item.title }}
                     </div>
-                    <div class="text-sm text-gray-500 line-clamp-2">
+                    <div class="line-clamp-2 text-sm text-gray-500">
                         {{ item.description?.substring(0, 80) }}{{ item.description && item.description.length > 80 ? '...' : '' }}
                     </div>
                 </div>
@@ -210,18 +208,19 @@ const formatDate = (dateString: string) => {
             <!-- Colonne parent -->
             <template #parent="{ item }">
                 <div>
-                    <div class="font-medium text-gray-900">
-                        {{ item.parent.firstname }} {{ item.parent.lastname }}
-                    </div>
-                    <div class="text-sm text-gray-500">
-                        Parent
-                    </div>
+                    <div class="font-medium text-gray-900">{{ item.parent.firstname }} {{ item.parent.lastname }}</div>
+                    <div class="text-sm text-gray-500">Parent</div>
                 </div>
             </template>
 
             <!-- Colonne statut -->
             <template #status="{ item }">
-                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getAnnouncementStatusColor(item.status).badge]">
+                <span
+                    :class="[
+                        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                        getAnnouncementStatusColor(item.status).badge,
+                    ]"
+                >
                     {{ getStatusText('announcement', item.status) }}
                 </span>
             </template>
@@ -252,7 +251,10 @@ const formatDate = (dateString: string) => {
             confirm-text="Supprimer"
             :loading="isDeleting"
             @confirm="confirmDelete"
-            @cancel="announcementToDelete = null; showDeleteModal = false"
+            @cancel="
+                announcementToDelete = null;
+                showDeleteModal = false;
+            "
         />
     </AdminLayout>
-</template> 
+</template>

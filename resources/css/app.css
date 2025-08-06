@@ -5,8 +5,6 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
-
-
 @theme inline {
     --font-sans: Instrument Sans, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
@@ -123,8 +121,6 @@
     --sidebar: hsl(0 0% 98%);
 }
 
-
-
 @layer base {
     * {
         @apply border-border outline-ring/50;
@@ -133,8 +129,6 @@
         @apply bg-background text-foreground;
     }
 }
-
-
 
 .form-field-error {
     @apply border-red-500 focus:border-red-500 focus:ring-red-500;
@@ -450,7 +444,6 @@ input[type='checkbox']:focus {
     gap: 2px !important;
 }
 
-
 .max-w-8xl {
     max-width: 90rem;
 }
@@ -463,4 +456,3 @@ input[type='checkbox']:focus {
 .max-w-11xl {
     max-width: 120rem;
 }
-

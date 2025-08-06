@@ -1,6 +1,6 @@
 import { PageProps as InertiaPageProps } from '@inertiajs/core';
-import { route as ziggyRoute } from 'ziggy-js';
 import Echo from 'laravel-echo';
+import { route as ziggyRoute } from 'ziggy-js';
 
 declare global {
     interface Window {
@@ -43,4 +43,4 @@ export interface Message {
     created_at: string;
     updated_at: string;
     sender?: User;
-} 
+}

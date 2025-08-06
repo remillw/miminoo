@@ -198,7 +198,7 @@
         </div>
 
         <!-- Version Mobile -->
-        <div class="flex h-[calc(100vh-140px)] flex-col bg-white lg:hidden pt-4">
+        <div class="flex h-[calc(100vh-140px)] flex-col bg-white pt-4 lg:hidden">
             <!-- Liste des conversations (vue par défaut sur mobile) -->
             <div v-if="!selectedConversation || showConversationsList" class="flex h-full flex-col">
                 <!-- Header mobile -->
@@ -391,18 +391,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
-import { router, usePage, Head } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
-import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import ConversationHeader from './Components/ConversationHeader.vue';
-import ChatMessages from './Components/ChatMessages.vue';
-import ChatInput from './Components/ChatInput.vue';
-import CandidatureChat from './Components/CandidatureChat.vue';
-import { Search, MessageSquare, MessagesSquare, Clock, Check, ChevronRight, MoreVertical, ArrowLeft } from 'lucide-vue-next';
 import { useStatusColors } from '@/composables/useStatusColors';
 import { useUserMode } from '@/composables/useUserMode';
-import type { User, Application, Reservation, Conversation, Message } from '@/types';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import type { Application, Conversation, User } from '@/types';
+import { router } from '@inertiajs/vue3';
+import { ArrowLeft, ChevronRight, MessageSquare, MessagesSquare, MoreVertical, Search } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+import { route } from 'ziggy-js';
+import CandidatureChat from './Components/CandidatureChat.vue';
+import ChatInput from './Components/ChatInput.vue';
+import ChatMessages from './Components/ChatMessages.vue';
+import ConversationHeader from './Components/ConversationHeader.vue';
 
 interface ApplicationConversation extends Conversation {
     type: 'application';
@@ -958,7 +958,7 @@ function handleReservationUpdate(updateData) {
             if (selectedConversation.value.reservation) {
                 selectedConversation.value.reservation.status = 'cancelled_by_parent';
             }
-            
+
             // Mettre à jour aussi dans la liste des conversations
             const conversationInList = props.conversations.find((c) => c.id === selectedConversation.value.id);
             if (conversationInList) {
@@ -967,12 +967,12 @@ function handleReservationUpdate(updateData) {
                     conversationInList.reservation.status = 'cancelled_by_parent';
                 }
             }
-            
+
             console.log('📢 Annonce annulée - conversation mise à jour');
         } else if (updateData.reservation || updateData.status) {
             // Mise à jour normale de réservation
             const reservationData = updateData.reservation || updateData;
-            
+
             if (selectedConversation.value.reservation) {
                 Object.assign(selectedConversation.value.reservation, reservationData);
             } else {
@@ -988,7 +988,7 @@ function handleReservationUpdate(updateData) {
                     conversationInList.reservation = reservationData;
                 }
             }
-            
+
             console.log('📝 Réservation mise à jour:', reservationData);
         }
     }

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Clock, CreditCard, MessageSquare, ShieldAlert, TrendingUp, UserCheck, Users, FileText, Calendar, Star, Plus, Edit, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted } from 'vue';
 import { useStatusColors } from '@/composables/useStatusColors';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Calendar, CreditCard, Edit, FileText, MessageSquare, ShieldAlert, Star, TrendingUp, UserCheck, Users } from 'lucide-vue-next';
+import { computed, onMounted } from 'vue';
 
 interface Stats {
     total_users: number;
@@ -132,18 +132,12 @@ const formatDate = (dateString: string) => {
                             <span>Dashboard</span>
                         </Link>
 
-                        <Link
-                            href="/admin/parents"
-                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
-                        >
+                        <Link href="/admin/parents" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <Users class="h-4 w-4" />
                             <span>Parents</span>
                         </Link>
 
-                        <Link
-                            href="/admin/babysitters"
-                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
-                        >
+                        <Link href="/admin/babysitters" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <UserCheck class="h-4 w-4" />
                             <span>Babysitters</span>
                         </Link>
@@ -159,26 +153,17 @@ const formatDate = (dateString: string) => {
                             </span>
                         </Link>
 
-                        <Link
-                            href="/admin/annonces"
-                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
-                        >
+                        <Link href="/admin/annonces" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <FileText class="h-4 w-4" />
                             <span>Annonces</span>
                         </Link>
 
-                        <Link
-                            href="/admin/avis"
-                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
-                        >
+                        <Link href="/admin/avis" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <Star class="h-4 w-4" />
                             <span>Avis</span>
                         </Link>
 
-                        <Link
-                            href="/admin/contacts"
-                            class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100"
-                        >
+                        <Link href="/admin/contacts" class="flex items-center space-x-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">
                             <MessageSquare class="h-4 w-4" />
                             <span>Contacts</span>
                         </Link>
@@ -204,13 +189,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Utilisateurs totaux</CardTitle>
-                            <Users class="h-4 w-4 text-muted-foreground" />
+                            <Users class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.total_users }}</div>
-                            <p class="text-xs text-muted-foreground">
-                                +{{ stats.recent_registrations }} cette semaine
-                            </p>
+                            <p class="text-muted-foreground text-xs">+{{ stats.recent_registrations }} cette semaine</p>
                         </CardContent>
                     </Card>
 
@@ -218,13 +201,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Parents</CardTitle>
-                            <Users class="h-4 w-4 text-muted-foreground" />
+                            <Users class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.total_parents }}</div>
-                            <p class="text-xs text-muted-foreground">
-                                Parents inscrits
-                            </p>
+                            <p class="text-muted-foreground text-xs">Parents inscrits</p>
                         </CardContent>
                     </Card>
 
@@ -232,13 +213,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Babysitters</CardTitle>
-                            <UserCheck class="h-4 w-4 text-muted-foreground" />
+                            <UserCheck class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.verified_babysitters }}/{{ stats.total_babysitters }}</div>
-                            <p class="text-xs text-muted-foreground">
-                                Vérifiés/Total
-                            </p>
+                            <p class="text-muted-foreground text-xs">Vérifiés/Total</p>
                         </CardContent>
                     </Card>
 
@@ -246,13 +225,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Annonces</CardTitle>
-                            <FileText class="h-4 w-4 text-muted-foreground" />
+                            <FileText class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.active_ads }}/{{ stats.total_ads }}</div>
-                            <p class="text-xs text-muted-foreground">
-                                Actives/Total
-                            </p>
+                            <p class="text-muted-foreground text-xs">Actives/Total</p>
                         </CardContent>
                     </Card>
 
@@ -260,13 +237,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Réservations</CardTitle>
-                            <Calendar class="h-4 w-4 text-muted-foreground" />
+                            <Calendar class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.total_reservations }}</div>
-                            <p class="text-xs text-muted-foreground">
-                                Total des gardes
-                            </p>
+                            <p class="text-muted-foreground text-xs">Total des gardes</p>
                         </CardContent>
                     </Card>
 
@@ -274,13 +249,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Avis</CardTitle>
-                            <Star class="h-4 w-4 text-muted-foreground" />
+                            <Star class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.total_reviews }}</div>
-                            <p class="text-xs text-muted-foreground">
-                                Avis publiés
-                            </p>
+                            <p class="text-muted-foreground text-xs">Avis publiés</p>
                         </CardContent>
                     </Card>
 
@@ -288,11 +261,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Stripe Connect</CardTitle>
-                            <CreditCard class="h-4 w-4 text-muted-foreground" />
+                            <CreditCard class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.stripe_active_accounts }}/{{ stats.stripe_total_accounts }}</div>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-muted-foreground text-xs">
                                 Actifs/Total
                                 <span v-if="stats.stripe_pending_accounts > 0" class="ml-2 rounded-full bg-orange-500 px-2 py-1 text-xs text-white">
                                     {{ stats.stripe_pending_accounts }}
@@ -305,11 +278,11 @@ const formatDate = (dateString: string) => {
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle class="text-sm font-medium">Vérifications</CardTitle>
-                            <ShieldAlert class="h-4 w-4 text-muted-foreground" />
+                            <ShieldAlert class="text-muted-foreground h-4 w-4" />
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">{{ stats.pending_verifications }}</div>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-muted-foreground text-xs">
                                 En attente
                                 <span v-if="stats.pending_verifications > 0" class="ml-2 rounded-full bg-red-500 px-2 py-1 text-xs text-white">
                                     Urgent
@@ -359,23 +332,19 @@ const formatDate = (dateString: string) => {
                 <!-- Activité récente -->
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <!-- Nouveaux utilisateurs -->
-                <Card>
-                    <CardHeader>
+                    <Card>
+                        <CardHeader>
                             <CardTitle>Nouveaux utilisateurs</CardTitle>
                             <CardDescription>Les 5 dernières inscriptions</CardDescription>
-                    </CardHeader>
-                    <CardContent>
+                        </CardHeader>
+                        <CardContent>
                             <div class="space-y-3">
-                                <div
-                                    v-for="user in recentActivity.new_users"
-                                    :key="user.id"
-                                    class="flex items-center justify-between"
-                                >
+                                <div v-for="user in recentActivity.new_users" :key="user.id" class="flex items-center justify-between">
                                     <div>
                                         <p class="text-sm font-medium">{{ user.firstname }} {{ user.lastname }}</p>
                                         <p class="text-xs text-gray-500">{{ user.email }}</p>
                                         <p class="text-xs text-gray-400">
-                                            {{ user.roles.map(r => r.label).join(', ') }}
+                                            {{ user.roles.map((r) => r.label).join(', ') }}
                                         </p>
                                     </div>
                                     <div class="text-xs text-gray-400">
@@ -397,19 +366,18 @@ const formatDate = (dateString: string) => {
                         </CardHeader>
                         <CardContent>
                             <div class="space-y-3">
-                                <div
-                                    v-for="ad in recentActivity.recent_ads"
-                                    :key="ad.id"
-                                    class="flex items-center justify-between"
-                                >
+                                <div v-for="ad in recentActivity.recent_ads" :key="ad.id" class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <p class="text-sm font-medium">{{ ad.title }}</p>
-                                        <p class="text-xs text-gray-500">
-                                            Par {{ ad.parent.firstname }} {{ ad.parent.lastname }}
-                                        </p>
-                                                                        <span :class="['inline-flex items-center rounded-full px-2 py-1 text-xs font-medium', getAnnouncementStatusColor(ad.status).badge]">
-                                    {{ getStatusText('announcement', ad.status) }}
-                                </span>
+                                        <p class="text-xs text-gray-500">Par {{ ad.parent.firstname }} {{ ad.parent.lastname }}</p>
+                                        <span
+                                            :class="[
+                                                'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium',
+                                                getAnnouncementStatusColor(ad.status).badge,
+                                            ]"
+                                        >
+                                            {{ getStatusText('announcement', ad.status) }}
+                                        </span>
                                     </div>
                                     <div class="flex items-center space-x-1">
                                         <Button size="sm" variant="ghost" as-child>
@@ -448,10 +416,7 @@ const formatDate = (dateString: string) => {
                                                 <Star
                                                     v-for="i in 5"
                                                     :key="i"
-                                                    :class="[
-                                                        'h-3 w-3',
-                                                        i <= review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                                                    ]"
+                                                    :class="['h-3 w-3', i <= review.rating ? 'fill-current text-yellow-400' : 'text-gray-300']"
                                                 />
                                             </div>
                                             <span class="text-xs font-medium">{{ review.rating }}/5</span>
@@ -460,18 +425,18 @@ const formatDate = (dateString: string) => {
                                             {{ formatDate(review.created_at) }}
                                         </span>
                                     </div>
-                                    <p class="mt-1 text-xs text-gray-600 line-clamp-2">{{ review.comment }}</p>
+                                    <p class="mt-1 line-clamp-2 text-xs text-gray-600">{{ review.comment }}</p>
                                     <p class="mt-1 text-xs text-gray-500">
-                                        De {{ review.reviewer.firstname }} {{ review.reviewer.lastname }}
-                                        pour {{ review.reviewed.firstname }} {{ review.reviewed.lastname }}
+                                        De {{ review.reviewer.firstname }} {{ review.reviewer.lastname }} pour {{ review.reviewed.firstname }}
+                                        {{ review.reviewed.lastname }}
                                     </p>
                                 </div>
                                 <div v-if="recentActivity.recent_reviews.length === 0" class="text-center text-sm text-gray-500">
                                     Aucun avis récent
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
                 </div>
             </main>
         </div>

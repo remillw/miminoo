@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { AlertCircle, ArrowLeft, CheckCircle, ExternalLink, FileText, Info, Shield } from 'lucide-vue-next';
+import { AlertCircle, ArrowLeft, CheckCircle, FileText, Info, Shield } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
-import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     verificationStatus: String,
@@ -142,10 +142,13 @@ const checkVerificationStatus = async () => {
 // Gestion de l'upload de documents
 const handleUploadComplete = (result) => {
     console.log('✅ Upload completed:', result);
-    showSuccess("✅ Documents uploadés avec succès !", `${result.uploadedFiles.length} document(s) envoyé(s) directement à Stripe pour vérification.`);
-    
+    showSuccess(
+        '✅ Documents uploadés avec succès !',
+        `${result.uploadedFiles.length} document(s) envoyé(s) directement à Stripe pour vérification.`,
+    );
+
     isDocumentUploadComplete.value = true;
-    
+
     // Recharger la page pour mettre à jour le statut
     setTimeout(() => {
         router.reload();
@@ -283,42 +286,48 @@ onMounted(() => {
                     </div>
 
                     <!-- Formulaire d'upload direct -->
-                    <div class="bg-white border border-gray-200 rounded-lg p-6">
-                        <div class="flex items-center justify-between mb-4">
+                    <div class="rounded-lg border border-gray-200 bg-white p-6">
+                        <div class="mb-4 flex items-center justify-between">
                             <h3 class="text-lg font-medium text-gray-900">
-                                <svg class="inline-block mr-2 h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                <svg class="mr-2 inline-block h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                    ></path>
                                 </svg>
                                 Upload de documents d'identité
                             </h3>
                         </div>
-                        
+
                         <!-- Message de succès -->
-                        <div v-if="isDocumentUploadComplete" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div v-if="isDocumentUploadComplete" class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
                             <div class="flex items-center">
                                 <CheckCircle class="mr-2 h-5 w-5 text-green-600" />
                                 <span class="text-sm font-medium text-green-800">Documents uploadés avec succès !</span>
                             </div>
-                            <p class="text-sm text-green-700 mt-1">Vos documents ont été envoyés directement à Stripe pour vérification.</p>
+                            <p class="mt-1 text-sm text-green-700">Vos documents ont été envoyés directement à Stripe pour vérification.</p>
                         </div>
-                        
+
                         <!-- Upload de documents désactivé temporairement -->
-                        <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
                             <p class="text-sm text-gray-600">Upload de documents temporairement indisponible</p>
                         </div>
-                        
+
                         <!-- Informations sur les documents -->
-                        <div class="bg-gray-50 rounded-lg p-4 mt-6">
-                            <h4 class="font-medium text-gray-900 mb-2">Types de documents acceptés</h4>
-                            <ul class="text-sm text-gray-600 space-y-1">
+                        <div class="mt-6 rounded-lg bg-gray-50 p-4">
+                            <h4 class="mb-2 font-medium text-gray-900">Types de documents acceptés</h4>
+                            <ul class="space-y-1 text-sm text-gray-600">
                                 <li>• <strong>Carte d'identité française ou européenne</strong></li>
                                 <li>• <strong>Passeport en cours de validité</strong></li>
                                 <li>• <strong>Permis de conduire français</strong></li>
                                 <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
                             </ul>
-                            <div class="mt-3 p-2 bg-blue-50 rounded border-l-4 border-blue-400">
+                            <div class="mt-3 rounded border-l-4 border-blue-400 bg-blue-50 p-2">
                                 <p class="text-xs text-blue-800">
-                                    <span class="mr-1">🚀</span> <strong>Nouveau</strong> : Upload direct et sécurisé vers Stripe ! Vos documents ne transitent plus par notre serveur.
+                                    <span class="mr-1">🚀</span> <strong>Nouveau</strong> : Upload direct et sécurisé vers Stripe ! Vos documents ne
+                                    transitent plus par notre serveur.
                                 </p>
                             </div>
                         </div>
