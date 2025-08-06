@@ -373,7 +373,7 @@ class ProfileController extends Controller
             $savedPath = $this->saveBase64Image($request->avatar, 'avatars/' . $user->id);
             if ($savedPath) {
                 // Supprimer l'ancien avatar s'il existe et n'est pas un avatar prédéfini
-                if ($user->avatar && !str_contains($user->avatar, '/storage/avatar/')) {
+                if ($user->avatar && !str_contains($user->avatar, '/storage/avatars/')) {
                     Storage::disk('public')->delete($user->avatar);
                 }
                 $user->avatar = '/storage/' . $savedPath;

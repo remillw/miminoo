@@ -93,12 +93,36 @@ class AuthenticatedSessionController extends Controller
     /**
      * Destroy an authenticated session.
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request)
     {
+        $isMobile = $request->input('mobile_auth') === 'true' || 
+                   $request->header('X-Mobile-App') === 'true' ||
+                   $request->expectsJson();
+
+        Log::info('=== LOGOUT REQUEST ===', [
+            'is_mobile' => $isMobile,
+            'headers' => [
+                'user_agent' => $request->header('User-Agent'),
+                'x_mobile_app' => $request->header('X-Mobile-App'),
+                'content_type' => $request->header('Content-Type'),
+                'accept' => $request->header('Accept'),
+            ],
+            'mobile_auth_param' => $request->input('mobile_auth'),
+            'expects_json' => $request->expectsJson(),
+        ]);
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        // Réponse différente pour mobile
+        if ($isMobile) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Déconnexion réussie'
+            ]);
+        }
 
         return redirect('/');
     }

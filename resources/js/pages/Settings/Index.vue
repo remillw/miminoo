@@ -213,33 +213,6 @@
                     </div>
                 </div>
 
-                <!-- Préférences Card -->
-                <div class="overflow-hidden rounded-xl bg-white shadow-sm">
-                    <div class="border-l-4 border-purple-500 bg-purple-50 p-4">
-                        <div class="flex items-center">
-                            <Palette class="mr-3 h-5 w-5 text-purple-600" />
-                            <div>
-                                <h2 class="font-semibold text-gray-900">Préférences</h2>
-                                <p class="text-sm text-gray-600">Personnalisez votre expérience</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <div class="space-y-2">
-                            <Label for="language">Langue</Label>
-                            <Select v-model="languageForm.language" @update:modelValue="updateLanguage">
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Sélectionner une langue" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">
-                                        {{ lang.name }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Zone de danger -->
                 <div class="overflow-hidden rounded-xl bg-white shadow-sm">
@@ -334,7 +307,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
 // Icons
@@ -347,7 +319,6 @@ import {
     Loader2,
     Mail,
     MessageSquare,
-    Palette,
     Shield,
     Smartphone,
     Trash2,
@@ -364,18 +335,13 @@ interface NotificationSettings {
     sms_notifications: boolean;
 }
 
-interface Language {
-    code: string;
-    name: string;
-}
-
 interface Props {
     user: User;
     current_mode: 'babysitter' | 'parent';
+    has_parent_role: boolean;
+    has_babysitter_role: boolean;
     notification_settings: NotificationSettings;
     has_active_reservations: boolean;
-    available_languages: Language[];
-    debug_user_data?: any; // Debug temporaire
 }
 
 const props = defineProps<Props>();
@@ -383,8 +349,8 @@ const props = defineProps<Props>();
 // Composables
 const { showSuccess, showError, handleApiResponse } = useToast();
 
-// Mode basé sur les rôles de l'utilisateur (détecté côté serveur)
-const currentMode = ref<'babysitter' | 'parent'>(props.current_mode);
+// Mode basé sur les données du serveur
+const currentMode = computed(() => props.current_mode);
 
 // Computed pour détecter si c'est un utilisateur Google uniquement
 const isGoogleOnlyUser = computed(() => {
@@ -392,9 +358,9 @@ const isGoogleOnlyUser = computed(() => {
     return props.user.google_id && !props.user.password;
 });
 
-// Computed pour les rôles
-const hasParentRole = computed(() => props.user.roles?.some((role) => role.name === 'parent') ?? false);
-const hasBabysitterRole = computed(() => props.user.roles?.some((role) => role.name === 'babysitter') ?? false);
+// Utiliser les rôles venant du serveur
+const hasParentRole = computed(() => props.has_parent_role);
+const hasBabysitterRole = computed(() => props.has_babysitter_role);
 
 // États des formulaires
 const notificationForm = reactive({ ...props.notification_settings });
@@ -402,9 +368,6 @@ const passwordForm = reactive({
     current_password: '',
     password: '',
     password_confirmation: '',
-});
-const languageForm = reactive({
-    language: props.user.language,
 });
 
 // Upload de photo
@@ -419,7 +382,6 @@ const deleteConfirmationText = ref('');
 
 // Computed
 const hasActiveReservations = ref(props.has_active_reservations);
-const availableLanguages = ref(props.available_languages);
 
 // Méthodes upload photo
 const triggerPhotoUpload = () => {
@@ -514,18 +476,6 @@ const updatePassword = () => {
     });
 };
 
-const updateLanguage = () => {
-    router.post(route('settings.language'), languageForm, {
-        preserveState: true,
-        onSuccess: (page: any) => {
-            handleApiResponse(page, 'Langue mise à jour avec succès');
-        },
-        onError: (errors: any) => {
-            console.error('❌ Erreur mise à jour langue:', errors);
-            showError('Erreur', 'Impossible de mettre à jour la langue');
-        },
-    });
-};
 
 const unlinkProvider = (provider: string) => {
     router.delete(route('social.unlink', provider), {

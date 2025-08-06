@@ -87,7 +87,13 @@ const handleLoaderComplete = () => {
         <LandingHeader v-if="!shouldHideHeaderFooter" />
 
         <div class="flex flex-1">
-            <UnifiedSidebar :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="props.currentMode" />
+            <!-- Sidebar seulement si utilisateur connecté -->
+            <UnifiedSidebar 
+                v-if="user" 
+                :hasParentRole="hasParentRole" 
+                :hasBabysitterRole="hasBabysitterRole" 
+                :requestedMode="props.currentMode" 
+            />
 
             <!-- Main content optimisé pour l'app mobile -->
             <main class="flex-1 pb-20 lg:pb-0">

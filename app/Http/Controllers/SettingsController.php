@@ -17,10 +17,25 @@ class SettingsController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $requestedMode = $request->get('mode');
+        
+        // Déterminer les rôles de l'utilisateur
+        $hasParentRole = $user->hasRole('parent');
+        $hasBabysitterRole = $user->hasRole('babysitter');
 
-        // Déterminer le mode selon les rôles de l'utilisateur
+        // Déterminer le mode actuel selon la demande et les rôles
         $currentMode = 'parent'; // Par défaut
-        if ($user->hasRole('babysitter')) {
+        
+        if ($requestedMode === 'babysitter' && $hasBabysitterRole) {
+            $currentMode = 'babysitter';
+        } elseif ($requestedMode === 'parent' && $hasParentRole) {
+            $currentMode = 'parent';
+        } elseif ($hasBabysitterRole && !$hasParentRole) {
+            $currentMode = 'babysitter';
+        } elseif ($hasParentRole && !$hasBabysitterRole) {
+            $currentMode = 'parent';
+        } elseif ($hasBabysitterRole) {
+            // Si les deux rôles et pas de mode spécifique, babysitter par défaut
             $currentMode = 'babysitter';
         }
 
@@ -44,34 +59,16 @@ class SettingsController extends Controller
         }
 
         return Inertia::render('Settings/Index', [
-            'user' => [
-                'id' => $user->id,
-                'firstname' => $user->firstname,
-                'lastname' => $user->lastname,
-                'email' => $user->email,
-                'language' => $user->language ?? 'fr',
-                'google_id' => $user->google_id,
-                'apple_id' => $user->apple_id,
-                'is_social_account' => $user->is_social_account,
-                'social_data_locked' => $user->social_data_locked,
-                'provider' => $user->provider,
+            'user' => array_merge($user->toArray(), [
+                'profile_photo_url' => $user->getFirstMediaUrl('profile_photos') ?: null,
                 'password' => $user->password ? true : false, // Ne pas exposer le hash
-            ],
+                'roles' => $user->roles->toArray(),
+            ]),
             'current_mode' => $currentMode,
+            'has_parent_role' => $hasParentRole,
+            'has_babysitter_role' => $hasBabysitterRole,
             'notification_settings' => $notificationSettings,
             'has_active_reservations' => $hasActiveReservations,
-            'available_languages' => [
-                ['code' => 'fr', 'name' => 'Français'],
-                // Ajouter d'autres langues plus tard
-            ],
-            // Debug temporaire
-            'debug_user_data' => [
-                'provider' => $user->provider,
-                'is_social_account' => $user->is_social_account,
-                'social_data_locked' => $user->social_data_locked,
-                'google_id' => $user->google_id,
-                'has_password' => $user->password ? true : false,
-            ],
         ]);
     }
 
@@ -153,37 +150,6 @@ class SettingsController extends Controller
         }
     }
 
-    /**
-     * Changer la langue
-     */
-    public function updateLanguage(Request $request)
-    {
-        $request->validate([
-            'language' => 'required|string|in:fr,en',
-        ]);
-
-        $user = $request->user();
-
-        try {
-            $user->update([
-                'language' => $request->language,
-            ]);
-
-            Log::info('Langue mise à jour', [
-                'user_id' => $user->id,
-                'language' => $request->language
-            ]);
-
-            return back()->with('success', 'Langue mise à jour avec succès');
-        } catch (\Exception $e) {
-            Log::error('Erreur mise à jour langue', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage()
-            ]);
-
-            return back()->with('error', 'Erreur lors de la mise à jour de la langue');
-        }
-    }
 
     /**
      * Supprimer le compte utilisateur

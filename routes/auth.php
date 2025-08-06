@@ -42,13 +42,14 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
+// Route de vérification d'email (sans middleware auth pour permettre la vérification cross-device)
+Route::get('verifier-email/{id}/{hash}', VerifyEmailController::class)
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
+
 Route::middleware('auth')->group(function () {
     Route::get('verifier-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
-
-    Route::get('verifier-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
 
     Route::post('email/notification-verification', [EmailVerificationNotificationController::class, 'store'])
         ->middleware('throttle:6,1')

@@ -213,15 +213,15 @@ class RegisteredUserController extends Controller
         if (in_array('parent', $roles) && in_array('babysitter', $roles)) {
             // Les deux rôles
             $avatarNumber = rand(1, 4);
-            return "/storage/avatar/les deux/parent-babysitter-generique{$avatarNumber}.svg";
+            return "/storage/avatars/les deux/parent-babysitter-generique{$avatarNumber}.svg";
         } elseif (in_array('parent', $roles)) {
             // Parent uniquement
             $avatarNumber = rand(1, 4);
-            return "/storage/avatar/parent/parent-generique{$avatarNumber}.svg";
+            return "/storage/avatars/parent/parent-generique{$avatarNumber}.svg";
         } elseif (in_array('babysitter', $roles)) {
             // Babysitter uniquement
             $avatarNumber = rand(1, 4);
-            return "/storage/avatar/babysitter/babysitters-generique{$avatarNumber}.svg";
+            return "/storage/avatars/babysitter/babysitters-generique{$avatarNumber}.svg";
         }
 
         // Fallback sur un avatar par défaut

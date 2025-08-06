@@ -248,17 +248,17 @@ const availableAvatars = computed(() => {
     if (hasParentRole.value && hasBabysitterRole.value) {
         // Les deux rôles
         for (let i = 1; i <= 4; i++) {
-            avatars.push(`/storage/avatar/les deux/parent-babysitter-generique${i}.svg`);
+            avatars.push(`/storage/avatars/les deux/parent-babysitter-generique${i}.svg`);
         }
     } else if (hasParentRole.value) {
         // Parent uniquement
         for (let i = 1; i <= 4; i++) {
-            avatars.push(`/storage/avatar/parent/parent-generique${i}.svg`);
+            avatars.push(`/storage/avatars/parent/parent-generique${i}.svg`);
         }
     } else if (hasBabysitterRole.value) {
         // Babysitter uniquement
         for (let i = 1; i <= 4; i++) {
-            avatars.push(`/storage/avatar/babysitter/babysitters-generique${i}.svg`);
+            avatars.push(`/storage/avatars/babysitter/babysitters-generique${i}.svg`);
         }
     }
     
