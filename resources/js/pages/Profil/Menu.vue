@@ -282,40 +282,19 @@ const selectAvatar = (avatarPath: string) => {
 };
 
 const uploadCustomAvatar = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = false;
-    
-    // Pour mobile, ajouter l'attribut capture pour accéder directement à la caméra/galerie
     if (isMobileApp()) {
-        input.setAttribute('capture', 'user');
-    }
-    
-    input.onchange = (event: any) => {
-        const file = event.target.files[0];
-        if (file) {
-            // Vérifier la taille du fichier (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                showError('Fichier trop volumineux', 'Veuillez choisir une image de moins de 5 MB');
-                return;
-            }
-            
-            // Vérifier le type de fichier
-            if (!file.type.startsWith('image/')) {
-                showError('Format invalide', 'Veuillez choisir un fichier image');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = (e: any) => {
-                const base64String = e.target.result;
+        // Utiliser l'image picker natif sur mobile
+        if ((window as any).requestNativeImagePicker && (window as any).requestNativeImagePicker()) {
+            // Écouter l'événement de sélection d'image
+            const handleNativeImageSelection = (event: CustomEvent) => {
+                const imageData = event.detail;
+                console.log('Image sélectionnée:', imageData);
                 
                 // Fermer le modal et uploader l'image
                 showAvatarSelector.value = false;
                 
                 router.post('/profil/update-avatar', {
-                    avatar: base64String
+                    avatar: imageData.base64
                 }, {
                     onSuccess: () => {
                         showSuccess('Avatar mis à jour !', 'Votre photo a été uploadée avec succès');
@@ -324,12 +303,62 @@ const uploadCustomAvatar = () => {
                         showError('Erreur', 'Impossible de mettre à jour votre avatar');
                     }
                 });
+                
+                // Supprimer le listener après utilisation
+                window.removeEventListener('nativeImageSelected', handleNativeImageSelection);
             };
-            reader.readAsDataURL(file);
+            
+            // Ajouter le listener pour l'événement
+            window.addEventListener('nativeImageSelected', handleNativeImageSelection);
+        } else {
+            showError('Erreur', 'L\'accès natif aux photos n\'est pas disponible');
         }
-    };
-    
-    input.click();
+    } else {
+        // Utiliser l'input file classique sur le web
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.multiple = false;
+        
+        input.onchange = (event: any) => {
+            const file = event.target.files[0];
+            if (file) {
+                // Vérifier la taille du fichier (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    showError('Fichier trop volumineux', 'Veuillez choisir une image de moins de 5 MB');
+                    return;
+                }
+                
+                // Vérifier le type de fichier
+                if (!file.type.startsWith('image/')) {
+                    showError('Format invalide', 'Veuillez choisir un fichier image');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e: any) => {
+                    const base64String = e.target.result;
+                    
+                    // Fermer le modal et uploader l'image
+                    showAvatarSelector.value = false;
+                    
+                    router.post('/profil/update-avatar', {
+                        avatar: base64String
+                    }, {
+                        onSuccess: () => {
+                            showSuccess('Avatar mis à jour !', 'Votre photo a été uploadée avec succès');
+                        },
+                        onError: () => {
+                            showError('Erreur', 'Impossible de mettre à jour votre avatar');
+                        }
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        
+        input.click();
+    }
 };
 
 const logout = () => {
