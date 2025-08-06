@@ -60,7 +60,7 @@ class SettingsController extends Controller
 
         return Inertia::render('Settings/Index', [
             'user' => array_merge($user->toArray(), [
-                'profile_photo_url' => $user->getFirstMediaUrl('profile_photos') ?: null,
+                'profile_photo_url' => $user->getAvatarUrl(),
                 'password' => $user->password ? true : false, // Ne pas exposer le hash
                 'roles' => $user->roles->toArray(),
             ]),
