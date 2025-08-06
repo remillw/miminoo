@@ -128,6 +128,22 @@
     body {
         @apply bg-background text-foreground;
     }
+    
+    /* Éviter le zoom sur les inputs sur mobile iOS */
+    @media (max-width: 1023px) {
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        input[type="password"],
+        input[type="tel"],
+        input[type="time"],
+        input[type="date"],
+        input[type="datetime-local"],
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+    }
 }
 
 .form-field-error {

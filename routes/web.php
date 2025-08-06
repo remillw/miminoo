@@ -93,6 +93,9 @@ Route::post('annonces', [AnnouncementController::class, 'store'])->name('announc
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('profil', [ProfileController::class, 'show'])->name('profil');
     Route::put('profil', [ProfileController::class, 'update'])->name('profil.update');
+    Route::get('profil/menu', [ProfileController::class, 'menu'])->name('profil.menu');
+    Route::post('profil/update-name', [ProfileController::class, 'updateName'])->name('profil.update-name');
+    Route::post('profil/update-avatar', [ProfileController::class, 'updateAvatar'])->name('profil.update-avatar');
     
     // Routes pour les annonces authentifiées
     Route::get('mes-annonces', [AnnouncementController::class, 'myAnnouncements'])->name('announcements.my');

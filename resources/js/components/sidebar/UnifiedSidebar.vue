@@ -231,11 +231,11 @@ const isActive = (href: string) => {
                     <span class="text-xs font-medium">Mes gardes</span>
                 </Link>
 
-                <!-- Bouton Réglages pour ouvrir le menu complet -->
-                <button @click="showMobileMenu = true" class="flex flex-col items-center gap-1 p-2 text-gray-500 transition-colors">
-                    <Settings class="h-5 w-5" />
-                    <span class="text-xs font-medium">Plus</span>
-                </button>
+                <!-- Lien direct vers la page menu -->
+                <Link href="/profil/menu" :class="['flex flex-col items-center gap-1 p-2 transition-colors', isActive('/profil/menu') ? 'text-primary' : 'text-gray-500 hover:text-primary']">
+                    <User class="h-5 w-5" />
+                    <span class="text-xs font-medium">Menu</span>
+                </Link>
             </div>
         </div>
 

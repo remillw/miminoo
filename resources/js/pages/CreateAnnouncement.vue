@@ -1021,7 +1021,7 @@ initializeChildren();
                                         <Label for="start_time_manual" class="text-xs sm:text-sm">Heure de début</Label>
                                         <div class="relative">
                                             <Clock
-                                                class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4"
+                                                class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400"
                                             />
                                             <Input
                                                 id="start_time_manual"
@@ -1030,7 +1030,7 @@ initializeChildren();
                                                 min="06:00"
                                                 max="23:59"
                                                 step="900"
-                                                class="pl-8 text-sm sm:pl-10 sm:text-base"
+                                                class="pl-10 text-sm sm:text-base"
                                                 required
                                                 placeholder="HH:MM"
                                                 @input="formatTimeInput"
@@ -1042,7 +1042,7 @@ initializeChildren();
                                         <Label for="end_time_manual" class="text-xs sm:text-sm">Heure de fin</Label>
                                         <div class="relative">
                                             <Clock
-                                                class="pointer-events-none absolute top-1/2 left-2.5 z-10 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4"
+                                                class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400"
                                             />
                                             <Input
                                                 id="end_time_manual"
@@ -1051,7 +1051,7 @@ initializeChildren();
                                                 min="06:00"
                                                 max="23:59"
                                                 step="900"
-                                                class="pl-8 text-sm sm:pl-10 sm:text-base"
+                                                class="pl-10 text-sm sm:text-base"
                                                 required
                                                 placeholder="HH:MM"
                                                 @input="formatTimeInput"

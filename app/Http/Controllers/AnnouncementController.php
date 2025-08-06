@@ -30,6 +30,7 @@ class AnnouncementController extends Controller
     public function index(Request $request): Response
     {
         $query = Ad::with(['address'])
+            ->withCount('applications') // Ajouter le nombre de candidatures
             ->where('status', 'active') // Seulement les annonces actives (pas expirées, pas réservées, pas terminées)
             ->where('date_start', '>', Carbon::now()) // Exclure les annonces dont la date/heure de début est déjà passée
             ->whereDoesntHave('reservations', function($q) {
@@ -44,6 +45,7 @@ class AnnouncementController extends Controller
                          ->where('guest_expires_at', '>', now());
                   });
             });
+            // Garder toutes les annonces, même celles avec 10 candidatures (sera géré côté frontend)
 
         // Filtre par tarif minimum
         if ($request->filled('min_rate')) {
@@ -409,6 +411,20 @@ class AnnouncementController extends Controller
             return back()->with('error', 'Vous avez déjà postulé à cette annonce.');
         }
 
+        // Vérifier si l'annonce n'a pas déjà atteint la limite de 10 candidatures
+        $applicationsCount = $announcement->applications()->count();
+        if ($applicationsCount >= 10) {
+            Log::warning('❌ LIMITE DE CANDIDATURES ATTEINTE', [
+                'announcement_id' => $announcement->id,
+                'applications_count' => $applicationsCount,
+                'limit' => 10
+            ]);
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Cette annonce a déjà reçu le nombre maximum de candidatures (10).'], 400);
+            }
+            return back()->with('error', 'Cette annonce a déjà reçu le nombre maximum de candidatures.');
+        }
+
         // Log des données reçues
         Log::info('📝 DONNÉES REÇUES', [
             'request_data' => $request->all(),
@@ -691,11 +707,11 @@ class AnnouncementController extends Controller
                     ->notify(new \App\Notifications\GuestAnnouncementCreated($announcement));
                 
                 return redirect()
-                    ->route('announcements.index')
+                    ->route('parent.announcements-reservations')
                     ->with('success', 'Votre annonce a été créée avec succès ! Vérifiez votre email pour les instructions.');
             } else {
                 return redirect()
-                    ->route('announcements.index')
+                    ->route('parent.announcements-reservations')
                     ->with('success', 'Annonce créée avec succès !');
             }
 

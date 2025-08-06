@@ -9,7 +9,7 @@
                 </div>
 
                 <!-- Statistiques -->
-                <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 lg:mb-8">
+                <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 lg:mb-8">
                     <div class="rounded-lg bg-white p-3 shadow sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
                             <div class="mb-2 flex-shrink-0 sm:mb-0">
@@ -46,19 +46,7 @@
                         </div>
                     </div>
 
-                    <div class="hidden rounded-lg bg-white p-3 shadow sm:block sm:p-6">
-                        <div class="flex flex-col sm:flex-row sm:items-center">
-                            <div class="mb-2 flex-shrink-0 sm:mb-0">
-                                <Check class="h-6 w-6 text-purple-600 sm:h-8 sm:w-8" />
-                            </div>
-                            <div class="sm:ml-4">
-                                <p class="text-xs font-medium text-gray-600 sm:text-sm">Terminées</p>
-                                <p class="text-lg font-bold text-gray-900 sm:text-2xl">{{ stats.completed_reservations }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-span-2 rounded-lg bg-white p-3 shadow sm:col-span-1 sm:p-6">
+                    <div class="rounded-lg bg-white p-3 shadow sm:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
                             <div class="mb-2 flex-shrink-0 sm:mb-0">
                                 <Euro class="h-6 w-6 text-indigo-600 sm:h-8 sm:w-8" />

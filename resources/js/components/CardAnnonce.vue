@@ -56,14 +56,22 @@
                 <span class="text-gray-400">/heure</span>
             </div>
 
-            <!-- Bouton Postuler ou message si c'est sa propre annonce -->
+            <!-- Bouton Postuler, Annonce pleine, ou message si c'est sa propre annonce -->
             <button
-                v-if="!isOwnAnnouncement"
+                v-if="!isOwnAnnouncement && !isAnnouncementFull"
                 @click="isModalOpen = true"
                 class="bg-primary hover:bg-primary rounded px-4 py-2 text-sm font-semibold text-white transition-colors sm:px-5"
             >
                 Postuler
             </button>
+
+            <div
+                v-else-if="!isOwnAnnouncement && isAnnouncementFull"
+                class="rounded bg-gray-300 px-3 py-2 text-sm font-medium text-gray-600 cursor-not-allowed"
+                title="Cette annonce a atteint le nombre maximum de candidatures"
+            >
+                Annonce pleine
+            </div>
 
             <div v-else class="rounded bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500">Votre annonce</div>
         </div>
@@ -182,6 +190,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    applicationsCount: {
+        type: Number,
+        default: 0,
+    },
 });
 
 const isModalOpen = ref(false);
@@ -193,6 +205,11 @@ const user = computed(() => (page.props as any).auth?.user);
 // Vérifier si c'est la propre annonce de l'utilisateur
 const isOwnAnnouncement = computed(() => {
     return user.value && props.parentId === user.value.id;
+});
+
+// Vérifier si l'annonce est pleine (10 candidatures ou plus)
+const isAnnouncementFull = computed(() => {
+    return props.applicationsCount >= 10;
 });
 </script>
 

@@ -18,6 +18,7 @@ interface Announcement {
     status: string;
     created_at: string;
     distance?: number; // Distance calculée côté serveur
+    applications_count: number; // Nombre de candidatures
     parent: {
         id: number;
         firstname: string;
@@ -270,6 +271,7 @@ const annonces = computed(() => {
             latitude: announcement.address.latitude,
             longitude: announcement.address.longitude,
             isMultiDay: isMultiDay, // Ajouter cette info pour la card
+            applicationsCount: announcement.applications_count, // Nombre de candidatures
         };
     });
 });

@@ -344,4 +344,18 @@ class ProfileController extends Controller
             return null;
         }
     }
+
+    public function menu()
+    {
+        $user = Auth::user()->load('roles');
+        
+        $userRoles = $user->roles()->pluck('name')->toArray();
+        $hasParentRole = in_array('parent', $userRoles);
+        $hasBabysitterRole = in_array('babysitter', $userRoles);
+
+        return Inertia::render('Profil/Menu', [
+            'hasParentRole' => $hasParentRole,
+            'hasBabysitterRole' => $hasBabysitterRole,
+        ]);
+    }
 }

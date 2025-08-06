@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
-import MobileAppDebug from '@/components/MobileAppDebug.vue';
 import MobileLoader from '@/components/MobileLoader.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { useDeviceToken } from '@/composables/useDeviceToken';
@@ -92,7 +91,7 @@ const handleLoaderComplete = () => {
 
             <!-- Main content optimisé pour l'app mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
-                <div :class="[shouldHideHeaderFooter ? 'mobile-app-container' : 'px-4 py-6 sm:px-6 lg:px-8']">
+                <div :class="[shouldHideHeaderFooter ? 'mobile-app-container pt-8' : 'px-4 py-8 sm:px-6 lg:px-8']">
                     <div :class="shouldHideHeaderFooter ? '' : 'mx-auto max-w-7xl'">
                         <slot />
                     </div>
@@ -104,8 +103,6 @@ const handleLoaderComplete = () => {
         <Footer v-if="!shouldHideHeaderFooter" />
     </div>
 
-    <!-- Debug pour l'app mobile -->
-    <MobileAppDebug />
 </template>
 
 <style scoped>
@@ -125,7 +122,8 @@ const handleLoaderComplete = () => {
 .mobile-app-container {
     width: 100vw;
     max-width: 100vw;
-    padding: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
     margin: 0;
     box-sizing: border-box;
     overflow-x: hidden;

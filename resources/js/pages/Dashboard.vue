@@ -3,7 +3,6 @@ import BabysitterDashboardContent from '@/components/dashboard/babysitter/Babysi
 import ParentDashboardContent from '@/components/dashboard/parent/ParentDashboardContent.vue';
 import Footer from '@/components/Footer.vue';
 import LandingHeader from '@/components/LandingHeader.vue';
-import MobileAppDebug from '@/components/MobileAppDebug.vue';
 import UnifiedSidebar from '@/components/sidebar/UnifiedSidebar.vue';
 import { useDeviceToken } from '@/composables/useDeviceToken';
 import { useToast } from '@/composables/useToast';
@@ -111,7 +110,7 @@ const currentContent = computed(() => {
 
             <!-- Contenu principal dynamique -->
             <main class="flex-1 pb-20 lg:pb-6">
-                <div :class="[shouldHideHeaderFooter ? 'mobile-app-container' : 'p-6']">
+                <div :class="[shouldHideHeaderFooter ? 'mobile-app-container pt-8' : 'p-8']">
                     <div :class="shouldHideHeaderFooter ? '' : 'mx-auto max-w-7xl'">
                         <component :is="currentContent" :currentMode="currentMode" v-bind="$props" />
                     </div>
@@ -123,8 +122,6 @@ const currentContent = computed(() => {
         <Footer v-if="!shouldHideHeaderFooter" />
     </div>
 
-    <!-- Debug pour l'app mobile -->
-    <MobileAppDebug />
 </template>
 
 <style scoped>
@@ -132,7 +129,8 @@ const currentContent = computed(() => {
 .mobile-app-container {
     width: 100vw;
     max-width: 100vw;
-    padding: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
     margin: 0;
     box-sizing: border-box;
     overflow-x: hidden;
