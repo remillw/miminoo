@@ -16,9 +16,10 @@ interface Props {
 
 const props = defineProps<Props>();
 const { showSuccess, showError } = useToast();
+const { isMobileApp } = useDeviceToken();
 
-// État pour la bulle d'aide
-const showChatbotBubble = ref(true);
+// État pour la bulle d'aide (seulement dans l'app mobile)
+const showChatbotBubble = ref(false);
 const showChatbot = ref(false);
 
 const name = ref('');
@@ -38,10 +39,12 @@ onMounted(() => {
         phone.value = props.userInfo.phone || '';
     }
 
-    // Laisser la bulle d'aide apparaître automatiquement après quelques secondes
-    setTimeout(() => {
-        showChatbotBubble.value = true;
-    }, 3000);
+    // Laisser la bulle d'aide apparaître automatiquement après quelques secondes SEULEMENT dans l'app mobile
+    if (isMobileApp()) {
+        setTimeout(() => {
+            showChatbotBubble.value = true;
+        }, 3000);
+    }
 });
 
 async function submitForm() {
@@ -386,6 +389,44 @@ function closeChatbotBubble() {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Bulle d'aide pour l'app mobile -->
+            <div
+                v-if="showChatbotBubble && isMobileApp()"
+                class="fixed bottom-6 right-6 z-50"
+            >
+                <div class="relative">
+                    <!-- Bulle d'aide -->
+                    <div
+                        @click="openChatbot"
+                        class="animate-bounce cursor-pointer rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-white shadow-lg hover:shadow-xl transition-shadow duration-300"
+                    >
+                        <div class="flex items-center gap-2">
+                            <div class="flex h-6 w-6 items-center justify-center">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                    />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium">Vous avez besoin d'aide ?</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Bouton fermer -->
+                    <button
+                        @click="closeChatbotBubble"
+                        class="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-colors duration-200"
+                    >
+                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </body>

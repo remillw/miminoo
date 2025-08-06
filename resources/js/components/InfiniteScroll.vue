@@ -177,7 +177,7 @@ defineExpose({
         <!-- Indicateur de chargement -->
         <div v-if="loading && !isEnd" ref="loadingIndicator" class="flex items-center justify-center py-8">
             <div class="flex items-center space-x-2 text-gray-600">
-                <div class="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500"></div>
+                <div class="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-orange-500"></div>
                 <span>{{ loadingMessage }}</span>
             </div>
         </div>

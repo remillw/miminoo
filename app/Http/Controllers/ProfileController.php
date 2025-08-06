@@ -358,4 +358,35 @@ class ProfileController extends Controller
             'hasBabysitterRole' => $hasBabysitterRole,
         ]);
     }
+
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        
+        // Vérifier si c'est une image base64 (upload personnalisé) ou un chemin (avatar prédéfini)
+        if (str_starts_with($request->avatar, 'data:image')) {
+            // C'est une image base64, la sauvegarder
+            $savedPath = $this->saveBase64Image($request->avatar, 'avatars/' . $user->id);
+            if ($savedPath) {
+                // Supprimer l'ancien avatar s'il existe et n'est pas un avatar prédéfini
+                if ($user->avatar && !str_contains($user->avatar, '/storage/avatar/')) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
+                $user->avatar = '/storage/' . $savedPath;
+            } else {
+                return redirect()->back()->with('error', 'Erreur lors de la sauvegarde de l\'image');
+            }
+        } else {
+            // C'est un avatar prédéfini, l'utiliser directement
+            $user->avatar = $request->avatar;
+        }
+        
+        $user->save();
+
+        return redirect()->back()->with('success', 'Avatar mis à jour avec succès !');
+    }
 }

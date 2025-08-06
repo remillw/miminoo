@@ -134,6 +134,12 @@ class RegisteredUserController extends Controller
                 }
             }
 
+            // Assigner un avatar aléatoire selon les rôles si pas déjà défini
+            if (!$user->avatar || $user->avatar === '/default-avatar.png') {
+                $user->avatar = $this->getRandomAvatar($request->roles);
+                $user->save();
+            }
+
             // Définir le statut : pending si babysitter inclus, sinon approved
             $status = in_array('babysitter', $request->roles) ? 'pending' : 'approved';
             $user->update(['status' => $status]);
@@ -196,5 +202,29 @@ class RegisteredUserController extends Controller
             ]);
             // Ne pas faire échouer l'inscription si l'association échoue
         }
+    }
+
+    /**
+     * Obtenir un avatar aléatoire selon les rôles de l'utilisateur
+     */
+    private function getRandomAvatar(array $roles): string
+    {
+        // Déterminer le type d'avatar selon les rôles
+        if (in_array('parent', $roles) && in_array('babysitter', $roles)) {
+            // Les deux rôles
+            $avatarNumber = rand(1, 4);
+            return "/storage/avatar/les deux/parent-babysitter-generique{$avatarNumber}.svg";
+        } elseif (in_array('parent', $roles)) {
+            // Parent uniquement
+            $avatarNumber = rand(1, 4);
+            return "/storage/avatar/parent/parent-generique{$avatarNumber}.svg";
+        } elseif (in_array('babysitter', $roles)) {
+            // Babysitter uniquement
+            $avatarNumber = rand(1, 4);
+            return "/storage/avatar/babysitter/babysitters-generique{$avatarNumber}.svg";
+        }
+
+        // Fallback sur un avatar par défaut
+        return '/default-avatar.png';
     }
 }

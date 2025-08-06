@@ -218,17 +218,13 @@
                                             <Edit class="h-4 w-4" />
                                             Modifier
                                         </button>
-                                        <button @click="viewAnnouncement(announcement)" class="action-button action-button-view">
-                                            <Eye class="h-4 w-4" />
-                                            Voir l'annonce
-                                        </button>
                                         <button
                                             v-if="canCancelAnnouncement(announcement)"
                                             @click="showCancelAnnouncementModal(announcement)"
                                             class="action-button action-button-danger"
                                         >
                                             <X class="h-4 w-4" />
-                                            Annuler l'annonce
+                                            Annuler
                                         </button>
                                     </div>
 
@@ -766,21 +762,13 @@ const confirmCancelAnnouncement = () => {
 }
 
 .action-button-edit {
-    border: 1px solid #93c5fd; /* border-blue-300 */
-    color: #1d4ed8; /* text-blue-700 */
+    border: 1px solid #FF8359;
+    color: #FF8359;
 }
 
 .action-button-edit:hover {
-    background-color: #eff6ff; /* bg-blue-50 */
-}
-
-.action-button-view {
-    border: 1px solid #d1d5db; /* border-gray-300 */
-    color: #374151; /* text-gray-700 */
-}
-
-.action-button-view:hover {
-    background-color: #f9fafb; /* bg-gray-50 */
+    background-color: #FF8359;
+    color: white;
 }
 
 .action-button-danger {

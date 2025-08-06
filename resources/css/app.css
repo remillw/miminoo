@@ -472,3 +472,33 @@ input[type='checkbox']:focus {
 .max-w-11xl {
     max-width: 120rem;
 }
+
+/* Masquer complètement la barre de progression Inertia (loader bleu) */
+#nprogress {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#nprogress .bar,
+#nprogress .peg,
+#nprogress .spinner {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Masquer aussi toute barre de progression bleue potentielle */
+.progress-bar-blue,
+.loading-bar-blue,
+[class*="progress"][class*="blue"] {
+    display: none !important;
+}
+
+/* Styles pour masquer les loaders globaux */
+.inertia-progress,
+.inertia-loader,
+[data-progress="loading"] {
+    display: none !important;
+}
