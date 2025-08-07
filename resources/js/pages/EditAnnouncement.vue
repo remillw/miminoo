@@ -130,7 +130,7 @@
                                     :key="index"
                                     class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:gap-4"
                                 >
-                                    <div class="flex-1">
+                                    <div class="flex-1 sm:max-w-xs">
                                         <label class="mb-1 block text-sm font-medium text-gray-700 sm:hidden">Prénom</label>
                                         <input
                                             v-model="child.nom"
@@ -141,7 +141,7 @@
                                         />
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <div class="flex-1 sm:w-20">
+                                        <div class="flex-1 sm:w-auto">
                                             <label class="mb-1 block text-sm font-medium text-gray-700 sm:hidden">Âge</label>
                                             <div class="flex items-center gap-2">
                                                 <input
@@ -150,12 +150,12 @@
                                                     min="1"
                                                     max="18"
                                                     placeholder="2"
-                                                    class="text-center text-sm focus:border-primary focus:ring-primary w-20 rounded-lg border border-gray-300 px-2 py-2 focus:ring-1 focus:outline-none"
+                                                    class="text-center text-sm focus:border-primary focus:ring-primary w-16 sm:w-20 rounded-lg border border-gray-300 px-2 py-2 focus:ring-1 focus:outline-none"
                                                     required
                                                 />
                                                 <select
                                                     v-model="child.unite"
-                                                    class="focus:border-primary focus:ring-primary rounded-lg border border-gray-300 px-2 py-2 text-sm focus:ring-1 focus:outline-none"
+                                                    class="focus:border-primary focus:ring-primary w-16 sm:w-auto rounded-lg border border-gray-300 px-2 py-2 text-sm focus:ring-1 focus:outline-none"
                                                 >
                                                     <option value="mois">mois</option>
                                                     <option value="ans">ans</option>
@@ -251,9 +251,12 @@ const hasParentRole = computed(() => userRoles.value.includes('parent'));
 const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
 // Séparer la date et les heures pour les inputs
-const dateOnly = ref(props.announcement.date_start.split('T')[0]);
-const timeStart = ref(props.announcement.date_start.split('T')[1]?.substring(0, 5) || '');
-const timeEnd = ref(props.announcement.date_end.split('T')[1]?.substring(0, 5) || '');
+const startDate = new Date(props.announcement.date_start);
+const endDate = new Date(props.announcement.date_end);
+
+const dateOnly = ref(startDate.toISOString().split('T')[0]);
+const timeStart = ref(startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }));
+const timeEnd = ref(endDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }));
 
 // Formulaire
 const form = useForm({
@@ -315,7 +318,7 @@ const removeChild = (index: number) => {
 
 // Soumission du formulaire
 const submit = () => {
-    form.put(`/parent/annonces/${props.announcement.id}`, {
+    form.put(route('parent.announcements.update', { announcement: props.announcement.id }), {
         onSuccess: () => {
             router.visit(route('parent.announcements-reservations'));
         },

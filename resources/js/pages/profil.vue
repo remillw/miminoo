@@ -818,30 +818,6 @@ console.log('🔍 Données utilisateur Profil:', {
                             <span class="hidden sm:inline">Vérification en cours</span>
                             <span class="sm:hidden">En cours</span>
                         </div>
-                        <Button
-                            v-else-if="verificationStatus === 'rejected'"
-                            @click="requestVerification"
-                            :disabled="isRequestingVerification"
-                            class="bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
-                        >
-                            <span class="hidden sm:inline">{{
-                                isRequestingVerification ? 'Envoi en cours...' : 'Soumettre une nouvelle demande'
-                            }}</span>
-                            <span class="sm:hidden">{{ isRequestingVerification ? 'Envoi...' : 'Nouvelle demande' }}</span>
-                        </Button>
-                        <Button
-                            v-else
-                            @click="requestVerification"
-                            :disabled="isRequestingVerification || verificationStatus === 'pending'"
-                            class="bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
-                        >
-                            <span class="hidden sm:inline">
-                                {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
-                            </span>
-                            <span class="sm:hidden">
-                                {{ isRequestingVerification ? 'Envoi...' : 'Vérification' }}
-                            </span>
-                        </Button>
                     </div>
                 </div>
             </div>

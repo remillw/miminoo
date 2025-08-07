@@ -192,9 +192,9 @@
                                                     {{ formatTime(announcement.date_end) }}
                                                 </span>
                                             </p>
-                                            <p class="flex items-center gap-1 text-xs text-gray-600 sm:text-sm">
-                                                <MapPin class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                                                <span class="truncate">{{ announcement.address.address }}, {{ announcement.address.postal_code }}</span>
+                                            <p class="flex items-start gap-1 text-xs text-gray-600 sm:text-sm">
+                                                <MapPin class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" />
+                                                <span class="break-words">{{ announcement.address.address }}, {{ announcement.address.postal_code }}</span>
                                             </p>
                                         </div>
                                         <div class="flex flex-col items-start gap-2 sm:items-end sm:flex-shrink-0">

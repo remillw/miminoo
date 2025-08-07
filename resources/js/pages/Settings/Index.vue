@@ -73,7 +73,7 @@
                                     <p class="text-xs text-gray-500">Messages et réservations</p>
                                 </div>
                             </div>
-                            <Switch v-model:checked="notificationForm.email_notifications" @update:checked="updateNotifications" />
+                            <Switch v-model:checked="notificationForm.email_notifications" />
                         </div>
 
                         <!-- Push -->
@@ -85,20 +85,16 @@
                                     <p class="text-xs text-gray-500">Alertes en temps réel</p>
                                 </div>
                             </div>
-                            <Switch v-model:checked="notificationForm.push_notifications" @update:checked="updateNotifications" />
+                            <Switch v-model:checked="notificationForm.push_notifications" />
                         </div>
 
-                        <!-- SMS -->
-                        <div class="flex items-center justify-between rounded-lg bg-gray-50 p-3">
-                            <div class="flex items-center">
-                                <MessageSquare class="mr-3 h-5 w-5 text-gray-500" />
-                                <div>
-                                    <h3 class="text-sm font-medium text-gray-900">SMS</h3>
-                                    <p class="text-xs text-gray-500">Alertes importantes</p>
-                                </div>
-                            </div>
-                            <Switch v-model:checked="notificationForm.sms_notifications" @update:checked="updateNotifications" />
+                        <!-- Bouton de sauvegarde -->
+                        <div class="mt-4 flex justify-end">
+                            <Button @click="updateNotifications" class="bg-primary text-white hover:bg-orange-500">
+                                Sauvegarder les préférences
+                            </Button>
                         </div>
+
                     </div>
                 </div>
 
@@ -318,7 +314,6 @@ import {
     CheckCircle,
     Loader2,
     Mail,
-    MessageSquare,
     Shield,
     Smartphone,
     Trash2,
