@@ -289,4 +289,12 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->reviews()->count();
     }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new \App\Notifications\VerifyEmail);
+    }
 }

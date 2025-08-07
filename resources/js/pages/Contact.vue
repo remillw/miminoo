@@ -39,11 +39,11 @@ onMounted(() => {
         phone.value = props.userInfo.phone || '';
     }
 
-    // Laisser la bulle d'aide apparaître automatiquement après quelques secondes SEULEMENT dans l'app mobile
+    // Ouvrir directement le chatbot sur mobile après un court délai
     if (isMobileApp()) {
         setTimeout(() => {
-            showChatbotBubble.value = true;
-        }, 3000);
+            openChatbot();
+        }, 1500);
     }
 });
 

@@ -77,26 +77,28 @@ class SettingsController extends Controller
      */
     public function updateNotifications(Request $request)
     {
-        $request->validate([
-            'email_notifications' => 'boolean',
-            'push_notifications' => 'boolean',
-            'sms_notifications' => 'boolean',
-        ]);
+        // Debug les données reçues
+        Log::info('Données notifications reçues:', $request->all());
 
         $user = $request->user();
 
         try {
+            // Convertir explicitement en booléens
+            $emailNotifications = filter_var($request->input('email_notifications', false), FILTER_VALIDATE_BOOLEAN);
+            $pushNotifications = filter_var($request->input('push_notifications', false), FILTER_VALIDATE_BOOLEAN);
+            $smsNotifications = filter_var($request->input('sms_notifications', false), FILTER_VALIDATE_BOOLEAN);
+
             $user->update([
-                'email_notifications' => $request->email_notifications,
-                'push_notifications' => $request->push_notifications,
-                'sms_notifications' => $request->sms_notifications,
+                'email_notifications' => $emailNotifications,
+                'push_notifications' => $pushNotifications,
+                'sms_notifications' => $smsNotifications,
             ]);
 
             Log::info('Préférences de notifications mises à jour', [
                 'user_id' => $user->id,
-                'email' => $request->email_notifications,
-                'push' => $request->push_notifications,
-                'sms' => $request->sms_notifications,
+                'email' => $emailNotifications,
+                'push' => $pushNotifications,
+                'sms' => $smsNotifications,
             ]);
 
             return back()->with('success', 'Préférences de notifications mises à jour avec succès');

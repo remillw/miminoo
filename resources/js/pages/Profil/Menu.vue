@@ -210,6 +210,7 @@
 <script setup lang="ts">
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import {
     BookOpen,
     Briefcase,
@@ -362,6 +363,6 @@ const uploadCustomAvatar = () => {
 };
 
 const logout = () => {
-    router.post('/logout');
+    router.post(route('deconnexion'));
 };
 </script>

@@ -1222,10 +1222,13 @@ class AnnouncementController extends Controller
 
         // Vérifier que l'annonce peut être annulée
         if ($announcement->status !== 'active') {
-            return response()->json([
-                'success' => false,
-                'error' => 'Cette annonce ne peut plus être annulée'
-            ], 400);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Cette annonce ne peut plus être annulée'
+                ], 400);
+            }
+            return back()->with('error', 'Cette annonce ne peut plus être annulée');
         }
 
         $validated = $request->validate([
@@ -1340,17 +1343,21 @@ class AnnouncementController extends Controller
                 'reservations_refunded' => count($refundedReservations)
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Annonce annulée avec succès',
-                'announcement' => [
-                    'id' => $announcement->id,
-                    'status' => $announcement->status,
-                    'cancelled_at' => $announcement->cancelled_at->toISOString(),
-                    'applications_archived' => count($archivedApplications),
-                    'reservations_refunded' => count($refundedReservations)
-                ]
-            ]);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Annonce annulée avec succès',
+                    'announcement' => [
+                        'id' => $announcement->id,
+                        'status' => $announcement->status,
+                        'cancelled_at' => $announcement->cancelled_at->toISOString(),
+                        'applications_archived' => count($archivedApplications),
+                        'reservations_refunded' => count($refundedReservations)
+                    ]
+                ]);
+            }
+            
+            return back()->with('success', 'Annonce annulée avec succès');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1360,10 +1367,14 @@ class AnnouncementController extends Controller
                 'error' => $e->getMessage()
             ]);
 
-            return response()->json([
-                'success' => false,
-                'error' => 'Erreur lors de l\'annulation de l\'annonce'
-            ], 500);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Erreur lors de l\'annulation de l\'annonce'
+                ], 500);
+            }
+            
+            return back()->with('error', 'Erreur lors de l\'annulation de l\'annonce');
         }
     }
 } 

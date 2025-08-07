@@ -6,7 +6,7 @@
                 <div class="mb-8">
                     <div class="mb-4 flex items-center gap-4">
                         <button
-                            @click="() => router.visit('/parent/annonces-et-reservations')"
+                            @click="() => router.visit(route('parent.announcements-reservations'))"
                             class="flex items-center gap-2 text-gray-600 hover:text-gray-900"
                         >
                             <ArrowLeft class="h-5 w-5" />
@@ -128,9 +128,10 @@
                                 <div
                                     v-for="(child, index) in form.children"
                                     :key="index"
-                                    class="flex items-center gap-4 rounded-lg border border-gray-200 p-4"
+                                    class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center sm:gap-4"
                                 >
                                     <div class="flex-1">
+                                        <label class="mb-1 block text-sm font-medium text-gray-700 sm:hidden">Prénom</label>
                                         <input
                                             v-model="child.nom"
                                             type="text"
@@ -140,33 +141,37 @@
                                         />
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <div class="w-16">
-                                            <input
-                                                v-model="child.age"
-                                                type="number"
-                                                min="1"
-                                                max="18"
-                                                placeholder="Âge"
-                                                class="text-center text-sm focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 px-2 py-2 focus:ring-1 focus:outline-none"
-                                                required
-                                            />
+                                        <div class="flex-1 sm:w-20">
+                                            <label class="mb-1 block text-sm font-medium text-gray-700 sm:hidden">Âge</label>
+                                            <div class="flex items-center gap-2">
+                                                <input
+                                                    v-model="child.age"
+                                                    type="number"
+                                                    min="1"
+                                                    max="18"
+                                                    placeholder="2"
+                                                    class="text-center text-sm focus:border-primary focus:ring-primary w-20 rounded-lg border border-gray-300 px-2 py-2 focus:ring-1 focus:outline-none"
+                                                    required
+                                                />
+                                                <select
+                                                    v-model="child.unite"
+                                                    class="focus:border-primary focus:ring-primary rounded-lg border border-gray-300 px-2 py-2 text-sm focus:ring-1 focus:outline-none"
+                                                >
+                                                    <option value="mois">mois</option>
+                                                    <option value="ans">ans</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <select
-                                            v-model="child.unite"
-                                            class="focus:border-primary focus:ring-primary rounded-lg border border-gray-300 px-2 py-2 text-sm focus:ring-1 focus:outline-none"
+                                        <button
+                                            v-if="form.children.length > 1"
+                                            @click.prevent="removeChild(index)"
+                                            type="button"
+                                            class="mt-6 text-red-600 hover:text-red-800 sm:mt-0"
+                                            title="Supprimer cet enfant"
                                         >
-                                            <option value="mois">mois</option>
-                                            <option value="ans">ans</option>
-                                        </select>
+                                            <X class="h-5 w-5" />
+                                        </button>
                                     </div>
-                                    <button
-                                        v-if="form.children.length > 1"
-                                        @click.prevent="removeChild(index)"
-                                        type="button"
-                                        class="text-red-600 hover:text-red-800"
-                                    >
-                                        <X class="h-5 w-5" />
-                                    </button>
                                 </div>
                             </div>
                             <button @click.prevent="addChild" type="button" class="text-primary hover:text-primary/80 mt-3 flex items-center gap-2">
@@ -178,7 +183,7 @@
                         <!-- Actions -->
                         <div class="flex items-center justify-end gap-4 border-t pt-6">
                             <button
-                                @click.prevent="() => router.visit('/parent/annonces-et-reservations')"
+                                @click.prevent="() => router.visit(route('parent.announcements-reservations'))"
                                 type="button"
                                 class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                             >
@@ -206,6 +211,7 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, Plus, Save, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Child {
     nom: string;
@@ -311,7 +317,7 @@ const removeChild = (index: number) => {
 const submit = () => {
     form.put(`/parent/annonces/${props.announcement.id}`, {
         onSuccess: () => {
-            router.visit('/parent/annonces-et-reservations');
+            router.visit(route('parent.announcements-reservations'));
         },
     });
 };

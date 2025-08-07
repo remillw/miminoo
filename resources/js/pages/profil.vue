@@ -455,6 +455,15 @@ const submitForm = async () => {
             Object.assign(formData, babysitterData);
         }
 
+        // Assurons-nous que les enfants sont dans le bon format
+        if (formData.children && Array.isArray(formData.children)) {
+            formData.children = formData.children.map(child => ({
+                nom: String(child.nom || ''),
+                age: String(child.age || ''),
+                unite: String(child.unite || 'ans')
+            }));
+        }
+
         console.log('📤 Données envoyées:', formData);
 
         await router.post(

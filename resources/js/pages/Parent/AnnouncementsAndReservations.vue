@@ -180,28 +180,30 @@
                             >
                                 <div class="p-4 lg:p-6">
                                     <!-- En-tête de l'annonce -->
-                                    <div class="mb-4 flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <h3 class="text-lg font-semibold text-gray-900">
+                                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
                                                 {{ announcement.title }}
                                             </h3>
-                                            <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
-                                                <Calendar class="h-4 w-4" />
-                                                {{ formatDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
-                                                {{ formatTime(announcement.date_end) }}
+                                            <p class="mt-1 flex items-center gap-1 text-xs text-gray-600 sm:text-sm">
+                                                <Calendar class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                                <span class="truncate">
+                                                    {{ formatDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
+                                                    {{ formatTime(announcement.date_end) }}
+                                                </span>
                                             </p>
-                                            <p class="flex items-center gap-1 text-sm text-gray-600">
-                                                <MapPin class="h-4 w-4" />
-                                                {{ announcement.address.address }}, {{ announcement.address.postal_code }}
+                                            <p class="flex items-center gap-1 text-xs text-gray-600 sm:text-sm">
+                                                <MapPin class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                                <span class="truncate">{{ announcement.address.address }}, {{ announcement.address.postal_code }}</span>
                                             </p>
                                         </div>
-                                        <div class="flex items-center gap-3">
-                                            <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status).badge">
+                                        <div class="flex flex-col items-start gap-2 sm:items-end sm:flex-shrink-0">
+                                            <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status).badge" class="text-xs">
                                                 {{ getStatusText('announcement', announcement.status) }}
                                             </Badge>
-                                            <div class="text-right">
-                                                <div class="text-primary text-lg font-bold">{{ announcement.hourly_rate }}€/h</div>
-                                                <div class="text-sm text-gray-600">
+                                            <div class="text-left sm:text-right">
+                                                <div class="text-primary text-base font-bold sm:text-lg">{{ announcement.hourly_rate }}€/h</div>
+                                                <div class="text-xs text-gray-600 sm:text-sm">
                                                     {{ announcement.estimated_duration }}h • {{ announcement.estimated_total }}€ total
                                                 </div>
                                             </div>
@@ -209,21 +211,22 @@
                                     </div>
 
                                     <!-- Actions de l'annonce -->
-                                    <div class="mb-4 flex items-center gap-3">
+                                    <div class="mb-4 flex flex-wrap items-center gap-2">
                                         <button
                                             v-if="canEditAnnouncement(announcement)"
                                             @click="editAnnouncement(announcement.id)"
                                             class="action-button action-button-edit"
                                         >
-                                            <Edit class="h-4 w-4" />
-                                            Modifier
+                                            <Edit class="h-3 w-3 sm:h-4 sm:w-4" />
+                                            <span class="hidden sm:inline">Modifier</span>
+                                            <span class="sm:hidden">Modif.</span>
                                         </button>
                                         <button
                                             v-if="canCancelAnnouncement(announcement)"
                                             @click="showCancelAnnouncementModal(announcement)"
                                             class="action-button action-button-danger"
                                         >
-                                            <X class="h-4 w-4" />
+                                            <X class="h-3 w-3 sm:h-4 sm:w-4" />
                                             Annuler
                                         </button>
                                     </div>
@@ -240,27 +243,28 @@
                                             <div
                                                 v-for="application in announcement.applications"
                                                 :key="application.id"
-                                                class="flex items-center justify-between rounded-lg bg-gray-50 p-3"
+                                                class="flex flex-col gap-3 rounded-lg bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between"
                                             >
                                                 <div class="flex items-center gap-3">
                                                     <img
                                                         :src="application.babysitter.avatar || '/default-avatar.png'"
                                                         :alt="application.babysitter.name"
-                                                        class="h-10 w-10 rounded-full object-cover"
+                                                        class="h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10"
                                                     />
-                                                    <div>
-                                                        <p class="font-medium text-gray-900">{{ application.babysitter.name }}</p>
-                                                        <p class="text-sm text-gray-600">
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="text-sm font-medium text-gray-900 sm:text-base">{{ application.babysitter.name }}</p>
+                                                        <p class="text-xs text-gray-600 sm:text-sm">
                                                             Propose {{ application.counter_rate || application.proposed_rate }}€/h
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div class="flex items-center gap-3">
-                                                    <Badge variant="outline" :class="getApplicationStatusColor(application.status).badge">
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <Badge variant="outline" :class="getApplicationStatusColor(application.status).badge" class="text-xs">
                                                         {{ getStatusText('application', application.status) }}
                                                     </Badge>
-                                                    <button @click="viewMessaging" class="text-primary hover:text-primary/80 text-sm font-medium">
-                                                        Voir la conversation
+                                                    <button @click="viewMessaging" class="text-primary hover:text-primary/80 text-xs font-medium sm:text-sm">
+                                                        <span class="hidden sm:inline">Voir la conversation</span>
+                                                        <span class="sm:hidden">Message</span>
                                                     </button>
                                                 </div>
                                             </div>
