@@ -58,10 +58,11 @@ onMounted(() => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
 
     // Vérifier si on doit afficher le toast de vérification
-    if (props.showVerificationToast) {
-        console.log('🔒 Dashboard: Utilisateur redirigé depuis paiements - Affichage toast de vérification');
-        showVerificationRequired();
-    }
+    // Toast de vérification désactivé sur demande de l'utilisateur
+    // if (props.showVerificationToast) {
+    //     console.log('🔒 Dashboard: Utilisateur redirigé depuis paiements - Affichage toast de vérification');
+    //     showVerificationRequired();
+    // }
 
     // Détection mobile
     isMobileAppDetected.value = isMobileApp();

@@ -60,7 +60,7 @@
             <button
                 v-if="!isOwnAnnouncement && !isAnnouncementFull"
                 @click="isModalOpen = true"
-                class="bg-primary hover:bg-primary rounded px-4 py-2 text-sm font-semibold text-white transition-colors sm:px-5"
+                class="bg-primary hover:bg-primary rounded px-4 py-2 text-sm font-semibold text-white transition-colors sm:px-5 cursor-pointer"
             >
                 Postuler
             </button>

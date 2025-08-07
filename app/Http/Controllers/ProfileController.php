@@ -252,8 +252,8 @@ class ProfileController extends Controller
             }
             
             // Gestion des photos supplémentaires
-            if ($request->has('profile_photos')) {
-                // Supprimer les anciennes photos s'il y en a
+            if ($request->has('profile_photos') && !empty($request->profile_photos)) {
+                // Ne supprimer les anciennes photos QUE si on en envoie de nouvelles
                 $babysitterProfile = $user->babysitterProfile;
                 if ($babysitterProfile && $babysitterProfile->profile_photos) {
                     foreach ($babysitterProfile->profile_photos as $oldPhoto) {

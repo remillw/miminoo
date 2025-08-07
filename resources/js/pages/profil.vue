@@ -136,12 +136,21 @@ const formatDateForInput = (dateString: string | null | undefined) => {
     if (!dateString) return '';
 
     try {
-        // Si c'est déjà un objet date
+        // Si c'est déjà au format YYYY-MM-DD, le retourner tel quel
+        if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            return dateString;
+        }
+
+        // Créer un objet date et utiliser les méthodes locales pour éviter les problèmes de fuseau horaire
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '';
 
-        // Retourner au format YYYY-MM-DD pour l'input date
-        return date.toISOString().split('T')[0];
+        // Utiliser getFullYear, getMonth, getDate pour éviter les décalages UTC
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
     } catch (error) {
         console.error('Erreur format date:', error);
         return '';
@@ -477,7 +486,8 @@ const submitForm = async () => {
                 onSuccess: () => {
                     showSuccess('Profil mis à jour avec succès !');
                     isEditing.value = false;
-                    avatarPreview.value = ''; // Réinitialiser l'aperçu
+                    // Ne pas réinitialiser l'aperçu pour garder la photo visible
+                    // avatarPreview.value = ''; // Réinitialiser l'aperçu
                 },
                 onError: (errors) => {
                     console.error('❌ Erreurs de validation:', errors);

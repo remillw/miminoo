@@ -633,13 +633,14 @@ onMounted(() => {
     // Si on arrive ici, c'est que la babysitter est vérifiée
 
     // Vérifier le statut toutes les 30 secondes si on est en pending
-    const interval = setInterval(() => {
-        if (currentStatus.value === 'pending') {
-            refreshAccountStatus();
-        } else {
-            clearInterval(interval);
-        }
-    }, 30000);
+    // Supprimé pour éviter l'affichage automatique de 'status: no account'
+    // const interval = setInterval(() => {
+    //     if (currentStatus.value === 'pending') {
+    //         refreshAccountStatus();
+    //     } else {
+    //         clearInterval(interval);
+    //     }
+    // }, 30000);
 
     // Détecter si l'utilisateur revient d'une vérification Stripe
     if (urlParams.get('verification') === 'completed') {

@@ -314,7 +314,7 @@ const addChild = () => {
 
 const removeChild = (index: number) => {
     form.children.splice(index, 1);
-};
+};  
 
 // Soumission du formulaire
 const submit = () => {
@@ -325,4 +325,3 @@ const submit = () => {
     });
 };
 </script>
-    
