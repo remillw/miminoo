@@ -39,6 +39,7 @@ const documentUploadRequired = ref(false);
 const uploadedDocuments = ref<{ front?: File; back?: File }>({});
 const showDocumentUpload = ref(false);
 const isDocumentUploadComplete = ref(false);
+const pendingDocuments = ref<File[]>([]);
 
 // Stripe.js
 let stripe: any = null;
@@ -442,7 +443,7 @@ const isIbanValid = computed(() => {
 
 // Validation du téléphone français
 const isPhoneValid = computed(() => {
-    if (!formData.phone) return true; // Optionnel
+    if (!formData.phone) return false; // Obligatoire maintenant
 
     const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
 
@@ -677,16 +678,17 @@ const toggleDocumentUpload = () => {
                     </div>
 
                     <div>
-                        <Label for="phone">Téléphone (optionnel)</Label>
+                        <Label for="phone">Téléphone *</Label>
                         <Input
                             id="phone"
                             v-model="formData.phone"
                             type="tel"
                             placeholder="06 12 34 56 78 ou +33 6 12 34 56 78"
                             :class="!isPhoneValid ? 'border-red-500' : ''"
+                            required
                         />
                         <p v-if="!isPhoneValid" class="mt-1 text-sm text-red-600">Format de téléphone invalide (ex: 06 12 34 56 78)</p>
-                        <p v-else class="mt-1 text-xs text-gray-500">Format français accepté : 06 12 34 56 78</p>
+                        <p v-else class="mt-1 text-xs text-gray-500">Requis par Stripe - Format français accepté : 06 12 34 56 78</p>
                     </div>
 
                     <div>

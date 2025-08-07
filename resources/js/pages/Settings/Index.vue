@@ -111,8 +111,8 @@
                         </div>
                     </div>
                     <div class="space-y-4 p-4">
-                        <!-- Comptes sociaux -->
-                        <div>
+                        <!-- Comptes sociaux - seulement si l'utilisateur a un compte Google -->
+                        <div v-if="user.google_id">
                             <h3 class="mb-3 text-sm font-medium text-gray-900">Comptes connectés</h3>
                             <div class="space-y-2">
                                 <!-- Google -->
