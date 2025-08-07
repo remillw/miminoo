@@ -73,7 +73,7 @@
                                     <p class="text-xs text-gray-500">Messages et réservations</p>
                                 </div>
                             </div>
-                            <Switch v-model:checked="notificationForm.email_notifications" @update:checked="updateNotifications" />
+                            <Switch v-model:checked="notificationForm.email_notifications" />
                         </div>
 
                         <!-- Push -->
@@ -85,7 +85,7 @@
                                     <p class="text-xs text-gray-500">Alertes en temps réel</p>
                                 </div>
                             </div>
-                            <Switch v-model:checked="notificationForm.push_notifications" @update:checked="updateNotifications" />
+                            <Switch v-model:checked="notificationForm.push_notifications" />
                         </div>
 
 
@@ -289,7 +289,7 @@
 import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
 // UI Components
@@ -353,6 +353,31 @@ const hasBabysitterRole = computed(() => props.has_babysitter_role);
 
 // États des formulaires
 const notificationForm = reactive({ ...props.notification_settings });
+
+// Watchers pour détecter les changements des switches et déclencher la sauvegarde
+watch(() => notificationForm.email_notifications, (newValue, oldValue) => {
+    // Ne pas déclencher lors de l'initialisation
+    if (oldValue !== undefined && newValue !== oldValue) {
+        console.log('Email notifications changed:', { newValue, oldValue });
+        updateNotifications();
+    }
+});
+
+watch(() => notificationForm.push_notifications, (newValue, oldValue) => {
+    // Ne pas déclencher lors de l'initialisation
+    if (oldValue !== undefined && newValue !== oldValue) {
+        console.log('Push notifications changed:', { newValue, oldValue });
+        updateNotifications();
+    }
+});
+
+watch(() => notificationForm.sms_notifications, (newValue, oldValue) => {
+    // Ne pas déclencher lors de l'initialisation
+    if (oldValue !== undefined && newValue !== oldValue) {
+        console.log('SMS notifications changed:', { newValue, oldValue });
+        updateNotifications();
+    }
+});
 const passwordForm = reactive({
     current_password: '',
     password: '',
@@ -432,9 +457,11 @@ const handlePhotoUpload = async (event: Event) => {
 
 // Méthodes
 const updateNotifications = () => {
+    console.log('🔄 Updating notifications:', notificationForm);
     router.post(route('settings.notifications'), notificationForm, {
         preserveState: true,
         onSuccess: (page: any) => {
+            console.log('✅ Notifications updated successfully');
             handleApiResponse(page, 'Préférences de notifications mises à jour');
         },
         onError: (errors: any) => {
