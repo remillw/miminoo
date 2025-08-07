@@ -316,21 +316,11 @@ const removeChild = (index: number) => {
     form.children.splice(index, 1);
 };  
 
-// Soumission du formulaire  
+// Soumission du formulaire
 const submit = () => {
-    console.log('📝 Submitting form with data:', form.data());
-    console.log('🎯 Using route:', route('parent.announcements.update', { announcement: props.announcement.id }));
-    
-    // Essayons form.put() avec des options explicites
     form.put(route('parent.announcements.update', { announcement: props.announcement.id }), {
-        preserveState: true,
-        forceFormData: true, // Force l'utilisation de FormData
         onSuccess: () => {
-            console.log('✅ Update successful');
             router.visit(route('parent.announcements-reservations'));
-        },
-        onError: (errors) => {
-            console.error('❌ Update failed:', errors);
         },
     });
 };

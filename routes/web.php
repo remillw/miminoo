@@ -236,7 +236,7 @@ Route::get('annonce/{slug}', [AnnouncementController::class, 'show'])->name('ann
 // Routes d'édition d'annonce pour les parents (avec préfixe parent pour éviter les conflits)
 Route::middleware(['auth'])->prefix('parent')->group(function () {
     Route::get('/annonces/{announcement}/modifier', [AnnouncementController::class, 'edit'])->name('parent.announcements.edit');
-    Route::put('/annonces/{announcement}', [AnnouncementController::class, 'update'])->name('parent.announcements.update');
+    Route::put('/modifier-annonce/{announcement}', [AnnouncementController::class, 'update'])->name('parent.announcements.update');
 });
 
 
