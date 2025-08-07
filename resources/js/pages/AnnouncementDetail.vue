@@ -342,7 +342,7 @@ const formatMemberSince = (dateString: string) => {
                             <div v-if="isFuture" class="mt-6">
                                 <button
                                     @click="isModalOpen = true"
-                                    class="bg-primary-600 hover:bg-primary-700 w-full transform rounded-xl px-6 py-4 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                    class="bg-primary-600 hover:bg-primary-700 w-full transform rounded-xl px-6 py-4 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                                 >
                                     Postuler à cette annonce
                                 </button>

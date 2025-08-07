@@ -318,7 +318,8 @@ const removeChild = (index: number) => {
 
 // Soumission du formulaire
 const submit = () => {
-form.put(`/parent/annonces/${props.announcement.id}`, {        onSuccess: () => {
+    form.put(route('parent.announcements.update', { announcement: props.announcement.id }), {
+        onSuccess: () => {
             router.visit(route('parent.announcements-reservations'));
         },
     });
