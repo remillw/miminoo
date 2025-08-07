@@ -1177,4 +1177,64 @@ class StripeController extends Controller
         }
     }
 
+    /**
+     * Met à jour les informations générales d'un compte Stripe Connect
+     * Utilisé pour modifier les données personnelles et bancaires
+     */
+    public function updateAccount(Request $request, $stripeAccountId)
+    {
+        $user = $request->user();
+        
+        // Validation
+        $request->validate([
+            'account_token' => 'required|string',
+            'iban' => 'nullable|string',
+            'account_holder_name' => 'nullable|string',
+        ]);
+        
+        // Vérifier que l'utilisateur a un compte Stripe Connect
+        if (!$user->stripe_account_id || $user->stripe_account_id !== $stripeAccountId) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Compte Stripe Connect non trouvé ou non autorisé.'
+            ], 400);
+        }
+        
+        try {
+            // Mettre à jour le compte avec le token
+            $result = $this->stripeService->updateAccountGeneralInfo(
+                $user,
+                $request->input('account_token'),
+                $request->input('iban'),
+                $request->input('account_holder_name')
+            );
+            
+            Log::info('✅ Informations du compte Stripe mises à jour', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'token_id' => substr($request->input('account_token'), 0, 10) . '...',
+                'has_iban_update' => !empty($request->input('iban'))
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Informations du compte mises à jour avec succès !',
+                'data' => $result
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la mise à jour des informations du compte', [
+                'user_id' => $user->id,
+                'stripe_account_id' => $user->stripe_account_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la mise à jour : ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 } 

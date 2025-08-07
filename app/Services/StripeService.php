@@ -2550,4 +2550,82 @@ class StripeService
             throw $e;
         }
     }
+
+    /**
+     * Met à jour les informations générales d'un compte Stripe Connect
+     * Utilisé pour modifier les données personnelles et bancaires
+     */
+    public function updateAccountGeneralInfo(User $user, string $accountToken, ?string $iban = null, ?string $accountHolderName = null)
+    {
+        try {
+            if (!$user->stripe_account_id) {
+                throw new \Exception('Aucun compte Stripe Connect trouvé');
+            }
+
+            Log::info('🔄 Mise à jour des informations générales du compte Stripe', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'has_iban_update' => !empty($iban),
+                'token_prefix' => substr($accountToken, 0, 20) . '...'
+            ]);
+
+            // Préparer les données de mise à jour
+            $updateData = ['account_token' => $accountToken];
+
+            // Ajouter le compte bancaire si IBAN fourni
+            if (!empty($iban) && !empty($accountHolderName)) {
+                Log::info('💳 Mise à jour du compte bancaire', [
+                    'user_id' => $user->id,
+                    'account_id' => $user->stripe_account_id,
+                    'iban_prefix' => substr($iban, 0, 8) . '...'
+                ]);
+
+                // Créer un external account avec l'IBAN
+                $updateData['external_account'] = [
+                    'object' => 'bank_account',
+                    'country' => 'FR',
+                    'currency' => 'eur',
+                    'account_number' => $iban,
+                    'account_holder_name' => $accountHolderName,
+                    'account_holder_type' => 'individual',
+                ];
+            }
+
+            // Mettre à jour le compte avec le token et éventuellement le nouveau compte bancaire
+            $account = $this->stripe->accounts->update(
+                $user->stripe_account_id,
+                $updateData
+            );
+
+            Log::info('✅ Informations générales du compte mises à jour', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id,
+                'verification_status' => $account->individual->verification->status ?? 'unknown',
+                'requirements_due' => $account->requirements->currently_due ?? [],
+                'requirements_pending' => $account->requirements->pending_verification ?? [],
+                'external_accounts_count' => $account->external_accounts->total_count ?? 0
+            ]);
+
+            return [
+                'account_id' => $user->stripe_account_id,
+                'verification_status' => $account->individual->verification->status ?? 'pending',
+                'requirements' => [
+                    'currently_due' => $account->requirements->currently_due ?? [],
+                    'eventually_due' => $account->requirements->eventually_due ?? [],
+                    'pending_verification' => $account->requirements->pending_verification ?? [],
+                ],
+                'external_accounts' => $account->external_accounts->total_count ?? 0,
+                'updated_at' => now()->toISOString()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('❌ Erreur lors de la mise à jour des informations générales du compte', [
+                'user_id' => $user->id,
+                'account_id' => $user->stripe_account_id ?? 'N/A',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
 } 

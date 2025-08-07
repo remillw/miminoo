@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StripeAccountEditForm from '@/components/StripeAccountEditForm.vue';
 import StripeOnboardingForm from '@/components/StripeOnboardingForm.vue';
 import StripeServerUpload from '@/components/StripeServerUpload.vue';
 import { Badge } from '@/components/ui/badge';
@@ -150,7 +151,7 @@ const props = defineProps<Props>();
 
 // Composables
 const { getFundsStatusColor, getPayoutStatusColor, getStatusText } = useStatusColors();
-const { showVerificationRequired, handleAuthError, showWarning } = useToast();
+const { showVerificationRequired, handleAuthError, showWarning, showSuccess, showError, handleApiResponse } = useToast();
 
 const isLoading = ref(false);
 const currentStatus = ref(props.accountStatus);
@@ -160,6 +161,9 @@ const isRefreshing = ref(false);
 // Variables pour l'upload de documents (nouveau système)
 const showUploadForm = ref(false);
 const isDocumentUploadComplete = ref(false);
+
+// Variable pour afficher le formulaire d'édition
+const showEditForm = ref(false);
 
 // États réactifs pour la gestion des virements
 const transferSettings = ref({
@@ -550,11 +554,13 @@ const updateTransferSettings = () => {
     };
 
     router.post('/babysitter/paiements/configure-schedule', payload, {
-        onSuccess: () => {
-            console.log('✅ Configuration des virements mise à jour');
+        preserveState: true,
+        onSuccess: (page: any) => {
+            handleApiResponse(page, 'Configuration des virements mise à jour avec succès');
         },
-        onError: (errors) => {
+        onError: (errors: any) => {
             console.error('❌ Erreur configuration virements:', errors);
+            showError('Erreur', 'Impossible de mettre à jour la configuration des virements');
         },
     });
 };
@@ -613,6 +619,10 @@ const handleUploadError = (error) => {
 
 const toggleUploadForm = () => {
     showUploadForm.value = !showUploadForm.value;
+};
+
+const toggleEditForm = () => {
+    showEditForm.value = !showEditForm.value;
 };
 
 onMounted(() => {
@@ -734,9 +744,6 @@ const formatAmount = (amount: number) => {
                                 <component :is="connectAccountStatus.icon" class="mr-1 h-3 w-3" />
                                 {{ connectAccountStatus.label }}
                             </Badge>
-                            <Button variant="ghost" size="sm" @click="refreshAccountStatus" :disabled="isRefreshing">
-                                <RefreshCw :class="['h-4 w-4', isRefreshing && 'animate-spin']" />
-                            </Button>
                         </div>
                     </div>
                 </CardHeader>
@@ -839,11 +846,27 @@ const formatAmount = (amount: number) => {
                     <!-- Compte configuré -->
                     <div v-else-if="connectAccountStatus.step === 'completed'" class="space-y-4">
                         <div class="rounded-lg border border-green-200 bg-green-50 p-4">
-                            <div class="flex items-center">
-                                <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
-                                <span class="text-sm font-medium text-green-800">Compte Stripe Connect configuré !</span>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="flex items-center">
+                                        <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
+                                        <span class="text-sm font-medium text-green-800">Compte Stripe Connect configuré !</span>
+                                    </div>
+                                    <p class="mt-1 text-sm text-green-700">Votre compte est prêt à recevoir des paiements.</p>
+                                </div>
+                                <Button @click="toggleEditForm" variant="outline" size="sm">
+                                    {{ showEditForm ? 'Masquer l\'édition' : 'Modifier le compte' }}
+                                </Button>
                             </div>
-                            <p class="mt-1 text-sm text-green-700">Votre compte est prêt à recevoir des paiements.</p>
+                        </div>
+
+                        <!-- Formulaire d'édition du compte -->
+                        <div v-if="showEditForm && accountDetails">
+                            <StripeAccountEditForm
+                                :account-details="accountDetails"
+                                :stripe-publishable-key="stripePublishableKey"
+                                :google-places-api-key="googlePlacesApiKey"
+                            />
                         </div>
 
                         <!-- Solde -->

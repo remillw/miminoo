@@ -40,6 +40,7 @@ const uploadedDocuments = ref<{ front?: File; back?: File }>({});
 const showDocumentUpload = ref(false);
 const isDocumentUploadComplete = ref(false);
 const pendingDocuments = ref<File[]>([]);
+const hasInteractedWithPhone = ref(false);
 
 // Stripe.js
 let stripe: any = null;
@@ -407,7 +408,12 @@ const initAutocomplete = async () => {
                     if (types.includes('postal_code')) {
                         formData.address_postal_code = component.long_name;
                     }
-                    if (types.includes('locality') || types.includes('administrative_area_level_2')) {
+                    // Priorité : locality (ville) > sublocality (arrondissement) > administrative_area_level_2 (département)
+                    if (types.includes('locality')) {
+                        formData.address_city = component.long_name;
+                    } else if (!formData.address_city && types.includes('sublocality')) {
+                        formData.address_city = component.long_name;
+                    } else if (!formData.address_city && types.includes('administrative_area_level_2')) {
                         formData.address_city = component.long_name;
                     }
                 });
@@ -454,6 +460,11 @@ const isPhoneValid = computed(() => {
         (cleanPhone.startsWith('33') && cleanPhone.length === 11) ||
         formData.phone.startsWith('+33')
     );
+});
+
+// Afficher l'erreur seulement si l'utilisateur a interagi avec le champ et qu'il est invalide
+const shouldShowPhoneError = computed(() => {
+    return hasInteractedWithPhone.value && !isPhoneValid.value;
 });
 
 // Fonction pour vider l'erreur quand l'utilisateur modifie un champ
@@ -684,10 +695,12 @@ const toggleDocumentUpload = () => {
                             v-model="formData.phone"
                             type="tel"
                             placeholder="06 12 34 56 78 ou +33 6 12 34 56 78"
-                            :class="!isPhoneValid ? 'border-red-500' : ''"
+                            :class="shouldShowPhoneError ? 'border-red-500' : ''"
+                            @input="hasInteractedWithPhone = true"
+                            @blur="hasInteractedWithPhone = true"
                             required
                         />
-                        <p v-if="!isPhoneValid" class="mt-1 text-sm text-red-600">Format de téléphone invalide (ex: 06 12 34 56 78)</p>
+                        <p v-if="shouldShowPhoneError" class="mt-1 text-sm text-red-600">Format de téléphone invalide (ex: 06 12 34 56 78)</p>
                         <p v-else class="mt-1 text-xs text-gray-500">Requis par Stripe - Format français accepté : 06 12 34 56 78</p>
                     </div>
 
