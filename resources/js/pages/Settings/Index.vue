@@ -73,7 +73,7 @@
                                     <p class="text-xs text-gray-500">Messages et réservations</p>
                                 </div>
                             </div>
-                            <Switch v-model:checked="notificationForm.email_notifications" />
+                            <Switch v-model:checked="notificationForm.email_notifications" @update:checked="updateNotifications" />
                         </div>
 
                         <!-- Push -->
@@ -85,15 +85,9 @@
                                     <p class="text-xs text-gray-500">Alertes en temps réel</p>
                                 </div>
                             </div>
-                            <Switch v-model:checked="notificationForm.push_notifications" />
+                            <Switch v-model:checked="notificationForm.push_notifications" @update:checked="updateNotifications" />
                         </div>
 
-                        <!-- Bouton de sauvegarde -->
-                        <div class="mt-4 flex justify-end">
-                            <Button @click="updateNotifications" class="bg-primary text-white hover:bg-orange-500">
-                                Sauvegarder les préférences
-                            </Button>
-                        </div>
 
                     </div>
                 </div>
