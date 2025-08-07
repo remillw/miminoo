@@ -139,20 +139,24 @@
                                             class="focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-1 focus:outline-none"
                                         />
                                     </div>
-                                    <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-16">
+                                            <input
+                                                v-model="child.age"
+                                                type="number"
+                                                min="1"
+                                                max="18"
+                                                placeholder="Âge"
+                                                class="text-center text-sm focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 px-2 py-2 focus:ring-1 focus:outline-none"
+                                                required
+                                            />
+                                        </div>
                                         <select
-                                            v-model="child.age_range"
-                                            required
-                                            class="focus:border-primary focus:ring-primary w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-1 focus:outline-none"
+                                            v-model="child.unite"
+                                            class="focus:border-primary focus:ring-primary rounded-lg border border-gray-300 px-2 py-2 text-sm focus:ring-1 focus:outline-none"
                                         >
-                                            <option value="">Sélectionner l'âge</option>
-                                            <option value="0-6-mois">0-6 mois</option>
-                                            <option value="6-12-mois">6-12 mois</option>
-                                            <option value="1-2-ans">1-2 ans</option>
-                                            <option value="2-3-ans">2-3 ans</option>
-                                            <option value="3-6-ans">3-6 ans</option>
-                                            <option value="6-10-ans">6-10 ans</option>
-                                            <option value="10-ans-plus">10 ans et +</option>
+                                            <option value="mois">mois</option>
+                                            <option value="ans">ans</option>
                                         </select>
                                     </div>
                                     <button
@@ -205,7 +209,8 @@ import { computed, ref, watch } from 'vue';
 
 interface Child {
     nom: string;
-    age_range: string;
+    age: string;
+    unite: string;
 }
 
 interface Address {
@@ -295,7 +300,7 @@ watch(
 
 // Gestion des enfants
 const addChild = () => {
-    form.children.push({ nom: '', age_range: '' });
+    form.children.push({ nom: '', age: '2', unite: 'ans' });
 };
 
 const removeChild = (index: number) => {

@@ -21,6 +21,7 @@ interface Props {
     googlePlacesApiKey?: string;
     isGuest?: boolean;
     userEmail?: string;
+    existingChildren?: Child[];
 }
 
 interface FlashSuccess {
@@ -227,14 +228,17 @@ const progressPercentage = computed(() => {
 
 // Initialiser les enfants depuis le profil
 const initializeChildren = () => {
-    if (props.user?.parent_profile?.children && props.user.parent_profile.children.length > 0) {
-        form.value.children = [...props.user.parent_profile.children].map((child) => ({
+    // Utiliser les enfants existants passés par le contrôleur
+    if (props.existingChildren && props.existingChildren.length > 0) {
+        form.value.children = [...props.existingChildren].map((child) => ({
             ...child,
             age: String(child.age), // S'assurer que l'âge est une string
         }));
+        console.log('✅ Enfants préremplis:', form.value.children);
     } else {
-        // Si pas d'enfants dans le profil, en ajouter un par défaut
+        // Si pas d'enfants existants, en ajouter un par défaut
         form.value.children = [{ nom: '', age: '2', unite: 'ans' }];
+        console.log('📝 Aucun enfant existant, ajout d\'un enfant par défaut');
     }
 };
 
@@ -673,9 +677,9 @@ const submitAnnouncement = async () => {
                     showSuccess('🎉 Annonce publiée avec succès !');
                 }
 
-                // Redirection après un délai pour voir le toast
+                // Rester sur la page mes annonces et réservations
                 setTimeout(() => {
-                    router.visit('/annonces');
+                    router.visit(route('parent.announcements-reservations'));
                 }, 2000);
             },
             onError: (errors) => {

@@ -162,6 +162,10 @@ class User extends Authenticatable implements MustVerifyEmail
             if (filter_var($this->avatar, FILTER_VALIDATE_URL)) {
                 return $this->avatar;
             }
+            // Si ça commence déjà par /storage, le retourner tel quel
+            if (str_starts_with($this->avatar, '/storage/')) {
+                return asset($this->avatar);
+            }
             // Sinon, construire l'URL depuis le storage
             return asset('storage/' . $this->avatar);
         }

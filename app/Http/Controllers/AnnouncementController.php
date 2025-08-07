@@ -560,12 +560,19 @@ class AnnouncementController extends Controller
     {
         $user = Auth::user();
         
+        // Récupérer les enfants existants du parent si connecté
+        $existingChildren = [];
+        if ($user && $user->hasRole('parent') && $user->parentProfile && $user->parentProfile->children_ages) {
+            $existingChildren = $user->parentProfile->children_ages;
+        }
+        
         return Inertia::render('CreateAnnouncement', [
             'user' => $user,
             'role' => $user?->role ?? 'parent',
             'googlePlacesApiKey' => config('services.google.places_api_key'),
             'isGuest' => is_null($user),
             'userEmail' => $user?->email,
+            'existingChildren' => $existingChildren,
         ]);
     }
 
@@ -684,6 +691,7 @@ class AnnouncementController extends Controller
                 'is_guest' => $isGuest,
                 'email' => $isGuest ? $validated['email'] : Auth::user()->email
             ]);
+
 
             // Charger l'adresse pour les notifications
             $announcement->load('address');
@@ -885,46 +893,9 @@ class AnnouncementController extends Controller
 
         $announcement->load(['address']);
 
-        // Convertir les données enfants du format DB vers le format composant
-        $convertedChildren = collect($announcement->children)->map(function ($child) {
-            // Convertir de {nom: "Léa", age: "2", unite: "ans"} vers {nom: "Léa", age_range: "2-3-ans"}
-            if (isset($child['age']) && isset($child['unite'])) {
-                $age = (int) $child['age'];
-                $unite = $child['unite'];
-                
-                if ($unite === 'mois') {
-                    if ($age <= 6) {
-                        $ageRange = '0-6-mois';
-                    } else {
-                        $ageRange = '6-12-mois';
-                    }
-                } else { // ans
-                    if ($age <= 1) {
-                        $ageRange = '1-2-ans';
-                    } elseif ($age <= 2) {
-                        $ageRange = '2-3-ans';
-                    } elseif ($age <= 6) {
-                        $ageRange = '3-6-ans';
-                    } elseif ($age <= 10) {
-                        $ageRange = '6-10-ans';
-                    } else {
-                        $ageRange = '10-ans-plus';
-                    }
-                }
-                
-                return [
-                    'nom' => $child['nom'],
-                    'age_range' => $ageRange
-                ];
-            }
-            
-            // Si déjà au bon format ou format inconnu, garder tel quel
-            return $child;
-        });
-
-        // Remplacer les enfants par les données converties
+        // Garder les enfants au format original {nom, age, unite} pour l'édition
         $announcementData = $announcement->toArray();
-        $announcementData['children'] = $convertedChildren->toArray();
+        // Les enfants sont déjà au bon format dans l'annonce
 
         return Inertia::render('EditAnnouncement', [
             'announcement' => $announcementData

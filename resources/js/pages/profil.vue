@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
+import { useDeviceToken } from '@/composables/useDeviceToken';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import type { AgeRange, BabysitterProfile as BabysitterProfileType, Child, Language, Skill, User } from '@/types';
 import { router } from '@inertiajs/vue3';
@@ -69,6 +70,7 @@ interface Props {
 const props = defineProps<Props>();
 const { showSuccess, showError, handleAuthError } = useToast();
 const { currentMode, initializeMode, setMode } = useUserMode();
+const { isMobileApp } = useDeviceToken();
 
 // Variables réactives
 const isEditing = ref(false);
@@ -1007,7 +1009,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                     ref="avatarInput"
                                     type="file"
                                     accept="image/*"
-                                    capture="environment"
+                                    :capture="isMobileApp() ? 'environment' : undefined"
                                     @change="handleAvatarChange"
                                     class="hidden"
                                 />
