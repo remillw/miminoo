@@ -159,7 +159,7 @@
                                             Délier
                                         </Button>
                                     </div>
-                                    <Button v-else :as="Link" :href="route('google.redirect')" variant="outline" size="sm"> Connecter </Button>
+                                    <!-- Bouton Connecter retiré - plus besoin de permettre la connexion Google pour comptes existants -->
                                 </div>
                             </div>
 
@@ -173,7 +173,8 @@
 
                         <!-- Changement de mot de passe -->
                         <div v-if="!isGoogleOnlyUser">
-                            <h3 class="mb-3 text-sm font-medium text-gray-900">Mot de passe</h3>
+                            <h3 class="mb-3 text-lg font-semibold text-gray-900">Changez votre mot de passe</h3>
+                            <p class="mb-4 text-sm text-gray-600">Modifiez votre mot de passe pour sécuriser votre compte</p>
                             <form @submit.prevent="updatePassword" class="space-y-3">
                                 <div v-if="user.password" class="space-y-1">
                                     <Label for="current_password">Mot de passe actuel</Label>

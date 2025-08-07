@@ -130,6 +130,7 @@ interface Props {
     stripeAccountId: string;
     babysitterProfile: BabysitterProfile | null;
     googlePlacesApiKey?: string;
+    stripePublishableKey?: string;
     user?: {
         id: number;
         firstname: string;
@@ -830,6 +831,7 @@ const formatAmount = (amount: number) => {
                                 :account-status="accountStatus"
                                 :stripe-account-id="stripeAccountId"
                                 :google-places-api-key="googlePlacesApiKey"
+                                :stripe-publishable-key="stripePublishableKey"
                             />
                         </div>
                     </div>

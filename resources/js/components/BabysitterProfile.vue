@@ -626,6 +626,7 @@ const isEditing = ref(false);
 
 // Variables pour les photos de profil
 const profilePhotos = ref<string[]>([]);
+const photosChanged = ref(false); // Pour tracker si les photos ont été modifiées
 const fileInput = ref<HTMLInputElement>();
 const imageLoadingStates = ref<boolean[]>([]);
 const imageErrorStates = ref<boolean[]>([]);
@@ -867,6 +868,7 @@ const handleFiles = async (files: File[]) => {
                 // Mettre à jour les états
                 imageLoadingStates.value.push(false); // Pas de chargement pour base64
                 imageErrorStates.value.push(false);
+                photosChanged.value = true; // Marquer que les photos ont changé
 
                 console.log(`📷 Nouvelle photo ajoutée à l'index ${newIndex}`);
             }
@@ -885,6 +887,7 @@ const removePhoto = (index: number) => {
     profilePhotos.value.splice(index, 1);
     imageLoadingStates.value.splice(index, 1);
     imageErrorStates.value.splice(index, 1);
+    photosChanged.value = true; // Marquer que les photos ont changé
     console.log(`🗑️ Photo supprimée à l'index ${index}`);
 };
 
@@ -944,7 +947,7 @@ const calculateProfileCompletion = () => {
 
 // Fonction pour obtenir les données du formulaire
 const getFormData = () => {
-    return {
+    const data: any = {
         bio: form.value.bio,
         experience_years: form.value.experience_years,
         language_ids: form.value.language_ids,
@@ -957,9 +960,18 @@ const getFormData = () => {
         is_available: form.value.is_available,
         has_driving_license: form.value.has_driving_license,
         has_vehicle: form.value.has_vehicle,
-        profile_photos: profilePhotos.value, // Ajouter les photos
         completion_percentage: calculateProfileCompletion(),
     };
+
+    // N'ajouter profile_photos que si elles ont été modifiées
+    if (photosChanged.value) {
+        data.profile_photos = profilePhotos.value;
+        console.log('📸 Photos incluses dans les données (modifiées):', profilePhotos.value.length);
+    } else {
+        console.log('📸 Photos non incluses (non modifiées)');
+    }
+
+    return data;
 };
 
 // Fonctions pour gérer les événements d'image

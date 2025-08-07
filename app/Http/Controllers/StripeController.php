@@ -550,7 +550,8 @@ class StripeController extends Controller
                     'city' => $user->address->city ?? '',
                 ] : null,
             ],
-            'googlePlacesApiKey' => config('services.google.places_api_key')
+            'googlePlacesApiKey' => config('services.google.places_api_key'),
+            'stripePublishableKey' => config('services.stripe.key')
         ];
 
         Log::info('📤 Données envoyées à la vue', [

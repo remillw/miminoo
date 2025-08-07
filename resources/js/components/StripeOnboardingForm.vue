@@ -25,6 +25,7 @@ interface Props {
     accountStatus: string;
     stripeAccountId?: string;
     googlePlacesApiKey?: string;
+    stripePublishableKey?: string;
 }
 
 const props = defineProps<Props>();
@@ -311,9 +312,18 @@ const submitOnboarding = async () => {
 const loadStripe = async () => {
     if (stripe) return;
 
+    // Utiliser la clé publique passée via Inertia
+    const publishableKey = props.stripePublishableKey;
+
+    console.log('🔑 Clé Stripe depuis Inertia:', publishableKey?.substring(0, 7) + '...');
+
+    if (!publishableKey) {
+        throw new Error('Clé publique Stripe manquante');
+    }
+
     // Vérifier si Stripe est déjà disponible globalement
     if ((window as any).Stripe) {
-        stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
+        stripe = (window as any).Stripe(publishableKey);
         return;
     }
 
@@ -325,7 +335,7 @@ const loadStripe = async () => {
     return new Promise<void>((resolve, reject) => {
         script.onload = () => {
             if ((window as any).Stripe) {
-                stripe = (window as any).Stripe(import.meta.env.VITE_STRIPE_KEY);
+                stripe = (window as any).Stripe(publishableKey);
                 resolve();
             } else {
                 reject(new Error('Stripe.js failed to load'));
