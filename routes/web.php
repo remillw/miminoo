@@ -328,11 +328,7 @@ Route::middleware(['auth'])->group(function () {
     // Route pour l'upload de documents d'identité depuis le frontend
     Route::post('/stripe/upload-identity-documents', [StripeController::class, 'uploadIdentityDocumentsFromFrontend'])->name('stripe.upload-identity-documents');
     
-    // Route de test temporaire
-    Route::post('/stripe/test-route', function(Request $request) {
-        Log::info('🧪 Route de test atteinte', ['data' => $request->all()]);
-        return response()->json(['success' => true, 'message' => 'Route de test OK']);
-    });
+   
 });
 
 // Routes spécifiques pour les parents (compatibilité)
