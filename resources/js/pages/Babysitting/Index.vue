@@ -69,7 +69,7 @@
                     <div class="col-span-2 overflow-hidden rounded-lg bg-white p-3 shadow sm:p-4 md:col-span-1 lg:p-6">
                         <div class="flex flex-col sm:flex-row sm:items-center">
                             <div class="mb-2 flex-shrink-0 sm:mb-0">
-                                <DollarSign class="h-6 w-6 text-green-500 sm:h-8 sm:w-8" />
+                                <EuroIcon class="h-6 w-6 text-green-500 sm:h-8 sm:w-8" />
                             </div>
                             <div class="sm:ml-3 sm:w-0 sm:flex-1 lg:ml-5">
                                 <dl>
@@ -384,7 +384,7 @@ import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import type { Application, Filters, Reservation } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Briefcase, Calendar, CheckCircle, Clock, DollarSign, Eye, MessageCircle, Search, Star } from 'lucide-vue-next';
+import { Briefcase, Calendar, CheckCircle, Clock, EuroIcon, Eye, MessageCircle, Search, Star } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface Stats {

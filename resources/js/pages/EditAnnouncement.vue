@@ -318,9 +318,24 @@ const removeChild = (index: number) => {
 
 // Soumission du formulaire
 const submit = () => {
-    form.put(route('parent.announcements.update', { announcement: props.announcement.id }), {
+    console.log('📝 Submitting form with data:', form.data());
+    console.log('🎯 Using route:', route('parent.announcements.update', { announcement: props.announcement.id }));
+    
+    router.put(route('parent.announcements.update', { announcement: props.announcement.id }), form.data(), {
+        preserveState: true,
+        onStart: () => {
+            form.processing = true;
+        },
         onSuccess: () => {
+            console.log('✅ Update successful');
+            form.processing = false;
             router.visit(route('parent.announcements-reservations'));
+        },
+        onError: (errors) => {
+            console.error('❌ Update failed:', errors);
+            form.processing = false;
+            // Copier les erreurs dans le form pour l'affichage
+            form.errors = errors;
         },
     });
 };

@@ -392,8 +392,8 @@ const documentVerificationStatus = computed(() => {
             return {
                 status: 'verified',
                 icon: CheckCircle,
-                color: 'text-green-600',
-                bgColor: 'bg-green-50',
+                color: 'text-primary',
+                bgColor: 'bg-primary/5',
                 title: 'Documents vérifiés',
                 message: "Vos documents d'identité ont été validés par Stripe.",
             };
@@ -401,8 +401,8 @@ const documentVerificationStatus = computed(() => {
             return {
                 status: 'pending',
                 icon: Clock,
-                color: 'text-blue-600',
-                bgColor: 'bg-blue-50',
+                color: 'text-primary',
+                bgColor: 'bg-primary/10',
                 title: 'Vérification en cours',
                 message: 'Vos documents sont en cours de traitement. Cela peut prendre quelques minutes à quelques heures.',
             };
@@ -411,8 +411,8 @@ const documentVerificationStatus = computed(() => {
                 return {
                     status: 'required',
                     icon: AlertCircle,
-                    color: 'text-red-600',
-                    bgColor: 'bg-red-50',
+                    color: 'text-primary',
+                    bgColor: 'bg-primary/5',
                     title: 'Documents requis',
                     message: "Vous devez télécharger vos documents d'identité pour activer les paiements.",
                 };
@@ -422,8 +422,8 @@ const documentVerificationStatus = computed(() => {
             return {
                 status: 'requires_input',
                 icon: AlertCircle,
-                color: 'text-orange-600',
-                bgColor: 'bg-orange-50',
+                color: 'text-primary',
+                bgColor: 'bg-primary/10',
                 title: 'Action requise',
                 message: "Stripe a besoin d'informations supplémentaires pour vérifier vos documents.",
             };
@@ -431,8 +431,8 @@ const documentVerificationStatus = computed(() => {
             return {
                 status: 'unknown',
                 icon: Info,
-                color: 'text-gray-600',
-                bgColor: 'bg-gray-50',
+                color: 'text-primary/60',
+                bgColor: 'bg-primary/5',
                 title: 'Statut inconnu',
                 message: `Statut: ${status}, Document: ${document}`,
             };
@@ -1079,27 +1079,23 @@ const formatAmount = (amount: number) => {
 
                             <!-- Message de statut -->
                             <div
-                                class="mb-4 rounded-lg border p-4"
-                                :class="
-                                    documentVerificationStatus.bgColor +
-                                    ' border-' +
-                                    documentVerificationStatus.color.replace('text-', '').replace('-600', '-200')
-                                "
+                                class="mb-4 rounded-lg border border-primary/20 p-4"
+                                :class="documentVerificationStatus.bgColor"
                             >
-                                <p class="text-sm" :class="documentVerificationStatus.color.replace('-600', '-800')">
+                                <p class="text-sm" :class="documentVerificationStatus.color.replace('text-primary', 'text-primary/80')">
                                     {{ documentVerificationStatus.message }}
                                 </p>
 
                                 <!-- Messages spécifiques selon le statut -->
                                 <div v-if="documentVerificationStatus.status === 'pending'" class="mt-3">
-                                    <div class="flex items-center text-xs" :class="documentVerificationStatus.color.replace('-600', '-700')">
+                                    <div class="flex items-center text-xs text-primary/70">
                                         <Clock class="mr-1 h-3 w-3" />
                                         <span>En mode test, la vérification est automatiquement acceptée</span>
                                     </div>
                                 </div>
 
                                 <div v-if="documentVerificationStatus.status === 'verified'" class="mt-3">
-                                    <div class="flex items-center text-xs text-green-700">
+                                    <div class="flex items-center text-xs text-primary/70">
                                         <CheckCircle class="mr-1 h-3 w-3" />
                                         <span>Vous pouvez maintenant recevoir des paiements</span>
                                     </div>
@@ -1142,15 +1138,15 @@ const formatAmount = (amount: number) => {
                                     <li>• <strong>Permis de conduire français</strong></li>
                                     <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
                                 </ul>
-                                <div class="mt-3 rounded border-l-4 border-green-400 bg-green-50 p-2">
-                                    <p class="text-xs text-green-800">
+                                <div class="mt-3 rounded border-l-4 border-primary/40 bg-primary/5 p-2">
+                                    <p class="text-xs text-primary/80">
                                         <span class="mr-1">🔒</span> <strong>Upload sécurisé via serveur</strong> : Vos documents sont uploadés avec
                                         la clé secrète et automatiquement liés à votre compte Connect pour résoudre les requirements.
                                     </p>
 
                                     <!-- Information spécifique mode test -->
-                                    <div class="mt-2 rounded border-l-4 border-blue-400 bg-blue-50 p-2">
-                                        <p class="text-xs text-blue-800">
+                                    <div class="mt-2 rounded border-l-4 border-primary/30 bg-primary/10 p-2">
+                                        <p class="text-xs text-primary/70">
                                             <span class="mr-1">🧪</span> <strong>Mode test</strong> : En environnement de test, Stripe accepte
                                             automatiquement les documents pour faciliter les tests. En production, la vérification prend quelques
                                             heures.

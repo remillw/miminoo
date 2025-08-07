@@ -297,7 +297,7 @@ const showParentCancelModal = ref(false);
 const showArchiveModal = ref(false);
 
 // Toast
-const { toast } = useToast();
+const { showSuccess, showError } = useToast();
 
 // Computed
 const otherUser = computed(() => {
@@ -466,12 +466,12 @@ function handleConfirmBabysitterCancel() {
             preserveState: true,
             onSuccess: (response) => {
                 showBabysitterCancelModal.value = false;
-                toast.success('Candidature annulée avec succès');
+                showSuccess('Candidature annulée avec succès', 'Votre candidature a été annulée et le parent a été notifié.');
                 router.get(route('messaging.index'));
             },
             onError: (errors) => {
                 console.error('❌ Erreur annulation candidature:', errors);
-                toast.error(errors.error || "Erreur lors de l'annulation de la candidature");
+                showError('Erreur', errors.error || "Erreur lors de l'annulation de la candidature");
             },
         },
     );
@@ -485,12 +485,12 @@ function handleConfirmParentCancel() {
             preserveState: true,
             onSuccess: (response) => {
                 showParentCancelModal.value = false;
-                toast.success('Réservation annulée avec succès');
+                showSuccess('Réservation annulée avec succès', 'La réservation a été annulée et la babysitter a été notifiée.');
                 router.get(route('messaging.index'));
             },
             onError: (errors) => {
                 console.error('❌ Erreur annulation réservation:', errors);
-                toast.error(errors.error || "Erreur lors de l'annulation de la réservation");
+                showError('Erreur', errors.error || "Erreur lors de l'annulation de la réservation");
             },
         },
     );
@@ -520,12 +520,12 @@ function handleArchiveConversation() {
                 preserveState: true,
                 onSuccess: () => {
                     showArchiveModal.value = false;
-                    toast.success('Conversation archivée avec succès');
+                    showSuccess('Conversation archivée avec succès', 'Cette conversation a été déplacée dans vos archives.');
                     router.get(route('messaging.index'));
                 },
                 onError: (errors) => {
                     console.error('❌ Erreur archivage conversation:', errors);
-                    toast.error("Erreur lors de l'archivage de la conversation");
+                    showError('Erreur', "Erreur lors de l'archivage de la conversation");
                     showArchiveModal.value = false;
                 },
             },

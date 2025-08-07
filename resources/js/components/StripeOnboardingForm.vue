@@ -955,7 +955,7 @@ const toggleDocumentUpload = () => {
                             <input id="tos_acceptance" v-model="formData.tos_acceptance" type="checkbox" class="mt-1" required />
                             <Label for="tos_acceptance" class="text-sm">
                                 J'accepte les
-                                <a href="#" class="text-blue-600 hover:underline">conditions d'utilisation de Stripe</a>
+                                <a href="https://stripe.com/en-fr/legal/ssa" class="text-blue-600 hover:underline">conditions d'utilisation de Stripe</a>
                                 et confirme que les informations fournies sont exactes.
                             </Label>
                         </div>

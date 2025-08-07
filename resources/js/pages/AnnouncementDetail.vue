@@ -23,10 +23,13 @@ interface ReviewStats {
 }
 
 interface Duration {
-    hours: number;
-    minutes: number;
-    total_minutes: number;
-    formatted: string;
+    is_multi_day: boolean;
+    total_hours: number;
+    days: number;
+    start_date: string;
+    end_date: string;
+    start_time: string;
+    end_time: string;
 }
 
 interface ExtendedAnnouncement extends Announcement {
