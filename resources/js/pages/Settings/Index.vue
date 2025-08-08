@@ -520,7 +520,9 @@ const confirmDeleteAccount = () => {
 
     isDeletingAccount.value = true;
 
-    router.delete(route('settings.delete-account'), {
+    // Utilisation de router.post avec _method: 'DELETE' pour contourner les problèmes serveur
+    router.post(route('settings.delete-account'), {
+        _method: 'DELETE',
         confirmation: deleteConfirmationText.value,
     }, {
         onSuccess: () => {

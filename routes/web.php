@@ -339,6 +339,7 @@ Route::middleware(['auth'])->prefix('parametres')->group(function () {
     Route::post('/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/language', [SettingsController::class, 'updateLanguage'])->name('settings.language');
     Route::delete('/account', [SettingsController::class, 'deleteAccount'])->name('settings.delete-account');
+    Route::post('/account', [SettingsController::class, 'deleteAccount'])->name('settings.delete-account-post'); // Alternative POST route
 });
 
 require __DIR__.'/auth.php';

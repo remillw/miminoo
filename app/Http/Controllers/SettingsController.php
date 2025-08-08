@@ -169,6 +169,11 @@ class SettingsController extends Controller
         $request->validate([
             'confirmation' => 'required|string|in:SUPPRIMER',
         ]);
+        
+        // Vérifier que c'est bien une requête de suppression (DELETE ou POST avec _method=DELETE)
+        if (!$request->isMethod('DELETE') && $request->get('_method') !== 'DELETE') {
+            return back()->with('error', 'Méthode non autorisée pour cette action.');
+        }
 
         $user = $request->user();
 
