@@ -43,42 +43,19 @@
                             </p>
                         </div>
 
-                        <!-- Détails financiers -->
-                        <div class="space-y-2 border-t border-gray-200 pt-4">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Tarif horaire :</span>
-                                <span class="font-medium">{{ application.effective_rate }}€/h</span>
+                        <!-- Détails financiers simplifiés -->
+                        <div class="space-y-3 border-t border-gray-200 pt-4">
+                            <div class="flex justify-between text-base">
+                                <span class="text-gray-700">Acompte babysitting (1h) :</span>
+                                <span class="font-semibold text-gray-900">{{ application.deposit_amount }}€</span>
                             </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Acompte (1h) :</span>
-                                <span class="font-medium">{{ application.deposit_amount }}€</span>
+                            <div class="flex justify-between text-base">
+                                <span class="text-gray-700">Frais de service :</span>
+                                <span class="font-semibold text-gray-900">{{ application.service_fee }}€</span>
                             </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Frais de service :</span>
-                                <span class="font-medium">{{ application.service_fee }}€</span>
-                            </div>
-                            <div class="flex justify-between border-t border-gray-200 pt-2 font-semibold">
-                                <span>Total à payer :</span>
-                                <span class="text-primary text-lg">{{ application.total_deposit }}€</span>
-                            </div>
-
-                            <!-- Répartition détaillée -->
-                            <div class="mt-4 rounded-lg bg-gray-50 p-3">
-                                <h4 class="mb-2 text-xs font-medium tracking-wide text-gray-700 uppercase">Répartition des fonds</h4>
-                                <div class="space-y-1 text-xs">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Frais Stripe :</span>
-                                        <span class="font-medium text-gray-500">{{ application.stripe_fee }}€</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Montant reçu par la babysitter :</span>
-                                        <span class="font-medium text-green-600">{{ application.babysitter_amount }}€</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Frais plateforme :</span>
-                                        <span class="font-medium text-blue-600">{{ application.platform_fee }}€</span>
-                                    </div>
-                                </div>
+                            <div class="flex justify-between border-t border-gray-200 pt-3 text-lg font-bold">
+                                <span class="text-gray-900">Total à payer :</span>
+                                <span class="text-orange-600">{{ application.total_deposit }}€</span>
                             </div>
                         </div>
 

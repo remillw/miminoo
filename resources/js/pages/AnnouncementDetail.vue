@@ -142,6 +142,38 @@ const isFuture = computed(() => {
     return new Date(props.announcement.date_start) > new Date();
 });
 
+// Déterminer si l'utilisateur est une babysitter
+const isUserBabysitter = computed(() => {
+    if (!props.auth?.user) return false;
+    // Vérifier les rôles de l'utilisateur
+    return props.auth.user.roles?.some(role => role.name === 'babysitter') || false;
+});
+
+// Déterminer si l'utilisateur peut postuler
+const canShowApplicationButton = computed(() => {
+    return isUserBabysitter.value && isFuture.value;
+});
+
+// Déterminer le texte du bouton selon le statut
+const getButtonText = computed(() => {
+    if (!props.announcement.user_application_status || props.announcement.user_application_status === 'cancelled') {
+        return 'Postuler';
+    }
+    
+    switch (props.announcement.user_application_status) {
+        case 'pending':
+            return 'Déjà postulé';
+        case 'accepted':
+            return 'Candidature acceptée';
+        case 'declined':
+            return 'Candidature refusée';
+        case 'counter_offered':
+            return 'Contre-offre reçue';
+        default:
+            return 'Déjà postulé';
+    }
+});
+
 // Calculer les horaires pour la modal
 const hoursForModal = computed(() => {
     return `${formatTime(props.announcement.date_start)} - ${formatTime(props.announcement.date_end)}`;
@@ -168,24 +200,34 @@ const formatMemberSince = (dateString: string) => {
 
     <GlobalLayout>
         <div class="min-h-screen bg-gray-50">
-            <!-- Header simplifié -->
-            <div class="bg-primary">
-                <div class="mx-auto max-w-6xl px-4">
+            <!-- Header amélioré -->
+            <div class="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-xl">
+                <div class="mx-auto max-w-6xl px-6 py-12">
                     <!-- Breadcrumb -->
-                    <nav class="mb-6 text-sm">
-                        <a href="/annonces" class="text-primary-100 transition-colors hover:text-white"> ← Retour aux annonces </a>
+                    <nav class="mb-8 text-sm">
+                        <a href="/annonces" class="inline-flex items-center gap-2 text-orange-100 transition-colors hover:text-white"> 
+                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            Retour aux annonces 
+                        </a>
                     </nav>
 
-                    <!-- Titre principal -->
-                    <h1 class="mb-4 text-3xl font-bold text-white">{{ announcement.title }}</h1>
-
-                    <!-- Prix en évidence -->
-                    <div class="text-white">
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-2xl font-bold">{{ announcement.hourly_rate }}€</span>
-                            <span class="text-primary-100">/heure</span>
-                            <span class="text-primary-100 ml-3">•</span>
-                            <span class="text-primary-100">{{ announcement.estimated_total }}€ total</span>
+                    <!-- Titre principal avec plus d'espace -->
+                    <div class="mb-8">
+                        <h1 class="mb-6 text-4xl font-bold leading-tight text-white">{{ announcement.title }}</h1>
+                        
+                        <!-- Prix en évidence avec meilleur design -->
+                        <div class="inline-flex items-center gap-4 rounded-2xl bg-white/10 backdrop-blur-sm px-6 py-4">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-bold text-white">{{ announcement.hourly_rate }}€</span>
+                                <span class="text-orange-100 text-lg">/heure</span>
+                            </div>
+                            <div class="h-6 w-px bg-orange-300"></div>
+                            <div class="text-orange-100">
+                                <span class="text-sm">Total estimé:</span>
+                                <span class="ml-1 text-lg font-semibold text-white">{{ announcement.estimated_total }}€</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -351,47 +393,37 @@ const formatMemberSince = (dateString: string) => {
                                 </div>
                             </div>
 
-                            <!-- Bouton de candidature -->
-                            <div v-if="isFuture" class="mt-6">
-                                <!-- Bouton pour postuler ou repostuler -->
+                            <!-- Boutons de candidature - Seulement pour les babysitters -->
+                            <div v-if="canShowApplicationButton" class="mt-6">
+                                <!-- Bouton pour postuler -->
                                 <button
                                     v-if="announcement.can_apply"
                                     @click="isModalOpen = true"
-                                    class="bg-primary-600 hover:bg-primary-700 w-full transform cursor-pointer rounded-xl px-6 py-4 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                    class="w-full transform cursor-pointer rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 font-semibold text-white shadow-lg transition-all duration-200 hover:from-orange-600 hover:to-orange-700 hover:scale-[1.02] active:scale-[0.98]"
                                 >
-                                    {{ announcement.user_application_status === 'cancelled' ? 'Postuler à nouveau' : 'Postuler à cette annonce' }}
+                                    {{ getButtonText }}
                                 </button>
 
-                                <!-- Message si déjà postulé (non annulé) -->
+                                <!-- Message si déjà postulé -->
                                 <div
-                                    v-else-if="announcement.user_application_status && announcement.user_application_status !== 'cancelled'"
-                                    class="w-full rounded-xl bg-gray-100 px-6 py-4 text-center"
+                                    v-else
+                                    class="w-full rounded-xl px-6 py-4 text-center"
+                                    :class="announcement.user_application_status === 'accepted' ? 'bg-green-50 border border-green-200' : 'bg-gray-100'"
                                 >
-                                    <div class="text-sm font-medium text-gray-700">
-                                        <template v-if="announcement.user_application_status === 'pending'">Candidature en attente</template>
-                                        <template v-else-if="announcement.user_application_status === 'accepted'">Candidature acceptée</template>
-                                        <template v-else-if="announcement.user_application_status === 'declined'">Candidature refusée</template>
-                                        <template v-else-if="announcement.user_application_status === 'counter_offered'">Contre-offre reçue</template>
-                                        <template v-else>Vous avez déjà postulé</template>
+                                    <div class="text-sm font-medium" 
+                                         :class="announcement.user_application_status === 'accepted' ? 'text-green-700' : 'text-gray-700'">
+                                        {{ getButtonText }}
                                     </div>
                                 </div>
 
-                                <!-- Message si ne peut pas postuler (annonce pleine, etc.) -->
-                                <div v-else class="w-full rounded-xl bg-gray-100 px-6 py-4 text-center">
-                                    <div class="text-sm font-medium text-gray-700">Cette annonce n'est plus disponible</div>
-                                </div>
-
+                                <!-- Message d'aide -->
                                 <p v-if="announcement.can_apply" class="mt-3 text-center text-sm text-gray-500">
-                                    {{
-                                        announcement.user_application_status === 'cancelled'
-                                            ? 'Postulez à nouveau en quelques clics'
-                                            : 'Envoyez votre candidature en quelques clics'
-                                    }}
+                                    Envoyez votre candidature en quelques clics
                                 </p>
                             </div>
 
-                            <!-- Mission expirée -->
-                            <div v-else class="mt-6 py-4 text-center">
+                            <!-- Mission expirée ou pas une babysitter -->
+                            <div v-else-if="!isFuture" class="mt-6 py-4 text-center">
                                 <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                                     <svg class="h-6 w-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                         <path
@@ -403,6 +435,17 @@ const formatMemberSince = (dateString: string) => {
                                 </div>
                                 <h3 class="mb-1 font-semibold text-gray-900">Mission terminée</h3>
                                 <p class="text-sm text-gray-600">Cette annonce n'est plus disponible</p>
+                            </div>
+
+                            <!-- Message pour les parents -->
+                            <div v-else-if="!isUserBabysitter && auth?.user" class="mt-6 py-4 text-center">
+                                <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                                    <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <h3 class="mb-1 font-semibold text-gray-900">Votre annonce</h3>
+                                <p class="text-sm text-gray-600">Consultez vos candidatures dans la messagerie</p>
                             </div>
                         </div>
                     </div>

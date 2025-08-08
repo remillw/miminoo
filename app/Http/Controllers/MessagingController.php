@@ -140,7 +140,7 @@ class MessagingController extends Controller
                         ],
                         'last_message' => $lastMessage?->message ?? 'La conversation a commencé !',
                         'last_message_at' => $conversation->last_message_at ?? $conversation->created_at,
-                        'unread_count' => 0, // TODO: implémenter le compteur
+                        'unread_count' => $conversation->unread_count, // Utiliser l'attribut du modèle
                         'status' => $conversation->status,
                         'can_chat' => true // Maintenant on peut toujours chatter
                     ];
@@ -348,20 +348,21 @@ class MessagingController extends Controller
      */
     public function reserveApplication(Request $request, AdApplication $application)
     {
-        // Vérifier que l'utilisateur peut réserver cette candidature
+        // Vérifier que l'utilisateur peut accepter cette candidature
         if ($application->ad->parent_id !== Auth::id()) {
             abort(403);
         }
 
-        $validated = $request->validate([
-            'final_rate' => 'nullable|numeric|min:0|max:999.99'
-        ]);
+        if ($application->status !== 'pending') {
+            return back()->withErrors(['error' => 'Cette candidature ne peut plus être acceptée']);
+        }
 
-        $conversation = $application->reserve($validated['final_rate'] ?? null);
+        // Accepter définitivement au prix proposé par la babysitter - pas de négociation
+        $conversation = $application->accept();
 
         return back()->with([
             'success' => true,
-            'message' => 'Candidature réservée ! Procédez au paiement pour confirmer.'
+            'message' => 'Candidature acceptée au prix de ' . $application->proposed_rate . '€/h ! Procédez au paiement pour confirmer.'
         ]);
     }
 
@@ -383,140 +384,11 @@ class MessagingController extends Controller
         ]);
     }
 
-    /**
-     * Faire une contre-offre
-     */
-    public function counterOffer(Request $request, AdApplication $application)
-    {
-        // Vérifier que l'utilisateur peut faire une contre-offre
-        if ($application->ad->parent_id !== Auth::id()) {
-            abort(403);
-        }
+    // Méthode counterOffer supprimée - plus de contre-offres
 
-        $validated = $request->validate([
-            'counter_rate' => 'required|numeric|min:0|max:999.99',
-            'counter_message' => 'nullable|string|max:500'
-        ]);
+    // Méthode respondToCounterOffer supprimée - plus de contre-offres
 
-        // Mettre à jour l'application avec la contre-offre
-        $application->update([
-            'status' => 'counter_offered',
-            'counter_rate' => $validated['counter_rate'],
-            'counter_message' => $validated['counter_message'],
-            'counter_offered_at' => now()
-        ]);
-
-                 // Récupérer la conversation (elle existe normalement déjà)
-         $conversation = $application->conversation;
-
-        return back()->with([
-            'success' => true,
-            'message' => 'Contre-offre envoyée ! La babysitter peut accepter ou continuer à négocier.',
-            'application' => [
-                'id' => $application->id,
-                'status' => $application->status,
-                'counter_rate' => $application->counter_rate,
-                'counter_message' => $application->counter_message,
-                'proposed_rate' => $application->proposed_rate
-            ]
-        ]);
-    }
-
-    /**
-     * Répondre à une contre-offre (côté babysitter)
-     */
-    public function respondToCounterOffer(Request $request, AdApplication $application)
-    {
-        // Vérifier que l'utilisateur peut répondre
-        if ($application->babysitter_id !== Auth::id()) {
-            abort(403);
-        }
-
-        if ($application->status !== 'counter_offered') {
-            return back()->withErrors(['error' => 'Aucune contre-offre en attente']);
-        }
-
-        $validated = $request->validate([
-            'accept' => 'required|boolean',
-            'final_rate' => 'nullable|numeric|min:0|max:999.99'
-        ]);
-
-        if ($validated['accept']) {
-            // Accepter la contre-offre
-            $application->update([
-                'status' => 'accepted',
-                'final_rate' => $validated['final_rate'] ?? $application->counter_rate,
-                'responded_at' => now()
-            ]);
-
-            // Récupérer ou créer la conversation mais ne pas encore passer en active
-            $conversation = $application->conversation;
-            // Le statut passera en 'active' seulement lors du paiement effectif
-
-            return back()->with([
-                'success' => true,
-                'message' => 'Contre-offre acceptée ! La candidature est maintenant réservée.',
-                'application' => [
-                    'id' => $application->id,
-                    'status' => $application->status,
-                    'final_rate' => $application->final_rate,
-                    'counter_rate' => $application->counter_rate,
-                    'proposed_rate' => $application->proposed_rate
-                ]
-            ]);
-        } else {
-            // Refuser la contre-offre - retour au statut pending avec tarif initial
-            $application->update([
-                'status' => 'pending',
-                'counter_rate' => null,
-                'counter_message' => null,
-                'responded_at' => now()
-            ]);
-
-            // Maintenir la conversation mais en mode pending
-            if ($application->conversation) {
-                $application->conversation->update(['status' => 'pending']);
-            }
-
-            return back()->with([
-                'success' => true,
-                'message' => 'Contre-offre refusée. Retour au tarif initial.',
-                'application' => [
-                    'id' => $application->id,
-                    'status' => $application->status,
-                    'final_rate' => null,
-                    'counter_rate' => null,
-                    'proposed_rate' => $application->proposed_rate
-                ]
-            ]);
-        }
-    }
-
-    /**
-     * Babysitter fait une contre-offre en retour
-     */
-    public function babysitterCounterOffer(Request $request, AdApplication $application)
-    {
-        // Vérifier que l'utilisateur peut faire une contre-offre
-        if ($application->babysitter_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'counter_rate' => 'required|numeric|min:0|max:999.99',
-            'counter_message' => 'nullable|string|max:500'
-        ]);
-
-        $application->counterOffer(
-            $validated['counter_rate'],
-            $validated['counter_message']
-        );
-
-        return back()->with([
-            'success' => true,
-            'message' => 'Votre contre-proposition a été envoyée au parent.'
-        ]);
-    }
+    // Méthode babysitterCounterOffer supprimée - plus de contre-offres
 
     /**
      * Annuler une candidature (côté babysitter)

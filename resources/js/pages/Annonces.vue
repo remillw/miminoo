@@ -144,7 +144,7 @@ const resetFilters = () => {
     );
 };
 
-// Recherche en temps réel
+// Recherche en temps réel pour la query seulement
 const searchWithDelay = (() => {
     let timeout: number;
     return () => {
@@ -155,7 +155,20 @@ const searchWithDelay = (() => {
     };
 })();
 
+// Application automatique des filtres quand ils changent
+const applyFiltersWithDelay = (() => {
+    let timeout: number;
+    return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            applyFilters();
+        }, 300);
+    };
+})();
+
+// Watchers pour tous les filtres
 watch(searchQuery, searchWithDelay);
+watch([tarif, age, date, lieu], applyFiltersWithDelay);
 
 // Activer la géolocalisation
 const enableGeolocation = async () => {
@@ -473,22 +486,14 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Boutons -->
-                    <div class="flex justify-end gap-4 pt-4 md:col-span-4">
+                    <!-- Bouton de réinitialisation -->
+                    <div class="flex justify-end pt-4 md:col-span-4">
                         <button
                             type="button"
                             class="rounded-md border border-gray-300 bg-white px-6 py-2 text-sm font-semibold transition-colors hover:bg-gray-100"
                             @click="resetFilters"
                         >
-                            Réinitialiser
-                        </button>
-
-                        <button
-                            type="button"
-                            @click="applyFilters"
-                            class="bg-primary hover:bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors"
-                        >
-                            Appliquer les filtres
+                            Réinitialiser les filtres
                         </button>
                     </div>
                 </div>
@@ -536,10 +541,10 @@ onMounted(() => {
                                 </button>
                                 <button
                                     v-else
-                                    @click="applyFilters"
+                                    @click="() => window.location.reload()"
                                     class="inline-block rounded-lg bg-blue-500 px-6 py-2 font-semibold text-white transition-colors hover:bg-blue-600"
                                 >
-                                    Actualiser les annonces
+                                    Actualiser la page
                                 </button>
                             </div>
                         </div>

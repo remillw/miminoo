@@ -260,6 +260,14 @@
 
         <!-- Modal d'archivage moderne -->
         <ArchiveConfirmationModal v-model:open="showArchiveModal" @confirm="handleArchiveConversation" @cancel="showArchiveModal = false" />
+        
+        <!-- Modal de confirmation de refus -->
+        <DeclineApplicationModal
+            :show="showDeclineModal"
+            :application="application"
+            @close="showDeclineModal = false"
+            @confirmed="onDeclineConfirmed"
+        />
     </div>
 </template>
 
@@ -272,6 +280,7 @@ import { Check, Clock, Euro, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { route } from 'ziggy-js';
 import CancelConfirmationModal from './CancelConfirmationModal.vue';
+import DeclineApplicationModal from './DeclineApplicationModal.vue';
 import ReservationModal from './ReservationModal.vue';
 
 const props = defineProps({
@@ -387,10 +396,15 @@ function handleReserve() {
     }
 }
 
+// État pour le modal de refus
+const showDeclineModal = ref(false);
+
 function handleDecline() {
-    if (confirm('Êtes-vous sûr de vouloir refuser cette candidature ? Elle sera archivée.')) {
-        emit('decline', props.application.id);
-    }
+    showDeclineModal.value = true;
+}
+
+function onDeclineConfirmed(result) {
+    emit('decline', result.application.id, result.reason);
 }
 
 function submitCounterOffer() {

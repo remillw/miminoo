@@ -57,7 +57,13 @@ class HandleInertiaRequests extends Middleware
                         'title' => $notification->data['title'] ?? $notification->data['message'] ?? 'Notification',
                         'message' => $notification->data['message'] ?? '',
                         'created_at' => $notification->created_at,
-                        'read_at' => $notification->read_at
+                        'read_at' => $notification->read_at,
+                        // Inclure les données spécifiques pour créer les liens
+                        'data' => [
+                            'ad_id' => $notification->data['ad_id'] ?? null,
+                            'conversation_id' => $notification->data['conversation_id'] ?? null,
+                            'application_id' => $notification->data['application_id'] ?? null,
+                        ]
                     ];
                 });
             $unreadNotificationsCount = $user->unreadNotifications()->count();
@@ -101,6 +107,7 @@ class HandleInertiaRequests extends Middleware
             'App\\Notifications\\DisputeCreatedNotification' => 'dispute_created',
             'App\\Notifications\\NewApplication' => 'new_application',
             'App\\Notifications\\NewMessage' => 'new_message',
+            'App\\Notifications\\NewAnnouncementInRadius' => 'new_announcement',
             // Ajoutez d'autres types selon vos besoins
         ];
         

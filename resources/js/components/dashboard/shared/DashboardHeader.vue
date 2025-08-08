@@ -53,6 +53,8 @@
                                     v-for="notification in unreadNotifications"
                                     :key="notification.id"
                                     class="border-b border-gray-100 p-4 last:border-b-0 hover:bg-gray-50"
+                                    :class="{ 'cursor-pointer': getNotificationLink(notification) }"
+                                    @click="handleNotificationClick(notification)"
                                 >
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="flex flex-1 items-start gap-3">
@@ -67,6 +69,14 @@
                                                 <p class="text-sm font-medium text-gray-900">{{ notification.title }}</p>
                                                 <p v-if="notification.message" class="mt-1 text-sm text-gray-600">{{ notification.message }}</p>
                                                 <p class="mt-2 text-xs text-gray-500">{{ formatDate(notification.created_at) }}</p>
+                                                <div v-if="getNotificationLink(notification)" class="mt-2">
+                                                    <span class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800">
+                                                        <span>Voir l'annonce</span>
+                                                        <svg class="ml-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                                        </svg>
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                         <button
@@ -140,6 +150,11 @@ interface Notification {
     message?: string;
     created_at: string;
     read_at?: string;
+    data?: {
+        ad_id?: number;
+        conversation_id?: number;
+        application_id?: number;
+    };
 }
 
 interface Props {
@@ -243,6 +258,8 @@ const getNotificationIcon = (type: string) => {
             return DollarSign;
         case 'dispute_created':
             return AlertTriangle;
+        case 'new_announcement':
+            return Bell;
         default:
             return Bell;
     }
@@ -258,6 +275,8 @@ const getNotificationColor = (type: string) => {
             return 'text-green-500';
         case 'dispute_created':
             return 'text-red-500';
+        case 'new_announcement':
+            return 'text-orange-500';
         default:
             return 'text-gray-500';
     }
@@ -278,6 +297,49 @@ const formatDate = (dateString: string) => {
     if (diffInDays < 7) return `Il y a ${diffInDays}j`;
 
     return date.toLocaleDateString('fr-FR');
+};
+
+const getNotificationLink = (notification: Notification) => {
+    // Générer le lien selon le type de notification
+    if (notification.data?.ad_id) {
+        // Pour les nouvelles annonces, créer le lien vers l'annonce
+        try {
+            return route('announcement.show', notification.data.ad_id);
+        } catch {
+            return `/annonces/${notification.data.ad_id}`;
+        }
+    }
+    
+    if (notification.data?.conversation_id) {
+        // Pour les nouveaux messages, aller vers la messagerie
+        try {
+            return route('messaging.index');
+        } catch {
+            return '/messagerie';
+        }
+    }
+    
+    return null;
+};
+
+const handleNotificationClick = (notification: Notification) => {
+    const link = getNotificationLink(notification);
+    
+    if (link) {
+        // Marquer comme lu d'abord
+        markAsRead(notification.id);
+        
+        // Puis rediriger
+        try {
+            router.visit(link);
+        } catch {
+            // Fallback: utiliser window.location
+            window.location.href = link;
+        }
+        
+        // Fermer le dropdown
+        showNotifications.value = false;
+    }
 };
 </script>
 

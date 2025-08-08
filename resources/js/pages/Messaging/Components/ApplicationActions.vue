@@ -18,57 +18,23 @@
                     class="rounded bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
                     :title="`Accepter la candidature au tarif de ${application.proposed_rate}€/h`"
                 >
-                    Accepter
-                </button>
-                <button
-                    @click="$emit('counter-offer')"
-                    class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-                    title="Proposer un tarif différent"
-                >
-                    Contre-offre
+                    Accepter {{ application.proposed_rate }}€/h
                 </button>
                 <button
                     @click="$emit('decline')"
                     class="rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
-                    title="Refuser cette candidature"
+                    title="Refuser cette candidature définitivement"
                 >
                     Refuser
                 </button>
-            </div>
-
-            <!-- Actions pour contre-offre en attente -->
-            <div v-if="application.status === 'counter_offered' && !application.is_expired" class="text-center">
-                <p class="mb-2 text-xs text-gray-600">En attente de réponse</p>
-                <div class="flex items-center justify-center">
-                    <div class="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600"></div>
-                </div>
             </div>
         </template>
 
         <!-- Actions pour babysitter -->
         <template v-if="userRole === 'babysitter'">
-            <!-- Répondre à une contre-offre -->
-            <div v-if="application.status === 'counter_offered' && !application.is_expired" class="flex flex-col gap-2">
-                <p class="mb-1 text-xs font-medium text-blue-600">Répondre à la contre-offre :</p>
-                <button
-                    @click="$emit('respond-counter', 'accept')"
-                    class="rounded bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
-                    :title="`Accepter la contre-offre de ${application.counter_rate}€/h et procéder au paiement`"
-                >
-                    Accepter {{ application.counter_rate }}€/h
-                </button>
-                <button
-                    @click="$emit('respond-counter', 'decline')"
-                    class="rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
-                    title="Refuser la contre-offre et retourner au tarif initial"
-                >
-                    Refuser
-                </button>
-            </div>
-
             <!-- Candidature en attente -->
             <div v-if="application.status === 'pending' && !application.is_expired" class="text-center">
-                <p class="text-xs text-gray-600">En attente de réponse</p>
+                <p class="text-xs text-gray-600">En attente de réponse du parent</p>
                 <div class="mt-1 flex items-center justify-center">
                     <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-400"></div>
                 </div>
@@ -101,5 +67,5 @@ defineProps({
     userRole: String,
 });
 
-defineEmits(['viewed', 'accept', 'decline', 'counter-offer', 'respond-counter']);
+defineEmits(['viewed', 'accept', 'decline']);
 </script>

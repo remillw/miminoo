@@ -50,16 +50,7 @@
                         </span>
                     </div>
 
-                    <!-- Contre-offre -->
-                    <div v-if="application.counter_rate" class="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                        <div class="mb-2 flex items-center gap-2">
-                            <RotateCcw class="h-4 w-4 text-blue-600" />
-                            <span class="text-sm font-medium text-blue-900">Contre-offre : {{ application.counter_rate }}€/h</span>
-                        </div>
-                        <p v-if="application.counter_message" class="text-sm text-blue-800">
-                            {{ application.counter_message }}
-                        </p>
-                    </div>
+                    <!-- Plus de contre-offres -->
 
                     <!-- Timer expiration -->
                     <div v-if="application.time_remaining && !application.is_expired" class="text-primary mb-3 flex items-center gap-2 text-xs">
@@ -80,8 +71,6 @@
                     @viewed="$emit('viewed', application.id)"
                     @accept="handleAccept"
                     @decline="$emit('decline', application.id)"
-                    @counter-offer="$emit('counter-offer', application)"
-                    @respond-counter="$emit('respond-counter', application.id, $event)"
                 />
             </div>
         </div>
@@ -89,7 +78,7 @@
 </template>
 
 <script setup>
-import { Calendar, Clock, RotateCcw } from 'lucide-vue-next';
+import { Calendar, Clock } from 'lucide-vue-next';
 import { computed } from 'vue';
 import ApplicationActions from './ApplicationActions.vue';
 import StatusBadge from './StatusBadge.vue';
@@ -99,15 +88,14 @@ const props = defineProps({
     userRole: String,
 });
 
-const emit = defineEmits(['viewed', 'accept', 'decline', 'counter-offer', 'respond-counter']);
+const emit = defineEmits(['viewed', 'accept', 'decline']);
 
 const otherUser = computed(() => {
     return props.userRole === 'parent' ? props.application.babysitter : props.application.parent;
 });
 
 function handleAccept() {
-    // Si contre-offre, accepter avec le tarif de contre-offre
-    const finalRate = props.application.counter_rate || props.application.proposed_rate;
-    emit('accept', props.application, finalRate);
+    // Accepter au tarif proposé par la babysitter
+    emit('accept', props.application);
 }
 </script>

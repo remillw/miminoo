@@ -55,19 +55,19 @@ class AdApplication extends Model
 
     public function scopeActive($query)
     {
-        return $query->whereIn('status', ['pending', 'counter_offered']);
+        return $query->where('status', 'pending');
     }
 
     public function scopeExpired($query)
     {
         return $query->where('expires_at', '<', now())
-                    ->whereIn('status', ['pending', 'counter_offered']);
+                    ->where('status', 'pending');
     }
 
     // Accessors & Mutators
     public function getEffectiveRateAttribute()
     {
-        return $this->counter_rate ?? $this->proposed_rate;
+        return $this->proposed_rate;
     }
 
     public function getIsExpiredAttribute()
@@ -146,46 +146,30 @@ class AdApplication extends Model
     }
 
     /**
-     * Faire une contre-offre
+     * Accepter définitivement la candidature au prix proposé par la babysitter
      */
-    public function counterOffer($rate, $message = null)
+    public function accept()
     {
         $this->update([
-            'status' => 'counter_offered',
-            'counter_rate' => $rate,
-            'counter_message' => $message,
-            'expires_at' => now()->addHours(24) // 24h pour répondre
+            'status' => 'accepted',
+            'accepted_at' => now()
         ]);
-    }
 
-    /**
-     * Répondre à une contre-offre (babysitter)
-     */
-    public function respondToCounterOffer($response)
-    {
-        if ($response === 'accept') {
-            // Accepter la contre-offre = marquer comme accepté mais ne pas encore réserver
-            $this->update([
-                'status' => 'accepted',
-                'accepted_at' => now(),
-                'counter_rate' => $this->counter_rate
-            ]);
-            
-            // Archiver les autres candidatures mais ne pas encore passer en 'payment_required'
-            AdApplication::where('ad_id', $this->ad_id)
-                ->where('id', '!=', $this->id)
-                ->whereIn('status', ['pending', 'counter_offered'])
-                ->update(['status' => 'archived']);
-                
-            return $this->conversation;
-        } else {
-            // Refuser la contre-offre = retour au statut pending pour nouvelle négociation
-            $this->update([
-                'status' => 'pending',
-                'expires_at' => now()->addHours(24)
-            ]);
-            return $this->conversation;
-        }
+        // Archiver automatiquement toutes les autres candidatures de la même annonce
+        AdApplication::where('ad_id', $this->ad_id)
+            ->where('id', '!=', $this->id)
+            ->whereIn('status', ['pending'])
+            ->update(['status' => 'declined']);
+
+        // Archiver les conversations associées aux autres candidatures
+        Conversation::whereHas('application', function($query) {
+            $query->where('ad_id', $this->ad_id)
+                  ->where('id', '!=', $this->id);
+        })
+        ->where('status', '!=', 'archived')
+        ->update(['status' => 'archived']);
+
+        return $this->conversation;
     }
 
     // Boot method pour auto-expiration et création automatique de conversation

@@ -115,9 +115,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
       Route::get('candidatures/{application}/mark-viewed', [MessagingController::class, 'markApplicationAsViewed'])->name('applications.mark-viewed-get');
     Route::post('candidatures/{application}/reserve', [MessagingController::class, 'reserveApplication'])->name('applications.reserve');
     Route::post('candidatures/{application}/decline', [MessagingController::class, 'declineApplication'])->name('applications.decline');
-    Route::post('candidatures/{application}/counter-offer', [MessagingController::class, 'counterOffer'])->name('applications.counter-offer');
-    Route::post('candidatures/{application}/babysitter-counter', [MessagingController::class, 'babysitterCounterOffer'])->name('applications.babysitter-counter');
-    Route::post('candidatures/{application}/respond-counter', [MessagingController::class, 'respondToCounterOffer'])->name('applications.respond-counter');
+    // Route counter-offer supprimée - plus de contre-offres
+    // Routes babysitter-counter et respond-counter supprimées - plus de contre-offres
     Route::post('candidatures/{application}/cancel', [MessagingController::class, 'cancelApplication'])->name('applications.cancel');
     Route::post('candidatures/{application}/cancel-by-parent', [MessagingController::class, 'cancelReservationByParent'])->name('applications.cancel-by-parent');
     
