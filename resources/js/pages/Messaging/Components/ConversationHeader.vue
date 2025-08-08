@@ -322,8 +322,6 @@ function getReservationMessage() {
     if (!props.reservation) return '';
 
     switch (props.reservation.status) {
-        case 'pending_payment':
-            return props.userRole === 'parent' ? 'Paiement requis pour confirmer la réservation' : 'En attente du paiement du parent';
         case 'paid':
             return 'Réservation confirmée - En attente du début du service';
         case 'active':
