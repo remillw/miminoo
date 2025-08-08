@@ -728,7 +728,10 @@ class ReservationController extends Controller
 
         // Vérifier l'accès
         if ($reservation->parent_id !== $user->id) {
-            abort(403);
+            return response()->json([
+                'success' => false,
+                'error' => 'Accès non autorisé à cette réservation'
+            ], 403);
         }
 
         if (!$reservation->stripe_payment_intent_id) {

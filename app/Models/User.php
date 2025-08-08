@@ -14,6 +14,7 @@ use App\Models\Ad;
 use App\Models\AdApplication;
 use App\Models\Review;
 use Illuminate\Support\Facades\Storage;
+use App\Notifications\VerifyEmail as VerifyEmailNotification;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -295,6 +296,6 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function sendEmailVerificationNotification(): void
     {
-        $this->notify(new \App\Notifications\VerifyEmail);
+        $this->notify(new VerifyEmailNotification());
     }
 }
