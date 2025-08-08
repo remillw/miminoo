@@ -247,8 +247,6 @@ function getConversationStatus() {
 
     if (props.reservation) {
         switch (props.reservation.status) {
-            case 'pending_payment':
-                return 'En attente de paiement';
             case 'paid':
                 return 'Réservation confirmée';
             case 'active':
