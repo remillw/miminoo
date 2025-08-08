@@ -131,6 +131,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Routes pour les réservations
     Route::post('applications/{application}/create-reservation', [ReservationController::class, 'createFromApplication'])->name('applications.create-reservation');
     Route::get('applications/{application}/payment', [ReservationController::class, 'showApplicationPaymentPage'])->name('applications.payment');
+    Route::post('applications/{application}/confirm-payment', [ReservationController::class, 'confirmApplicationPayment'])->name('applications.confirm-payment');
     Route::get('reservations/{reservation}/payment', [ReservationController::class, 'showPaymentPage'])->name('reservations.payment');
     Route::post('reservations/{reservation}/confirm-payment', [ReservationController::class, 'confirmPayment'])->name('reservations.confirm-payment');
     Route::post('reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');

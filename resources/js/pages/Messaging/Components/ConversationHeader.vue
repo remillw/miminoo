@@ -47,8 +47,8 @@
                     Annonce
                 </button>
 
-                <!-- Statut de réservation -->
-                <div v-if="reservation" class="flex items-center gap-2">
+                <!-- Statut de réservation - seulement si payé -->
+                <div v-if="reservation && reservation.status !== 'pending_payment'" class="flex items-center gap-2">
                     <div class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium" :class="getReservationStatusClass()">
                         <div class="h-2 w-2 rounded-full" :class="getReservationDotClass()"></div>
                         {{ getReservationStatusText() }}
@@ -57,8 +57,8 @@
             </div>
         </div>
 
-        <!-- Barre de statut de réservation -->
-        <div v-if="reservation && reservation.status !== 'completed'" class="mt-3 rounded-lg p-3" :class="getReservationBannerClass()">
+        <!-- Barre de statut de réservation - seulement si payé -->
+        <div v-if="reservation && reservation.status !== 'completed' && reservation.status !== 'pending_payment'" class="mt-3 rounded-lg p-3" :class="getReservationBannerClass()">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="flex items-center gap-2">
@@ -68,10 +68,10 @@
                     <div v-if="reservation.time_until_service" class="text-sm opacity-75">{{ reservation.time_until_service }} avant le début</div>
                 </div>
 
-                <!-- Actions de réservation -->
+                <!-- Actions de réservation - seulement si payé -->
                 <div class="flex items-center gap-2">
                     <button
-                        v-if="canCancelReservation"
+                        v-if="canCancelReservation && reservation.status !== 'pending_payment'"
                         @click="showCancelModal = true"
                         class="cursor-pointer rounded border border-red-300 px-3 py-1 text-sm text-red-700 transition-colors hover:bg-red-50"
                     >

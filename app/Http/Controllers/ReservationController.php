@@ -117,6 +117,113 @@ class ReservationController extends Controller
     }
 
     /**
+     * Confirmer le paiement d'une application et créer la réservation
+     */
+    public function confirmApplicationPayment(Request $request, AdApplication $application)
+    {
+        $user = Auth::user();
+
+        Log::info('=== CONFIRMATION PAIEMENT APPLICATION ===', [
+            'user_id' => $user->id,
+            'application_id' => $application->id,
+            'application_status' => $application->status
+        ]);
+
+        // Vérifier que l'utilisateur est le parent
+        if ($application->ad->parent_id !== $user->id) {
+            abort(403);
+        }
+
+        // Vérifier que l'application peut être payée
+        if (!in_array($application->status, ['pending', 'counter_offered', 'accepted'])) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Cette candidature ne peut plus être réservée'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'payment_intent_id' => 'required|string',
+            'save_payment_method' => 'boolean'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Vérifier le PaymentIntent avec Stripe
+            $paymentIntent = $this->stripeService->retrievePaymentIntent($validated['payment_intent_id']);
+
+            if ($paymentIntent->status !== 'succeeded') {
+                Log::error('PaymentIntent non réussi', [
+                    'payment_intent_id' => $validated['payment_intent_id'],
+                    'status' => $paymentIntent->status
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Le paiement n\'a pas été confirmé'
+                ], 400);
+            }
+
+            // Créer la réservation MAINTENANT que le paiement est réussi
+            $finalRate = $application->counter_rate ?? $application->proposed_rate;
+            $reservation = Reservation::createFromApplication($application, $finalRate);
+
+            // Marquer la réservation comme payée
+            $reservation->markAsPaid($validated['payment_intent_id']);
+
+            // Sauvegarder le moyen de paiement si demandé
+            if (isset($validated['save_payment_method']) && $validated['save_payment_method'] && $paymentIntent->payment_method) {
+                $this->stripeService->savePaymentMethod($paymentIntent->payment_method, $user);
+            }
+
+            // Ajouter un message du parent dans la conversation
+            if ($reservation->conversation) {
+                $reservation->conversation->messages()->create([
+                    'sender_id' => $user->id, // Le parent qui vient de payer
+                    'message' => "L'acompte de {$reservation->total_deposit}€ a été payé avec succès. La réservation est confirmée !",
+                    'type' => 'user',
+                    'read_at' => null // Non lu par la babysitter par défaut
+                ]);
+                
+                // Mettre à jour les métadonnées de la conversation
+                $reservation->conversation->update([
+                    'last_message_at' => now(),
+                    'last_message_by' => $user->id
+                ]);
+            }
+
+            // Notifier la babysitter du paiement
+            $reservation->babysitter->notify(new ReservationPaid($reservation));
+
+            DB::commit();
+
+            Log::info('Application payée et réservation créée', [
+                'application_id' => $application->id,
+                'reservation_id' => $reservation->id,
+                'payment_intent_id' => $validated['payment_intent_id']
+            ]);
+
+            // Redirection vers la messagerie avec message de succès
+            return redirect()->route('messaging.index')->with('success', 'Paiement confirmé ! La réservation est maintenant active.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Erreur lors de la confirmation du paiement d\'application', [
+                'application_id' => $application->id,
+                'payment_intent_id' => $validated['payment_intent_id'],
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Erreur lors de la confirmation du paiement'
+            ], 500);
+        }
+    }
+
+    /**
      * Confirmer le paiement d'une réservation
      */
     public function confirmPayment(Request $request, Reservation $reservation)
@@ -573,7 +680,7 @@ class ReservationController extends Controller
     }
 
     /**
-     * Afficher la page de paiement pour une application (crée la réservation si nécessaire)
+     * Afficher la page de paiement pour une application (sans créer de réservation)
      */
     public function showApplicationPaymentPage(AdApplication $application)
     {
@@ -602,53 +709,101 @@ class ReservationController extends Controller
             return redirect()->route('messaging.index')->with('error', 'Cette candidature ne peut plus être réservée');
         }
 
-        // Vérifier s'il existe déjà une réservation pour cette application
+        // Vérifier s'il existe déjà une réservation payée pour cette application
         $existingReservation = Reservation::where('application_id', $application->id)
-            ->where('status', 'pending_payment')
+            ->whereIn('status', ['paid', 'active', 'completed'])
             ->first();
 
         if ($existingReservation) {
-            // Rediriger vers la page de paiement de la réservation existante
-            return redirect()->route('reservations.payment', $existingReservation->id);
+            return redirect()->route('messaging.index')->with('error', 'Cette candidature a déjà été réservée');
         }
 
-        // Créer une nouvelle réservation
+        // Charger les relations nécessaires
+        $application->load(['ad', 'babysitter']);
+
+        // Calculer les montants (logique identique à Reservation::createFromApplication)
+        $finalRate = $application->counter_rate ?? $application->proposed_rate;
+        $depositAmount = $finalRate; // 1 heure d'acompte
+        $serviceFee = 2.00; // Frais fixes
+        $totalDeposit = $depositAmount + $serviceFee;
+
+        // Calculer les frais
+        $stripeFee = round(($totalDeposit * 0.029) + 0.25, 2);
+        $platformFee = $serviceFee;
+        $babysitterAmount = round($totalDeposit - $serviceFee - $stripeFee, 2);
+
+        // Créer le PaymentIntent Stripe pour cette application (sans réservation)
         try {
-            DB::beginTransaction();
-
-            $finalRate = $application->counter_rate ?? $application->proposed_rate;
-            $reservation = Reservation::createFromApplication($application, $finalRate);
-
-            // Créer le PaymentIntent Stripe
             $paymentIntent = $this->stripeService->createPaymentIntent(
-                $reservation->total_deposit * 100, // Convertir en centimes
+                $totalDeposit * 100, // Convertir en centimes
                 'eur',
                 0, // Plus d'application fee - gestion différée des frais
-                $reservation->babysitter, // Babysitter (pour métadonnées)
+                $application->babysitter, // Babysitter (pour métadonnées)
                 $user // Utilisateur connecté
             );
 
-            // Mettre à jour la réservation avec l'ID du PaymentIntent
-            $reservation->update([
-                'stripe_payment_intent_id' => $paymentIntent->id
+            Log::info('PaymentIntent créé pour application', [
+                'application_id' => $application->id,
+                'payment_intent_id' => $paymentIntent->id,
+                'amount' => $paymentIntent->amount
             ]);
-
-            DB::commit();
-
-            // Rediriger vers la page de paiement de la nouvelle réservation
-            return redirect()->route('reservations.payment', $reservation->id);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            
-            Log::error('Erreur lors de la création de la réservation depuis application', [
+            Log::error('Erreur lors de la création du PaymentIntent', [
                 'application_id' => $application->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
-            return redirect()->route('messaging.index')->with('error', 'Erreur lors de la création de la réservation');
+            return redirect()->route('messaging.index')->with('error', 'Erreur lors de la préparation du paiement');
         }
+
+        // Récupérer les moyens de paiement sauvegardés
+        $savedPaymentMethods = [];
+        if ($user->stripe_customer_id) {
+            try {
+                $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+                $paymentMethods = $stripe->paymentMethods->all([
+                    'customer' => $user->stripe_customer_id,
+                    'type' => 'card',
+                ]);
+                $savedPaymentMethods = $paymentMethods->data;
+            } catch (\Exception $e) {
+                Log::warning('Erreur récupération moyens de paiement', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        return Inertia::render('Applications/Payment', [
+            'application' => [
+                'id' => $application->id,
+                'proposed_rate' => $application->proposed_rate,
+                'counter_rate' => $application->counter_rate,
+                'effective_rate' => $finalRate,
+                'deposit_amount' => $depositAmount,
+                'service_fee' => $serviceFee,
+                'stripe_fee' => $stripeFee,
+                'platform_fee' => $platformFee,
+                'babysitter_amount' => $babysitterAmount,
+                'total_deposit' => $totalDeposit,
+                'client_secret' => $paymentIntent->client_secret,
+                'payment_intent_id' => $paymentIntent->id,
+                'ad' => [
+                    'id' => $application->ad->id,
+                    'title' => $application->ad->title,
+                    'date_start' => $application->ad->date_start->toISOString(),
+                    'date_end' => $application->ad->date_end->toISOString(),
+                ],
+                'babysitter' => [
+                    'id' => $application->babysitter->id,
+                    'name' => $application->babysitter->firstname . ' ' . $application->babysitter->lastname,
+                    'avatar' => $application->babysitter->avatar
+                ]
+            ],
+            'savedPaymentMethods' => $savedPaymentMethods,
+            'stripePublishableKey' => config('services.stripe.key')
+        ]);
     }
 
     /**
