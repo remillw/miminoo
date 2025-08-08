@@ -57,24 +57,41 @@
                 <span class="text-gray-400">/heure</span>
             </div>
 
-            <!-- Bouton Postuler, Annonce pleine, ou message si c'est sa propre annonce -->
+            <!-- Boutons selon le statut de candidature -->
+            <!-- Bouton pour postuler ou repostuler -->
             <button
-                v-if="!isOwnAnnouncement && !isAnnouncementFull"
+                v-if="!isOwnAnnouncement && canApply"
                 @click="isModalOpen = true"
                 class="bg-primary hover:bg-primary rounded px-4 py-2 text-sm font-semibold text-white transition-colors sm:px-5 cursor-pointer"
             >
-                Postuler
+                {{ userApplicationStatus === 'cancelled' ? 'Repostuler' : 'Postuler' }}
             </button>
 
+            <!-- Message si déjà postulé (non annulé) -->
             <div
-                v-else-if="!isOwnAnnouncement && isAnnouncementFull"
-                class="rounded bg-gray-300 px-3 py-2 text-sm font-medium text-gray-600 cursor-not-allowed"
-                title="Cette annonce a atteint le nombre maximum de candidatures"
+                v-else-if="!isOwnAnnouncement && userApplicationStatus && userApplicationStatus !== 'cancelled'"
+                class="rounded bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 text-center"
             >
-                Annonce pleine
+                <div v-if="userApplicationStatus === 'pending'">En attente</div>
+                <div v-else-if="userApplicationStatus === 'accepted'">Acceptée</div>
+                <div v-else-if="userApplicationStatus === 'declined'">Refusée</div>
+                <div v-else-if="userApplicationStatus === 'counter_offered'">Contre-offre</div>
+                <div v-else>Postulé</div>
             </div>
 
-            <div v-else class="rounded bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500">Votre annonce</div>
+            <!-- Message si annonce pleine ou ne peut pas postuler -->
+            <div
+                v-else-if="!isOwnAnnouncement && !canApply && !userApplicationStatus"
+                class="rounded bg-gray-300 px-3 py-2 text-sm font-medium text-gray-600 cursor-not-allowed"
+                title="Cette annonce n'est plus disponible"
+            >
+                Indisponible
+            </div>
+
+            <!-- Message si c'est sa propre annonce -->
+            <div v-else-if="isOwnAnnouncement" class="rounded bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500">
+                Votre annonce
+            </div>
         </div>
 
         <!-- Modal de candidature -->
@@ -194,6 +211,14 @@ const props = defineProps({
     applicationsCount: {
         type: Number,
         default: 0,
+    },
+    canApply: {
+        type: Boolean,
+        default: true,
+    },
+    userApplicationStatus: {
+        type: String,
+        default: null,
     },
 });
 

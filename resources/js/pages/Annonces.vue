@@ -19,6 +19,8 @@ interface Announcement {
     created_at: string;
     distance?: number; // Distance calculée côté serveur
     applications_count: number; // Nombre de candidatures
+    can_apply: boolean; // Si l'utilisateur peut postuler
+    user_application_status?: string; // Statut de la candidature de l'utilisateur
     parent: {
         id: number;
         firstname: string;
@@ -272,6 +274,8 @@ const annonces = computed(() => {
             longitude: announcement.address.longitude,
             isMultiDay: isMultiDay, // Ajouter cette info pour la card
             applicationsCount: announcement.applications_count, // Nombre de candidatures
+            canApply: announcement.can_apply, // Si l'utilisateur peut postuler
+            userApplicationStatus: announcement.user_application_status, // Statut de la candidature
         };
     });
 });

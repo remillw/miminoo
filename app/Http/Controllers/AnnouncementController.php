@@ -191,8 +191,9 @@ class AnnouncementController extends Controller
 
         $announcements = $query->paginate(5);
 
-        // Transformer les données pour inclure les avis du parent
-        $announcements->getCollection()->transform(function ($announcement) {
+        // Transformer les données pour inclure les avis du parent et les informations de candidature
+        $user = Auth::user();
+        $announcements->getCollection()->transform(function ($announcement) use ($user) {
             if ($announcement->isGuest()) {
                 // Pour les annonces guests, créer un objet parent fictif
                 $guestFirstname = $announcement->guest_firstname ?: 'Parent';
@@ -234,6 +235,34 @@ class AnnouncementController extends Controller
                         'average_rating' => null,
                         'total_reviews' => 0,
                     ];
+                }
+            }
+
+            // Ajouter les informations de candidature pour l'utilisateur connecté
+            $announcement->can_apply = true;
+            $announcement->user_application_status = null;
+            
+            if ($user) {
+                // Vérifier si c'est sa propre annonce
+                if ($announcement->parent_id === $user->id) {
+                    $announcement->can_apply = false;
+                } else if ($user->hasRole('babysitter')) {
+                    // Vérifier s'il a déjà postulé
+                    $existingApplication = $announcement->applications()
+                        ->where('babysitter_id', $user->id)
+                        ->first();
+                    
+                    if ($existingApplication) {
+                        $announcement->user_application_status = $existingApplication->status;
+                        // Permettre de repostuler seulement si la candidature est annulée
+                        $announcement->can_apply = $existingApplication->status === 'cancelled';
+                    } else {
+                        // Vérifier si l'annonce n'est pas pleine
+                        $announcement->can_apply = $announcement->applications()->count() < 10;
+                    }
+                } else {
+                    // Les parents ne peuvent pas postuler
+                    $announcement->can_apply = false;
                 }
             }
 

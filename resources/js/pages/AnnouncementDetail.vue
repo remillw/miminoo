@@ -114,7 +114,17 @@ const formatTimeRange = computed(() => {
 // Obtenir la ville depuis l'adresse
 const getCity = (address: Address) => {
     const parts = address.address.split(',');
-    return parts[parts.length - 1]?.trim() || '';
+    // Enlever le pays (dernière partie) et prendre la ville (avant-dernière partie)
+    if (parts.length > 1) {
+        // Supprimer "France" ou le pays
+        parts.pop();
+        // Prendre la ville et nettoyer le code postal s'il est inclus
+        let city = parts.pop()?.trim() || '';
+        // Enlever le code postal de la ville s'il est présent (format: "75001 Paris" -> "Paris")
+        city = city.replace(/^\d{5}\s*/, '').trim();
+        return city;
+    }
+    return parts[0]?.trim() || '';
 };
 
 // Formater la localisation
@@ -139,7 +149,7 @@ const hoursForModal = computed(() => {
 
 // Obtenir la localisation pour la modal
 const locationForModal = computed(() => {
-    return `${getCity(props.announcement.address)}, ${props.announcement.address.postal_code}`;
+    return `${props.announcement.address.postal_code} ${getCity(props.announcement.address)}`;
 });
 
 // Fonctions pour les avis
