@@ -199,19 +199,38 @@ class SettingsController extends Controller
             try {
                 $stripeBalance = $this->stripeService->getAccountBalance($user);
                 
-                // Vérifier s'il y a un solde positif
-                if ($stripeBalance && $stripeBalance['available'] > 0) {
-                    $balanceAmount = $stripeBalance['available'] / 100; // Convertir les centimes en euros
-                    Log::warning('Tentative de suppression de compte avec solde Stripe', [
-                        'user_id' => $user->id,
-                        'stripe_account_id' => $user->stripe_account_id,
-                        'balance_available' => $balanceAmount
-                    ]);
+                // Vérifier s'il y a un solde positif (EUR par défaut)
+                if ($stripeBalance && isset($stripeBalance['available'])) {
+                    $availableBalances = $stripeBalance['available'];
                     
-                    return back()->with('error', 
-                        "Impossible de supprimer le compte : vous avez un solde de {$balanceAmount}€ sur votre compte Stripe. " .
-                        "Veuillez d'abord retirer vos fonds ou contacter le support."
-                    );
+                    // Chercher le solde en EUR ou prendre la première devise disponible
+                    $eurBalance = 0;
+                    foreach ($availableBalances as $balance) {
+                        if (isset($balance['currency']) && $balance['currency'] === 'eur') {
+                            $eurBalance = $balance['amount'];
+                            break;
+                        }
+                    }
+                    
+                    // Si pas de solde EUR, prendre le premier disponible
+                    if ($eurBalance === 0 && !empty($availableBalances)) {
+                        $eurBalance = $availableBalances[0]['amount'] ?? 0;
+                    }
+                    
+                    if ($eurBalance > 0) {
+                        $balanceAmount = $eurBalance / 100; // Convertir les centimes en euros
+                        Log::warning('Tentative de suppression de compte avec solde Stripe', [
+                            'user_id' => $user->id,
+                            'stripe_account_id' => $user->stripe_account_id,
+                            'balance_available' => $balanceAmount,
+                            'raw_balance' => $availableBalances
+                        ]);
+                        
+                        return back()->with('error', 
+                            "Impossible de supprimer le compte : vous avez un solde de {$balanceAmount}€ sur votre compte Stripe. " .
+                            "Veuillez d'abord retirer vos fonds ou contacter le support."
+                        );
+                    }
                 }
             } catch (\Exception $e) {
                 Log::error('Erreur lors de la vérification du solde Stripe', [
