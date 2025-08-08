@@ -513,9 +513,36 @@ class AnnouncementController extends Controller
                 ]);
                 
                 // Réactiver la conversation si elle existe et est archivée
-                $application->load('conversation');
+                $application->load('conversation.messages');
                 if ($application->conversation && $application->conversation->status === 'archived') {
                     $application->conversation->update(['status' => 'pending']);
+                    
+                    // Mettre à jour le premier message de candidature avec les nouvelles informations
+                    $firstMessage = $application->conversation->messages()
+                        ->where('sender_id', $user->id)
+                        ->where('type', 'application')
+                        ->orderBy('created_at', 'asc')
+                        ->first();
+                    
+                    if ($firstMessage) {
+                        // Construire le nouveau message de candidature
+                        $newMotivation = $validated['motivation_note'] ?? '';
+                        $newRate = $validated['proposed_rate'] ?? $announcement->hourly_rate;
+                        
+                        $updatedMessage = "Candidature mise à jour le " . now()->format('d/m/Y à H:i') . ":\n\n";
+                        if ($newMotivation) {
+                            $updatedMessage .= "💬 Message de motivation :\n" . $newMotivation . "\n\n";
+                        }
+                        $updatedMessage .= "💵 Tarif proposé : " . $newRate . "€/h";
+                        
+                        $firstMessage->update(['message' => $updatedMessage]);
+                        
+                        Log::info('📝 PREMIER MESSAGE MIS À JOUR', [
+                            'message_id' => $firstMessage->id,
+                            'conversation_id' => $application->conversation->id
+                        ]);
+                    }
+                    
                     Log::info('🔄 CONVERSATION RÉACTIVÉE', [
                         'conversation_id' => $application->conversation->id,
                         'previous_status' => 'archived',
