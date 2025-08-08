@@ -511,6 +511,18 @@ class AnnouncementController extends Controller
                     'counter_rate' => null,
                     'counter_message' => null
                 ]);
+                
+                // Réactiver la conversation si elle existe et est archivée
+                $application->load('conversation');
+                if ($application->conversation && $application->conversation->status === 'archived') {
+                    $application->conversation->update(['status' => 'pending']);
+                    Log::info('🔄 CONVERSATION RÉACTIVÉE', [
+                        'conversation_id' => $application->conversation->id,
+                        'previous_status' => 'archived',
+                        'new_status' => 'pending'
+                    ]);
+                }
+                
                 Log::info('🔄 CANDIDATURE MISE À JOUR (REPOSTULATION)', [
                     'application_id' => $application->id
                 ]);
