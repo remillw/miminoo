@@ -2,7 +2,7 @@
 import { useDeviceToken } from '@/composables/useDeviceToken';
 import { useUserMode } from '@/composables/useUserMode';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Baby, Briefcase, Calendar, CreditCard, Home, LogOut, MessageCircle, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
+import { Baby, Calendar, CreditCard, Home, LogOut, MessageCircle, PlusCircle, Settings, User, Users, X } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
 interface Props {
@@ -73,7 +73,6 @@ const links = computed(() => {
 
     const babysitterLinks = [
         { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
-        { name: 'Annonces', href: '/annonces', icon: Briefcase },
         { name: 'Mes gardes', href: '/babysitting', icon: Calendar },
         { name: 'Messagerie', href: '/messagerie', icon: MessageCircle },
         { name: 'Mon profil', href: '/profil', icon: User },
@@ -94,7 +93,7 @@ const mobileMainLinks = computed(() => {
 
     const babysitterMobileLinks = [
         { name: 'Tableau de bord', href: '/tableau-de-bord', icon: Home },
-        { name: 'Annonces', href: '/annonces', icon: Briefcase },
+        { name: 'Mes gardes', href: '/babysitting', icon: Calendar },
         { name: 'Messages', href: '/messagerie', icon: MessageCircle },
     ];
 

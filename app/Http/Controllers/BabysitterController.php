@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\AgeRange;
-use App\Notifications\BabysitterVerificationRequested;
-use App\Notifications\BabysitterVerificationSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -226,4 +224,5 @@ class BabysitterController extends Controller
             'message' => $newAvailability ? 'Vous êtes maintenant disponible' : 'Vous êtes maintenant indisponible'
         ]);
     }
+    
 }

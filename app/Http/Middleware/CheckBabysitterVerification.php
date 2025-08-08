@@ -62,79 +62,15 @@ class CheckBabysitterVerification
             return redirect()->route('dashboard')->with('error', 'Profil babysitter introuvable.');
         }
 
-        // Vérifier le statut de vérification selon l'action demandée
-        switch ($requiredAction) {
-            case 'payments':
-                // Pour accéder aux paiements, le profil doit être vérifié
-                if ($babysitterProfile->verification_status !== 'verified') {
-                    Log::warning('❌ MIDDLEWARE: Profil non vérifié pour paiements', [
-                        'user_id' => $user->id,
-                        'verification_status' => $babysitterProfile->verification_status,
-                        'expected' => 'verified',
-                        'action' => 'payments'
-                    ]);
-                    
-                    $errorMessage = 'Votre profil doit être vérifié pour accéder aux paiements. Veuillez compléter votre profil et attendre la vérification.';
-                    if ($request->expectsJson()) {
-                        return response()->json(['error' => $errorMessage], 403);
-                    }
-                    
-                    Log::info('🔒 MIDDLEWARE: Redirection vers dashboard avec toast de vérification', [
-                        'user_id' => $user->id,
-                        'from_url' => $request->fullUrl(),
-                        'flash_messages' => [
-                            'warning' => '🔒 Accès restreint',
-                            'info' => 'Vous devez être vérifié par notre équipe pour accéder à cette page.',
-                            'show_verification_toast' => true
-                        ]
-                    ]);
-                    
-                    return redirect()->route('dashboard', ['show_verification_toast' => 'true'])
-                        ->with('warning', '🔒 Accès restreint')
-                        ->with('info', 'Vous devez être vérifié par notre équipe pour accéder à cette page.');
-                }
-                break;
-                
-            case 'apply':
-                // Pour postuler, le profil doit être vérifié
-                if ($babysitterProfile->verification_status !== 'verified') {
-                    Log::warning('❌ MIDDLEWARE: Profil non vérifié pour postulation', [
-                        'user_id' => $user->id,
-                        'verification_status' => $babysitterProfile->verification_status,
-                        'expected' => 'verified',
-                        'action' => 'apply'
-                    ]);
-                    
-                    $errorMessage = 'Votre profil doit être vérifié pour postuler aux annonces. Veuillez compléter votre profil et attendre la vérification.';
-                    if ($request->expectsJson()) {
-                        return response()->json(['error' => $errorMessage], 403);
-                    }
-                    return redirect()->route('announcements.index')->with('error', $errorMessage);
-                }
-                break;
-                
-            case 'verified_only':
-                // Accès général aux fonctionnalités réservées aux vérifiés
-                if ($babysitterProfile->verification_status !== 'verified') {
-                    Log::warning('❌ MIDDLEWARE: Profil non vérifié pour fonctionnalité restreinte', [
-                        'user_id' => $user->id,
-                        'verification_status' => $babysitterProfile->verification_status,
-                        'expected' => 'verified',
-                        'action' => 'verified_only'
-                    ]);
-                    
-                    $errorMessage = 'Cette fonctionnalité est réservée aux babysitters vérifiées.';
-                    if ($request->expectsJson()) {
-                        return response()->json(['error' => $errorMessage], 403);
-                    }
-                    return redirect()->route('dashboard')->with('warning', $errorMessage);
-                }
-                break;
-        }
+        // Le middleware ne vérifie plus le statut de vérification de profil,
+        // seulement que l'utilisateur a un profil babysitter
+        Log::info('✅ MIDDLEWARE: Profil babysitter trouvé, accès autorisé', [
+            'user_id' => $user->id,
+            'action' => $requiredAction
+        ]);
 
         Log::info('✅ MIDDLEWARE: Vérification réussie, passage au contrôleur', [
             'user_id' => $user->id,
-            'verification_status' => $babysitterProfile->verification_status,
             'action' => $requiredAction
         ]);
 

@@ -160,6 +160,12 @@ class StripeVerificationController extends Controller
             $user->update([
                 'identity_verified_at' => now(),
             ]);
+            
+            // Rediriger vers le profil avec un message d'encouragement
+            return redirect()->route('profil')->with([
+                'success' => '✅ Félicitations ! Votre identité a été vérifiée avec succès.',
+                'info' => '💡 Complétez maintenant votre profil pour maximiser vos chances de trouver des gardes.'
+            ]);
         }
         
         return redirect()->route('babysitter.verification-stripe')->with('success', 

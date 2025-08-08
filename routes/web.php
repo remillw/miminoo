@@ -101,7 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('mes-annonces', [AnnouncementController::class, 'myAnnouncements'])->name('announcements.my');
     Route::get('mes-annonces-et-reservations', [AnnouncementController::class, 'myAnnouncementsAndReservations'])->name('parent.announcements-reservations');
     Route::post('annonces/{announcement}/apply', [AnnouncementController::class, 'apply'])
-        ->middleware('check.babysitter.verification:apply')
+        ->middleware('check.babysitter.verification')
         ->name('announcements.apply');
     // Routes d'édition d'annonce pour les parents - déplacées vers le bas pour éviter les conflits
     Route::delete('annonces/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
@@ -191,12 +191,9 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     // Route pour la page unifiée babysitting
     Route::get('babysitting', [App\Http\Controllers\BabysittingController::class, 'index'])->name('babysitting.index');
     
-    Route::post('/babysitter/request-verification', [BabysitterController::class, 'requestVerification'])
-        ->name('babysitter.request-verification');
-    
-    // Page de gestion des paiements dans la sidebar - NÉCESSITE VÉRIFICATION
+    // Page de gestion des paiements dans la sidebar
     Route::get('/babysitter/paiements', [StripeController::class, 'paymentsPage'])
-        ->middleware('check.babysitter.verification:payments')
+        ->middleware('check.babysitter.verification')
         ->name('babysitter.payments');
     
     // Nouvelles routes pour la gestion des paiements

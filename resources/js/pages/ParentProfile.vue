@@ -52,12 +52,23 @@ const formatDateShort = (dateString: string) => {
     });
 };
 
-// Calculer le temps depuis la création
+// Calculer le temps depuis la création avec mois et année
 const memberSince = computed(() => {
-    const years = new Date().getFullYear() - parseInt(props.parent.member_since);
-    if (years === 0) return 'Nouveau membre';
-    return `Membre depuis ${years} ${years > 1 ? 'ans' : 'an'}`;
+    const memberDate = new Date(props.parent.member_since);
+    return `Membre depuis ${memberDate.toLocaleDateString('fr-FR', {
+        month: 'long',
+        year: 'numeric'
+    })}`;
 });
+
+// Obtenir la ville et le pays depuis l'adresse
+const getCityAndCountry = (address?: any) => {
+    if (!address) return '';
+    const addressParts = address.address.split(',');
+    const country = addressParts[addressParts.length - 1]?.trim() || '';
+    const city = addressParts[addressParts.length - 2]?.trim() || '';
+    return city && country ? `${city}, ${country}` : city || country;
+};
 
 // Utilisation du composable useStatusColors pour les statuts
 // Les fonctions getAdStatusClass et getAdStatusText sont remplacées par le composable
@@ -89,33 +100,17 @@ const formatReviewDate = (dateString: string) => {
                                     :alt="`${parent.firstname} ${parent.lastname}`"
                                     class="h-24 w-24 rounded-full border-4 border-white object-cover shadow-lg"
                                 />
-                                <!-- Badge parent -->
-                                <div
-                                    class="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-blue-500"
-                                >
-                                    <svg class="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
                             </div>
                             <div class="flex-1">
-                                <div class="mb-2 flex items-center space-x-3">
+                                <div class="mb-2">
                                     <h1 class="text-2xl font-bold text-gray-900">{{ parent.firstname }} {{ parent.lastname }}</h1>
-                                    <div class="flex items-center space-x-1 text-blue-600">
-                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path
-                                                fill-rule="evenodd"
-                                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                                clip-rule="evenodd"
-                                            ></path>
-                                        </svg>
-                                        <span class="text-sm font-medium">Parent vérifié</span>
-                                    </div>
                                 </div>
 
-                                <p class="mb-3 text-sm text-gray-600">
-                                    <span>{{ memberSince }}</span>
-                                    <span v-if="parent.address"> | {{ getCity(parent.address) }}</span>
+                                <p class="mb-1 text-sm text-gray-600">
+                                    {{ memberSince }}
+                                </p>
+                                <p v-if="parent.address" class="mb-3 text-sm text-gray-600">
+                                    {{ getCityAndCountry(parent.address) }}
                                 </p>
 
                                 <!-- Note moyenne et nombre d'avis -->

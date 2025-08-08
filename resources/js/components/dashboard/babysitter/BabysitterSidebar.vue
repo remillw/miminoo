@@ -1,27 +1,25 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Briefcase, Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, Settings, User, X } from 'lucide-vue-next';
+import { Calendar, CreditCard, Home, LogOut, Menu, MessageCircle, Settings, User, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const showFullMenu = ref(false);
 
 const links = [
     { icon: Home, label: 'Tableau de bord', href: '/tableau-de-bord' },
-    { icon: Briefcase, label: 'Offres disponibles', href: '/annonces' },
     { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
     { icon: MessageCircle, label: 'Messagerie', href: '/messagerie' },
     { icon: CreditCard, label: 'Paiements', href: '/babysitter/paiements' },
     { icon: User, label: 'Mon profil', href: '/profil' },
-
     { icon: Settings, label: 'Paramètres', href: '/parametres' },
 ];
 
 // Liens principaux pour la navigation mobile (selon spécifications)
 const mobileLinks = [
     { icon: Home, label: 'Accueil', href: '/tableau-de-bord' },
-    { icon: Briefcase, label: 'Annonces', href: '/annonces' },
     { icon: Calendar, label: 'Mes gardes', href: '/babysitting' },
     { icon: MessageCircle, label: 'Messages', href: '/messagerie' },
+    { icon: User, label: 'Profil', href: '/profil' },
 ];
 
 // Récupération de l'URL courante
