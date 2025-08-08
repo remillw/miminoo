@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reservation;
+use App\Services\StripeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
@@ -11,6 +13,12 @@ use Inertia\Inertia;
 
 class SettingsController extends Controller
 {
+    protected $stripeService;
+
+    public function __construct(StripeService $stripeService)
+    {
+        $this->stripeService = $stripeService;
+    }
     /**
      * Page des paramètres
      */
@@ -180,32 +188,99 @@ class SettingsController extends Controller
             return back()->with('error', 'Impossible de supprimer le compte : vous avez des réservations en cours.');
         }
 
+        // Vérifier le solde Stripe si l'utilisateur a un compte Connect
+        $stripeBalance = null;
+        if ($user->stripe_account_id) {
+            try {
+                $stripeBalance = $this->stripeService->getAccountBalance($user);
+                
+                // Vérifier s'il y a un solde positif
+                if ($stripeBalance && $stripeBalance['available'] > 0) {
+                    $balanceAmount = $stripeBalance['available'] / 100; // Convertir les centimes en euros
+                    Log::warning('Tentative de suppression de compte avec solde Stripe', [
+                        'user_id' => $user->id,
+                        'stripe_account_id' => $user->stripe_account_id,
+                        'balance_available' => $balanceAmount
+                    ]);
+                    
+                    return back()->with('error', 
+                        "Impossible de supprimer le compte : vous avez un solde de {$balanceAmount}€ sur votre compte Stripe. " .
+                        "Veuillez d'abord retirer vos fonds ou contacter le support."
+                    );
+                }
+            } catch (\Exception $e) {
+                Log::error('Erreur lors de la vérification du solde Stripe', [
+                    'user_id' => $user->id,
+                    'stripe_account_id' => $user->stripe_account_id,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // On continue la suppression même si on ne peut pas vérifier le solde
+                // mais on log l'erreur pour investigation
+            }
+        }
+
         try {
+            DB::beginTransaction();
+            
             // Log de la suppression
             Log::warning('Suppression de compte utilisateur', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'roles' => $user->roles()->pluck('name')->toArray(),
+                'stripe_account_id' => $user->stripe_account_id,
+                'stripe_balance' => $stripeBalance
             ]);
+
+            // Gérer le compte Stripe Connect si présent
+            if ($user->stripe_account_id) {
+                try {
+                    // Archiver ou désactiver le compte Stripe Connect
+                    // Note: Stripe ne permet pas de supprimer complètement un compte Connect
+                    // mais nous pouvons le marquer comme fermé dans nos logs
+                    Log::info('Compte Stripe Connect associé au compte supprimé', [
+                        'user_id' => $user->id,
+                        'stripe_account_id' => $user->stripe_account_id
+                    ]);
+                    
+                    // Note: Si il reste de l'argent sur le compte Stripe, 
+                    // Stripe s'occupera automatiquement du transfert selon ses règles
+                    // Nous avons déjà vérifié plus haut s'il y avait des fonds
+                } catch (\Exception $e) {
+                    Log::error('Erreur lors de la gestion du compte Stripe', [
+                        'user_id' => $user->id,
+                        'stripe_account_id' => $user->stripe_account_id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
 
             // Déconnecter l'utilisateur
             auth()->logout();
 
             // Supprimer l'utilisateur (les relations seront supprimées en cascade)
+            // Cela inclut : profils, messages, annonces, candidatures, etc.
             $user->delete();
+
+            // Valider la transaction
+            DB::commit();
 
             // Invalider la session
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return redirect()->route('home')->with('success', 'Votre compte a été supprimé avec succès.');
+            
         } catch (\Exception $e) {
+            DB::rollBack();
+            
             Log::error('Erreur suppression compte', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
-            return back()->with('error', 'Erreur lors de la suppression du compte.');
+            return back()->with('error', 'Erreur lors de la suppression du compte : ' . $e->getMessage());
         }
     }
 } 

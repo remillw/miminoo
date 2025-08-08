@@ -521,9 +521,8 @@ const confirmDeleteAccount = () => {
     isDeletingAccount.value = true;
 
     router.delete(route('settings.delete-account'), {
-        data: {
-            confirmation: deleteConfirmationText.value,
-        },
+        confirmation: deleteConfirmationText.value,
+    }, {
         onSuccess: () => {
             showSuccess('Compte supprimé', 'Votre compte a été supprimé avec succès');
             // L'utilisateur sera redirigé vers la page d'accueil
