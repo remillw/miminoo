@@ -343,13 +343,34 @@ const formatMemberSince = (dateString: string) => {
 
                             <!-- Bouton de candidature -->
                             <div v-if="isFuture" class="mt-6">
+                                <!-- Bouton pour postuler ou repostuler -->
                                 <button
+                                    v-if="announcement.can_apply"
                                     @click="isModalOpen = true"
                                     class="bg-primary-600 hover:bg-primary-700 w-full transform rounded-xl px-6 py-4 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                                 >
-                                    Postuler à cette annonce
+                                    {{ announcement.user_application_status === 'cancelled' ? 'Postuler à nouveau' : 'Postuler à cette annonce' }}
                                 </button>
-                                <p class="mt-3 text-center text-sm text-gray-500">Envoyez votre candidature en quelques clics</p>
+                                
+                                <!-- Message si déjà postulé (non annulé) -->
+                                <div v-else-if="announcement.user_application_status && announcement.user_application_status !== 'cancelled'" class="w-full rounded-xl bg-gray-100 px-6 py-4 text-center">
+                                    <div class="text-sm font-medium text-gray-700">
+                                        <template v-if="announcement.user_application_status === 'pending'">Candidature en attente</template>
+                                        <template v-else-if="announcement.user_application_status === 'accepted'">Candidature acceptée</template>
+                                        <template v-else-if="announcement.user_application_status === 'declined'">Candidature refusée</template>
+                                        <template v-else-if="announcement.user_application_status === 'counter_offered'">Contre-offre reçue</template>
+                                        <template v-else>Vous avez déjà postulé</template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Message si ne peut pas postuler (annonce pleine, etc.) -->
+                                <div v-else class="w-full rounded-xl bg-gray-100 px-6 py-4 text-center">
+                                    <div class="text-sm font-medium text-gray-700">Cette annonce n'est plus disponible</div>
+                                </div>
+                                
+                                <p v-if="announcement.can_apply" class="mt-3 text-center text-sm text-gray-500">
+                                    {{ announcement.user_application_status === 'cancelled' ? 'Postulez à nouveau en quelques clics' : 'Envoyez votre candidature en quelques clics' }}
+                                </p>
                             </div>
 
                             <!-- Mission expirée -->

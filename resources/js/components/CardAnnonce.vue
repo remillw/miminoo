@@ -27,8 +27,9 @@
             <div class="flex items-start gap-2">
                 <MapPin class="text-primary bg-secondary h-6 w-6 rounded-md p-1 sm:h-7 sm:w-7" />
                 <div class="min-w-0 flex-1">
-                    <p class="truncate font-semibold">
-                        {{ city }}<span class="text-gray-500">, {{ postalCode }}</span>
+                    <p class="font-semibold">
+                        <span class="block truncate">{{ city }}</span>
+                        <span class="text-gray-500">{{ postalCode }}</span>
                     </p>
                     <!-- Affichage de la distance si disponible -->
                     <p v-if="distance !== null" class="flex items-center gap-1 text-xs text-gray-500">

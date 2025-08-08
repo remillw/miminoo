@@ -459,23 +459,46 @@ class AnnouncementController extends Controller
             throw $e;
         }
 
-        // Créer la candidature
+        // Créer la candidature ou mettre à jour si repostulation
         try {
-            Log::info('💾 CRÉATION CANDIDATURE EN COURS...', [
+            Log::info('💾 CRÉATION/MISE À JOUR CANDIDATURE EN COURS...', [
                 'babysitter_id' => $user->id,
                 'announcement_id' => $announcement->id,
                 'motivation_note' => $validated['motivation_note'] ?? null,
-                'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate
-            ]);
-
-            $application = $announcement->applications()->create([
-                'babysitter_id' => $user->id,
-                'status' => 'pending',
-                'motivation_note' => $validated['motivation_note'] ?? null,
                 'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate,
+                'is_reapplication' => $existingApplication && $existingApplication->status === 'cancelled'
             ]);
 
-            Log::info('✅ CANDIDATURE CRÉÉE AVEC SUCCÈS', [
+            if ($existingApplication && $existingApplication->status === 'cancelled') {
+                // Repostulation sur candidature annulée
+                $application = $existingApplication;
+                $application->update([
+                    'status' => 'pending',
+                    'motivation_note' => $validated['motivation_note'] ?? null,
+                    'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate,
+                    'expires_at' => now()->addHours(24),
+                    'viewed_at' => null,
+                    'accepted_at' => null,
+                    'counter_rate' => null,
+                    'counter_message' => null
+                ]);
+                Log::info('🔄 CANDIDATURE MISE À JOUR (REPOSTULATION)', [
+                    'application_id' => $application->id
+                ]);
+            } else {
+                // Nouvelle candidature
+                $application = $announcement->applications()->create([
+                    'babysitter_id' => $user->id,
+                    'status' => 'pending',
+                    'motivation_note' => $validated['motivation_note'] ?? null,
+                    'proposed_rate' => $validated['proposed_rate'] ?? $announcement->hourly_rate,
+                ]);
+                Log::info('✅ NOUVELLE CANDIDATURE CRÉÉE', [
+                    'application_id' => $application->id
+                ]);
+            }
+
+            Log::info('✅ CANDIDATURE TRAITÉE AVEC SUCCÈS', [
                 'application_id' => $application->id,
                 'application_status' => $application->status,
                 'created_at' => $application->created_at
@@ -814,6 +837,34 @@ class AnnouncementController extends Controller
             ];
         }
 
+        // Vérifier si l'utilisateur connecté peut postuler et son statut de candidature
+        $canApply = true;
+        $userApplicationStatus = null;
+        
+        if ($user) {
+            // Vérifier si c'est sa propre annonce
+            if ($announcement->parent_id === $user->id) {
+                $canApply = false;
+            } else if ($user->hasRole('babysitter')) {
+                // Vérifier s'il a déjà postulé
+                $existingApplication = $announcement->applications()
+                    ->where('babysitter_id', $user->id)
+                    ->first();
+                
+                if ($existingApplication) {
+                    $userApplicationStatus = $existingApplication->status;
+                    // Permettre de repostuler seulement si la candidature est annulée
+                    $canApply = $existingApplication->status === 'cancelled';
+                } else {
+                    // Vérifier si l'annonce n'est pas pleine
+                    $canApply = $announcement->applications()->count() < 10;
+                }
+            } else {
+                // Les parents ne peuvent pas postuler
+                $canApply = false;
+            }
+        }
+
         // Détecter si c'est une mission multi-jours
         $startDate = \Carbon\Carbon::parse($announcement->date_start);
         $endDate = \Carbon\Carbon::parse($announcement->date_end);
@@ -845,6 +896,8 @@ class AnnouncementController extends Controller
                 'created_at' => $announcement->created_at,
                 'slug' => $expectedSlug,
                 'duration' => $duration,
+                'can_apply' => $canApply,
+                'user_application_status' => $userApplicationStatus,
                 'parent' => [
                     'id' => $announcement->parent->id,
                     'firstname' => $announcement->parent->firstname,

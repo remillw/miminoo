@@ -24,8 +24,9 @@ export function useDateFormat() {
     /**
      * Formate une heure pour l'affichage français
      */
-    const formatTime = (date: Date): string => {
-        return date.toLocaleTimeString('fr-FR', {
+    const formatTime = (date: Date | string): string => {
+        const dateObj = date instanceof Date ? date : parseLocalDate(date);
+        return dateObj.toLocaleTimeString('fr-FR', {
             hour: '2-digit',
             minute: '2-digit',
         });
