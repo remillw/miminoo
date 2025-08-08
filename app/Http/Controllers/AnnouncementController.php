@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Ad;
 use App\Models\AdApplication;
 use App\Models\Address;
+use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -521,42 +522,103 @@ class AnnouncementController extends Controller
                     'counter_message' => null
                 ]);
                 
-                // Réactiver la conversation si elle existe et est archivée
-                $application->load('conversation.messages');
-                if ($application->conversation && $application->conversation->status === 'archived') {
-                    $application->conversation->update(['status' => 'pending']);
+                // Réactiver la conversation si elle existe, sinon la créer
+                $application->load('conversation.messages', 'ad');
+                
+                // Si aucune conversation n'existe, la créer (elle se créera avec le premier message automatiquement)
+                if (!$application->conversation) {
+                    Conversation::create([
+                        'ad_id' => $application->ad_id,
+                        'application_id' => $application->id,
+                        'parent_id' => $application->ad->parent_id,
+                        'babysitter_id' => $application->babysitter_id,
+                        'status' => 'pending'
+                    ]);
                     
-                    // Mettre à jour le premier message de candidature avec les nouvelles informations
-                    $firstMessage = $application->conversation->messages()
-                        ->where('sender_id', $user->id)
-                        ->where('type', 'application')
-                        ->orderBy('created_at', 'asc')
-                        ->first();
+                    // Recharger l'application pour obtenir la nouvelle conversation
+                    $application->load('conversation.messages');
                     
-                    if ($firstMessage) {
-                        // Construire le nouveau message de candidature
-                        $newMotivation = $validated['motivation_note'] ?? '';
-                        $newRate = $validated['proposed_rate'] ?? $announcement->hourly_rate;
+                    Log::info('🆕 CONVERSATION CRÉÉE POUR REPOSTULATION', [
+                        'conversation_id' => $application->conversation->id,
+                        'application_id' => $application->id
+                    ]);
+                }
+                
+                if ($application->conversation) {
+                    // Réactiver la conversation si elle est archivée
+                    if ($application->conversation->status === 'archived') {
+                        $application->conversation->update(['status' => 'pending']);
                         
-                        $updatedMessage = "Candidature mise à jour le " . now()->format('d/m/Y à H:i') . ":\n\n";
-                        if ($newMotivation) {
-                            $updatedMessage .= "💬 Message de motivation :\n" . $newMotivation . "\n\n";
-                        }
-                        $updatedMessage .= "💵 Tarif proposé : " . $newRate . "€/h";
-                        
-                        $firstMessage->update(['message' => $updatedMessage]);
-                        
-                        Log::info('📝 PREMIER MESSAGE MIS À JOUR', [
-                            'message_id' => $firstMessage->id,
-                            'conversation_id' => $application->conversation->id
+                        Log::info('🔄 CONVERSATION RÉACTIVÉE', [
+                            'conversation_id' => $application->conversation->id,
+                            'previous_status' => 'archived',
+                            'new_status' => 'pending'
                         ]);
                     }
                     
-                    Log::info('🔄 CONVERSATION RÉACTIVÉE', [
-                        'conversation_id' => $application->conversation->id,
-                        'previous_status' => 'archived',
-                        'new_status' => 'pending'
-                    ]);
+                    // Construire le nouveau message de candidature
+                    $newMotivation = $validated['motivation_note'] ?? '';
+                    $newRate = $validated['proposed_rate'] ?? $announcement->hourly_rate;
+                    
+                    // Construire le nouveau message comme dans le boot() method du modèle Conversation
+                    $updatedMessage = $newMotivation;
+                    if ($newRate) {
+                        $updatedMessage .= "\n\nTarif proposé : " . $newRate . "€/h";
+                    }
+                    
+                    // Seulement traiter si on a un message à afficher
+                    if (trim($updatedMessage)) {
+                        // Chercher le premier message de candidature de la babysitter
+                        $firstMessage = $application->conversation->messages()
+                            ->where('sender_id', $user->id)
+                            ->where('type', 'user')
+                            ->orderBy('created_at', 'asc')
+                            ->first();
+                        
+                        if ($firstMessage) {
+                            // Mettre à jour le message existant seulement s'il a changé
+                            if ($firstMessage->message !== $updatedMessage) {
+                                $firstMessage->update([
+                                    'message' => $updatedMessage,
+                                    'read_at' => null, // Marquer comme non lu pour notifier le parent
+                                    'updated_at' => now()
+                                ]);
+                                
+                                // Mettre à jour le timestamp de dernière activité de la conversation
+                                $application->conversation->update([
+                                    'last_message_at' => now(),
+                                    'last_message_by' => $user->id
+                                ]);
+                                
+                                Log::info('📝 PREMIER MESSAGE MIS À JOUR', [
+                                    'message_id' => $firstMessage->id,
+                                    'conversation_id' => $application->conversation->id,
+                                    'old_message' => $firstMessage->getOriginal('message'),
+                                    'new_message' => $updatedMessage
+                                ]);
+                            }
+                        } else {
+                            // Créer un nouveau premier message s'il n'existe pas
+                            $firstMessage = $application->conversation->messages()->create([
+                                'sender_id' => $user->id,
+                                'message' => $updatedMessage,
+                                'type' => 'user',
+                                'read_at' => null
+                            ]);
+                            
+                            // Mettre à jour le timestamp de dernière activité de la conversation
+                            $application->conversation->update([
+                                'last_message_at' => now(),
+                                'last_message_by' => $user->id
+                            ]);
+                            
+                            Log::info('🆕 PREMIER MESSAGE CRÉÉ POUR REPOSTULATION', [
+                                'message_id' => $firstMessage->id,
+                                'conversation_id' => $application->conversation->id,
+                                'new_message' => $updatedMessage
+                            ]);
+                        }
+                    }
                 }
                 
                 Log::info('🔄 CANDIDATURE MISE À JOUR (REPOSTULATION)', [
