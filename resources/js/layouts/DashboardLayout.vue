@@ -88,12 +88,7 @@ const handleLoaderComplete = () => {
 
         <div class="flex flex-1">
             <!-- Sidebar seulement si utilisateur connecté -->
-            <UnifiedSidebar 
-                v-if="user" 
-                :hasParentRole="hasParentRole" 
-                :hasBabysitterRole="hasBabysitterRole" 
-                :requestedMode="props.currentMode" 
-            />
+            <UnifiedSidebar v-if="user" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="props.currentMode" />
 
             <!-- Main content optimisé pour l'app mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
@@ -108,7 +103,6 @@ const handleLoaderComplete = () => {
         <!-- Footer seulement si pas dans l'app mobile -->
         <Footer v-if="!shouldHideHeaderFooter" />
     </div>
-
 </template>
 
 <style scoped>

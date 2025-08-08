@@ -17,7 +17,9 @@
                         </div>
                     </div>
                     <div>
-                        <DialogTitle class="text-lg font-semibold text-gray-900"> Postuler à cette annonce </DialogTitle>
+                        <DialogTitle class="text-lg font-semibold text-gray-900">
+                            {{ props.existingApplication ? 'Modifier votre candidature' : 'Postuler à cette annonce' }}
+                        </DialogTitle>
                         <DialogDescription class="mt-1 flex items-center gap-1 text-sm text-gray-600">
                             <Users class="h-3 w-3" />
                             Famille {{ familyName }}
@@ -58,6 +60,14 @@
                         </div>
                         <div class="text-sm font-medium text-gray-900">{{ childrenCount }}</div>
                     </div>
+                </div>
+
+                <!-- Indication de repostulation -->
+                <div v-if="props.existingApplication" class="rounded-lg border border-amber-100/50 bg-amber-50/30 p-3">
+                    <p class="flex items-center gap-2 text-sm text-amber-700">
+                        <Info class="h-4 w-4" />
+                        <span>Vous modifiez votre candidature annulée précédente</span>
+                    </p>
                 </div>
 
                 <!-- Informations supplémentaires si disponibles -->
@@ -163,7 +173,7 @@
                     >
                         <Loader v-if="isLoading" class="h-4 w-4 animate-spin" />
                         <Send v-else class="h-4 w-4" />
-                        {{ isLoading ? 'Envoi...' : 'Envoyer ma candidature' }}
+                        {{ isLoading ? 'Envoi...' : props.existingApplication ? 'Mettre à jour ma candidature' : 'Envoyer ma candidature' }}
                     </Button>
                 </div>
             </div>
@@ -193,6 +203,7 @@ interface Props {
     familyName: string;
     requestedRate: number;
     additionalInfo?: string | null;
+    existingApplication?: { motivation_note?: string; proposed_rate?: number } | null;
 }
 
 const props = defineProps<Props>();
@@ -226,8 +237,15 @@ const closeModal = () => {
 const resetModalState = async () => {
     if (props.isOpen) {
         await nextTick();
-        message.value = '';
-        rate.value = props.requestedRate;
+        // Si on a des données de candidature existante (repostulation), les utiliser
+        if (props.existingApplication) {
+            message.value = props.existingApplication.motivation_note || '';
+            rate.value = props.existingApplication.proposed_rate || props.requestedRate;
+        } else {
+            // Sinon, réinitialiser aux valeurs par défaut
+            message.value = '';
+            rate.value = props.requestedRate;
+        }
         error.value = '';
         isLoading.value = false;
     }

@@ -62,7 +62,7 @@
             <button
                 v-if="!isOwnAnnouncement && canApply"
                 @click="isModalOpen = true"
-                class="bg-primary hover:bg-primary rounded px-4 py-2 text-sm font-semibold text-white transition-colors sm:px-5 cursor-pointer"
+                class="bg-primary hover:bg-primary cursor-pointer rounded px-4 py-2 text-sm font-semibold text-white transition-colors sm:px-5"
             >
                 {{ userApplicationStatus === 'cancelled' ? 'Repostuler' : 'Postuler' }}
             </button>
@@ -70,7 +70,7 @@
             <!-- Message si déjà postulé (non annulé) -->
             <div
                 v-else-if="!isOwnAnnouncement && userApplicationStatus && userApplicationStatus !== 'cancelled'"
-                class="rounded bg-gray-100 px-3 py-2 text-xs font-medium text-gray-600 text-center"
+                class="rounded bg-gray-100 px-3 py-2 text-center text-xs font-medium text-gray-600"
             >
                 <div v-if="userApplicationStatus === 'pending'">En attente</div>
                 <div v-else-if="userApplicationStatus === 'accepted'">Acceptée</div>
@@ -82,16 +82,14 @@
             <!-- Message si annonce pleine ou ne peut pas postuler -->
             <div
                 v-else-if="!isOwnAnnouncement && !canApply && !userApplicationStatus"
-                class="rounded bg-gray-300 px-3 py-2 text-sm font-medium text-gray-600 cursor-not-allowed"
+                class="cursor-not-allowed rounded bg-gray-300 px-3 py-2 text-sm font-medium text-gray-600"
                 title="Cette annonce n'est plus disponible"
             >
                 Indisponible
             </div>
 
             <!-- Message si c'est sa propre annonce -->
-            <div v-else-if="isOwnAnnouncement" class="rounded bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500">
-                Votre annonce
-            </div>
+            <div v-else-if="isOwnAnnouncement" class="rounded bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500">Votre annonce</div>
         </div>
 
         <!-- Modal de candidature -->
@@ -107,6 +105,7 @@
             :family-name="name"
             :requested-rate="rate"
             :additional-info="additionalInfo"
+            :existing-application="existingApplication"
             :start-time="startTime"
             :end-time="endTime"
         />
@@ -220,6 +219,10 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    existingApplication: {
+        type: Object,
+        default: null,
+    },
 });
 
 const isModalOpen = ref(false);
@@ -231,11 +234,6 @@ const user = computed(() => (page.props as any).auth?.user);
 // Vérifier si c'est la propre annonce de l'utilisateur
 const isOwnAnnouncement = computed(() => {
     return user.value && props.parentId === user.value.id;
-});
-
-// Vérifier si l'annonce est pleine (10 candidatures ou plus)
-const isAnnouncementFull = computed(() => {
-    return props.applicationsCount >= 10;
 });
 </script>
 

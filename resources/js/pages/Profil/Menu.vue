@@ -9,11 +9,11 @@
                             <img
                                 :src="user.avatar || '/default-avatar.png'"
                                 :alt="user.firstname"
-                                class="h-20 w-20 rounded-full border-2 border-orange-200 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                class="h-20 w-20 cursor-pointer rounded-full border-2 border-orange-200 object-cover transition-opacity hover:opacity-80"
                                 @click="showAvatarSelector = true"
                             />
                             <!-- Indicateur que l'avatar est cliquable -->
-                            <div class="absolute -bottom-1 -right-1 bg-orange-500 rounded-full p-1.5">
+                            <div class="absolute -right-1 -bottom-1 rounded-full bg-orange-500 p-1.5">
                                 <Camera class="h-3 w-3 text-white" />
                             </div>
                         </div>
@@ -134,10 +134,7 @@
 
                     <!-- Section Déconnexion -->
                     <div class="rounded-2xl bg-white p-6 shadow-lg">
-                        <button 
-                            @click="logout" 
-                            class="flex w-full items-center justify-between rounded-lg p-3 text-red-600 hover:bg-red-50"
-                        >
+                        <button @click="logout" class="flex w-full items-center justify-between rounded-lg p-3 text-red-600 hover:bg-red-50">
                             <div class="flex items-center">
                                 <LogOut class="mr-3 h-5 w-5" />
                                 <span class="font-medium">Se déconnecter</span>
@@ -151,26 +148,23 @@
             <!-- Modal de sélection d'avatar -->
             <div
                 v-if="showAvatarSelector"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
                 @click="showAvatarSelector = false"
             >
-                <div
-                    class="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-                    @click.stop
-                >
-                    <h2 class="mb-4 text-xl font-bold text-gray-900 text-center">Choisissez votre avatar</h2>
-                    
+                <div class="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" @click.stop>
+                    <h2 class="mb-4 text-center text-xl font-bold text-gray-900">Choisissez votre avatar</h2>
+
                     <!-- Bouton pour uploader une photo personnalisée -->
                     <div class="mb-4">
                         <button
                             @click="uploadCustomAvatar"
-                            class="w-full flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-3 text-white font-medium hover:bg-orange-600 transition-colors"
+                            class="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-3 font-medium text-white transition-colors hover:bg-orange-600"
                         >
                             <Camera class="h-5 w-5" />
                             {{ isMobileApp() ? 'Prendre une photo / Galerie' : 'Choisir une photo' }}
                         </button>
                     </div>
-                    
+
                     <div class="relative mb-4">
                         <div class="absolute inset-0 flex items-center">
                             <div class="w-full border-t border-gray-300" />
@@ -179,25 +173,21 @@
                             <span class="bg-white px-2 text-gray-500">ou choisissez un avatar</span>
                         </div>
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-6">
+
+                    <div class="mb-6 grid grid-cols-2 gap-4">
                         <div
                             v-for="avatar in availableAvatars"
                             :key="avatar"
                             @click="selectAvatar(avatar)"
-                            class="cursor-pointer rounded-xl border-2 border-gray-200 p-4 hover:border-orange-500 hover:shadow-md transition-all"
+                            class="cursor-pointer rounded-xl border-2 border-gray-200 p-4 transition-all hover:border-orange-500 hover:shadow-md"
                         >
-                            <img
-                                :src="avatar"
-                                :alt="'Avatar'"
-                                class="h-16 w-16 mx-auto rounded-full object-cover"
-                            />
+                            <img :src="avatar" :alt="'Avatar'" class="mx-auto h-16 w-16 rounded-full object-cover" />
                         </div>
                     </div>
-                    
+
                     <button
                         @click="showAvatarSelector = false"
-                        class="w-full rounded-lg bg-gray-100 px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 transition-colors"
+                        class="w-full rounded-lg bg-gray-100 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-200"
                     >
                         Annuler
                     </button>
@@ -208,13 +198,15 @@
 </template>
 
 <script setup lang="ts">
+import { useDeviceToken } from '@/composables/useDeviceToken';
+import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import { router, usePage } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
 import {
     BookOpen,
     Briefcase,
     Calendar,
+    Camera,
     ChevronRight,
     CreditCard,
     LogOut,
@@ -224,11 +216,9 @@ import {
     Search,
     Settings,
     Shield,
-    Camera,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { useDeviceToken } from '@/composables/useDeviceToken';
-import { useToast } from '@/composables/useToast';
+import { route } from 'ziggy-js';
 
 const page = usePage();
 const { isMobileApp } = useDeviceToken();
@@ -244,7 +234,7 @@ const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'))
 const showAvatarSelector = ref(false);
 const availableAvatars = computed(() => {
     const avatars = [];
-    
+
     // Avatars selon les rôles
     if (hasParentRole.value && hasBabysitterRole.value) {
         // Les deux rôles
@@ -262,24 +252,28 @@ const availableAvatars = computed(() => {
             avatars.push(`/storage/avatars/babysitter/babysitters-generique${i}.svg`);
         }
     }
-    
+
     return avatars;
 });
 
 const selectAvatar = (avatarPath: string) => {
     showAvatarSelector.value = false;
-    
+
     // Utiliser router.post pour un fonctionnement natif avec les applications mobiles
-    router.post('/profil/update-avatar', {
-        avatar: avatarPath
-    }, {
-        onSuccess: () => {
-            showSuccess('Avatar mis à jour !', 'Votre avatar a été modifié avec succès');
+    router.post(
+        '/profil/update-avatar',
+        {
+            avatar: avatarPath,
         },
-        onError: () => {
-            showError('Erreur', 'Impossible de mettre à jour votre avatar');
-        }
-    });
+        {
+            onSuccess: () => {
+                showSuccess('Avatar mis à jour !', 'Votre avatar a été modifié avec succès');
+            },
+            onError: () => {
+                showError('Erreur', 'Impossible de mettre à jour votre avatar');
+            },
+        },
+    );
 };
 
 const uploadCustomAvatar = () => {
@@ -290,29 +284,33 @@ const uploadCustomAvatar = () => {
             const handleNativeImageSelection = (event: CustomEvent) => {
                 const imageData = event.detail;
                 console.log('Image sélectionnée:', imageData);
-                
+
                 // Fermer le modal et uploader l'image
                 showAvatarSelector.value = false;
-                
-                router.post('/profil/update-avatar', {
-                    avatar: imageData.base64
-                }, {
-                    onSuccess: () => {
-                        showSuccess('Avatar mis à jour !', 'Votre photo a été uploadée avec succès');
+
+                router.post(
+                    '/profil/update-avatar',
+                    {
+                        avatar: imageData.base64,
                     },
-                    onError: () => {
-                        showError('Erreur', 'Impossible de mettre à jour votre avatar');
-                    }
-                });
-                
+                    {
+                        onSuccess: () => {
+                            showSuccess('Avatar mis à jour !', 'Votre photo a été uploadée avec succès');
+                        },
+                        onError: () => {
+                            showError('Erreur', 'Impossible de mettre à jour votre avatar');
+                        },
+                    },
+                );
+
                 // Supprimer le listener après utilisation
                 window.removeEventListener('nativeImageSelected', handleNativeImageSelection);
             };
-            
+
             // Ajouter le listener pour l'événement
             window.addEventListener('nativeImageSelected', handleNativeImageSelection);
         } else {
-            showError('Erreur', 'L\'accès natif aux photos n\'est pas disponible');
+            showError('Erreur', "L'accès natif aux photos n'est pas disponible");
         }
     } else {
         // Utiliser l'input file classique sur le web
@@ -320,7 +318,7 @@ const uploadCustomAvatar = () => {
         input.type = 'file';
         input.accept = 'image/*';
         input.multiple = false;
-        
+
         input.onchange = (event: any) => {
             const file = event.target.files[0];
             if (file) {
@@ -329,35 +327,39 @@ const uploadCustomAvatar = () => {
                     showError('Fichier trop volumineux', 'Veuillez choisir une image de moins de 5 MB');
                     return;
                 }
-                
+
                 // Vérifier le type de fichier
                 if (!file.type.startsWith('image/')) {
                     showError('Format invalide', 'Veuillez choisir un fichier image');
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = (e: any) => {
                     const base64String = e.target.result;
-                    
+
                     // Fermer le modal et uploader l'image
                     showAvatarSelector.value = false;
-                    
-                    router.post('/profil/update-avatar', {
-                        avatar: base64String
-                    }, {
-                        onSuccess: () => {
-                            showSuccess('Avatar mis à jour !', 'Votre photo a été uploadée avec succès');
+
+                    router.post(
+                        '/profil/update-avatar',
+                        {
+                            avatar: base64String,
                         },
-                        onError: () => {
-                            showError('Erreur', 'Impossible de mettre à jour votre avatar');
-                        }
-                    });
+                        {
+                            onSuccess: () => {
+                                showSuccess('Avatar mis à jour !', 'Votre photo a été uploadée avec succès');
+                            },
+                            onError: () => {
+                                showError('Erreur', 'Impossible de mettre à jour votre avatar');
+                            },
+                        },
+                    );
                 };
                 reader.readAsDataURL(file);
             }
         };
-        
+
         input.click();
     }
 };

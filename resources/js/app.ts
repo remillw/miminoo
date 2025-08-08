@@ -53,14 +53,14 @@ createInertiaApp({
         app.use(plugin).use(ZiggyVue).mount(el);
 
         // Installer le gestionnaire global d'erreurs
-        const { installGlobalHandlers, isSessionExpiredError } = useGlobalErrorHandler();
+        const { installGlobalHandlers, isSessionExpiredError, handleInertiaError } = useGlobalErrorHandler();
         installGlobalHandlers();
 
-        // Gestionnaire global d'erreurs Inertia pour les sessions expirées uniquement
+        // Gestionnaire global d'erreurs Inertia pour les sessions expirées et CSRF
         router.on('error', (errors) => {
             console.log('🔍 Erreur Inertia capturée:', errors);
 
-            // Ne traiter que les vraies erreurs d'authentification
+            // Ne traiter que les vraies erreurs d'authentification et CSRF
             // Ignorer les autres erreurs pour permettre la gestion normale des flash messages
             if (typeof errors === 'string' || (errors && typeof errors === 'object')) {
                 const errorData = {
@@ -68,6 +68,11 @@ createInertiaApp({
                     status: 500,
                     data: errors,
                 };
+
+                // Gérer les erreurs CSRF
+                if (!handleInertiaError(errors)) {
+                    return; // L'erreur a été gérée
+                }
 
                 // Vérifier si c'est spécifiquement une erreur de session expirée
                 if (isSessionExpiredError(errorData)) {
@@ -81,7 +86,7 @@ createInertiaApp({
             }
 
             // Laisser les autres erreurs être gérées normalement par Inertia
-            console.log('ℹ️ Erreur non liée à la session, gestion normale');
+            console.log('ℹ️ Erreur non liée à la session ou CSRF, gestion normale');
         });
 
         // Les listeners Capacitor sont maintenant gérés automatiquement

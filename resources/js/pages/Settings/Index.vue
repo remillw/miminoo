@@ -63,40 +63,43 @@
                             </div>
                         </div>
                     </div>
-                    <div class="p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-900">Notifications par email</h3>
-                            <p class="text-sm text-gray-500">Recevez des notifications par email</p>
+                    <div class="space-y-4 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-900">Notifications par email</h3>
+                                <p class="text-sm text-gray-500">Recevez des notifications par email</p>
+                            </div>
+                            <label class="relative inline-flex cursor-pointer items-center">
+                                <input
+                                    type="checkbox"
+                                    v-model="notificationForm.email_notifications"
+                                    @change="updateNotifications"
+                                    class="peer sr-only"
+                                />
+                                <div
+                                    class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+                                ></div>
+                            </label>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                v-model="notificationForm.email_notifications"
-                                @change="updateNotifications"
-                                class="sr-only peer"
-                            />
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                    </div>
 
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-900">Notifications push</h3>
-                            <p class="text-sm text-gray-500">Recevez des notifications push dans votre navigateur</p>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-900">Notifications push</h3>
+                                <p class="text-sm text-gray-500">Recevez des notifications push dans votre navigateur</p>
+                            </div>
+                            <label class="relative inline-flex cursor-pointer items-center">
+                                <input
+                                    type="checkbox"
+                                    v-model="notificationForm.push_notifications"
+                                    @change="updateNotifications"
+                                    class="peer sr-only"
+                                />
+                                <div
+                                    class="peer peer-checked:bg-primary h-6 w-11 rounded-full bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
+                                ></div>
+                            </label>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                v-model="notificationForm.push_notifications"
-                                @change="updateNotifications"
-                                class="sr-only peer"
-                            />
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
                     </div>
-                    </div>
-
                 </div>
 
                 <!-- Sécurité Card -->
@@ -211,7 +214,6 @@
                     </div>
                 </div>
 
-
                 <!-- Zone de danger -->
                 <div class="overflow-hidden rounded-xl bg-white shadow-sm">
                     <div class="border-l-4 border-red-500 bg-red-50 p-4">
@@ -296,7 +298,7 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
-import { Link, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
@@ -305,23 +307,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 
 // Icons
-import {
-    AlertTriangle,
-    Baby,
-    Bell,
-    Camera,
-    CheckCircle,
-    Loader2,
-    Mail,
-    Shield,
-    Smartphone,
-    Trash2,
-    User as UserIcon,
-    Users,
-} from 'lucide-vue-next';
+import { AlertTriangle, Baby, Bell, Camera, CheckCircle, Loader2, Shield, Trash2, User as UserIcon, Users } from 'lucide-vue-next';
 
 // Types
 import type { User } from '@/types';
@@ -363,29 +351,38 @@ const hasBabysitterRole = computed(() => props.has_babysitter_role);
 const notificationForm = reactive({ ...props.notification_settings });
 
 // Watchers pour détecter les changements des switches et déclencher la sauvegarde
-watch(() => notificationForm.email_notifications, (newValue, oldValue) => {
-    // Ne pas déclencher lors de l'initialisation
-    if (oldValue !== undefined && newValue !== oldValue) {
-        console.log('Email notifications changed:', { newValue, oldValue });
-        updateNotifications();
-    }
-});
+watch(
+    () => notificationForm.email_notifications,
+    (newValue, oldValue) => {
+        // Ne pas déclencher lors de l'initialisation
+        if (oldValue !== undefined && newValue !== oldValue) {
+            console.log('Email notifications changed:', { newValue, oldValue });
+            updateNotifications();
+        }
+    },
+);
 
-watch(() => notificationForm.push_notifications, (newValue, oldValue) => {
-    // Ne pas déclencher lors de l'initialisation
-    if (oldValue !== undefined && newValue !== oldValue) {
-        console.log('Push notifications changed:', { newValue, oldValue });
-        updateNotifications();
-    }
-});
+watch(
+    () => notificationForm.push_notifications,
+    (newValue, oldValue) => {
+        // Ne pas déclencher lors de l'initialisation
+        if (oldValue !== undefined && newValue !== oldValue) {
+            console.log('Push notifications changed:', { newValue, oldValue });
+            updateNotifications();
+        }
+    },
+);
 
-watch(() => notificationForm.sms_notifications, (newValue, oldValue) => {
-    // Ne pas déclencher lors de l'initialisation
-    if (oldValue !== undefined && newValue !== oldValue) {
-        console.log('SMS notifications changed:', { newValue, oldValue });
-        updateNotifications();
-    }
-});
+watch(
+    () => notificationForm.sms_notifications,
+    (newValue, oldValue) => {
+        // Ne pas déclencher lors de l'initialisation
+        if (oldValue !== undefined && newValue !== oldValue) {
+            console.log('SMS notifications changed:', { newValue, oldValue });
+            updateNotifications();
+        }
+    },
+);
 const passwordForm = reactive({
     current_password: '',
     password: '',
@@ -499,7 +496,6 @@ const updatePassword = () => {
         },
     });
 };
-
 
 const unlinkProvider = (provider: string) => {
     router.delete(route('social.unlink', provider), {

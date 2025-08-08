@@ -181,23 +181,25 @@
                                 <div class="p-4 lg:p-6">
                                     <!-- En-tête de l'annonce -->
                                     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                        <div class="flex-1 min-w-0">
+                                        <div class="min-w-0 flex-1">
                                             <h3 class="text-base font-semibold text-gray-900 sm:text-lg">
                                                 {{ announcement.title }}
                                             </h3>
                                             <p class="mt-1 flex items-center gap-1 text-xs text-gray-600 sm:text-sm">
-                                                <Calendar class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                                                <Calendar class="h-3 w-3 flex-shrink-0 sm:h-4 sm:w-4" />
                                                 <span class="truncate">
                                                     {{ formatDate(announcement.date_start) }} de {{ formatTime(announcement.date_start) }} à
                                                     {{ formatTime(announcement.date_end) }}
                                                 </span>
                                             </p>
                                             <p class="flex items-start gap-1 text-xs text-gray-600 sm:text-sm">
-                                                <MapPin class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5" />
-                                                <span class="break-words">{{ announcement.address.address }}, {{ announcement.address.postal_code }}</span>
+                                                <MapPin class="mt-0.5 h-3 w-3 flex-shrink-0 sm:h-4 sm:w-4" />
+                                                <span class="break-words"
+                                                    >{{ announcement.address.address }}, {{ announcement.address.postal_code }}</span
+                                                >
                                             </p>
                                         </div>
-                                        <div class="flex flex-col items-start gap-2 sm:items-end sm:flex-shrink-0">
+                                        <div class="flex flex-col items-start gap-2 sm:flex-shrink-0 sm:items-end">
                                             <Badge variant="outline" :class="getAnnouncementStatusColor(announcement.status).badge" class="text-xs">
                                                 {{ getStatusText('announcement', announcement.status) }}
                                             </Badge>
@@ -252,17 +254,26 @@
                                                         class="h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10"
                                                     />
                                                     <div class="min-w-0 flex-1">
-                                                        <p class="text-sm font-medium text-gray-900 sm:text-base">{{ application.babysitter.name }}</p>
+                                                        <p class="text-sm font-medium text-gray-900 sm:text-base">
+                                                            {{ application.babysitter.name }}
+                                                        </p>
                                                         <p class="text-xs text-gray-600 sm:text-sm">
                                                             Propose {{ application.counter_rate || application.proposed_rate }}€/h
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div class="flex flex-wrap items-center gap-2">
-                                                    <Badge variant="outline" :class="getApplicationStatusColor(application.status).badge" class="text-xs">
+                                                    <Badge
+                                                        variant="outline"
+                                                        :class="getApplicationStatusColor(application.status).badge"
+                                                        class="text-xs"
+                                                    >
                                                         {{ getStatusText('application', application.status) }}
                                                     </Badge>
-                                                    <button @click="viewMessaging" class="text-primary hover:text-primary/80 text-xs font-medium sm:text-sm">
+                                                    <button
+                                                        @click="viewMessaging"
+                                                        class="text-primary hover:text-primary/80 text-xs font-medium sm:text-sm"
+                                                    >
                                                         <span class="hidden sm:inline">Voir la conversation</span>
                                                         <span class="sm:hidden">Message</span>
                                                     </button>
@@ -427,7 +438,7 @@ import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import type { Announcement, Filters as BaseFilters, PaginatedData, Reservation } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
-import { Calendar, Check, Edit, Euro, Eye, FileText, Filter, MapPin, Plus, StarIcon, X } from 'lucide-vue-next';
+import { Calendar, Edit, Euro, FileText, Filter, MapPin, Plus, StarIcon, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 
@@ -766,12 +777,12 @@ const confirmCancelAnnouncement = () => {
 }
 
 .action-button-edit {
-    border: 1px solid #FF8359;
-    color: #FF8359;
+    border: 1px solid #ff8359;
+    color: #ff8359;
 }
 
 .action-button-edit:hover {
-    background-color: #FF8359;
+    background-color: #ff8359;
     color: white;
 }
 

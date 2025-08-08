@@ -276,6 +276,7 @@ const annonces = computed(() => {
             applicationsCount: announcement.applications_count, // Nombre de candidatures
             canApply: announcement.can_apply, // Si l'utilisateur peut postuler
             userApplicationStatus: announcement.user_application_status, // Statut de la candidature
+            existingApplication: announcement.existing_application, // Données de candidature existante pour repostulation
         };
     });
 });

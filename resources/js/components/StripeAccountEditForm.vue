@@ -151,11 +151,14 @@ const updateAccount = async () => {
                 last_name: formData.last_name,
                 email: formData.email,
                 phone: formatPhoneForStripe(formData.phone),
-                dob: formData.dob_day && formData.dob_month && formData.dob_year ? {
-                    day: parseInt(formData.dob_day),
-                    month: parseInt(formData.dob_month),
-                    year: parseInt(formData.dob_year),
-                } : undefined,
+                dob:
+                    formData.dob_day && formData.dob_month && formData.dob_year
+                        ? {
+                              day: parseInt(formData.dob_day),
+                              month: parseInt(formData.dob_month),
+                              year: parseInt(formData.dob_year),
+                          }
+                        : undefined,
                 address: {
                     line1: formData.address_line1,
                     city: formData.address_city,
@@ -172,7 +175,7 @@ const updateAccount = async () => {
         // Préparer les données pour l'envoi
         const requestData = new FormData();
         requestData.append('account_token', accountTokenResult.token.id);
-        
+
         // Ajouter l'IBAN seulement s'il a été fourni (pour mise à jour du compte bancaire)
         if (formData.iban) {
             requestData.append('iban', formData.iban);
@@ -195,7 +198,7 @@ const updateAccount = async () => {
 
         if (response.ok && result.success) {
             showSuccess('✅ Compte mis à jour avec succès !', 'Vos informations ont été mises à jour');
-            
+
             // Recharger la page après mise à jour
             setTimeout(() => {
                 if (typeof window !== 'undefined') {
@@ -438,7 +441,8 @@ onMounted(() => {
                             <span class="text-sm font-medium text-blue-900">Mise à jour des coordonnées bancaires</span>
                         </div>
                         <p class="text-sm text-blue-800">
-                            Laissez ces champs vides pour conserver votre compte bancaire actuel. Remplissez-les seulement si vous souhaitez changer de compte bancaire.
+                            Laissez ces champs vides pour conserver votre compte bancaire actuel. Remplissez-les seulement si vous souhaitez changer
+                            de compte bancaire.
                         </p>
                     </div>
 
@@ -449,11 +453,7 @@ onMounted(() => {
 
                     <div>
                         <Label for="iban">IBAN (nouveau)</Label>
-                        <Input
-                            id="iban"
-                            v-model="formData.iban"
-                            placeholder="FR76 1234 5678 9012 3456 7890 123"
-                        />
+                        <Input id="iban" v-model="formData.iban" placeholder="FR76 1234 5678 9012 3456 7890 123" />
                         <p class="mt-1 text-xs text-gray-500">Seulement si vous souhaitez changer de compte bancaire</p>
                     </div>
                 </div>
@@ -465,7 +465,8 @@ onMounted(() => {
                         <span class="text-sm font-medium text-blue-900">Sécurité avec Account Tokens</span>
                     </div>
                     <p class="text-sm text-blue-800">
-                        Cette mise à jour utilise les Account Tokens de Stripe pour sécuriser vos données. Elles sont envoyées directement à Stripe sans passer par nos serveurs.
+                        Cette mise à jour utilise les Account Tokens de Stripe pour sécuriser vos données. Elles sont envoyées directement à Stripe
+                        sans passer par nos serveurs.
                     </p>
                 </div>
 

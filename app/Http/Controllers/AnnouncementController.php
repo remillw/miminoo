@@ -241,6 +241,7 @@ class AnnouncementController extends Controller
             // Ajouter les informations de candidature pour l'utilisateur connecté
             $announcement->can_apply = true;
             $announcement->user_application_status = null;
+            $announcement->existing_application = null;
             
             if ($user) {
                 // Vérifier si c'est sa propre annonce
@@ -256,6 +257,14 @@ class AnnouncementController extends Controller
                         $announcement->user_application_status = $existingApplication->status;
                         // Permettre de repostuler seulement si la candidature est annulée
                         $announcement->can_apply = $existingApplication->status === 'cancelled';
+                        
+                        // Si la candidature est annulée, passer les données pour repostulation
+                        if ($existingApplication->status === 'cancelled') {
+                            $announcement->existing_application = [
+                                'motivation_note' => $existingApplication->motivation_note,
+                                'proposed_rate' => $existingApplication->proposed_rate,
+                            ];
+                        }
                     } else {
                         // Vérifier si l'annonce n'est pas pleine
                         $announcement->can_apply = $announcement->applications()->count() < 10;
@@ -908,6 +917,7 @@ class AnnouncementController extends Controller
         // Vérifier si l'utilisateur connecté peut postuler et son statut de candidature
         $canApply = true;
         $userApplicationStatus = null;
+        $existingApplicationData = null;
         
         if ($user) {
             // Vérifier si c'est sa propre annonce
@@ -923,6 +933,14 @@ class AnnouncementController extends Controller
                     $userApplicationStatus = $existingApplication->status;
                     // Permettre de repostuler seulement si la candidature est annulée
                     $canApply = $existingApplication->status === 'cancelled';
+                    
+                    // Si la candidature est annulée, passer les données pour repostulation
+                    if ($existingApplication->status === 'cancelled') {
+                        $existingApplicationData = [
+                            'motivation_note' => $existingApplication->motivation_note,
+                            'proposed_rate' => $existingApplication->proposed_rate,
+                        ];
+                    }
                 } else {
                     // Vérifier si l'annonce n'est pas pleine
                     $canApply = $announcement->applications()->count() < 10;
@@ -966,6 +984,7 @@ class AnnouncementController extends Controller
                 'duration' => $duration,
                 'can_apply' => $canApply,
                 'user_application_status' => $userApplicationStatus,
+                'existing_application' => $existingApplicationData,
                 'parent' => [
                     'id' => $announcement->parent->id,
                     'firstname' => $announcement->parent->firstname,

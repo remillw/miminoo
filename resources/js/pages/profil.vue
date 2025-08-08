@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useDeviceToken } from '@/composables/useDeviceToken';
 import { useToast } from '@/composables/useToast';
 import { useUserMode } from '@/composables/useUserMode';
-import { useDeviceToken } from '@/composables/useDeviceToken';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import type { AgeRange, BabysitterProfile as BabysitterProfileType, Child, Language, Skill, User } from '@/types';
 import { router } from '@inertiajs/vue3';
@@ -466,10 +466,10 @@ const submitForm = async () => {
 
         // Assurons-nous que les enfants sont dans le bon format
         if (formData.children && Array.isArray(formData.children)) {
-            formData.children = formData.children.map(child => ({
+            formData.children = formData.children.map((child) => ({
                 nom: String(child.nom || ''),
                 age: String(child.age || ''),
-                unite: String(child.unite || 'ans')
+                unite: String(child.unite || 'ans'),
             }));
         }
 

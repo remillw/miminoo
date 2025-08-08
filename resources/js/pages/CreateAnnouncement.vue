@@ -238,7 +238,7 @@ const initializeChildren = () => {
     } else {
         // Si pas d'enfants existants, en ajouter un par défaut
         form.value.children = [{ nom: '', age: '2', unite: 'ans' }];
-        console.log('📝 Aucun enfant existant, ajout d\'un enfant par défaut');
+        console.log("📝 Aucun enfant existant, ajout d'un enfant par défaut");
     }
 };
 
@@ -1024,9 +1024,7 @@ initializeChildren();
                                     <div class="space-y-2">
                                         <Label for="start_time_manual" class="text-xs sm:text-sm">Heure de début</Label>
                                         <div class="relative">
-                                            <Clock
-                                                class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400"
-                                            />
+                                            <Clock class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                                             <Input
                                                 id="start_time_manual"
                                                 type="time"
@@ -1045,9 +1043,7 @@ initializeChildren();
                                     <div class="space-y-2">
                                         <Label for="end_time_manual" class="text-xs sm:text-sm">Heure de fin</Label>
                                         <div class="relative">
-                                            <Clock
-                                                class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400"
-                                            />
+                                            <Clock class="pointer-events-none absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                                             <Input
                                                 id="end_time_manual"
                                                 type="time"

@@ -232,7 +232,13 @@ const isActive = (href: string) => {
                 </Link>
 
                 <!-- Lien direct vers la page menu -->
-                <Link href="/profil/menu" :class="['flex flex-col items-center gap-1 p-2 transition-colors', isActive('/profil/menu') ? 'text-primary' : 'text-gray-500 hover:text-primary']">
+                <Link
+                    href="/profil/menu"
+                    :class="[
+                        'flex flex-col items-center gap-1 p-2 transition-colors',
+                        isActive('/profil/menu') ? 'text-primary' : 'hover:text-primary text-gray-500',
+                    ]"
+                >
                     <User class="h-5 w-5" />
                     <span class="text-xs font-medium">Menu</span>
                 </Link>

@@ -19,7 +19,6 @@ import {
     Download,
     Info,
     Minus,
-    RefreshCw,
     Shield,
     TrendingDown,
     TrendingUp,
@@ -855,7 +854,7 @@ const formatAmount = (amount: number) => {
                                     <p class="mt-1 text-sm text-green-700">Votre compte est prêt à recevoir des paiements.</p>
                                 </div>
                                 <Button @click="toggleEditForm" variant="outline" size="sm">
-                                    {{ showEditForm ? 'Masquer l\'édition' : 'Modifier le compte' }}
+                                    {{ showEditForm ? "Masquer l'édition" : 'Modifier le compte' }}
                                 </Button>
                             </div>
                         </div>
@@ -1078,24 +1077,21 @@ const formatAmount = (amount: number) => {
                             </div>
 
                             <!-- Message de statut -->
-                            <div
-                                class="mb-4 rounded-lg border border-primary/20 p-4"
-                                :class="documentVerificationStatus.bgColor"
-                            >
+                            <div class="border-primary/20 mb-4 rounded-lg border p-4" :class="documentVerificationStatus.bgColor">
                                 <p class="text-sm" :class="documentVerificationStatus.color.replace('text-primary', 'text-primary/80')">
                                     {{ documentVerificationStatus.message }}
                                 </p>
 
                                 <!-- Messages spécifiques selon le statut -->
                                 <div v-if="documentVerificationStatus.status === 'pending'" class="mt-3">
-                                    <div class="flex items-center text-xs text-primary/70">
+                                    <div class="text-primary/70 flex items-center text-xs">
                                         <Clock class="mr-1 h-3 w-3" />
                                         <span>En mode test, la vérification est automatiquement acceptée</span>
                                     </div>
                                 </div>
 
                                 <div v-if="documentVerificationStatus.status === 'verified'" class="mt-3">
-                                    <div class="flex items-center text-xs text-primary/70">
+                                    <div class="text-primary/70 flex items-center text-xs">
                                         <CheckCircle class="mr-1 h-3 w-3" />
                                         <span>Vous pouvez maintenant recevoir des paiements</span>
                                     </div>
@@ -1138,15 +1134,15 @@ const formatAmount = (amount: number) => {
                                     <li>• <strong>Permis de conduire français</strong></li>
                                     <li>• <strong>Carte de séjour</strong> (pour les non-européens)</li>
                                 </ul>
-                                <div class="mt-3 rounded border-l-4 border-primary/40 bg-primary/5 p-2">
-                                    <p class="text-xs text-primary/80">
+                                <div class="border-primary/40 bg-primary/5 mt-3 rounded border-l-4 p-2">
+                                    <p class="text-primary/80 text-xs">
                                         <span class="mr-1">🔒</span> <strong>Upload sécurisé via serveur</strong> : Vos documents sont uploadés avec
                                         la clé secrète et automatiquement liés à votre compte Connect pour résoudre les requirements.
                                     </p>
 
                                     <!-- Information spécifique mode test -->
-                                    <div class="mt-2 rounded border-l-4 border-primary/30 bg-primary/10 p-2">
-                                        <p class="text-xs text-primary/70">
+                                    <div class="border-primary/30 bg-primary/10 mt-2 rounded border-l-4 p-2">
+                                        <p class="text-primary/70 text-xs">
                                             <span class="mr-1">🧪</span> <strong>Mode test</strong> : En environnement de test, Stripe accepte
                                             automatiquement les documents pour faciliter les tests. En production, la vérification prend quelques
                                             heures.

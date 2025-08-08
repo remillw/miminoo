@@ -122,7 +122,6 @@ const currentContent = computed(() => {
         <!-- Footer seulement si pas dans l'app mobile -->
         <Footer v-if="!shouldHideHeaderFooter" />
     </div>
-
 </template>
 
 <style scoped>

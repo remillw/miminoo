@@ -150,12 +150,12 @@
                                                     min="1"
                                                     max="18"
                                                     placeholder="2"
-                                                    class="text-center text-sm focus:border-primary focus:ring-primary w-16 sm:w-20 rounded-lg border border-gray-300 px-2 py-2 focus:ring-1 focus:outline-none"
+                                                    class="focus:border-primary focus:ring-primary w-16 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:ring-1 focus:outline-none sm:w-20"
                                                     required
                                                 />
                                                 <select
                                                     v-model="child.unite"
-                                                    class="focus:border-primary focus:ring-primary w-16 sm:w-auto rounded-lg border border-gray-300 px-2 py-2 text-sm focus:ring-1 focus:outline-none"
+                                                    class="focus:border-primary focus:ring-primary w-16 rounded-lg border border-gray-300 px-2 py-2 text-sm focus:ring-1 focus:outline-none sm:w-auto"
                                                 >
                                                     <option value="mois">mois</option>
                                                     <option value="ans">ans</option>
@@ -314,16 +314,16 @@ const addChild = () => {
 
 const removeChild = (index: number) => {
     form.children.splice(index, 1);
-};  
+};
 
 // Soumission du formulaire
 const submit = () => {
     // Préparer les données avec _method: PUT comme dans le reste du codebase
     const formData = {
         ...form.data(),
-        _method: 'PUT'
+        _method: 'PUT',
     };
-    
+
     router.post(route('parent.announcements.update', { announcement: props.announcement.id }), formData, {
         preserveState: true,
         onStart: () => {

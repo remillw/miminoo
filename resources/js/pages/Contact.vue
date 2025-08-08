@@ -2,7 +2,7 @@
 import { useDeviceToken } from '@/composables/useDeviceToken';
 import { useToast } from '@/composables/useToast';
 import GlobalLayout from '@/layouts/GlobalLayout.vue';
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 interface UserInfo {
     name: string;
@@ -102,10 +102,10 @@ function toggleFaq(index: number) {
 function openChatbot() {
     showChatbotBubble.value = false;
     showChatbot.value = true;
-    
+
     // Charger le chatbot dynamiquement
-    const typebotInitScript = document.createElement("script");
-    typebotInitScript.type = "module";
+    const typebotInitScript = document.createElement('script');
+    typebotInitScript.type = 'module';
     typebotInitScript.innerHTML = `import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0/dist/web.js'
 
 Typebot.initBubble({
@@ -393,15 +393,12 @@ function closeChatbotBubble() {
             </div>
 
             <!-- Bulle d'aide pour l'app mobile -->
-            <div
-                v-if="showChatbotBubble && isMobileApp()"
-                class="fixed bottom-6 right-6 z-50"
-            >
+            <div v-if="showChatbotBubble && isMobileApp()" class="fixed right-6 bottom-6 z-50">
                 <div class="relative">
                     <!-- Bulle d'aide -->
                     <div
                         @click="openChatbot"
-                        class="animate-bounce cursor-pointer rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-white shadow-lg hover:shadow-xl transition-shadow duration-300"
+                        class="animate-bounce cursor-pointer rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-white shadow-lg transition-shadow duration-300 hover:shadow-xl"
                     >
                         <div class="flex items-center gap-2">
                             <div class="flex h-6 w-6 items-center justify-center">
@@ -417,11 +414,11 @@ function closeChatbotBubble() {
                             <span class="text-sm font-medium">Vous avez besoin d'aide ?</span>
                         </div>
                     </div>
-                    
+
                     <!-- Bouton fermer -->
                     <button
                         @click="closeChatbotBubble"
-                        class="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-colors duration-200"
+                        class="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gray-600 text-white transition-colors duration-200 hover:bg-gray-700"
                     >
                         <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
