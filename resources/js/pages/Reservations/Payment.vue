@@ -311,35 +311,7 @@ const initializeStripeElements = async (clientSecret) => {
     }
 };
 
-// Récupérer le client secret
-const getClientSecret = async () => {
-    try {
-        const response = await fetch(`/api/reservations/${props.reservation.id}/payment-intent`);
-        
-        // Vérifier si la réponse est OK
-        if (!response.ok) {
-            // Essayer de parser le JSON d'erreur
-            try {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
-            } catch (parseError) {
-                // Si ce n'est pas du JSON, c'est probablement du HTML (erreur 404/403)
-                throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-            }
-        }
-
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Erreur inconnue');
-        }
-        
-        return data.client_secret;
-    } catch (error) {
-        console.error('Erreur récupération client secret:', error);
-        throw error;
-    }
-};
+// Le client secret est maintenant passé directement via les props
 
 // Initialiser au montage
 onMounted(async () => {
@@ -349,13 +321,12 @@ onMounted(async () => {
             stripe.value = StripeConstructor(props.stripePublishableKey);
 
             // Initialiser les éléments si on utilise un nouveau moyen de paiement
-            if (useNewPaymentMethod.value) {
+            if (useNewPaymentMethod.value && props.reservation.client_secret) {
                 await nextTick();
                 try {
-                    const clientSecret = await getClientSecret();
-                    await initializeStripeElements(clientSecret);
+                    await initializeStripeElements(props.reservation.client_secret);
                 } catch (error) {
-                    paymentError.value = error.message || 'Erreur lors de la récupération des informations de paiement';
+                    paymentError.value = error.message || 'Erreur lors de l\'initialisation du formulaire de paiement';
                 }
             }
         }
@@ -367,13 +338,12 @@ onMounted(async () => {
 
 // Watch pour initialiser Stripe Elements quand on bascule vers nouveau moyen de paiement
 watch(useNewPaymentMethod, async (newValue) => {
-    if (newValue && stripe.value && !stripeElementsReady.value) {
+    if (newValue && stripe.value && !stripeElementsReady.value && props.reservation.client_secret) {
         try {
             await nextTick();
-            const clientSecret = await getClientSecret();
-            await initializeStripeElements(clientSecret);
+            await initializeStripeElements(props.reservation.client_secret);
         } catch (error) {
-            paymentError.value = error.message || 'Erreur lors de la récupération des informations de paiement';
+            paymentError.value = error.message || 'Erreur lors de l\'initialisation du formulaire de paiement';
         }
     }
 });
@@ -458,11 +428,10 @@ const confirmPayment = async () => {
 
 // Réinitialiser Stripe Elements quand on change de mode
 const handlePaymentMethodChange = async () => {
-    if (useNewPaymentMethod.value && stripe.value) {
+    if (useNewPaymentMethod.value && stripe.value && props.reservation.client_secret) {
         await nextTick();
         try {
-            const clientSecret = await getClientSecret();
-            await initializeStripeElements(clientSecret);
+            await initializeStripeElements(props.reservation.client_secret);
         } catch (error) {
             console.error('Erreur initialisation éléments:', error);
             paymentError.value = 'Erreur lors de la configuration du paiement';

@@ -221,7 +221,7 @@ Route::middleware(['auth', 'role:babysitter'])->group(function () {
     Route::get('/api/stripe/identity/status', [StripeIdentityController::class, 'getStatus'])->name('stripe.identity.status');
     Route::get('/api/stripe/onboarding-status', [StripeController::class, 'getOnboardingStatus'])->name('stripe.onboarding-status');
     Route::get('api/stripe/payment-methods', [StripeController::class, 'getPaymentMethods']);
-    Route::get('api/reservations/{reservation}/payment-intent', [ReservationController::class, 'getPaymentIntent']);
+    // Route API supprimée - client secret passé directement via Inertia props
 });
 
 Route::get('babysitter/{slug}', [BabysitterController::class, 'show'])->name('babysitter.show');

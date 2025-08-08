@@ -689,6 +689,21 @@ class ReservationController extends Controller
             }
         }
 
+        // Récupérer le client secret du PaymentIntent
+        $clientSecret = null;
+        if ($reservation->stripe_payment_intent_id) {
+            try {
+                $paymentIntent = $this->stripeService->retrievePaymentIntent($reservation->stripe_payment_intent_id);
+                $clientSecret = $paymentIntent->client_secret;
+            } catch (\Exception $e) {
+                Log::warning('Impossible de récupérer le client secret', [
+                    'reservation_id' => $reservation->id,
+                    'payment_intent_id' => $reservation->stripe_payment_intent_id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
         return Inertia::render('Reservations/Payment', [
             'reservation' => [
                 'id' => $reservation->id,
@@ -702,6 +717,7 @@ class ReservationController extends Controller
                 'total_deposit' => $reservation->total_deposit,
                 'payment_due_at' => $reservation->payment_due_at?->toISOString(),
                 'stripe_payment_intent_id' => $reservation->stripe_payment_intent_id,
+                'client_secret' => $clientSecret,
                 'ad' => [
                     'id' => $reservation->ad->id,
                     'title' => $reservation->ad->title,
@@ -719,48 +735,5 @@ class ReservationController extends Controller
         ]);
     }
 
-    /**
-     * Récupérer le client secret du PaymentIntent pour une réservation
-     */
-    public function getPaymentIntent(Reservation $reservation)
-    {
-        $user = Auth::user();
-
-        // Vérifier l'accès
-        if ($reservation->parent_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Accès non autorisé à cette réservation'
-            ], 403);
-        }
-
-        if (!$reservation->stripe_payment_intent_id) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Aucun PaymentIntent trouvé pour cette réservation'
-            ], 404);
-        }
-
-        try {
-            $paymentIntent = $this->stripeService->retrievePaymentIntent($reservation->stripe_payment_intent_id);
-
-            return response()->json([
-                'success' => true,
-                'client_secret' => $paymentIntent->client_secret,
-                'status' => $paymentIntent->status
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur récupération PaymentIntent', [
-                'reservation_id' => $reservation->id,
-                'payment_intent_id' => $reservation->stripe_payment_intent_id,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error' => 'Erreur lors de la récupération du PaymentIntent'
-            ], 500);
-        }
-    }
+    // Méthode getPaymentIntent supprimée - client secret passé directement via Inertia props
 }

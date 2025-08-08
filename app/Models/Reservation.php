@@ -251,7 +251,7 @@ class Reservation extends Model
         $platformFee = $this->getPlatformFeeAttribute();
         $stripeFee = $this->getStripeFeeAttribute();
 
-        return $this->update([
+        $success = $this->update([
             'status' => 'paid',
             'paid_at' => now(),
             'stripe_payment_intent_id' => $paymentIntentId,
@@ -260,6 +260,15 @@ class Reservation extends Model
             'platform_fee' => $platformFee,
             'stripe_fee' => $stripeFee
         ]);
+
+        // Mettre à jour le statut de l'application seulement après paiement réussi
+        if ($success && $this->application) {
+            $this->application->update([
+                'status' => 'accepted'
+            ]);
+        }
+
+        return $success;
     }
 
     public function startService(): bool
@@ -423,12 +432,7 @@ class Reservation extends Model
                 ]);
             }
 
-            // Mettre à jour le statut de l'application
-            if ($reservation->application) {
-                $reservation->application->update([
-                    'status' => 'accepted'
-                ]);
-            }
+            // Le statut de l'application ne change qu'après paiement réussi
         });
 
         static::updated(function ($reservation) {
