@@ -426,10 +426,10 @@ class AnnouncementController extends Controller
             return back()->with('error', $errorMessage);
         }
 
-        // Vérifier si l'utilisateur n'a pas déjà postulé
+        // Vérifier si l'utilisateur n'a pas déjà postulé (sauf si candidature annulée)
         $existingApplication = $announcement->applications()->where('babysitter_id', $user->id)->first();
-        if ($existingApplication) {
-            Log::warning('❌ DÉJÀ POSTULÉ', [
+        if ($existingApplication && $existingApplication->status !== 'cancelled') {
+            Log::warning('❌ DÉJÀ POSTULÉ (NON ANNULÉ)', [
                 'existing_application_id' => $existingApplication->id,
                 'existing_application_status' => $existingApplication->status,
                 'existing_application_created_at' => $existingApplication->created_at
