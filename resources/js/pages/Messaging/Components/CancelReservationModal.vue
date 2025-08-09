@@ -1,6 +1,6 @@
 <template>
-    <div v-if="show" class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-2 sm:p-4">
-        <div class="w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl">
+    <div v-if="show" class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-2 sm:p-4" @click="handleBackdropClick">
+        <div class="w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl" @click.stop>
             <!-- Header -->
             <div class="border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
                 <div class="flex items-center justify-between">
@@ -333,6 +333,11 @@ function getBabysitterAmount() {
     const stripeFees = Math.round((totalPaid * 0.029 + 0.25) * 100) / 100;
 
     return Math.max(0, totalPaid - serviceFees - stripeFees).toFixed(2);
+}
+
+function handleBackdropClick() {
+    // Fermer la modal quand on clique sur le fond (backdrop)
+    emit('close');
 }
 
 async function confirmCancellation() {

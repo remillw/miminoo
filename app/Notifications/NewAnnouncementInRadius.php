@@ -76,8 +76,11 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
             $city = trim(end($addressParts));
         }
 
+        $childrenCount = is_array($this->ad->children) ? count($this->ad->children) : 1;
+        $childrenText = $childrenCount > 1 ? "{$childrenCount} enfants" : "{$childrenCount} enfant";
+        
         $title = 'Nouvelle annonce dans votre secteur';
-        $body = "Garde d'enfants à {$city} (à " . round($this->distance, 1) . " km) - {$this->ad->hourly_rate}€/h";
+        $body = "Garde de {$childrenText} à {$city} (à " . round($this->distance, 1) . " km) - {$this->ad->hourly_rate}€/h";
 
         Log::info('Envoi notification Expo pour nouvelle annonce', [
             'to' => $notifiable->device_token,

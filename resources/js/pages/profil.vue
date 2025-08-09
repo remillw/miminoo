@@ -809,10 +809,10 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
                         <Button
                             v-else
-                            @click="router.visit('/babysitter/paiements')"
+                            @click="router.visit('/paiements')"
                             class="bg-primary text-white hover:bg-orange-500"
                         >
-                            Configurer mon compte Stripe
+                            Mon compte de paiements
                         </Button>
                     </div>
                 </div>

@@ -80,7 +80,9 @@ const tarif = ref(props.filters?.min_rate || 10);
 const age = ref(props.filters?.age_range || '');
 const date = ref(props.filters?.date || '');
 const lieu = ref(props.filters?.location || '');
-const showFilters = ref(false);
+// Ouvrir les filtres par défaut s'il y a des filtres actifs
+const hasActiveFilters = !!(props.filters?.search || props.filters?.min_rate !== undefined || props.filters?.age_range || props.filters?.date || props.filters?.location);
+const showFilters = ref(hasActiveFilters);
 
 // Variables pour éviter la boucle infinie
 const lastLocationSent = ref<number>(0);

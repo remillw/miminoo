@@ -181,7 +181,7 @@ class ReservationController extends Controller
             if ($reservation->conversation) {
                 $reservation->conversation->messages()->create([
                     'sender_id' => $user->id, // Le parent qui vient de payer
-                    'message' => "L'acompte de {$reservation->total_deposit}€ a été payé avec succès. La réservation est confirmée !",
+                    'message' => "L'acompte de {$reservation->deposit_amount}€ a été payé avec succès. La réservation est confirmée !",
                     'type' => 'user',
                     'read_at' => null // Non lu par la babysitter par défaut
                 ]);
@@ -340,7 +340,7 @@ class ReservationController extends Controller
             if ($reservation->conversation) {
                 $reservation->conversation->messages()->create([
                     'sender_id' => $user->id, // Le parent qui vient de payer
-                    'message' => "L'acompte de {$reservation->total_deposit}€ a été payé avec succès. La réservation est confirmée !",
+                    'message' => "L'acompte de {$reservation->deposit_amount}€ a été payé avec succès. La réservation est confirmée !",
                     'type' => 'user',
                     'read_at' => null // Non lu par la babysitter par défaut
                 ]);

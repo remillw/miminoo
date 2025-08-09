@@ -61,6 +61,7 @@ class HandleInertiaRequests extends Middleware
                         // Inclure les données spécifiques pour créer les liens
                         'data' => [
                             'ad_id' => $notification->data['ad_id'] ?? null,
+                            'ad_slug' => $notification->data['ad_slug'] ?? null,
                             'conversation_id' => $notification->data['conversation_id'] ?? null,
                             'application_id' => $notification->data['application_id'] ?? null,
                         ]

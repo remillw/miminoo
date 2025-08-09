@@ -502,6 +502,12 @@ const formatRequirement = (requirement: string) => {
 
 const refreshAccountStatus = async () => {
     if (isRefreshing.value) return;
+    
+    // Ne pas faire d'appel API si aucun compte Stripe n'est configuré
+    if (!props.stripeAccountId) {
+        console.log('❌ Pas de compte Stripe configuré, arrêt de la vérification du statut');
+        return;
+    }
 
     isRefreshing.value = true;
 
@@ -654,19 +660,16 @@ onMounted(() => {
 
     // Détecter si l'utilisateur revient d'une vérification Stripe
     if (urlParams.get('verification') === 'completed') {
-        console.log('🎉 Vérification terminée ! Actualisation du statut...');
+        console.log('🎉 Vérification terminée !');
 
-        // Actualiser le statut après vérification
-        setTimeout(() => {
-            refreshAccountStatus();
-        }, 1000);
-
-        // Nettoyer l'URL
+        // Pas d'appel API automatique, juste nettoyer l'URL
         setTimeout(() => {
             const url = new URL(window.location.href);
             url.searchParams.delete('verification');
             window.history.replaceState({}, '', url.toString());
-        }, 2000);
+            // Recharger la page pour avoir les dernières données depuis la DB
+            router.reload();
+        }, 1000);
     }
 });
 

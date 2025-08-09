@@ -32,9 +32,13 @@ class BabysittingController extends Controller
             ]);
 
         // Appliquer le filtre de statut pour les candidatures
-        if ($applicationStatus !== 'all') {
+        if ($applicationStatus !== 'all' && $applicationStatus !== 'all_including_archived') {
             $applicationsQuery->where('status', $applicationStatus);
+        } elseif ($applicationStatus === 'all') {
+            // Par défaut, exclure les candidatures archivées
+            $applicationsQuery->where('status', '!=', 'archived');
         }
+        // Si $applicationStatus === 'all_including_archived', on n'applique aucun filtre
 
         // Appliquer le filtre de date pour les candidatures
         if ($dateFilter === 'upcoming') {

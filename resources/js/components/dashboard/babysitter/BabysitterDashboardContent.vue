@@ -63,9 +63,9 @@
                                         {{ formatTime(nextReservation.service_end_at) }}
                                     </span>
                                 </div>
-                                <div class="flex items-center gap-2">
+                                <div v-if="nextReservation.ad && nextReservation.ad.address" class="flex items-center gap-2">
                                     <MapPin class="h-4 w-4 text-gray-400" />
-                                    <span class="text-gray-700">{{ nextReservation.address }}</span>
+                                    <span class="text-gray-700">{{ nextReservation.ad.address.address }}, {{ nextReservation.ad.address.postal_code }}</span>
                                 </div>
                             </div>
                             <button

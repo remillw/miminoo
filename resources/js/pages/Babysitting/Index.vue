@@ -226,6 +226,18 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Bouton pour afficher les candidatures archivées -->
+                <div v-if="selectedApplicationStatus === 'all'" class="mt-6 text-center">
+                    <button
+                        @click="showArchivedApplications"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    >
+                        <Eye class="h-4 w-4" />
+                        Voir les candidatures archivées
+                    </button>
+                </div>
+                
                 <div v-else class="py-12 text-center">
                     <Briefcase class="mx-auto mb-4 h-12 w-12 text-gray-300" />
                     <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune candidature</h3>
@@ -439,6 +451,21 @@ const viewDetails = (application: Application) => {
 
 const leaveReview = (reservationId: number) => {
     router.visit(`/avis/creer/${reservationId}`);
+};
+
+// Afficher les candidatures archivées
+const showArchivedApplications = () => {
+    const params: any = {
+        date_filter: selectedDateFilter.value !== 'upcoming' ? selectedDateFilter.value : undefined,
+        application_status: 'all_including_archived',
+        reservation_status: selectedReservationStatus.value !== 'all' ? selectedReservationStatus.value : undefined,
+    };
+    // Supprimer les paramètres undefined
+    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+    router.get('/babysitting', params, {
+        preserveState: false,
+        preserveScroll: false,
+    });
 };
 
 // Handlers pour les filtres simples des onglets

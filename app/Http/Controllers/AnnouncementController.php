@@ -1292,6 +1292,9 @@ class AnnouncementController extends Controller
         // Appliquer le filtre de statut pour les réservations
         if ($reservationStatus !== 'all') {
             $reservationsQuery->where('status', $reservationStatus);
+        } else {
+            // Par défaut, inclure les statuts pertinents pour les parents
+            $reservationsQuery->whereIn('status', ['cancelled_by_parent', 'cancelled_by_babysitter', 'paid', 'active', 'service_completed', 'completed']);
         }
 
         // Appliquer le filtre de date pour les réservations
