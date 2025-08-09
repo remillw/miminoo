@@ -235,7 +235,7 @@ class PaymentController extends Controller
                 'service_start' => $reservation->service_start_at,
                 'service_end' => $reservation->service_end_at,
                 'duration' => $duration,
-                'ad_title' => $reservation->ad->title,
+                'ad_title' => $reservation->ad ? $reservation->ad->title : 'Annonce supprimée',
                 'can_download_invoice' => in_array($reservation->status, ['completed', 'service_completed', 'paid']) && 
                                           $reservation->service_end_at && 
                                           new \Carbon\Carbon($reservation->service_end_at) <= now(),

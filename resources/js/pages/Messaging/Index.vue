@@ -83,7 +83,7 @@
                                         <!-- Badge non lu -->
                                         <span
                                             v-if="conversation.unread_count > 0"
-                                            class="min-w-[20px] rounded-full bg-red-500 px-2 py-1 text-center text-xs font-medium text-white"
+                                            class="min-w-[20px] rounded-full bg-primary px-2 py-1 text-center text-xs font-medium text-white"
                                         >
                                             {{ conversation.unread_count }}
                                         </span>
@@ -274,7 +274,7 @@
                                         <!-- Badge non lu -->
                                         <span
                                             v-if="conversation.unread_count > 0"
-                                            class="min-w-[20px] rounded-full bg-red-500 px-2 py-1 text-center text-xs font-medium text-white"
+                                            class="min-w-[20px] rounded-full bg-primary  px-2 py-1 text-center text-xs font-medium text-white"
                                         >
                                             {{ conversation.unread_count }}
                                         </span>

@@ -1330,12 +1330,12 @@ class AnnouncementController extends Controller
                         'name' => $reservation->babysitter->firstname . ' ' . $reservation->babysitter->lastname,
                         'avatar' => $reservation->babysitter->avatar,
                     ],
-                    'ad' => [
+                    'ad' => $reservation->ad ? [
                         'id' => $reservation->ad->id,
                         'title' => $reservation->ad->title,
                         'date_start' => $reservation->ad->date_start,
                         'date_end' => $reservation->ad->date_end,
-                    ]
+                    ] : null
                 ];
             });
 

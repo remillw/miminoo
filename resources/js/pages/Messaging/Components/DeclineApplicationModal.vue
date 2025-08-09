@@ -67,6 +67,7 @@
 <script setup>
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     show: Boolean,
@@ -74,6 +75,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'confirmed']);
+
+// Toast
+const { showSuccess, showError } = useToast();
 
 const processing = ref(false);
 const declineReason = ref('');
@@ -88,6 +92,8 @@ const confirmDecline = async () => {
             reason: declineReason.value || null
         }, {
             onSuccess: (page) => {
+                // Toast de succès
+                showSuccess('Candidature refusée', 'La candidature a été refusée et la babysitter a été notifiée.');
                 emit('confirmed', {
                     application: props.application,
                     reason: declineReason.value
@@ -97,6 +103,8 @@ const confirmDecline = async () => {
             },
             onError: (errors) => {
                 console.error('Erreur lors du refus:', errors);
+                // Toast d'erreur
+                showError('Erreur', 'Une erreur est survenue lors du refus de la candidature. Veuillez réessayer.');
                 // Garder le modal ouvert en cas d'erreur
             },
             onFinish: () => {

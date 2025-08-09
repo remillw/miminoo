@@ -201,7 +201,7 @@ const formatMemberSince = (dateString: string) => {
     <GlobalLayout>
         <div class="min-h-screen bg-gray-50">
             <!-- Header amélioré -->
-            <div class="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-xl">
+            <div class="bg-primary shadow-xl">
                 <div class="mx-auto max-w-6xl px-6 py-12">
                     <!-- Breadcrumb -->
                     <nav class="mb-8 text-sm">

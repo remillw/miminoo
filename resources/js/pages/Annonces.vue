@@ -144,6 +144,12 @@ const resetFilters = () => {
     );
 };
 
+// Appliquer les filtres et fermer le panneau
+const applyFiltersAndClose = () => {
+    applyFilters();
+    showFilters.value = false;
+};
+
 // Recherche en temps réel pour la query seulement
 const searchWithDelay = (() => {
     let timeout: number;
@@ -161,14 +167,17 @@ const applyFiltersWithDelay = (() => {
     return () => {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
+            // Ne pas fermer les filtres automatiquement
             applyFilters();
-        }, 300);
+        }, 1000); // Plus de délai pour laisser temps aux utilisateurs
     };
 })();
 
 // Watchers pour tous les filtres
 watch(searchQuery, searchWithDelay);
-watch([tarif, age, date, lieu], applyFiltersWithDelay);
+// Seulement pour les filtres les plus importants automatiquement
+watch([tarif], applyFiltersWithDelay);
+// Les autres filtres sont appliqués quand on clique "Réinitialiser" ou à la fermeture du panneau
 
 // Activer la géolocalisation
 const enableGeolocation = async () => {
@@ -486,14 +495,21 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Bouton de réinitialisation -->
-                    <div class="flex justify-end pt-4 md:col-span-4">
+                    <!-- Boutons -->
+                    <div class="flex justify-between gap-4 pt-4 md:col-span-4">
                         <button
                             type="button"
                             class="rounded-md border border-gray-300 bg-white px-6 py-2 text-sm font-semibold transition-colors hover:bg-gray-100"
                             @click="resetFilters"
                         >
-                            Réinitialiser les filtres
+                            Réinitialiser
+                        </button>
+                        <button
+                            type="button"
+                            @click="applyFiltersAndClose"
+                            class="bg-primary hover:bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors"
+                        >
+                            Appliquer les filtres
                         </button>
                     </div>
                 </div>

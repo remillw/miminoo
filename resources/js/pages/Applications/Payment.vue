@@ -178,12 +178,16 @@ import { Link, router } from '@inertiajs/vue3';
 import { Info, Loader2, X } from 'lucide-vue-next';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
+import { useToast } from '@/composables/useToast';
 
 const props = defineProps({
     application: Object,
     savedPaymentMethods: Array,
     stripePublishableKey: String,
 });
+
+// Toast
+const { showSuccess, showError } = useToast();
 
 // État du composant
 const processing = ref(false);
@@ -368,11 +372,15 @@ const confirmPayment = async () => {
                     save_payment_method: savePaymentMethod.value,
                 },
                 {
-                    onSuccess: () => {
+                    onSuccess: (page) => {
+                        // Toast de succès
+                        showSuccess('Paiement effectué avec succès !', 'Votre réservation est confirmée. Vous pouvez maintenant contacter la babysitter.');
                         router.visit(route('messaging.index'));
                     },
                     onError: (errors) => {
                         paymentError.value = errors.message || 'Erreur lors de la confirmation du paiement';
+                        // Toast d'erreur
+                        showError('Erreur de paiement', errors.message || 'Une erreur est survenue lors du paiement. Veuillez réessayer.');
                     },
                     onFinish: () => {
                         processing.value = false;
