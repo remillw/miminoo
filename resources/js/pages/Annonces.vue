@@ -144,9 +144,8 @@ const resetFilters = () => {
     );
 };
 
-// Appliquer les filtres et fermer le panneau
-const applyFiltersAndClose = () => {
-    applyFilters();
+// Fonction pour fermer manuellement les filtres
+const closeFilters = () => {
     showFilters.value = false;
 };
 
@@ -167,17 +166,18 @@ const applyFiltersWithDelay = (() => {
     return () => {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
-            // Ne pas fermer les filtres automatiquement
+            // Appliquer les filtres sans fermer le panneau
             applyFilters();
-        }, 1000); // Plus de délai pour laisser temps aux utilisateurs
+        }, 500); // Délai réduit pour une expérience plus fluide
     };
 })();
 
-// Watchers pour tous les filtres
+// Watchers pour tous les filtres - application automatique
 watch(searchQuery, searchWithDelay);
-// Seulement pour les filtres les plus importants automatiquement
-watch([tarif], applyFiltersWithDelay);
-// Les autres filtres sont appliqués quand on clique "Réinitialiser" ou à la fermeture du panneau
+watch(tarif, applyFiltersWithDelay);
+watch(age, applyFiltersWithDelay);
+watch(date, applyFiltersWithDelay);
+watch(lieu, applyFiltersWithDelay);
 
 // Activer la géolocalisation
 const enableGeolocation = async () => {
@@ -506,10 +506,10 @@ onMounted(() => {
                         </button>
                         <button
                             type="button"
-                            @click="applyFiltersAndClose"
-                            class="bg-primary hover:bg-primary rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors"
+                            @click="closeFilters"
+                            class="bg-gray-600 hover:bg-gray-700 rounded-md px-6 py-2 text-sm font-semibold text-white transition-colors"
                         >
-                            Appliquer les filtres
+                            Fermer les filtres
                         </button>
                     </div>
                 </div>

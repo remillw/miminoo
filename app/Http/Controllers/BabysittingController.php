@@ -59,6 +59,10 @@ class BabysittingController extends Controller
         }
 
         $applications = $applicationsQuery->get()
+            ->filter(function ($application) {
+                // Filtrer les candidatures sans annonce ou parent
+                return $application->ad !== null && $application->ad->parent !== null;
+            })
             ->map(function ($application) {
                 return [
                     'id' => $application->id,
@@ -81,12 +85,14 @@ class BabysittingController extends Controller
                         ]
                     ]
                 ];
-            });
+            })
+            ->values(); // Réindexer la collection après filtrage
 
         // Construire la requête des réservations avec filtres
         $reservationsQuery = Reservation::where('babysitter_id', $user->id)
             ->with([
-                'ad:id,title,additional_info,date_start,date_end,hourly_rate',
+                'ad:id,title,additional_info,date_start,date_end,hourly_rate,address_id',
+                'ad.address:id,address,postal_code,latitude,longitude',
                 'parent:id,firstname,lastname,avatar'
             ]);
 
@@ -110,6 +116,10 @@ class BabysittingController extends Controller
         }
 
         $reservations = $reservationsQuery->get()
+            ->filter(function ($reservation) {
+                // Filtrer les réservations sans annonce ou parent
+                return $reservation->ad !== null && $reservation->parent !== null;
+            })
             ->map(function ($reservation) {
                 // Vérifier si la babysitter peut laisser un avis
                 $canReview = in_array($reservation->status, ['completed', 'service_completed']) && 
@@ -130,6 +140,12 @@ class BabysittingController extends Controller
                         'id' => $reservation->ad->id,
                         'title' => $reservation->ad->title,
                         'additional_info' => $reservation->ad->additional_info,
+                        'address' => $reservation->ad->address ? [
+                            'address' => $reservation->ad->address->address,
+                            'postal_code' => $reservation->ad->address->postal_code,
+                            'latitude' => $reservation->ad->address->latitude,
+                            'longitude' => $reservation->ad->address->longitude,
+                        ] : null,
                     ],
                     'parent' => [
                         'id' => $reservation->parent->id,
@@ -137,7 +153,8 @@ class BabysittingController extends Controller
                         'avatar' => $reservation->parent->avatar,
                     ]
                 ];
-            });
+            })
+            ->values(); // Réindexer la collection après filtrage
 
         // Calculer les statistiques
         $allApplications = AdApplication::where('babysitter_id', $user->id)->get();

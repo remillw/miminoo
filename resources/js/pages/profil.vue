@@ -76,9 +76,7 @@ const { isMobileApp } = useDeviceToken();
 const isEditing = ref(false);
 const isLoading = ref(false);
 const isGoogleLoaded = ref(false);
-const isRequestingVerification = ref(false);
 const avatarPreview = ref(''); // Pour l'aperçu de l'avatar
-const isVerificationBannerVisible = ref(true); // Pour contrôler l'affichage de la bannière de vérification
 let autocomplete: any;
 
 const babysitterProfileRef = ref();
@@ -88,11 +86,7 @@ const avatarInput = ref();
 onMounted(() => {
     initializeMode(props.hasParentRole, props.hasBabysitterRole, props.requestedMode);
 
-    // Vérifier si la bannière de vérification a été fermée précédemment
-    const verificationBannerClosed = localStorage.getItem('verification-banner-closed');
-    if (verificationBannerClosed === 'true') {
-        isVerificationBannerVisible.value = false;
-    }
+    // Plus besoin de gérer la bannière de vérification
 
     // Debug: Vérifier toutes les props reçues
     console.log('🔍 Props reçues dans profil.vue:', {
@@ -520,135 +514,9 @@ const userInfo = computed(() => {
     return 'Babysitter';
 });
 
-const verificationStatus = computed(() => {
-    // Essayer d'abord props.user.babysitterProfile, puis props.babysitterProfile
-    const babysitterProfile = props.user.babysitterProfile || props.babysitterProfile;
+// Suppression du système de vérification de profil - remplacé par Stripe Connect
 
-    if (!babysitterProfile) {
-        return null;
-    }
-
-    const status = babysitterProfile.verification_status;
-    return status;
-});
-
-const verificationStatusText = computed(() => {
-    switch (verificationStatus.value) {
-        case 'pending':
-            return 'En attente de vérification';
-        case 'verified':
-            return 'Profil vérifié';
-        case 'rejected':
-            return 'Profil rejeté';
-        case null:
-        case undefined:
-            return 'Vérification non demandée';
-        default:
-            return 'Statut inconnu';
-    }
-});
-
-const verificationStatusColor = computed(() => {
-    switch (verificationStatus.value) {
-        case 'pending':
-            return 'bg-yellow-100 text-yellow-800';
-        case 'verified':
-            return 'bg-green-100 text-green-800';
-        case 'rejected':
-            return 'bg-red-100 text-red-800';
-        default:
-            return '';
-    }
-});
-
-const requestVerification = async () => {
-    // Protection contre les clics multiples
-    if (isRequestingVerification.value) {
-        console.log('⚠️ Demande déjà en cours, ignorer...');
-        return;
-    }
-
-    // Protection supplémentaire contre les statuts déjà en cours ou terminés
-    if (verificationStatus.value === 'pending') {
-        console.log('⚠️ Statut déjà pending, ignorer...');
-        showError('Une demande de vérification est déjà en cours');
-        return;
-    }
-
-    if (verificationStatus.value === 'verified') {
-        console.log('⚠️ Profil déjà vérifié, ignorer...');
-        showError('Votre profil est déjà vérifié');
-        return;
-    }
-
-    // Vérifier que le profil est complété à au moins 50%
-    if (currentMode.value === 'babysitter' && babysitterProfileCompletion.value < 50) {
-        showError(
-            'Profil incomplet',
-            `Votre profil doit être complété à au moins 50% pour demander une vérification. Actuellement: ${babysitterProfileCompletion.value}%`,
-        );
-        return;
-    }
-
-    isRequestingVerification.value = true;
-
-    console.log('🚀 Demande de vérification - Début');
-    console.log('📋 Statut actuel avant demande:', verificationStatus.value);
-
-    try {
-        router.post(
-            route('babysitter.request-verification'),
-            {},
-            {
-                onSuccess: (page: any) => {
-                    console.log('✅ Réponse serveur onSuccess:', page);
-
-                    // Vérifier d'abord les flash messages dans la page Inertia
-                    if (page.props?.flash?.success) {
-                        showSuccess('✅ Demande envoyée !', page.props.flash.success);
-                    } else if (page.props?.flash?.error) {
-                        showError('❌ Erreur', page.props.flash.error);
-                        return;
-                    } else {
-                        // Fallback si pas de flash message
-                        showSuccess(
-                            'Demande envoyée !',
-                            'Votre demande de vérification a été envoyée avec succès. Nos modérateurs vont examiner votre profil sous 24h.',
-                        );
-                    }
-
-                    // Force la mise à jour du statut localement IMMÉDIATEMENT
-                    if (babysitterProfile.value) {
-                        babysitterProfile.value.verification_status = 'pending';
-                    }
-
-                    console.log('📋 Statut forcé à pending localement');
-
-                    // Rafraîchir la page après un court délai pour synchroniser avec le serveur
-                    setTimeout(() => {
-                        router.reload();
-                    }, 1500);
-                },
-                onError: (errors: any) => {
-                    console.error('❌ Erreur demande vérification:', errors);
-
-                    if (errors.message) {
-                        showError(errors.message);
-                    } else {
-                        showError("Une erreur est survenue lors de l'envoi de la demande");
-                    }
-                },
-            },
-        );
-    } catch (error: any) {
-        console.error('❌ Erreur inattendue:', error);
-        showError('Une erreur inattendue est survenue');
-    } finally {
-        isRequestingVerification.value = false;
-        console.log('🏁 Demande de vérification - Fin');
-        console.log('📋 Statut actuel après demande:', verificationStatus.value);
-    }
-};
+// Suppression de la fonction requestVerification - plus nécessaire
 
 const triggerAvatarInput = () => {
     avatarInput.value.click();
@@ -694,11 +562,7 @@ const isGoogleOnlyUser = computed(() => {
     return props.user.google_id && !props.user.password;
 });
 
-// Fonction pour fermer la bannière de vérification
-const closeVerificationBanner = () => {
-    isVerificationBannerVisible.value = false;
-    localStorage.setItem('verification-banner-closed', 'true');
-};
+// Suppression de la fonction closeVerificationBanner - plus nécessaire
 
 // Computed pour calculer le pourcentage de progression du profil babysitter
 const babysitterProfileCompletion = computed(() => {
@@ -783,50 +647,38 @@ console.log('🔍 Données utilisateur Profil:', {
                 <p class="mt-1 text-sm text-gray-600 sm:mt-2 sm:text-base">Gérez vos informations personnelles</p>
             </div>
 
-            <!-- ENCADRÉ VÉRIFICATION EN HAUT -->
-            <div v-if="currentMode === 'babysitter' && isVerificationBannerVisible" class="mb-4 sm:mb-6">
+            <!-- ENCADRÉ STRIPE CONNECT POUR BABYSITTERS -->
+            <div v-if="currentMode === 'babysitter' && user.role === 'babysitter'" class="mb-4 sm:mb-6">
                 <div class="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
                     <div class="flex-1">
-                        <div class="relative rounded border-l-4 border-blue-400 bg-blue-50 p-3 sm:p-4">
-                            <!-- Bouton de fermeture -->
-                            <button
-                                @click="closeVerificationBanner"
-                                class="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full text-blue-400 transition-colors hover:bg-blue-100 hover:text-blue-600 sm:top-2 sm:right-2 sm:h-6 sm:w-6"
-                                title="Masquer cette bannière"
-                            >
-                                <X class="h-3 w-3 sm:h-4 sm:w-4" />
-                            </button>
-
-                            <p class="pr-6 text-sm text-blue-800 sm:pr-8 sm:text-base">
-                                <template v-if="verificationStatus === 'pending'">
-                                    Votre demande de vérification est en cours d'examen par nos modérateurs. Vous recevrez un email dès que votre
-                                    compte sera validé ou si des modifications sont nécessaires.
-                                </template>
-                                <template v-else-if="verificationStatus === 'verified'">
-                                    Félicitations ! Votre profil est vérifié. Vous pouvez maintenant postuler aux annonces et recevoir des demandes de
-                                    garde.
-                                </template>
-                                <template v-else-if="verificationStatus === 'rejected'">
-                                    Votre demande de vérification a été rejetée.
-                                    <span v-if="babysitterProfile?.rejection_reason"> Raison : {{ babysitterProfile.rejection_reason }} </span>
-                                    Vous pouvez corriger votre profil et soumettre une nouvelle demande.
+                        <div class="relative rounded border-l-4 border-orange-400 bg-orange-50 p-3 sm:p-4">
+                            <p class="pr-6 text-sm text-orange-800 sm:pr-8 sm:text-base">
+                                <template v-if="(user as any).stripe_account_status === 'active'">
+                                    🎉 Parfait ! Votre compte Stripe est configuré. Vous pouvez maintenant postuler aux annonces et recevoir des paiements.
                                 </template>
                                 <template v-else>
-                                    Pour être visible et accepter des annonces, votre profil doit être vérifié par un modérateur.<br />
-                                    Cliquez sur "Demander la vérification". Un modérateur vérifiera manuellement votre profil et vous recevrez un
-                                    email dès que votre compte sera validé ou si des modifications sont nécessaires.
+                                    Pour postuler aux annonces et recevoir des paiements, vous devez configurer votre compte Stripe Connect.<br />
+                                    C'est rapide et sécurisé - suivez simplement les étapes dans l'onglet "Paiements".
                                 </template>
                             </p>
                         </div>
                     </div>
                     <div class="mt-2 flex items-center gap-2 md:mt-0">
                         <div
-                            v-if="verificationStatus === 'pending'"
-                            class="flex items-center gap-1 rounded-md bg-yellow-100 px-2 py-1 text-xs text-yellow-800 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                            v-if="(user as any).stripe_account_status === 'active'"
+                            class="flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-xs text-green-800 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                         >
-                            <div class="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-500 sm:h-2 sm:w-2"></div>
-                            <span class="hidden sm:inline">Vérification en cours</span>
-                            <span class="sm:hidden">En cours</span>
+                            <CheckCircle class="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span class="hidden sm:inline">Stripe configuré</span>
+                            <span class="sm:hidden">Configuré</span>
+                        </div>
+                        <div
+                            v-else
+                            class="flex items-center gap-1 rounded-md bg-orange-100 px-2 py-1 text-xs text-orange-800 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                        >
+                            <Clock class="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span class="hidden sm:inline">Configuration requise</span>
+                            <span class="sm:hidden">Requis</span>
                         </div>
                     </div>
                 </div>
@@ -939,44 +791,28 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
                     </div>
 
-                    <!-- Bouton et statut de vérification -->
+                    <!-- Statut Stripe Connect -->
                     <div class="mt-6 flex justify-center">
                         <div
-                            v-if="verificationStatus === 'pending'"
-                            class="flex items-center gap-3 rounded-lg border border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-3 shadow-sm"
-                        >
-                            <div class="h-2 w-2 animate-pulse rounded-full bg-yellow-500"></div>
-                            <span class="text-sm font-medium text-yellow-800">✨ Vérification en cours...</span>
-                        </div>
-                        <div
-                            v-else-if="verificationStatus === 'verified'"
+                            v-if="(user as any).stripe_account_status === 'active'"
                             class="flex items-center gap-3 rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-3 shadow-sm"
                         >
                             <CheckCircle class="h-5 w-5 text-green-500" />
-                            <span class="text-sm font-medium text-green-800">Profil vérifié</span>
+                            <span class="text-sm font-medium text-green-800">Compte Stripe configuré</span>
                         </div>
-                        <div v-else-if="verificationStatus === 'rejected'" class="space-y-4">
-                            <div
-                                class="flex items-center gap-3 rounded-lg border border-red-200 bg-gradient-to-r from-red-50 to-pink-50 px-6 py-3 shadow-sm"
-                            >
-                                <AlertCircle class="h-5 w-5 text-red-500" />
-                                <span class="text-sm font-medium text-red-800">❌ Demande rejetée</span>
-                            </div>
-                            <Button
-                                @click="requestVerification"
-                                :disabled="isRequestingVerification"
-                                class="bg-primary text-white hover:bg-orange-500"
-                            >
-                                {{ isRequestingVerification ? 'Envoi en cours...' : 'Soumettre une nouvelle demande' }}
-                            </Button>
+                        <div
+                            v-else-if="(user as any).stripe_account_status === 'pending'"
+                            class="flex items-center gap-3 rounded-lg border border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50 px-6 py-3 shadow-sm"
+                        >
+                            <Clock class="h-5 w-5 text-orange-500" />
+                            <span class="text-sm font-medium text-orange-800">Configuration en cours</span>
                         </div>
                         <Button
                             v-else
-                            @click="requestVerification"
-                            :disabled="isRequestingVerification"
+                            @click="router.visit('/babysitter/paiements')"
                             class="bg-primary text-white hover:bg-orange-500"
                         >
-                            {{ isRequestingVerification ? 'Envoi en cours...' : 'Demander la vérification' }}
+                            Configurer mon compte Stripe
                         </Button>
                     </div>
                 </div>
@@ -1022,10 +858,23 @@ console.log('🔍 Données utilisateur Profil:', {
                                         Mode {{ currentMode === 'parent' ? 'Parent' : 'Babysitter' }}
                                     </div>
                                     <div
-                                        v-if="currentMode === 'babysitter' && verificationStatus"
-                                        :class="['rounded-full px-2 py-1 text-xs font-medium', verificationStatusColor]"
+                                        v-if="currentMode === 'babysitter' && (user as any).stripe_account_status"
+                                        :class="[
+                                            'rounded-full px-2 py-1 text-xs font-medium',
+                                            (user as any).stripe_account_status === 'active'
+                                                ? 'bg-green-100 text-green-800'
+                                                : (user as any).stripe_account_status === 'pending'
+                                                  ? 'bg-orange-100 text-orange-800'
+                                                  : 'bg-gray-100 text-gray-800',
+                                        ]"
                                     >
-                                        {{ verificationStatusText }}
+                                        {{
+                                            (user as any).stripe_account_status === 'active'
+                                                ? 'Stripe configuré'
+                                                : (user as any).stripe_account_status === 'pending'
+                                                  ? 'Stripe en cours'
+                                                  : 'Stripe requis'
+                                        }}
                                     </div>
                                 </div>
                             </div>
@@ -1219,9 +1068,9 @@ console.log('🔍 Données utilisateur Profil:', {
                                 :available-age-ranges="props.availableAgeRanges"
                             />
 
-                            <!-- Section compte de paiement pour babysitters vérifiés -->
+                            <!-- Section compte de paiement pour babysitters avec Stripe configuré -->
                             <div
-                                v-if="user.role === 'babysitter' && babysitterProfile?.verification_status === 'verified'"
+                                v-if="user.role === 'babysitter' && (user as any).stripe_account_status === 'active'"
                                 class="border-b border-gray-200 pb-4 sm:pb-6"
                             >
                                 <h3 class="mb-3 text-base font-semibold text-gray-900 sm:mb-4 sm:text-lg">Compte de paiement</h3>

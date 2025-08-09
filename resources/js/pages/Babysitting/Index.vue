@@ -82,57 +82,6 @@
                 </div>
             </div>
 
-            <!-- Filtres -->
-            <div class="mb-6 rounded-lg bg-white p-4 shadow lg:mb-8 lg:p-6">
-                <h3 class="mb-3 text-base font-semibold text-gray-900 lg:mb-4 lg:text-lg">Filtres</h3>
-                <div class="grid grid-cols-1 gap-3 md:grid-cols-4 lg:gap-4">
-                    <div>
-                        <Label for="application-status">Statut des candidatures</Label>
-                        <Select v-model="tempApplicationStatusFilter">
-                            <SelectTrigger id="application-status">
-                                <SelectValue placeholder="Tous les statuts" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="option in applicationStatusOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div>
-                        <Label for="reservation-status">Statut des réservations</Label>
-                        <Select v-model="tempReservationStatusFilter">
-                            <SelectTrigger id="reservation-status">
-                                <SelectValue placeholder="Tous les statuts" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="option in reservationStatusOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div>
-                        <Label for="date-filter">Période</Label>
-                        <Select v-model="tempDateFilter">
-                            <SelectTrigger id="date-filter">
-                                <SelectValue placeholder="Toutes les périodes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="option in dateFilterOptions" :key="option.value" :value="option.value">
-                                    {{ option.label }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div class="flex items-end">
-                        <Button @click="applyFilters" class="w-full"> Appliquer les filtres </Button>
-                    </div>
-                </div>
-            </div>
 
             <!-- Vue avec onglets -->
             <div class="mb-4 lg:mb-6">
@@ -311,6 +260,10 @@
                                         {{ formatDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
                                         {{ formatTime(reservation.service_end_at) }}
                                     </p>
+                                    <p v-if="reservation.ad.address" class="mt-1 flex items-center gap-1 text-sm text-gray-600">
+                                        <MapPin class="h-4 w-4" />
+                                        {{ reservation.ad.address.address }}, {{ reservation.ad.address.postal_code }}
+                                    </p>
                                 </div>
                                 <div class="flex items-center gap-3">
                                     <span
@@ -376,15 +329,12 @@
 </template>
 
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStatusColors } from '@/composables/useStatusColors';
 import { useToast } from '@/composables/useToast';
 import DashboardLayout from '@/layouts/DashboardLayout.vue';
 import type { Application, Filters, Reservation } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Briefcase, Calendar, CheckCircle, Clock, EuroIcon, Eye, MessageCircle, Search, Star } from 'lucide-vue-next';
+import { Briefcase, Calendar, CheckCircle, Clock, EuroIcon, Eye, MapPin, MessageCircle, Search, Star } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface Stats {
@@ -413,10 +363,6 @@ const userRoles = computed(() => user.value?.roles?.map((role: any) => role.name
 const hasParentRole = computed(() => userRoles.value.includes('parent'));
 const hasBabysitterRole = computed(() => userRoles.value.includes('babysitter'));
 
-// Variables pour les filtres temporaires
-const tempApplicationStatusFilter = ref(props.filters.application_status || 'all');
-const tempReservationStatusFilter = ref(props.filters.reservation_status || 'all');
-const tempDateFilter = ref(props.filters.date_filter || 'all');
 
 // Utiliser le composable pour les couleurs de statut
 const { getApplicationStatusColor, getReservationStatusColor, getStatusText } = useStatusColors();
@@ -443,14 +389,18 @@ const reservationStatusOptions = [
 ];
 
 const dateFilterOptions = [
+    { value: 'upcoming', label: 'À venir' },
+    { value: 'past', label: 'Passées' },
     { value: 'all', label: 'Toutes les périodes' },
-    { value: 'week', label: 'Cette semaine' },
-    { value: 'month', label: 'Ce mois' },
-    { value: 'year', label: 'Cette année' },
 ];
 
 // État local
 const activeTab = ref<'candidatures' | 'reservations'>('candidatures');
+
+// Filtres simples pour les onglets
+const selectedDateFilter = ref(props.filters.date_filter || 'upcoming');
+const selectedApplicationStatus = ref(props.filters.application_status || 'all');
+const selectedReservationStatus = ref(props.filters.reservation_status || 'all');
 
 // Toast
 const { showSuccess, showError } = useToast();
@@ -471,22 +421,6 @@ const formatTime = (date: string) => {
     });
 };
 
-// Fonction pour appliquer les filtres
-const applyFilters = () => {
-    const params: any = {
-        application_status: tempApplicationStatusFilter.value !== 'all' ? tempApplicationStatusFilter.value : undefined,
-        reservation_status: tempReservationStatusFilter.value !== 'all' ? tempReservationStatusFilter.value : undefined,
-        date_filter: tempDateFilter.value !== 'all' ? tempDateFilter.value : undefined,
-    };
-
-    // Supprimer les paramètres undefined
-    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
-
-    router.get('/babysitting', params, {
-        preserveState: false,
-        preserveScroll: false,
-    });
-};
 
 // Fonction pour vérifier si le service est passé
 const isServicePast = (item: any) => {
@@ -505,6 +439,55 @@ const viewDetails = (application: Application) => {
 
 const leaveReview = (reservationId: number) => {
     router.visit(`/avis/creer/${reservationId}`);
+};
+
+// Handlers pour les filtres simples des onglets
+const onDateFilterChange = () => {
+    const params: any = {
+        date_filter: selectedDateFilter.value !== 'upcoming' ? selectedDateFilter.value : undefined,
+        application_status: selectedApplicationStatus.value !== 'all' ? selectedApplicationStatus.value : undefined,
+        reservation_status: selectedReservationStatus.value !== 'all' ? selectedReservationStatus.value : undefined,
+    };
+
+    // Supprimer les paramètres undefined
+    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+
+    router.get('/babysitting', params, {
+        preserveState: false,
+        preserveScroll: false,
+    });
+};
+
+const onApplicationStatusChange = () => {
+    const params: any = {
+        date_filter: selectedDateFilter.value !== 'upcoming' ? selectedDateFilter.value : undefined,
+        application_status: selectedApplicationStatus.value !== 'all' ? selectedApplicationStatus.value : undefined,
+        reservation_status: selectedReservationStatus.value !== 'all' ? selectedReservationStatus.value : undefined,
+    };
+
+    // Supprimer les paramètres undefined
+    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+
+    router.get('/babysitting', params, {
+        preserveState: false,
+        preserveScroll: false,
+    });
+};
+
+const onReservationStatusChange = () => {
+    const params: any = {
+        date_filter: selectedDateFilter.value !== 'upcoming' ? selectedDateFilter.value : undefined,
+        application_status: selectedApplicationStatus.value !== 'all' ? selectedApplicationStatus.value : undefined,
+        reservation_status: selectedReservationStatus.value !== 'all' ? selectedReservationStatus.value : undefined,
+    };
+
+    // Supprimer les paramètres undefined
+    Object.keys(params).forEach((key) => params[key] === undefined && delete params[key]);
+
+    router.get('/babysitting', params, {
+        preserveState: false,
+        preserveScroll: false,
+    });
 };
 </script>
 

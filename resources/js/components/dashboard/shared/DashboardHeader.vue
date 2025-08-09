@@ -152,6 +152,7 @@ interface Notification {
     read_at?: string;
     data?: {
         ad_id?: number;
+        ad_slug?: string;
         conversation_id?: number;
         application_id?: number;
     };
@@ -303,10 +304,17 @@ const getNotificationLink = (notification: Notification) => {
     // Générer le lien selon le type de notification
     if (notification.data?.ad_id) {
         // Pour les nouvelles annonces, créer le lien vers l'annonce
+        let slug = notification.data.ad_slug;
+        
+        // Si pas de slug fourni, créer un slug basique avec l'ID
+        if (!slug) {
+            slug = `annonce-${notification.data.ad_id}`;
+        }
+        
         try {
-            return route('announcement.show', notification.data.ad_id);
+            return route('announcements.show', slug);
         } catch {
-            return `/annonces/${notification.data.ad_id}`;
+            return `/annonce/${slug}`;
         }
     }
     

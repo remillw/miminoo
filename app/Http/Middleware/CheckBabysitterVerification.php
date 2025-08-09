@@ -16,7 +16,7 @@ class CheckBabysitterVerification
      */
     public function handle(Request $request, Closure $next, string $requiredAction = 'payments'): Response
     {
-        Log::info('🔒 MIDDLEWARE VERIFICATION BABYSITTER', [
+        Log::info('🔒 MIDDLEWARE STRIPE VERIFICATION BABYSITTER', [
             'user_id' => $request->user()?->id,
             'required_action' => $requiredAction,
             'url' => $request->fullUrl(),
@@ -43,13 +43,6 @@ class CheckBabysitterVerification
 
         $babysitterProfile = $user->babysitterProfile;
 
-        Log::info('👤 MIDDLEWARE: Informations profil babysitter', [
-            'user_id' => $user->id,
-            'babysitter_profile_exists' => $babysitterProfile ? true : false,
-            'verification_status' => $babysitterProfile?->verification_status,
-            'required_action' => $requiredAction
-        ]);
-
         // Vérifier que le profil existe
         if (!$babysitterProfile) {
             Log::warning('❌ MIDDLEWARE: Profil babysitter introuvable', [
@@ -62,16 +55,27 @@ class CheckBabysitterVerification
             return redirect()->route('dashboard')->with('error', 'Profil babysitter introuvable.');
         }
 
-        // Le middleware ne vérifie plus le statut de vérification de profil,
-        // seulement que l'utilisateur a un profil babysitter
-        Log::info('✅ MIDDLEWARE: Profil babysitter trouvé, accès autorisé', [
-            'user_id' => $user->id,
-            'action' => $requiredAction
-        ]);
+        // Vérifier la configuration Stripe Connect pour les actions qui le nécessitent
+        if ($requiredAction === 'payments' && $user->stripe_account_status !== 'active') {
+            Log::warning('❌ MIDDLEWARE: Compte Stripe non configuré', [
+                'user_id' => $user->id,
+                'stripe_account_status' => $user->stripe_account_status
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'error' => 'Configuration Stripe requise.',
+                    'redirect_to' => '/babysitter/paiements'
+                ], 403);
+            }
+            return redirect()->route('babysitter.payments')
+                ->with('warning', 'Vous devez configurer votre compte Stripe pour accéder aux paiements.');
+        }
 
-        Log::info('✅ MIDDLEWARE: Vérification réussie, passage au contrôleur', [
+        Log::info('✅ MIDDLEWARE: Vérifications réussies, accès autorisé', [
             'user_id' => $user->id,
-            'action' => $requiredAction
+            'action' => $requiredAction,
+            'stripe_status' => $user->stripe_account_status
         ]);
 
         return $next($request);

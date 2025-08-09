@@ -47,6 +47,7 @@ class NewAnnouncementInRadius extends Notification implements ShouldQueue
     {
         return [
             'ad_id' => $this->ad->id,
+            'ad_slug' => $this->createAdSlug(),
             'distance' => $this->distance,
             'message' => 'Nouvelle annonce dans votre secteur'
         ];

@@ -190,7 +190,7 @@ class AnnouncementController extends Controller
                   ->orderBy('created_at', 'desc'); // Puis par date de création pour les annonces du même jour
         }
 
-        $announcements = $query->paginate(5);
+        $announcements = $query->paginate(12);
 
         // Transformer les données pour inclure les avis du parent et les informations de candidature
         $user = Auth::user();
