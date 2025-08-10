@@ -978,6 +978,36 @@ class MessagingController extends Controller
     }
 
     /**
+     * Marquer tous les messages d'une conversation comme lus
+     */
+    public function markAllMessagesAsRead(Conversation $conversation)
+    {
+        $user = Auth::user();
+        
+        \Log::info('=== MARQUAGE TOUS LES MESSAGES COMME LUS ===', [
+            'user_id' => $user->id,
+            'conversation_id' => $conversation->id,
+        ]);
+
+        // Vérifier que l'utilisateur peut accéder à cette conversation
+        if ($conversation->parent_id !== $user->id && $conversation->babysitter_id !== $user->id) {
+            \Log::error('ACCESS DENIED - Utilisateur non autorisé', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversation->id,
+            ]);
+            return response()->json(['error' => 'Non autorisé'], 403);
+        }
+
+        // Marquer tous les messages non lus comme lus
+        $conversation->markMessagesAsRead($user->id);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Messages marqués comme lus'
+        ]);
+    }
+
+    /**
      * Archiver une conversation (refuser une candidature)
      */
     public function archiveConversation(Conversation $conversation)
@@ -1018,10 +1048,7 @@ class MessagingController extends Controller
                 'archived_by' => $user->id
             ]);
 
-            return back()->with([
-                'success' => true,
-                'message' => 'Conversation archivée avec succès'
-            ]);
+            return back()->with('success', 'Conversation archivée avec succès');
 
         } catch (\Exception $e) {
             \Log::error('ERREUR lors de l\'archivage de la conversation', [

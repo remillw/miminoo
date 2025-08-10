@@ -171,6 +171,17 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <div v-if="!notification.read_at" class="h-2 w-2 rounded-full bg-blue-500"></div>
+                                
+                                <!-- Bouton pour voir l'annonce si c'est une notification d'annonce -->
+                                <button
+                                    v-if="notification.data?.ad_id && notification.data?.ad_slug"
+                                    @click.stop="viewAnnouncement(notification.data.ad_id, notification.data.ad_slug)"
+                                    class="rounded p-1 text-xs text-blue-500 opacity-0 transition-all group-hover:opacity-100 hover:bg-blue-100 hover:text-blue-700 hover:opacity-100"
+                                    title="Voir l'annonce"
+                                >
+                                    <ExternalLink class="h-3 w-3" />
+                                </button>
+                                
                                 <button
                                     v-if="!notification.read_at"
                                     @click.stop="markAsRead(notification.id)"
@@ -268,7 +279,7 @@
 <script setup>
 import { useStatusColors } from '@/composables/useStatusColors';
 import { router } from '@inertiajs/vue3';
-import { AlertTriangle, Bell, Calendar, Clock, DollarSign, FileText, MapPin, Search, Star, Users } from 'lucide-vue-next';
+import { AlertTriangle, Bell, Calendar, Clock, DollarSign, ExternalLink, FileText, MapPin, Search, Star, Users } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -398,6 +409,11 @@ const createReview = (reservationId) => {
 
 const viewAllPendingReviews = () => {
     router.visit('/avis');
+};
+
+const viewAnnouncement = (adId, adSlug) => {
+    // Naviguer vers la page de l'annonce
+    router.visit(`/annonce/${adId}${adSlug ? `/${adSlug}` : ''}`);
 };
 
 // Charger les données au montage

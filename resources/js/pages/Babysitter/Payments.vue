@@ -501,38 +501,8 @@ const formatRequirement = (requirement: string) => {
 };
 
 const refreshAccountStatus = async () => {
-    if (isRefreshing.value) return;
-    
-    // Ne pas faire d'appel API si aucun compte Stripe n'est configuré
-    if (!props.stripeAccountId) {
-        console.log('❌ Pas de compte Stripe configuré, arrêt de la vérification du statut');
-        return;
-    }
-
-    isRefreshing.value = true;
-
-    router.get(
-        '/api/stripe/account-status',
-        {},
-        {
-            onSuccess: (page) => {
-                if (page.props && page.props.status) {
-                    currentStatus.value = page.props.status;
-                    // Recharger la page pour avoir les dernières données
-                    setTimeout(() => {
-                        router.reload();
-                    }, 1000);
-                }
-            },
-            onError: (errors) => {
-                console.error('Erreur lors de la vérification du statut:', errors);
-            },
-            onFinish: () => {
-                isRefreshing.value = false;
-            },
-        },
-    );
-};
+    // Plus d'appel API - utiliser uniquement les données de la base
+    console.log('💡 Utilisation des données de la base seulement, pas d\'appel API');
 
 const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('fr-FR', {

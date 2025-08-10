@@ -326,6 +326,12 @@ function getReservationMessage() {
             return 'Réservation confirmée - En attente du début du service';
         case 'active':
             return 'Service de babysitting en cours';
+        case 'cancelled_by_parent':
+            return 'Réservation annulée par le parent';
+        case 'cancelled_by_babysitter':
+            return 'Réservation annulée par la babysitter';
+        case 'cancelled':
+            return 'Réservation annulée';
         default:
             return '';
     }

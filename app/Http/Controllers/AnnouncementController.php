@@ -374,20 +374,6 @@ class AnnouncementController extends Controller
             return back()->with('error', 'Vous ne pouvez pas postuler à votre propre annonce.');
         }
 
-        // Vérifier si le profil est vérifié
-        if (!$user->babysitterProfile || $user->babysitterProfile->verification_status !== 'verified') {
-            Log::warning('❌ PROFIL NON VÉRIFIÉ', [
-                'babysitter_profile_exists' => $user->babysitterProfile ? true : false,
-                'verification_status' => $user->babysitterProfile?->verification_status,
-                'expected_status' => 'verified'
-            ]);
-            $errorMessage = 'Votre compte n\'est pas vérifié. Vous devez compléter votre profil et demander la vérification avant de pouvoir postuler aux annonces.';
-            
-            if ($request->expectsJson()) {
-                return response()->json(['error' => $errorMessage], 403);
-            }
-            return back()->with('error', $errorMessage);
-        }
 
         // Vérifier si le compte Stripe Connect est configuré et actif
         if (!$user->stripe_account_id) {
@@ -395,10 +381,10 @@ class AnnouncementController extends Controller
                 'user_id' => $user->id,
                 'stripe_account_id' => null
             ]);
-            $errorMessage = 'Merci de vous rendre dans "Paiements" pour finaliser votre profil de paiement avant de pouvoir postuler aux annonces.';
+            $errorMessage = 'Configuration Stripe requise. Veuillez configurer votre compte de paiement sur la page paiement dans votre espace personnel.';
             
             if ($request->expectsJson()) {
-                return response()->json(['error' => $errorMessage, 'redirect' => route('babysitter.payments')], 403);
+                return response()->json(['error' => $errorMessage, 'redirect' => '/babysitter/paiements'], 403);
             }
             return back()->with('error', $errorMessage);
         }
@@ -415,10 +401,10 @@ class AnnouncementController extends Controller
                     'charges_enabled' => $accountDetails['charges_enabled'] ?? false,
                     'payouts_enabled' => $accountDetails['payouts_enabled'] ?? false
                 ]);
-                $errorMessage = 'Votre compte de paiement n\'est pas encore opérationnel. Merci de finaliser votre configuration dans "Paiements".';
+                $errorMessage = 'Configuration Stripe requise. Veuillez configurer votre compte de paiement sur la page paiement dans votre espace personnel.';
                 
                 if ($request->expectsJson()) {
-                    return response()->json(['error' => $errorMessage, 'redirect' => route('babysitter.payments')], 403);
+                    return response()->json(['error' => $errorMessage, 'redirect' => '/babysitter/paiements'], 403);
                 }
                 return back()->with('error', $errorMessage);
             }
@@ -428,10 +414,10 @@ class AnnouncementController extends Controller
                 'stripe_account_id' => $user->stripe_account_id,
                 'error' => $e->getMessage()
             ]);
-            $errorMessage = 'Impossible de vérifier votre compte de paiement. Merci de vous rendre dans "Paiements" pour vérifier votre configuration.';
+            $errorMessage = 'Configuration Stripe requise. Veuillez configurer votre compte de paiement sur la page paiement dans votre espace personnel.';
             
             if ($request->expectsJson()) {
-                return response()->json(['error' => $errorMessage, 'redirect' => route('babysitter.payments')], 403);
+                return response()->json(['error' => $errorMessage, 'redirect' => '/babysitter/paiements'], 403);
             }
             return back()->with('error', $errorMessage);
         }

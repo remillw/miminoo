@@ -625,6 +625,38 @@ function selectConversation(conversation) {
             },
         );
     }
+
+    // Marquer tous les messages de la conversation comme lus si elle a des messages non lus
+    if (conversation.unread_count > 0) {
+        console.log('📬 Marquage messages comme lus:', {
+            conversationId: conversation.id,
+            unreadCount: conversation.unread_count,
+        });
+
+        router.patch(
+            `/conversations/${conversation.id}/mark-all-read`,
+            {},
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    console.log('✅ Messages marqués comme lus avec succès');
+                    
+                    // Mettre à jour l'état local - reset du compteur de messages non lus
+                    conversation.unread_count = 0;
+                    
+                    // Mettre à jour aussi dans la liste props si elle existe
+                    const conversationInList = props.conversations.find((c) => c.id === conversation.id);
+                    if (conversationInList) {
+                        conversationInList.unread_count = 0;
+                    }
+                },
+                onError: (errors) => {
+                    console.error('❌ Erreur lors du marquage des messages comme lus:', errors);
+                },
+            },
+        );
+    }
 }
 
 // Fonction spécifique pour mobile

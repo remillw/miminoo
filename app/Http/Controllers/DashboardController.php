@@ -183,8 +183,14 @@ class DashboardController extends Controller
                 'parent_name' => $nextReservation->parent->firstname . ' ' . $nextReservation->parent->lastname,
                 'service_start_at' => $nextReservation->service_start_at,
                 'service_end_at' => $nextReservation->service_end_at,
-                'address' => $nextReservation->ad->address->full_address ?? 
-                           ($nextReservation->parent->address->full_address ?? 'Adresse non spécifiée')
+                'ad' => [
+                    'address' => $nextReservation->ad->address ? [
+                        'address' => $nextReservation->ad->address->address,
+                        'postal_code' => $nextReservation->ad->address->postal_code,
+                        'latitude' => $nextReservation->ad->address->latitude,
+                        'longitude' => $nextReservation->ad->address->longitude,
+                    ] : null
+                ]
             ] : null,
             'recentAds' => $recentApplications,
             'notifications' => $notifications,

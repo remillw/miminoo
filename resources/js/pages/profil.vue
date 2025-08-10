@@ -809,7 +809,7 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
                         <Button
                             v-else
-                            @click="router.visit('/paiements')"
+                            @click="router.visit('/babysitter/paiements')"
                             class="bg-primary text-white hover:bg-orange-500"
                         >
                             Mon compte de paiements

@@ -48,19 +48,6 @@
 
                 <div :class="mobile ? 'flex gap-2' : 'contents'">
                     <button
-                        v-if="!showCounterOffer"
-                        @click="showCounterOffer = true"
-                        :disabled="!canPerformActions"
-                        :class="[mobile ? 'flex-1' : '', !canPerformActions ? 'cursor-not-allowed opacity-50' : 'hover:bg-secondary']"
-                        class="flex items-center justify-center gap-2 rounded-lg border border-orange-300 px-4 py-2 text-sm font-medium text-orange-700 transition-colors"
-                        :title="canPerformActions ? 'Proposer un tarif différent de celui proposé par le babysitter' : actionDisabledReason"
-                    >
-                        <Euro class="h-4 w-4" />
-                        <span v-if="!mobile">Contre-offre</span>
-                        <span v-else>Négocier</span>
-                    </button>
-
-                    <button
                         @click="handleDecline"
                         :disabled="!canPerformActions"
                         :class="[mobile ? 'flex-1' : '', !canPerformActions ? 'cursor-not-allowed opacity-50' : 'hover:bg-primary-opacity']"
@@ -330,9 +317,15 @@ const isReservationPaid = computed(() => {
 const canCancelApplication = computed(() => {
     // Permettre l'annulation tant que :
     // - Le statut n'est pas 'declined', 'expired' ou 'cancelled'
-    // - Inclure les conversations actives (payées)
+    // - Inclure les conversations actives (payées) MAIS PAS les missions terminées
     const allowedStatuses = ['pending', 'counter_offered', 'accepted'];
     const conversationStatus = props.application.conversation?.status;
+    const reservationStatus = props.application.conversation?.reservation?.status;
+    
+    // Ne pas permettre l'annulation si la mission est terminée
+    if (reservationStatus === 'completed' || reservationStatus === 'service_completed') {
+        return false;
+    }
 
     return allowedStatuses.includes(props.application.status) || conversationStatus === 'active';
 });

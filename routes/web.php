@@ -125,6 +125,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('conversations/{conversation}/typing', [MessagingController::class, 'userTyping'])->name('conversations.typing');
     Route::get('conversations/{conversation}/messages', [MessagingController::class, 'getMessages'])->name('conversations.messages');
     Route::patch('conversations/{conversation}/messages/{message}/read', [MessagingController::class, 'markMessageAsRead'])->name('conversations.mark-message-read');
+    Route::patch('conversations/{conversation}/mark-all-read', [MessagingController::class, 'markAllMessagesAsRead'])->name('conversations.mark-all-read');
     Route::patch('conversations/{conversation}/archive', [MessagingController::class, 'archiveConversation'])->name('conversations.archive');
 
     // Routes pour les réservations
