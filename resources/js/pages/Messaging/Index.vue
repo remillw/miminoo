@@ -23,7 +23,7 @@
                 </div>
 
                 <!-- Liste des conversations/candidatures -->
-                <div class="w-full flex-1 overflow-y-auto">
+                <div class="w-full flex-1 overflow-y-auto min-h-0">
                     <div v-for="conversation in conversations" :key="conversation.id" class="border-b border-gray-100 last:border-b-0">
                         <div
                             @click="selectConversation(conversation)"

@@ -208,7 +208,7 @@
         </div>
 
         <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
-        <div v-if="currentMode === 'babysitter' && canCancelApplication && !showCounterOffer" class="mt-4 flex justify-center">
+        <div v-if="currentMode === 'babysitter' && canCancelApplication && !showCounterOffer && !missionEnded" class="mt-4 flex justify-center">
             <button
                 @click="showBabysitterCancelModal = true"
                 class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:border-red-300 hover:bg-red-100"

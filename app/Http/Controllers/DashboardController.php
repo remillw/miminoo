@@ -128,6 +128,7 @@ class DashboardController extends Controller
                     'id' => $notification->id,
                     'type' => $this->getNotificationType($notification->type),
                     'title' => $notification->data['title'] ?? $notification->data['message'] ?? 'Notification',
+                    'data' => $notification->data, // Inclure les données pour ad_id et ad_slug
                     'created_at' => $notification->created_at,
                     'read_at' => $notification->read_at
                 ];
@@ -253,6 +254,7 @@ class DashboardController extends Controller
                     'id' => $notification->id,
                     'type' => $this->getNotificationType($notification->type),
                     'title' => $notification->data['title'] ?? $notification->data['message'] ?? 'Notification',
+                    'data' => $notification->data, // Inclure les données pour ad_id et ad_slug
                     'created_at' => $notification->created_at,
                     'read_at' => $notification->read_at
                 ];

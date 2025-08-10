@@ -995,16 +995,13 @@ class MessagingController extends Controller
                 'user_id' => $user->id,
                 'conversation_id' => $conversation->id,
             ]);
-            return response()->json(['error' => 'Non autorisé'], 403);
+            return back()->withErrors(['error' => 'Non autorisé']);
         }
 
         // Marquer tous les messages non lus comme lus
         $conversation->markMessagesAsRead($user->id);
         
-        return response()->json([
-            'success' => true,
-            'message' => 'Messages marqués comme lus'
-        ]);
+        return back()->with('success', 'Messages marqués comme lus');
     }
 
     /**
