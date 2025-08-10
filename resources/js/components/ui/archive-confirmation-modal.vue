@@ -61,14 +61,6 @@ const confirm = () => {
                             {{ description }}
                         </DialogDescription>
                     </div>
-                    
-                    <!-- Bouton fermer -->
-                    <button 
-                        @click="close"
-                        class="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                    >
-                        <X class="h-4 w-4" />
-                    </button>
                 </div>
             </DialogHeader>
 

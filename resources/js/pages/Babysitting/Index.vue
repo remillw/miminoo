@@ -228,7 +228,7 @@
                 </div>
                 
                 <!-- Bouton pour afficher les candidatures archivées -->
-                <div v-if="selectedApplicationStatus === 'all'" class="mt-6 text-center">
+                <div v-if="selectedApplicationStatus === 'all' && stats.archived_applications > 0" class="mt-6 text-center">
                     <button
                         @click="showArchivedApplications"
                         class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
@@ -352,6 +352,7 @@ import { computed, ref } from 'vue';
 interface Stats {
     total_applications: number;
     pending_applications: number;
+    archived_applications: number;
     total_reservations: number;
     completed_reservations: number;
     total_earned: number;

@@ -427,35 +427,44 @@ class StripeController extends Controller
             'stripe_account_id' => $user->stripe_account_id
         ]);
 
-        // Récupérer les informations du compte
-        try {
-            $accountStatus = $this->stripeService->getAccountStatus($user);
-            $accountDetails = $this->stripeService->getAccountDetails($user);
-            $accountBalance = null;
-            $recentTransactions = [];
+        // Récupérer les informations du compte seulement si Stripe account existe
+        $accountStatus = 'pending';
+        $accountDetails = null;
+        $accountBalance = null;
+        $recentTransactions = [];
 
-            Log::info('📊 Statut récupéré dans le contrôleur', [
-                'user_id' => $user->id,
-                'accountStatus' => $accountStatus,
-                'stripe_account_id' => $user->stripe_account_id
-            ]);
+        if ($user->stripe_account_id) {
+            try {
+                $accountStatus = $this->stripeService->getAccountStatus($user);
+                $accountDetails = $this->stripeService->getAccountDetails($user);
 
-            // Si le compte est actif, récupérer le solde et les transactions
-            if ($accountStatus === 'active') {
-                $accountBalance = $this->stripeService->getAccountBalance($user);
-                $recentTransactions = $this->stripeService->getRecentTransactions($user, 10);
+                Log::info('📊 Statut récupéré dans le contrôleur', [
+                    'user_id' => $user->id,
+                    'accountStatus' => $accountStatus,
+                    'stripe_account_id' => $user->stripe_account_id
+                ]);
+
+                // Si le compte est actif, récupérer le solde et les transactions
+                if ($accountStatus === 'active') {
+                    $accountBalance = $this->stripeService->getAccountBalance($user);
+                    $recentTransactions = $this->stripeService->getRecentTransactions($user, 10);
+                }
+            } catch (\Exception $e) {
+                Log::error('❌ Exception dans paymentsPage', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                $accountStatus = 'pending';
+                $accountDetails = null;
+                $accountBalance = null;
+                $recentTransactions = [];
             }
-        } catch (\Exception $e) {
-            Log::error('❌ Exception dans paymentsPage', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+        } else {
+            Log::info('💡 Pas de compte Stripe configuré pour cet utilisateur', [
+                'user_id' => $user->id
             ]);
-            
-            $accountStatus = 'pending';
-            $accountDetails = null;
-            $accountBalance = null;
-            $recentTransactions = [];
         }
 
         // Récupérer les réservations/transactions de la babysitter avec statut des fonds

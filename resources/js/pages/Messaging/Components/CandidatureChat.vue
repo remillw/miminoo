@@ -519,24 +519,38 @@ function getParentCancelTooltipText() {
 
 function handleArchiveConversation() {
     const conversationId = props.application.conversation?.id;
-    if (conversationId) {
-        router.patch(
-            route('conversations.archive', conversationId),
-            {},
-            {
-                preserveState: true,
-                onSuccess: () => {
-                    showArchiveModal.value = false;
-                    showSuccess('Conversation archivée avec succès', 'Cette conversation a été déplacée dans vos archives.');
-                    router.get(route('messaging.index'));
-                },
-                onError: (errors) => {
-                    console.error('❌ Erreur archivage conversation:', errors);
-                    showError('Erreur', "Erreur lors de l'archivage de la conversation");
-                    showArchiveModal.value = false;
-                },
-            },
-        );
+    if (!conversationId) {
+        showError('Erreur', 'Impossible de trouver la conversation à archiver');
+        showArchiveModal.value = false;
+        return;
     }
+
+    console.log('🗃️ Début archivage conversation:', conversationId);
+    
+    router.patch(
+        route('conversations.archive', conversationId),
+        {},
+        {
+            preserveState: true,
+            onSuccess: (page) => {
+                console.log('✅ Archivage réussi');
+                showArchiveModal.value = false;
+                showSuccess('Conversation archivée avec succès', 'Cette conversation a été déplacée dans vos archives.');
+                
+                // Rediriger vers la page de messagerie
+                setTimeout(() => {
+                    router.visit(route('messaging.index'));
+                }, 1000);
+            },
+            onError: (errors) => {
+                console.error('❌ Erreur archivage conversation:', errors);
+                showArchiveModal.value = false;
+                showError('Erreur', errors.message || "Erreur lors de l'archivage de la conversation");
+            },
+            onFinish: () => {
+                console.log('🏁 Requête d\'archivage terminée');
+            }
+        },
+    );
 }
 </script>

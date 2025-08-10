@@ -167,6 +167,7 @@ class BabysittingController extends Controller
         $stats = [
             'total_applications' => $allApplications->count(),
             'pending_applications' => $allApplications->where('status', 'pending')->count(),
+            'archived_applications' => $allApplications->where('status', 'archived')->count(),
             'total_reservations' => $allReservations->count(),
             'completed_reservations' => $allReservations->whereIn('status', ['completed', 'service_completed'])->count(),
             'total_earned' => $allReservations->whereIn('status', ['completed', 'service_completed'])->sum('babysitter_amount'),
