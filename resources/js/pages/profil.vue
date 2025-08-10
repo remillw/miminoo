@@ -629,6 +629,45 @@ const babysitterProfileCompletion = computed(() => {
     }
 });
 
+// Fonctions pour naviguer vers les pages de paiement avec gestion d'erreur
+const visitPaymentsPage = () => {
+    console.log('🔄 Navigation vers page paiements...');
+    
+    try {
+        router.visit('/babysitter/paiements', {
+            onError: (errors) => {
+                console.error('❌ Erreur navigation paiements:', errors);
+                showError('Erreur', 'Impossible d\'accéder à la page de paiements. Réessayez dans quelques instants.');
+            },
+            onSuccess: () => {
+                console.log('✅ Navigation vers paiements réussie');
+            }
+        });
+    } catch (error) {
+        console.error('❌ Erreur inattendue navigation paiements:', error);
+        showError('Erreur', 'Une erreur inattendue s\'est produite lors de la navigation.');
+    }
+};
+
+const visitStripeConnectPage = () => {
+    console.log('🔄 Navigation vers Stripe Connect...');
+    
+    try {
+        router.visit('/stripe/connect', {
+            onError: (errors) => {
+                console.error('❌ Erreur navigation Stripe:', errors);
+                showError('Erreur', 'Impossible d\'accéder à la configuration Stripe. Réessayez dans quelques instants.');
+            },
+            onSuccess: () => {
+                console.log('✅ Navigation vers Stripe Connect réussie');
+            }
+        });
+    } catch (error) {
+        console.error('❌ Erreur inattendue navigation Stripe:', error);
+        showError('Erreur', 'Une erreur inattendue s\'est produite lors de la navigation.');
+    }
+};
+
 // Debug pour vérifier les données utilisateur
 console.log('🔍 Données utilisateur Profil:', {
     provider: props.user.provider,
@@ -809,7 +848,7 @@ console.log('🔍 Données utilisateur Profil:', {
                         </div>
                         <Button
                             v-else
-                            @click="router.visit('/babysitter/paiements')"
+                            @click="visitPaymentsPage"
                             class="bg-primary text-white hover:bg-orange-500"
                         >
                             Mon compte de paiements
@@ -1197,7 +1236,7 @@ console.log('🔍 Données utilisateur Profil:', {
                                     </div>
 
                                     <div class="flex gap-3">
-                                        <Button type="button" @click.prevent="router.visit('/stripe/connect')" class="flex-1">
+                                        <Button type="button" @click.prevent="visitStripeConnectPage" class="flex-1">
                                             <CreditCard class="mr-2 h-4 w-4" />
                                             Configurer mon compte de paiement
                                         </Button>
