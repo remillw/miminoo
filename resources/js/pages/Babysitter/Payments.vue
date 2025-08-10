@@ -522,6 +522,18 @@ const formatCurrency = (amount: number) => {
 
 // Méthodes pour la gestion des virements
 const updateTransferSettings = () => {
+    console.log('🔧 updateTransferSettings appelé', {
+        stripeAccountId: props.stripeAccountId,
+        currentStatus: currentStatus.value,
+        frequency: transferSettings.value.frequency
+    });
+
+    // Vérifier que le compte Stripe est configuré avant de faire l'appel
+    if (!props.stripeAccountId || currentStatus.value !== 'active') {
+        console.log('🚫 Pas de compte Stripe configuré ou inactif, pas d\'appel API');
+        return; // Supprimer le showError pour éviter les alertes permanentes
+    }
+
     // Mapper frequency -> interval pour correspondre au backend
     const payload = {
         interval: transferSettings.value.frequency,
@@ -544,6 +556,13 @@ const updateTransferSettings = () => {
 const triggerManualPayout = () => {
     if (!canTriggerPayout.value || isProcessingPayout.value) return;
 
+    // Vérifier que le compte Stripe est configuré et actif avant de faire l'appel
+    if (!props.stripeAccountId || currentStatus.value !== 'active') {
+        console.log('🚫 Pas de compte Stripe configuré ou inactif, pas de virement possible');
+        showError('Erreur', 'Votre compte Stripe doit être configuré et actif pour déclencher un virement');
+        return;
+    }
+
     isProcessingPayout.value = true;
     router.post(
         '/babysitter/paiements/manual-payout',
@@ -551,6 +570,13 @@ const triggerManualPayout = () => {
         {
             onFinish: () => {
                 isProcessingPayout.value = false;
+            },
+            onSuccess: (page: any) => {
+                showSuccess('Virement déclenché avec succès', 'Le virement sera traité dans les prochaines heures');
+            },
+            onError: (errors: any) => {
+                console.error('❌ Erreur virement manuel:', errors);
+                showError('Erreur', 'Impossible de déclencher le virement');
             },
         },
     );
