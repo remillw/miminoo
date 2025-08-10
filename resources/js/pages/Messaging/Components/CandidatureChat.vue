@@ -115,7 +115,7 @@
             </template>
 
             <!-- Statut en attente pour babysitter -->
-            <template v-if="currentMode === 'babysitter' && application.status === 'pending'">
+            <template v-if="currentMode === 'babysitter' && application.status === 'pending' && !missionEnded">
                 <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-yellow-50 px-3 py-2 text-sm text-yellow-700">
                     ⏳ Candidature en attente - Tarif proposé : <span class="font-semibold">{{ application.proposed_rate }}€/h</span> <br /><span
                         class="text-xs font-normal"
