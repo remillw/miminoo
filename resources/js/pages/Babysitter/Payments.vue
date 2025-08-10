@@ -503,6 +503,7 @@ const formatRequirement = (requirement: string) => {
 const refreshAccountStatus = async () => {
     // Plus d'appel API - utiliser uniquement les données de la base
     console.log('💡 Utilisation des données de la base seulement, pas d\'appel API');
+};
 
 const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('fr-FR', {
