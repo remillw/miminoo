@@ -44,6 +44,7 @@ class HandleInertiaRequests extends Middleware
         // Récupérer les notifications pour toutes les pages
         $unreadNotifications = [];
         $unreadNotificationsCount = 0;
+        $unreadMessagesCount = 0;
         
         if ($user) {
             $unreadNotifications = $user->unreadNotifications()
@@ -68,6 +69,14 @@ class HandleInertiaRequests extends Middleware
                     ];
                 });
             $unreadNotificationsCount = $user->unreadNotifications()->count();
+            
+            // Compter les messages non lus pour la sidebar
+            $unreadMessagesCount = \App\Models\Message::whereHas('conversation', function ($query) use ($user) {
+                $query->where('parent_id', $user->id)->orWhere('babysitter_id', $user->id);
+            })
+            ->where('sender_id', '!=', $user->id)
+            ->whereNull('read_at')
+            ->count();
         }
         
         return [
@@ -92,6 +101,8 @@ class HandleInertiaRequests extends Middleware
             // Notifications globales disponibles sur toutes les pages
             'unreadNotifications' => $unreadNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
+            // Messages non lus pour la sidebar
+            'unreadMessagesCount' => $unreadMessagesCount,
             // Device token registration flag pour mobile
             'triggerDeviceTokenRegistration' => $request->session()->get('trigger_device_token_registration', false),
         ];

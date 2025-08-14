@@ -663,7 +663,7 @@ function selectConversation(conversation) {
         });
 
         router.patch(
-            `/conversations/${conversation.id}/mark-all-read`,
+            route('conversations.mark-all-read', conversation.id),
             {},
             {
                 preserveState: true,

@@ -88,7 +88,7 @@ const handleLoaderComplete = () => {
 
         <div class="flex flex-1">
             <!-- Sidebar seulement si utilisateur connecté -->
-            <UnifiedSidebar v-if="user" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="props.currentMode" />
+            <UnifiedSidebar v-if="user" :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="props.currentMode" :unreadMessagesCount="$page?.props?.unreadMessagesCount || 0" />
 
             <!-- Main content optimisé pour l'app mobile -->
             <main class="flex-1 pb-20 lg:pb-0">
