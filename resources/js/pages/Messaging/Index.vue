@@ -597,6 +597,14 @@ const switchMode = (mode) => {
 // Helpers
 function selectConversation(conversation) {
     console.log('🔄 Changement de conversation:', conversation.id, conversation.type);
+    console.log('📦 Données complètes de la conversation:', {
+        conversation,
+        application: conversation.application,
+        reservation: conversation.reservation,
+        status: conversation.status,
+        hasApplication: !!conversation.application,
+        hasReservation: !!conversation.reservation
+    });
     selectedConversation.value = conversation;
 
     // Marquer comme vue automatiquement pour les candidatures (selon le mode actuel)

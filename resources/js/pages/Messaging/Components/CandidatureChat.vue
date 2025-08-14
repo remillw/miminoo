@@ -212,10 +212,10 @@
         <template v-if="isConversationCancelled && !missionEnded">
             <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
                 <!-- Annulations par statut de réservation -->
-                <span v-if="(conversation || application.conversation)?.reservation?.status === 'cancelled_by_parent' || (conversation || application.conversation)?.reservation?.status === 'cancelled_by_parent_late'">
+                <span v-if="conversation?.reservation?.status === 'cancelled_by_parent' || conversation?.reservation?.status === 'cancelled_by_parent_late'">
                     ❌ Réservation annulée par le parent
                 </span>
-                <span v-else-if="(conversation || application.conversation)?.reservation?.status === 'cancelled_by_babysitter' || (conversation || application.conversation)?.reservation?.status === 'refunded_babysitter_penalty'">
+                <span v-else-if="conversation?.reservation?.status === 'cancelled_by_babysitter' || conversation?.reservation?.status === 'refunded_babysitter_penalty'">
                     ❌ Réservation annulée par la babysitter
                 </span>
                 <!-- Annulations par statut d'application -->
@@ -232,10 +232,10 @@
                     ⏰ Candidature expirée
                 </span>
                 <!-- Autres statuts terminés -->
-                <span v-else-if="application.conversation?.reservation?.status === 'completed' || application.conversation?.reservation?.status === 'service_completed'">
+                <span v-else-if="conversation?.reservation?.status === 'completed' || conversation?.reservation?.status === 'service_completed'">
                     ✅ Service terminé
                 </span>
-                <span v-else-if="application.conversation?.status === 'cancelled'">
+                <span v-else-if="conversation?.status === 'cancelled'">
                     ❌ Conversation annulée
                 </span>
                 <span v-else>
@@ -333,6 +333,9 @@ const showArchiveModal = ref(false);
 // Toast
 const { showSuccess, showError } = useToast();
 
+// Alias pour la conversation (peut venir de props ou de l'application)
+const conversation = computed(() => props.conversation || props.application?.conversation || {});
+
 // Computed
 const otherUser = computed(() => {
     return currentMode.value === 'parent' ? props.application.babysitter : props.application.parent;
@@ -409,10 +412,9 @@ const canPerformActions = computed(() => {
 });
 
 const isConversationCancelled = computed(() => {
-    // Utiliser la conversation depuis props si disponible, sinon depuis application
-    const conversation = props.conversation || props.application.conversation;
-    const conversationStatus = conversation?.status;
-    const reservationStatus = conversation?.reservation?.status;
+    // Récupérer les différents statuts
+    const conversationStatus = props.conversation?.status;
+    const reservationStatus = props.conversation?.reservation?.status; // Réservation depuis conversation
     const applicationStatus = props.application?.status;
     
     // Log pour debug
@@ -420,10 +422,9 @@ const isConversationCancelled = computed(() => {
         conversationStatus,
         reservationStatus,
         applicationStatus,
-        conversation: conversation,
-        reservation: conversation?.reservation,
-        hasConversation: !!conversation,
-        hasReservation: !!conversation?.reservation
+        fullConversation: props.conversation,
+        fullApplication: props.application,
+        reservation: props.conversation?.reservation
     });
     
     // Vérifier d'abord le statut de l'application (le plus important)
@@ -438,7 +439,7 @@ const isConversationCancelled = computed(() => {
         return true;
     }
     
-    // Puis vérifier les statuts de réservation
+    // Puis vérifier les statuts de réservation (depuis props.conversation)
     if (reservationStatus) {
         const reservationCancelled = 
             reservationStatus.includes('cancelled') || 
