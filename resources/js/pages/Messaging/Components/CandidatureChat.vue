@@ -560,9 +560,11 @@ function handleArchiveConversation() {
 
     console.log('🗃️ Début archivage conversation:', conversationId);
     
-    router.patch(
+    router.post(
         route('conversations.archive', conversationId),
-        {},
+        {
+            _method: 'PATCH'  // Dire à Laravel qu'on veut faire un PATCH
+        },
         {
             preserveState: true,
             onSuccess: (page) => {
