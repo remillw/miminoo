@@ -68,13 +68,11 @@ class MessagingController extends Controller
             }
             
             $conversations = $conversationsQuery
-                ->where('status', '!=', 'archived') // Excluer les conversations archivées
+                ->where('status', '!=', 'archived') // Excluer uniquement les conversations archivées
                 ->where(function($query) {
-                    // Inclure les conversations sans application OU avec application non-annulée
+                    // Inclure toutes les conversations avec applications (même annulées) pour pouvoir les archiver
                     $query->whereDoesntHave('application')
-                          ->orWhereHas('application', function($subQuery) {
-                              $subQuery->whereNotIn('status', ['cancelled', 'archived']);
-                          });
+                          ->orWhereHas('application'); // Pas de restriction sur le status de l'application
                 })
                 ->orderByDesc('last_message_at')
                 ->orderByDesc('updated_at')
@@ -161,6 +159,10 @@ class MessagingController extends Controller
                             'status' => $application->status,
                             'viewed_at' => $application->viewed_at,
                             'created_at' => $application->created_at,
+                            'conversation' => [
+                                'id' => $conversation->id,
+                                'status' => $conversation->status
+                            ],
                             'ad' => $conversation->ad ? [
                                 'id' => $conversation->ad->id,
                                 'title' => $conversation->ad->title,

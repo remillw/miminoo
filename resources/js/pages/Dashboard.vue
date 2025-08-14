@@ -107,7 +107,7 @@ const currentContent = computed(() => {
 
         <div class="flex flex-1">
             <!-- Sidebar unifiée -->
-            <UnifiedSidebar :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="requestedMode" />
+            <UnifiedSidebar :hasParentRole="hasParentRole" :hasBabysitterRole="hasBabysitterRole" :requestedMode="requestedMode" :unreadMessagesCount="$page?.props?.unreadMessagesCount || 0" />
 
             <!-- Contenu principal dynamique -->
             <main class="flex-1 pb-20 lg:pb-6">

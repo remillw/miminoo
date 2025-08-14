@@ -373,10 +373,17 @@ const isConversationCancelled = computed(() => {
     const reservationStatus = props.application.conversation?.reservation?.status;
     const applicationStatus = props.application.status;
     
+    // Inclure tous les états qui devraient permettre l'archivage
     return conversationStatus === 'cancelled' || 
            reservationStatus?.includes('cancelled') || 
            applicationStatus === 'cancelled' ||
-           applicationStatus === 'declined';
+           applicationStatus === 'declined' ||
+           applicationStatus === 'expired' ||
+           // Ajouter les statuts de réservations terminées
+           reservationStatus === 'completed' ||
+           reservationStatus === 'service_completed' ||
+           reservationStatus === 'refunded' ||
+           reservationStatus?.includes('refund');
 });
 
 const actionDisabledReason = computed(() => {

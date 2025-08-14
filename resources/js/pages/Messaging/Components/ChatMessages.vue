@@ -300,14 +300,21 @@ function formatTime(dateString: string) {
     }
 }
 
-function scrollToBottom() {
+function scrollToBottom(smooth = false) {
     nextTick(() => {
         setTimeout(() => {
             const container = document.querySelector('.messages-container');
             if (container) {
-                container.scrollTop = container.scrollHeight + 100;
+                if (smooth) {
+                    container.scrollTo({
+                        top: container.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    container.scrollTop = container.scrollHeight;
+                }
             }
-        }, 200);
+        }, 100);
     });
 }
 
@@ -501,9 +508,9 @@ function onNewMessage(e: any) {
         //     markNewMessageAsRead(e.message);
         // }
 
-        // Scroll vers le bas
+        // Scroll vers le bas avec animation smooth
         nextTick(() => {
-            scrollToBottom();
+            scrollToBottom(true);
         });
     } else {
         console.log("⚠️ Message déjà présent, pas d'ajout");
@@ -598,7 +605,7 @@ defineExpose({
         if (!messageExists) {
             console.log('⚡ Ajout immédiat du message (local):', message.id);
             messages.value.push(message);
-            nextTick(scrollToBottom);
+            nextTick(() => scrollToBottom(true));
         } else {
             console.log("⚠️ Message local déjà présent, pas d'ajout");
         }
@@ -612,7 +619,7 @@ defineExpose({
         } else {
             console.log('⚠️ Message temporaire non trouvé, ajout du vrai message');
             messages.value.push(realMessage);
-            nextTick(scrollToBottom);
+            nextTick(() => scrollToBottom(true));
         }
     },
     markMessageAsFailed: (tempId: string, error: string) => {
