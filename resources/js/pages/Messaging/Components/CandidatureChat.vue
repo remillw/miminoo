@@ -358,8 +358,9 @@ const canCancelApplication = computed(() => {
     // - Le statut n'est pas 'declined', 'expired' ou 'cancelled'
     // - Inclure les conversations actives (payées) MAIS PAS les missions terminées
     const allowedStatuses = ['pending', 'counter_offered', 'accepted'];
-    const conversationStatus = props.application.conversation?.status;
-    const reservationStatus = props.application.conversation?.reservation?.status;
+    const conversation = props.conversation || props.application.conversation;
+    const conversationStatus = conversation?.status;
+    const reservationStatus = conversation?.reservation?.status;
     
     // Ne pas permettre l'annulation si la mission est terminée
     if (reservationStatus === 'completed' || reservationStatus === 'service_completed') {
@@ -412,7 +413,7 @@ const isConversationCancelled = computed(() => {
     const conversation = props.conversation || props.application.conversation;
     const conversationStatus = conversation?.status;
     const reservationStatus = conversation?.reservation?.status;
-    const applicationStatus = props.application.status;
+    const applicationStatus = props.application?.status;
     
     // Log pour debug
     console.log('🔍 isConversationCancelled check:', {
@@ -421,32 +422,38 @@ const isConversationCancelled = computed(() => {
         applicationStatus,
         conversation: conversation,
         reservation: conversation?.reservation,
-        propsConversation: props.conversation,
-        propsApplication: props.application
+        hasConversation: !!conversation,
+        hasReservation: !!conversation?.reservation
     });
     
-    // Inclure tous les états qui devraient permettre l'archivage
-    const isCancelled = conversationStatus === 'cancelled' || 
-           conversationStatus === 'archived' ||
-           // Statuts d'application
-           applicationStatus === 'cancelled' ||
-           applicationStatus === 'declined' ||
-           applicationStatus === 'expired' ||
-           // Statuts de réservation avec annulation
-           reservationStatus?.includes('cancelled') || 
-           reservationStatus === 'cancelled_by_parent' ||
-           reservationStatus === 'cancelled_by_parent_late' ||
-           reservationStatus === 'cancelled_by_babysitter' ||
-           // Statuts de réservations terminées/remboursées
-           reservationStatus === 'completed' ||
-           reservationStatus === 'service_completed' ||
-           reservationStatus === 'refunded' ||
-           reservationStatus === 'refunded_babysitter_penalty' ||
-           reservationStatus === 'refunded_minus_service_fees' ||
-           reservationStatus?.includes('refund');
+    // Vérifier d'abord le statut de l'application (le plus important)
+    if (applicationStatus === 'cancelled' || applicationStatus === 'declined' || applicationStatus === 'expired') {
+        console.log('✅ Application cancelled/declined/expired - should show archive button');
+        return true;
+    }
     
-    console.log('🔍 isConversationCancelled result:', isCancelled);
-    return isCancelled;
+    // Ensuite vérifier les statuts de conversation
+    if (conversationStatus === 'cancelled' || conversationStatus === 'archived') {
+        console.log('✅ Conversation cancelled/archived - should show archive button');
+        return true;
+    }
+    
+    // Puis vérifier les statuts de réservation
+    if (reservationStatus) {
+        const reservationCancelled = 
+            reservationStatus.includes('cancelled') || 
+            reservationStatus.includes('refund') ||
+            reservationStatus === 'completed' ||
+            reservationStatus === 'service_completed';
+            
+        if (reservationCancelled) {
+            console.log('✅ Reservation cancelled/refunded/completed - should show archive button');
+            return true;
+        }
+    }
+    
+    console.log('❌ Not cancelled - archive button should NOT show');
+    return false;
 });
 
 const actionDisabledReason = computed(() => {
@@ -602,19 +609,25 @@ function getParentCancelTooltipText() {
 }
 
 function handleArchiveConversation() {
-    const conversationId = props.application.conversation?.id;
+    // Utiliser la conversation depuis props en priorité
+    const conversation = props.conversation || props.application.conversation;
+    const conversationId = conversation?.id;
     
     console.log('🗃️ Tentative d\'archivage:', {
         application: props.application,
-        conversation: props.application.conversation,
+        conversation: conversation,
         conversationId: conversationId,
-        applicationId: props.application.id
+        applicationId: props.application.id,
+        propsConversation: props.conversation,
+        applicationConversation: props.application.conversation
     });
     
     if (!conversationId) {
         console.error('❌ Conversation ID manquant:', {
             application: props.application,
-            hasConversation: !!props.application.conversation
+            conversation: conversation,
+            hasPropsConversation: !!props.conversation,
+            hasApplicationConversation: !!props.application.conversation
         });
         showError('Erreur', 'Impossible de trouver la conversation à archiver. ID de conversation manquant.');
         showArchiveModal.value = false;
