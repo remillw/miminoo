@@ -78,7 +78,8 @@ class HandleInertiaRequests extends Middleware
                 })
                 ->where('messages.sender_id', '!=', $user->id)
                 ->whereNull('messages.read_at')
-                ->whereIn('conversations.status', ['pending', 'payment_required', 'active']) // Exclure les conversations archivées
+                ->where('conversations.status', '!=', 'archived') // Exclure explicitement les conversations archivées
+                ->whereNotIn('conversations.status', ['cancelled', 'declined']) // Exclure aussi les conversations annulées/refusées
                 ->count();
         }
         
