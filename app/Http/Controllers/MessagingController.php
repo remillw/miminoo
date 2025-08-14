@@ -1034,15 +1034,10 @@ class MessagingController extends Controller
                 'status' => 'archived'
             ]);
 
-            // Ajouter un message système
-            $conversation->addSystemMessage('conversation_archived', [
-                'archived_by' => $user->id,
-                'archived_by_name' => $user->name
-            ]);
-
             \Log::info('Conversation archivée avec succès', [
                 'conversation_id' => $conversation->id,
-                'archived_by' => $user->id
+                'archived_by' => $user->id,
+                'previous_status' => $conversation->getOriginal('status')
             ]);
 
             return back()->with('success', 'Conversation archivée avec succès');

@@ -70,8 +70,8 @@ class HandleInertiaRequests extends Middleware
                 });
             $unreadNotificationsCount = $user->unreadNotifications()->count();
             
-            // Compter les messages non lus pour la sidebar
-            $unreadMessagesCount = \App\Models\Message::join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+            // Compter les messages non lus pour la sidebar avec logs détaillés
+            $unreadMessagesQuery = \App\Models\Message::join('conversations', 'messages.conversation_id', '=', 'conversations.id')
                 ->where(function ($query) use ($user) {
                     $query->where('conversations.parent_id', $user->id)
                           ->orWhere('conversations.babysitter_id', $user->id);
@@ -79,8 +79,49 @@ class HandleInertiaRequests extends Middleware
                 ->where('messages.sender_id', '!=', $user->id)
                 ->whereNull('messages.read_at')
                 ->where('conversations.status', '!=', 'archived') // Exclure explicitement les conversations archivées
-                ->whereNotIn('conversations.status', ['cancelled', 'declined']) // Exclure aussi les conversations annulées/refusées
-                ->count();
+                ->whereNotIn('conversations.status', ['cancelled', 'declined']); // Exclure aussi les conversations annulées/refusées
+            
+            $unreadMessagesCount = $unreadMessagesQuery->count();
+            
+            // Log détaillé des conversations avec messages non lus
+            if ($unreadMessagesCount > 0) {
+                $unreadConversations = \App\Models\Message::select([
+                    'messages.id as message_id',
+                    'messages.message',
+                    'messages.created_at as message_created_at',
+                    'conversations.id as conversation_id',
+                    'conversations.status as conversation_status',
+                    'conversations.parent_id',
+                    'conversations.babysitter_id'
+                ])
+                ->join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+                ->where(function ($query) use ($user) {
+                    $query->where('conversations.parent_id', $user->id)
+                          ->orWhere('conversations.babysitter_id', $user->id);
+                })
+                ->where('messages.sender_id', '!=', $user->id)
+                ->whereNull('messages.read_at')
+                ->where('conversations.status', '!=', 'archived')
+                ->whereNotIn('conversations.status', ['cancelled', 'declined'])
+                ->orderBy('messages.created_at', 'desc')
+                ->get();
+                
+                \Log::info('=== MESSAGES NON LUS DÉTECTÉS DANS SIDEBAR ===', [
+                    'user_id' => $user->id,
+                    'total_unread_count' => $unreadMessagesCount,
+                    'conversations_with_unread' => $unreadConversations->map(function($item) {
+                        return [
+                            'conversation_id' => $item->conversation_id,
+                            'conversation_status' => $item->conversation_status,
+                            'message_id' => $item->message_id,
+                            'message_preview' => substr($item->message, 0, 50) . '...',
+                            'message_date' => $item->message_created_at,
+                            'parent_id' => $item->parent_id,
+                            'babysitter_id' => $item->babysitter_id
+                        ];
+                    })->toArray()
+                ]);
+            }
         }
         
         return [

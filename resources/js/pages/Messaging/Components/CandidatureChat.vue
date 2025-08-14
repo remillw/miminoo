@@ -33,8 +33,8 @@
 
         <!-- Actions principales -->
         <div :class="mobile ? 'space-y-2' : 'flex items-center gap-3'">
-            <!-- Actions pour parents - Avant paiement -->
-            <template v-if="currentMode === 'parent' && !isReservationPaid && application.status !== 'declined' && application.status !== 'expired'">
+            <!-- Actions pour parents - Avant paiement (masqué si mission terminée ou annulée) -->
+            <template v-if="currentMode === 'parent' && !isReservationPaid && application.status !== 'declined' && application.status !== 'expired' && !missionEnded && !isConversationCancelled">
                 <button
                     @click="handleReserveDirectly"
                     :disabled="!canPerformActions"
@@ -61,7 +61,7 @@
             </template>
 
             <!-- Actions pour parents - Après paiement (réservation confirmée) -->
-            <template v-if="currentMode === 'parent' && isReservationPaid">
+            <template v-if="currentMode === 'parent' && isReservationPaid && !missionEnded && !isConversationCancelled">
                 <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
                     ✅ Réservation confirmée au tarif de <span class="font-semibold">{{ currentRate }}€/h</span> <br /><span
                         class="text-xs font-normal"
@@ -145,8 +145,8 @@
                 </div>
             </template>
 
-            <!-- Bouton d'archivage quand la mission est terminée -->
-            <template v-if="missionEnded">
+            <!-- Bouton d'archivage quand la mission est terminée OU annulée -->
+            <template v-if="missionEnded || isConversationCancelled">
                 <button
                     @click="showArchiveModal = true"
                     :class="mobile ? 'w-full justify-center' : ''"
@@ -368,9 +368,23 @@ const canPerformActions = computed(() => {
     return true;
 });
 
+const isConversationCancelled = computed(() => {
+    const conversationStatus = props.application.conversation?.status;
+    const reservationStatus = props.application.conversation?.reservation?.status;
+    const applicationStatus = props.application.status;
+    
+    return conversationStatus === 'cancelled' || 
+           reservationStatus?.includes('cancelled') || 
+           applicationStatus === 'cancelled' ||
+           applicationStatus === 'declined';
+});
+
 const actionDisabledReason = computed(() => {
     if (missionEnded.value) {
         return 'La mission est terminée. Vous pouvez seulement archiver cette conversation.';
+    }
+    if (isConversationCancelled.value) {
+        return 'Cette conversation a été annulée. Vous pouvez seulement l\'archiver.';
     }
     if (missionStarted.value) {
         return 'La mission a commencé. Vous pouvez seulement envoyer des messages.';
@@ -519,8 +533,20 @@ function getParentCancelTooltipText() {
 
 function handleArchiveConversation() {
     const conversationId = props.application.conversation?.id;
+    
+    console.log('🗃️ Tentative d\'archivage:', {
+        application: props.application,
+        conversation: props.application.conversation,
+        conversationId: conversationId,
+        applicationId: props.application.id
+    });
+    
     if (!conversationId) {
-        showError('Erreur', 'Impossible de trouver la conversation à archiver');
+        console.error('❌ Conversation ID manquant:', {
+            application: props.application,
+            hasConversation: !!props.application.conversation
+        });
+        showError('Erreur', 'Impossible de trouver la conversation à archiver. ID de conversation manquant.');
         showArchiveModal.value = false;
         return;
     }
@@ -537,10 +563,8 @@ function handleArchiveConversation() {
                 showArchiveModal.value = false;
                 showSuccess('Conversation archivée avec succès', 'Cette conversation a été déplacée dans vos archives.');
                 
-                // Rediriger vers la page de messagerie
-                setTimeout(() => {
-                    router.visit(route('messaging.index'));
-                }, 1000);
+                // Rediriger vers la page de messagerie immédiatement
+                router.visit(route('messaging.index'));
             },
             onError: (errors) => {
                 console.error('❌ Erreur archivage conversation:', errors);
