@@ -207,8 +207,44 @@
             </div>
         </div>
 
+        <!-- Message d'information si annulé -->
+        <template v-if="isConversationCancelled && !missionEnded">
+            <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                <!-- Annulations par statut de réservation -->
+                <span v-if="application.conversation?.reservation?.status === 'cancelled_by_parent' || application.conversation?.reservation?.status === 'cancelled_by_parent_late'">
+                    ❌ Réservation annulée par le parent
+                </span>
+                <span v-else-if="application.conversation?.reservation?.status === 'cancelled_by_babysitter' || application.conversation?.reservation?.status === 'refunded_babysitter_penalty'">
+                    ❌ Réservation annulée par la babysitter
+                </span>
+                <!-- Annulations par statut d'application -->
+                <span v-else-if="application.status === 'cancelled' && currentMode === 'babysitter'">
+                    ❌ Candidature annulée par vous
+                </span>
+                <span v-else-if="application.status === 'cancelled' && currentMode === 'parent'">
+                    ❌ Candidature annulée par la babysitter
+                </span>
+                <span v-else-if="application.status === 'declined'">
+                    ❌ Candidature refusée
+                </span>
+                <span v-else-if="application.status === 'expired'">
+                    ⏰ Candidature expirée
+                </span>
+                <!-- Autres statuts terminés -->
+                <span v-else-if="application.conversation?.reservation?.status === 'completed' || application.conversation?.reservation?.status === 'service_completed'">
+                    ✅ Service terminé
+                </span>
+                <span v-else-if="application.conversation?.status === 'cancelled'">
+                    ❌ Conversation annulée
+                </span>
+                <span v-else>
+                    ❌ Cette conversation est terminée
+                </span>
+            </div>
+        </template>
+
         <!-- Actions supplémentaires pour babysitter (selon le mode actuel) -->
-        <div v-if="currentMode === 'babysitter' && canCancelApplication && !showCounterOffer && !missionEnded" class="mt-4 flex justify-center">
+        <div v-if="currentMode === 'babysitter' && canCancelApplication && !showCounterOffer && !missionEnded && !isConversationCancelled" class="mt-4 flex justify-center">
             <button
                 @click="showBabysitterCancelModal = true"
                 class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:border-red-300 hover:bg-red-100"
@@ -375,14 +411,22 @@ const isConversationCancelled = computed(() => {
     
     // Inclure tous les états qui devraient permettre l'archivage
     return conversationStatus === 'cancelled' || 
-           reservationStatus?.includes('cancelled') || 
+           conversationStatus === 'archived' ||
+           // Statuts d'application
            applicationStatus === 'cancelled' ||
            applicationStatus === 'declined' ||
            applicationStatus === 'expired' ||
-           // Ajouter les statuts de réservations terminées
+           // Statuts de réservation avec annulation
+           reservationStatus?.includes('cancelled') || 
+           reservationStatus === 'cancelled_by_parent' ||
+           reservationStatus === 'cancelled_by_parent_late' ||
+           reservationStatus === 'cancelled_by_babysitter' ||
+           // Statuts de réservations terminées/remboursées
            reservationStatus === 'completed' ||
            reservationStatus === 'service_completed' ||
            reservationStatus === 'refunded' ||
+           reservationStatus === 'refunded_babysitter_penalty' ||
+           reservationStatus === 'refunded_minus_service_fees' ||
            reservationStatus?.includes('refund');
 });
 
