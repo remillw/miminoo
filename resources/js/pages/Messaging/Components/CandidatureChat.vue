@@ -147,6 +147,7 @@
 
             <!-- Bouton d'archivage quand la mission est terminée OU annulée -->
             <template v-if="missionEnded || isConversationCancelled">
+                {{ console.log('🔍 Archive button should show:', { missionEnded: missionEnded, isConversationCancelled: isConversationCancelled }) }}
                 <button
                     @click="showArchiveModal = true"
                     :class="mobile ? 'w-full justify-center' : ''"
@@ -211,10 +212,10 @@
         <template v-if="isConversationCancelled && !missionEnded">
             <div :class="mobile ? 'w-full text-center' : ''" class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
                 <!-- Annulations par statut de réservation -->
-                <span v-if="application.conversation?.reservation?.status === 'cancelled_by_parent' || application.conversation?.reservation?.status === 'cancelled_by_parent_late'">
+                <span v-if="(conversation || application.conversation)?.reservation?.status === 'cancelled_by_parent' || (conversation || application.conversation)?.reservation?.status === 'cancelled_by_parent_late'">
                     ❌ Réservation annulée par le parent
                 </span>
-                <span v-else-if="application.conversation?.reservation?.status === 'cancelled_by_babysitter' || application.conversation?.reservation?.status === 'refunded_babysitter_penalty'">
+                <span v-else-if="(conversation || application.conversation)?.reservation?.status === 'cancelled_by_babysitter' || (conversation || application.conversation)?.reservation?.status === 'refunded_babysitter_penalty'">
                     ❌ Réservation annulée par la babysitter
                 </span>
                 <!-- Annulations par statut d'application -->
@@ -308,6 +309,7 @@ import ReservationModal from './ReservationModal.vue';
 
 const props = defineProps({
     application: Object,
+    conversation: Object, // Ajout de la conversation complète
     userRole: String,
     mobile: {
         type: Boolean,
@@ -347,7 +349,8 @@ const currentRate = computed(() => {
 
 const isReservationPaid = computed(() => {
     // Vérifier si la réservation est effectivement payée
-    return props.application.conversation?.status === 'active';
+    const conversation = props.conversation || props.application.conversation;
+    return conversation?.status === 'active';
 });
 
 const canCancelApplication = computed(() => {
@@ -405,12 +408,25 @@ const canPerformActions = computed(() => {
 });
 
 const isConversationCancelled = computed(() => {
-    const conversationStatus = props.application.conversation?.status;
-    const reservationStatus = props.application.conversation?.reservation?.status;
+    // Utiliser la conversation depuis props si disponible, sinon depuis application
+    const conversation = props.conversation || props.application.conversation;
+    const conversationStatus = conversation?.status;
+    const reservationStatus = conversation?.reservation?.status;
     const applicationStatus = props.application.status;
     
+    // Log pour debug
+    console.log('🔍 isConversationCancelled check:', {
+        conversationStatus,
+        reservationStatus,
+        applicationStatus,
+        conversation: conversation,
+        reservation: conversation?.reservation,
+        propsConversation: props.conversation,
+        propsApplication: props.application
+    });
+    
     // Inclure tous les états qui devraient permettre l'archivage
-    return conversationStatus === 'cancelled' || 
+    const isCancelled = conversationStatus === 'cancelled' || 
            conversationStatus === 'archived' ||
            // Statuts d'application
            applicationStatus === 'cancelled' ||
@@ -428,6 +444,9 @@ const isConversationCancelled = computed(() => {
            reservationStatus === 'refunded_babysitter_penalty' ||
            reservationStatus === 'refunded_minus_service_fees' ||
            reservationStatus?.includes('refund');
+    
+    console.log('🔍 isConversationCancelled result:', isCancelled);
+    return isCancelled;
 });
 
 const actionDisabledReason = computed(() => {

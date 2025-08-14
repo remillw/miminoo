@@ -144,6 +144,7 @@
                             <div class="bg-secondary flex-shrink-0 border-b border-orange-200 p-4">
                                 <CandidatureChat
                                     :application="selectedConversation.application"
+                                    :conversation="selectedConversation"
                                     :user-role="currentMode"
                                     @reserve="reserveApplication"
                                     @decline="archiveConversation"
@@ -353,6 +354,7 @@
                 <div v-if="selectedConversation.type === 'application'" class="flex-shrink-0 border-b border-orange-200 bg-orange-50 p-4">
                     <CandidatureChat
                         :application="selectedConversation.application"
+                        :conversation="selectedConversation"
                         :user-role="currentMode"
                         :mobile="true"
                         @reserve="reserveApplication"
