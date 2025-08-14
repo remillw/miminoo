@@ -238,7 +238,7 @@
                     </button>
                 </div>
                 
-                <div v-else class="py-12 text-center">
+                <div v-else-if="reservations.length === 0" class="py-12 text-center">
                     <Briefcase class="mx-auto mb-4 h-12 w-12 text-gray-300" />
                     <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune candidature</h3>
                     <p class="mb-4 text-gray-600">Vous n'avez encore postulé à aucune annonce</p>

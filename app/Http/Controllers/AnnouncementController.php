@@ -461,12 +461,12 @@ class AnnouncementController extends Controller
         try {
             $validated = $request->validate([
                 'motivation_note' => 'nullable|string|max:1000',
-                'proposed_rate' => 'nullable|numeric|min:0|max:999.99',
+                'proposed_rate' => 'nullable|numeric|min:10|max:100',
             ], [
                 'motivation_note.max' => 'Le message de motivation ne peut pas dépasser 1000 caractères.',
                 'proposed_rate.numeric' => 'Le tarif proposé doit être un nombre valide.',
-                'proposed_rate.min' => 'Le tarif proposé ne peut pas être négatif.',
-                'proposed_rate.max' => 'Le tarif proposé ne peut pas dépasser 999,99€.',
+                'proposed_rate.min' => 'Le tarif proposé doit être d\'au moins 10€.',
+                'proposed_rate.max' => 'Le tarif proposé ne peut pas dépasser 100€.',
             ]);
 
             Log::info('✅ DONNÉES VALIDÉES', [

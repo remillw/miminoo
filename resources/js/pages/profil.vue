@@ -21,6 +21,7 @@ import {
     Info,
     Mail,
     MapPin,
+    Phone,
     Plus,
     Shield,
     Trash2,
@@ -156,6 +157,7 @@ const form = ref({
     firstname: props.user.firstname || '',
     lastname: props.user.lastname || '',
     email: props.user.email || '',
+    phone: props.user.phone || '',
     date_of_birth: formatDateForInput(props.user.date_of_birth),
     avatar: '', // Champ pour l'avatar en base64
     children: (props.children || []).map((child) => ({
@@ -964,6 +966,23 @@ console.log('🔍 Données utilisateur Profil:', {
                                 />
                             </div>
                             <p v-if="isGoogleOnlyUser" class="text-xs text-green-600">✓ Géré par Google</p>
+                        </div>
+
+                        <!-- Téléphone -->
+                        <div class="space-y-1 sm:space-y-2">
+                            <Label for="phone" class="text-sm">Téléphone</Label>
+                            <div class="relative">
+                                <Phone class="absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-gray-400 sm:left-3 sm:h-4 sm:w-4" />
+                                <Input
+                                    id="phone"
+                                    type="tel"
+                                    v-model="form.phone"
+                                    :disabled="!isEditing"
+                                    class="pl-8 text-sm sm:pl-10"
+                                    placeholder="Ex: 06 12 34 56 78"
+                                />
+                            </div>
+                            <p class="text-xs text-gray-500">Votre numéro sera visible uniquement après réservation</p>
                         </div>
 
                         <!-- Message informatif pour les utilisateurs Google -->

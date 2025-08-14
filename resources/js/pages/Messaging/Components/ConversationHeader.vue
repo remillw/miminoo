@@ -47,6 +47,17 @@
                     Annonce
                 </button>
 
+                <!-- Bouton téléphone - visible seulement avec réservation active -->
+                <button
+                    v-if="canShowPhoneNumber"
+                    @click="callPhoneNumber()"
+                    class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-green-100 hover:text-green-800"
+                    :title="`Appeler ${conversation.other_user.name}`"
+                >
+                    <Phone class="h-4 w-4" />
+                    Appeler
+                </button>
+
                 <!-- Statut de réservation - seulement si payé -->
                 <div v-if="reservation && reservation.status !== 'pending_payment'" class="flex items-center gap-2">
                     <div class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium" :class="getReservationStatusClass()">
@@ -98,7 +109,7 @@
 import { useStatusColors } from '@/composables/useStatusColors';
 import { useToast } from '@/composables/useToast';
 import { router } from '@inertiajs/vue3';
-import { Calendar, CheckCircle, Clock, CreditCard, FileText, User } from 'lucide-vue-next';
+import { Calendar, CheckCircle, Clock, CreditCard, FileText, Phone, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import CancelReservationModal from './CancelReservationModal.vue';
 
@@ -120,6 +131,15 @@ const { getReservationStatusColor, getStatusText } = useStatusColors();
 // Computed
 const canCancelReservation = computed(() => {
     return props.reservation && props.reservation.can_be_cancelled;
+});
+
+const canShowPhoneNumber = computed(() => {
+    // Afficher le téléphone seulement si une réservation est active et que l'autre utilisateur a un numéro
+    const hasActiveReservation = props.reservation && 
+                                ['paid', 'active', 'service_completed'].includes(props.reservation.status);
+    const hasPhoneNumber = props.conversation?.other_user?.phone;
+    
+    return hasActiveReservation && hasPhoneNumber;
 });
 
 // Supprimé: startService et completeService
@@ -416,5 +436,17 @@ function openAdUrl() {
     } catch (error) {
         console.error('❌ Erreur ouverture annonce:', error);
     }
+}
+
+function callPhoneNumber() {
+    const phoneNumber = props.conversation?.other_user?.phone;
+    if (!phoneNumber) {
+        showError('Erreur', 'Numéro de téléphone non disponible');
+        return;
+    }
+    
+    // Nettoyer le numéro (supprimer espaces, tirets, etc.)
+    const cleanPhone = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
+    window.open(`tel:${cleanPhone}`, '_self');
 }
 </script>

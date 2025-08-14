@@ -182,6 +182,7 @@
                             :current-user-id="$page?.props?.auth?.user?.id"
                             :conversation-status="selectedConversation.status"
                             :is-payment-completed="selectedConversation.status === 'active'"
+                            :has-active-reservation="hasActiveReservation"
                         />
                     </div>
                 </div>
@@ -383,6 +384,7 @@
                         :mobile="true"
                         :conversation-status="selectedConversation.status"
                         :is-payment-completed="selectedConversation.status === 'active' || selectedConversation.deposit_paid"
+                        :has-active-reservation="hasActiveReservation"
                     />
                 </div>
             </div>
@@ -528,17 +530,44 @@ const missionEnded = computed(() => {
 });
 
 const isChatDisabled = computed(() => {
-    return missionEnded.value || selectedConversation.value?.status === 'archived';
+    const conversation = selectedConversation.value;
+    const isGuardeCancelled = conversation?.status === 'cancelled' || 
+                             conversation?.reservation?.status?.includes('cancelled');
+    
+    return missionEnded.value || 
+           conversation?.status === 'archived' || 
+           isGuardeCancelled;
 });
 
 const chatPlaceholder = computed(() => {
+    const conversation = selectedConversation.value;
+    const isGuardeCancelled = conversation?.status === 'cancelled' || 
+                             conversation?.reservation?.status?.includes('cancelled');
+    
+    if (isGuardeCancelled) {
+        return 'Cette garde a été annulée. Vous ne pouvez plus envoyer de messages.';
+    }
     if (missionEnded.value) {
         return 'La mission est terminée. Vous ne pouvez plus envoyer de messages.';
     }
-    if (selectedConversation.value?.status === 'archived') {
+    if (conversation?.status === 'archived') {
         return 'Cette conversation est archivée';
     }
     return 'Écrivez votre message...';
+});
+
+// Détermine si une réservation est active (paiement effectué et service pas encore terminé)
+const hasActiveReservation = computed(() => {
+    if (!selectedConversation.value) return false;
+    
+    // Vérifier si la conversation a une réservation payée
+    const conversation = selectedConversation.value;
+    const hasValidReservation = conversation.status === 'active' || 
+                               conversation.deposit_paid || 
+                               (conversation.reservation && 
+                                ['paid', 'active', 'service_completed'].includes(conversation.reservation.status));
+    
+    return hasValidReservation && !missionEnded.value;
 });
 
 // Fonction pour changer de mode

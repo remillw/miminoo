@@ -44,6 +44,7 @@
 
 <script setup>
 import { useToast } from '@/composables/useToast';
+import { usePhoneFilter } from '@/composables/usePhoneFilter';
 import { Send } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
@@ -76,11 +77,16 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    hasActiveReservation: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['send', 'typing', 'message-sent', 'message-sent-optimistic', 'message-confirmed', 'message-failed']);
 
 const { showError } = useToast();
+const { filterMessage } = usePhoneFilter();
 
 const message = ref('');
 const textarea = ref(null);
@@ -106,22 +112,6 @@ watch(message, async () => {
     handleTypingIndicator();
 });
 
-// Fonction pour détecter les numéros de téléphone
-function detectPhoneNumbers(text) {
-    const phonePatterns = [
-        // Numéros français (06, 07, etc.)
-        /(?:(?:0|\+33\s?)[1-9](?:[\s.-]?\d{2}){4})/g,
-        // Numéros avec indicatifs internationaux
-        /(?:\+\d{1,3}[\s.-]?)?(?:\d[\s.-]?){6,14}\d/g,
-        // Patterns simples pour 10 chiffres consécutifs
-        /\b\d{10}\b/g,
-        // Numéros avec espaces ou tirets
-        /\b\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b/g,
-    ];
-
-    return phonePatterns.some((pattern) => pattern.test(text));
-}
-
 async function sendMessage() {
     if (!canSend.value || !props.conversationId) {
         return;
@@ -129,10 +119,12 @@ async function sendMessage() {
 
     const messageText = message.value.trim();
 
-    // Vérifier s'il y a des numéros de téléphone et si le paiement n'est pas fait
-    if (!props.isPaymentCompleted && detectPhoneNumbers(messageText)) {
-        showError('🔒 Numéros interdits', "Vous ne pouvez pas envoyer de numéros de téléphone tant que la réservation n'est pas payée.");
-        return;
+    // Vérifier s'il y a des numéros de téléphone et si la réservation n'a pas encore eu lieu
+    if (!props.hasActiveReservation) {
+        const { isAllowed } = filterMessage(messageText);
+        if (!isAllowed) {
+            return; // Le toast d'erreur est déjà affiché par le composable
+        }
     }
 
     isSending.value = true;

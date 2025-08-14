@@ -9,6 +9,7 @@ interface Props {
     hasParentRole: boolean;
     hasBabysitterRole: boolean;
     requestedMode?: 'parent' | 'babysitter';
+    unreadMessagesCount?: number;
 }
 
 const props = defineProps<Props>();
@@ -178,12 +179,24 @@ const isActive = (href: string) => {
                     :key="link.name"
                     :href="link.href"
                     :class="[
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        'flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                         isActive(link.href) ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100',
                     ]"
                 >
-                    <component :is="link.icon" class="h-5 w-5" />
-                    {{ link.name }}
+                    <div class="flex items-center gap-3">
+                        <component :is="link.icon" class="h-5 w-5" />
+                        {{ link.name }}
+                    </div>
+                    <!-- Badge pour les messages non lus -->
+                    <span
+                        v-if="link.name === 'Messagerie' && props.unreadMessagesCount && props.unreadMessagesCount > 0"
+                        :class="[
+                            'flex h-5 w-5 items-center justify-center rounded-full text-xs font-medium',
+                            isActive(link.href) ? 'bg-white text-primary' : 'bg-primary text-white'
+                        ]"
+                    >
+                        {{ props.unreadMessagesCount > 9 ? '9+' : props.unreadMessagesCount }}
+                    </span>
                 </Link>
             </nav>
 
@@ -210,9 +223,18 @@ const isActive = (href: string) => {
                     v-for="link in mobileMainLinks"
                     :key="link.name"
                     :href="link.href"
-                    :class="['flex flex-col items-center gap-1 p-2 transition-colors', isActive(link.href) ? 'text-primary' : 'text-gray-500']"
+                    :class="['flex flex-col items-center gap-1 p-2 transition-colors relative', isActive(link.href) ? 'text-primary' : 'text-gray-500']"
                 >
-                    <component :is="link.icon" class="h-5 w-5" />
+                    <div class="relative">
+                        <component :is="link.icon" class="h-5 w-5" />
+                        <!-- Badge pour les messages non lus en mobile -->
+                        <span
+                            v-if="link.name === 'Messages' && props.unreadMessagesCount && props.unreadMessagesCount > 0"
+                            class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-white"
+                        >
+                            {{ props.unreadMessagesCount > 9 ? '9+' : props.unreadMessagesCount }}
+                        </span>
+                    </div>
                     <span class="text-xs font-medium">{{ link.name.split(' ')[0] }}</span>
                 </Link>
 

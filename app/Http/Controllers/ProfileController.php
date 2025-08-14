@@ -108,6 +108,7 @@ class ProfileController extends Controller
             'firstname' => 'required|string|max:255',
             'lastname' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20|regex:/^[\d\s\-\+\(\)\.]+$/',
             'date_of_birth' => 'nullable|date|before:' . now()->subYears(16)->format('Y-m-d'),
             'address' => 'required|string',
             'postal_code' => 'required|string',
@@ -188,6 +189,11 @@ class ProfileController extends Controller
             $userData['firstname'] = $request->firstname;
             $userData['lastname'] = $request->lastname;
             $userData['email'] = $request->email;
+        }
+        
+        // Le téléphone peut être modifié même pour les utilisateurs Google
+        if ($request->has('phone')) {
+            $userData['phone'] = $request->phone;
         }
         
         if ($request->has('date_of_birth')) {
