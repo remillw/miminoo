@@ -662,9 +662,9 @@ function selectConversation(conversation) {
             unreadCount: conversation.unread_count,
         });
 
-        router.patch(
+        router.post(
             route('conversations.mark-all-read', conversation.id),
-            {},
+            { _method: 'PATCH' },
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -679,6 +679,12 @@ function selectConversation(conversation) {
                     if (conversationInList) {
                         conversationInList.unread_count = 0;
                     }
+                    
+                    // Forcer une actualisation pour mettre à jour le badge de la sidebar
+                    router.reload({
+                        only: ['unreadMessagesCount'],
+                        preserveState: true
+                    });
                 },
                 onError: (errors) => {
                     console.error('❌ Erreur lors du marquage des messages comme lus:', errors);

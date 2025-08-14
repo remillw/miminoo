@@ -71,12 +71,15 @@ class HandleInertiaRequests extends Middleware
             $unreadNotificationsCount = $user->unreadNotifications()->count();
             
             // Compter les messages non lus pour la sidebar
-            $unreadMessagesCount = \App\Models\Message::whereHas('conversation', function ($query) use ($user) {
-                $query->where('parent_id', $user->id)->orWhere('babysitter_id', $user->id);
-            })
-            ->where('sender_id', '!=', $user->id)
-            ->whereNull('read_at')
-            ->count();
+            $unreadMessagesCount = \App\Models\Message::join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+                ->where(function ($query) use ($user) {
+                    $query->where('conversations.parent_id', $user->id)
+                          ->orWhere('conversations.babysitter_id', $user->id);
+                })
+                ->where('messages.sender_id', '!=', $user->id)
+                ->whereNull('messages.read_at')
+                ->whereIn('conversations.status', ['pending', 'payment_required', 'active']) // Exclure les conversations archivées
+                ->count();
         }
         
         return [
