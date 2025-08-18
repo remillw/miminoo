@@ -185,6 +185,9 @@ class DashboardController extends Controller
                 'service_start_at' => $nextReservation->service_start_at,
                 'service_end_at' => $nextReservation->service_end_at,
                 'ad' => [
+                    'id' => $nextReservation->ad->id,
+                    'title' => $nextReservation->ad->title,
+                    'date_start' => $nextReservation->ad->date_start,
                     'address' => $nextReservation->ad->address ? [
                         'address' => $nextReservation->ad->address->address,
                         'postal_code' => $nextReservation->ad->address->postal_code,
