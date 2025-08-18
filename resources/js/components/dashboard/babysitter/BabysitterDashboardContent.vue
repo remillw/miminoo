@@ -416,7 +416,7 @@ const viewReservationDetails = (id) => {
     if (props.nextReservation && props.nextReservation.ad) {
         const slug = createAdSlug(props.nextReservation.ad);
         console.log('🔍 Generated slug:', slug);
-        const url = route('announcements.show', { slug });
+        const url = route('announcements.show', { slug }) + '?from=messaging';
         window.open(url, '_blank');
     } else {
         // Fallback vers la messagerie si pas d'annonce

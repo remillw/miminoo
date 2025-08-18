@@ -500,13 +500,13 @@ function createAdSlug(ad: any) {
 
 const viewDetails = (application: Application) => {
     const slug = createAdSlug(application.ad);
-    const url = route('announcements.show', { slug });
+    const url = route('announcements.show', { slug }) + '?from=messaging';
     window.open(url, '_blank');
 };
 
 const viewReservationDetails = (reservation: any) => {
     const slug = createAdSlug(reservation.ad);
-    const url = route('announcements.show', { slug });
+    const url = route('announcements.show', { slug }) + '?from=messaging';
     window.open(url, '_blank');
 };
 
