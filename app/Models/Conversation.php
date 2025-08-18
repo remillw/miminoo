@@ -203,6 +203,18 @@ class Conversation extends Model
                 return "Le service de babysitting est terminé. N'hésitez pas à laisser un avis !";
             case 'conversation_archived':
                 return "Cette conversation a été archivée par {$data['archived_by_name']}.";
+            case 'reservation_cancelled':
+                $cancelledByName = $data['cancelled_by_name'] ?? 'Utilisateur';
+                $message = "{$cancelledByName} a annulé";
+                
+                // Si il y a une note personnelle, l'utiliser
+                if (!empty($data['note'])) {
+                    $message .= " - Raison : {$data['note']}";
+                } else {
+                    $message .= " la réservation";
+                }
+                
+                return $message;
             default:
                 return "Mise à jour du statut de la conversation.";
         }

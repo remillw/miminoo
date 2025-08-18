@@ -70,9 +70,10 @@
                             </div>
                             <button
                                 @click="viewReservationDetails(nextReservation.id)"
-                                class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                class="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                             >
-                                Voir les détails
+                                <Eye class="h-4 w-4" />
+                                Voir l'annonce
                             </button>
                         </div>
                     </div>
@@ -279,7 +280,7 @@
 <script setup>
 import { useStatusColors } from '@/composables/useStatusColors';
 import { router } from '@inertiajs/vue3';
-import { AlertTriangle, Bell, Calendar, Clock, DollarSign, ExternalLink, FileText, MapPin, Search, Star, Users } from 'lucide-vue-next';
+import { AlertTriangle, Bell, Calendar, Clock, DollarSign, ExternalLink, Eye, FileText, MapPin, Search, Star, Users } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -406,12 +407,18 @@ function createAdSlug(ad) {
 }
 
 const viewReservationDetails = (id) => {
+    // Debug pour voir les données disponibles
+    console.log('🔍 nextReservation:', props.nextReservation);
+    console.log('🔍 nextReservation.ad:', props.nextReservation?.ad);
+    
     // Chercher l'annonce associée à cette réservation
     if (props.nextReservation && props.nextReservation.ad) {
         const slug = createAdSlug(props.nextReservation.ad);
+        console.log('🔍 Generated slug:', slug);
         window.open(`/annonce/${slug}`, '_blank');
     } else {
         // Fallback vers la messagerie si pas d'annonce
+        console.log('❌ Pas de données d\'annonce disponibles, redirection vers messagerie');
         router.visit('/messagerie');
     }
 };

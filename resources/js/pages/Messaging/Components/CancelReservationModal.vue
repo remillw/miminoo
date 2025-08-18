@@ -370,6 +370,10 @@ async function confirmCancellation() {
                 reason: reason,
                 note: personalNote.value,
             };
+            
+            // Debug pour vérifier que le message est bien envoyé
+            console.log('🔍 Payload envoyé pour annulation:', payload);
+            console.log('🔍 Message personnel babysitter:', personalNote.value);
         }
 
         const response = await fetch(endpoint, {
@@ -396,11 +400,15 @@ async function confirmCancellation() {
         }
 
         const data = await response.json();
+        
+        // Debug pour vérifier la réponse serveur
+        console.log('🔍 Réponse serveur:', data);
 
         if (data.success) {
             emit('success', {
                 type: selectedOption.value === 'entire_announcement' ? 'announcement_cancelled' : 'reservation_cancelled',
                 message: personalNote.value, // Inclure le message personnel
+                userMessage: personalNote.value, // Ajouter aussi comme userMessage
                 ...data,
             });
         } else {

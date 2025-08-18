@@ -391,6 +391,10 @@ function getReservationMessage() {
 
 function handleCancellationSuccess(result) {
     showCancelModal.value = false;
+    
+    // Debug pour voir ce qui est reçu
+    console.log('🔍 handleCancellationSuccess result:', result);
+    console.log('🔍 Message personnel reçu:', result.message || result.userMessage);
 
     if (result.type === 'announcement_cancelled') {
         // Afficher le toast de succès
