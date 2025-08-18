@@ -58,6 +58,17 @@
                     Appeler
                 </button>
 
+                <!-- Bouton archiver - visible seulement pour conversations cancelled -->
+                <button
+                    v-if="conversation.status === 'cancelled'"
+                    @click="archiveConversation()"
+                    class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
+                    title="Archiver cette conversation"
+                >
+                    <Archive class="h-4 w-4" />
+                    Archiver
+                </button>
+
                 <!-- Statut de réservation - seulement si payé -->
                 <div v-if="reservation && reservation.status !== 'pending_payment'" class="flex items-center gap-2">
                     <div class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium" :class="getReservationStatusClass()">
@@ -109,7 +120,7 @@
 import { useStatusColors } from '@/composables/useStatusColors';
 import { useToast } from '@/composables/useToast';
 import { router } from '@inertiajs/vue3';
-import { Calendar, CheckCircle, Clock, CreditCard, FileText, Phone, User } from 'lucide-vue-next';
+import { Archive, Calendar, CheckCircle, Clock, CreditCard, FileText, Phone, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import CancelReservationModal from './CancelReservationModal.vue';
 
@@ -119,7 +130,7 @@ const props = defineProps({
     reservation: Object,
 });
 
-const emit = defineEmits(['reservation-updated']);
+const emit = defineEmits(['reservation-updated', 'conversation-archived']);
 
 // État local
 const showCancelModal = ref(false);
@@ -448,5 +459,20 @@ function callPhoneNumber() {
     // Nettoyer le numéro (supprimer espaces, tirets, etc.)
     const cleanPhone = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
     window.open(`tel:${cleanPhone}`, '_self');
+}
+
+function archiveConversation() {
+    // Appel Inertia avec router.post et méthode spécifiée
+    router.post(route('conversations.archive', { conversation: props.conversation.id }), {}, {
+        method: 'PATCH',
+        onSuccess: () => {
+            showSuccess('Conversation archivée', 'La conversation a été archivée avec succès');
+            // Émettre un événement pour informer le parent de la mise à jour
+            emit('conversation-archived', props.conversation.id);
+        },
+        onError: () => {
+            showError('Erreur', 'Impossible d\'archiver la conversation');
+        }
+    });
 }
 </script>
