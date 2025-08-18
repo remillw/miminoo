@@ -428,6 +428,18 @@ function handleCancellationSuccess(result) {
         // Juste cette réservation annulée
         showSuccess('Réservation annulée avec succès');
         emit('reservation-updated', result.reservation || result);
+        
+        // Si c'est la babysitter qui annule, rafraîchir la page pour voir les changements
+        if (props.userRole === 'babysitter') {
+            setTimeout(() => {
+                router.reload({
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        showSuccess('La conversation a été mise à jour');
+                    }
+                });
+            }, 500);
+        }
     }
 }
 

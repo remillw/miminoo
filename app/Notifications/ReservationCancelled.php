@@ -51,11 +51,16 @@ class ReservationCancelled extends Notification implements ShouldQueue
                  ->line('• **Date :** ' . $this->reservation->service_start_at->format('d/m/Y à H:i'))
                  ->line('• **Durée :** ' . $this->reservation->service_start_at->format('H:i') . ' - ' . $this->reservation->service_end_at->format('H:i'))
                  ->line('• **Babysitter :** ' . $this->reservation->babysitter->firstname . ' ' . $this->reservation->babysitter->lastname)
-                 ->line('• **Acompte payé :** ' . $this->reservation->total_deposit . '€');
+                 ->line('')
+                 ->line('💳 **Détail du paiement :**')
+                 ->line('• **Acompte :** ' . $this->reservation->deposit_amount . '€')
+                 ->line('• **Frais de service :** ' . $this->reservation->service_fee . '€')
+                 ->line('• **Total payé :** ' . $this->reservation->total_deposit . '€');
 
             if ($refundAmount > 0) {
                 $mail->line('')
-                     ->line('💰 **Remboursement :** ' . $refundAmount . '€ sera automatiquement crédité sur votre moyen de paiement sous 5-10 jours ouvrés.');
+                     ->line('💰 **Remboursement :** ' . $refundAmount . '€ sera automatiquement crédité sur votre moyen de paiement sous 5-10 jours ouvrés.')
+                     ->line('*(Les frais de service ne sont pas remboursables)*');
             } else {
                 $mail->line('')
                      ->line('⚠️ **Aucun remboursement** ne sera effectué car l\'annulation a eu lieu moins de 24h avant le début du service.');

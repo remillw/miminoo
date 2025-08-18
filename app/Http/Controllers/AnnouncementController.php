@@ -921,8 +921,15 @@ class AnnouncementController extends Controller
         // Vérifier que le slug correspond bien à l'annonce
         $expectedSlug = $this->createAdSlug($announcement);
         if ($slug !== $expectedSlug) {
-            // Rediriger vers le bon slug
-            return redirect()->route('announcements.show', ['slug' => $expectedSlug]);
+            // Construire l'URL de redirection avec les paramètres de requête préservés
+            $url = route('announcements.show', ['slug' => $expectedSlug]);
+            
+            // Ajouter les paramètres de requête existants
+            if ($request->getQueryString()) {
+                $url .= '?' . $request->getQueryString();
+            }
+            
+            return redirect($url);
         }
 
         // Récupérer les avis du parent (en tant que parent, pas babysitter)
