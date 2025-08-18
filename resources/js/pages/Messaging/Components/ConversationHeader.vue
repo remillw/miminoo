@@ -58,9 +58,9 @@
                     Appeler
                 </button>
 
-                <!-- Bouton archiver - visible seulement pour conversations cancelled -->
+                <!-- Bouton archiver - visible pour conversations cancelled ou réservations annulées -->
                 <button
-                    v-if="conversation.status === 'cancelled'"
+                    v-if="conversation.status === 'cancelled' || (reservation && (reservation.status === 'cancelled_by_parent' || reservation.status === 'cancelled_by_babysitter'))"
                     @click="archiveConversation()"
                     class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
                     title="Archiver cette conversation"
