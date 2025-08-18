@@ -475,9 +475,8 @@ function callPhoneNumber() {
 }
 
 function handleArchiveConfirm() {
-    // Appel Inertia avec router.post et méthode spécifiée
-    router.post(route('conversations.archive', { conversation: props.conversation.id }), {}, {
-        method: 'PATCH',
+    // Appel Inertia avec router.patch directement
+    router.patch(route('conversations.archive', { conversation: props.conversation.id }), {}, {
         onSuccess: () => {
             showArchiveModal.value = false;
             showSuccess('Conversation archivée', 'La conversation a été archivée avec succès');
