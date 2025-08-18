@@ -282,6 +282,7 @@ import { useStatusColors } from '@/composables/useStatusColors';
 import { router } from '@inertiajs/vue3';
 import { AlertTriangle, Bell, Calendar, Clock, DollarSign, ExternalLink, Eye, FileText, MapPin, Search, Star, Users } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
+import { route } from 'ziggy-js';
 
 const props = defineProps({
     user: Object,
@@ -415,7 +416,8 @@ const viewReservationDetails = (id) => {
     if (props.nextReservation && props.nextReservation.ad) {
         const slug = createAdSlug(props.nextReservation.ad);
         console.log('🔍 Generated slug:', slug);
-        window.open(`/annonce/${slug}`, '_blank');
+        const url = route('announcements.show', { slug });
+        window.open(url, '_blank');
     } else {
         // Fallback vers la messagerie si pas d'annonce
         console.log('❌ Pas de données d\'annonce disponibles, redirection vers messagerie');

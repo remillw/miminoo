@@ -213,6 +213,11 @@
                                     <MessageCircle class="h-4 w-4" />
                                     Message
                                 </button>
+                                
+                                <button @click="viewReservationDetails(reservation)" class="action-button action-button-edit">
+                                    <Eye class="h-4 w-4" />
+                                    Voir l'annonce
+                                </button>
 
                                 <button
                                     v-if="reservation.can_review"
@@ -346,6 +351,7 @@ import type { Application, Filters, Reservation } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Briefcase, Calendar, CheckCircle, Clock, EuroIcon, Eye, MapPin, MessageCircle, Search, Star } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { route } from 'ziggy-js';
 
 interface Stats {
     total_applications: number;
@@ -494,7 +500,14 @@ function createAdSlug(ad: any) {
 
 const viewDetails = (application: Application) => {
     const slug = createAdSlug(application.ad);
-    window.open(`/annonce/${slug}`, '_blank');
+    const url = route('announcements.show', { slug });
+    window.open(url, '_blank');
+};
+
+const viewReservationDetails = (reservation: any) => {
+    const slug = createAdSlug(reservation.ad);
+    const url = route('announcements.show', { slug });
+    window.open(url, '_blank');
 };
 
 const leaveReview = (reservationId: number) => {
