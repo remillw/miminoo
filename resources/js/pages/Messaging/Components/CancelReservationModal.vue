@@ -1,5 +1,5 @@
 <template>
-    <div v-if="show" class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-2 sm:p-4" @click="handleBackdropClick">
+    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-75 p-2 sm:p-4" @click="handleBackdropClick">
         <div class="w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl" @click.stop>
             <!-- Header -->
             <div class="border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
@@ -381,11 +381,26 @@ async function confirmCancellation() {
             body: JSON.stringify(payload),
         });
 
+        // Vérifier d'abord si la réponse est OK
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        // Vérifier le Content-Type pour s'assurer que c'est du JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // Si ce n'est pas du JSON, lire comme texte pour débugger
+            const text = await response.text();
+            console.error('Réponse non-JSON reçue:', text);
+            throw new Error('Réponse du serveur invalide (pas de JSON)');
+        }
+
         const data = await response.json();
 
         if (data.success) {
             emit('success', {
                 type: selectedOption.value === 'entire_announcement' ? 'announcement_cancelled' : 'reservation_cancelled',
+                message: personalNote.value, // Inclure le message personnel
                 ...data,
             });
         } else {

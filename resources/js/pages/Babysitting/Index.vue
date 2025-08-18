@@ -45,7 +45,7 @@
                             </div>
                             <div class="sm:ml-3 sm:w-0 sm:flex-1 lg:ml-5">
                                 <dl>
-                                    <dt class="truncate text-xs font-medium text-gray-500 sm:text-sm">Réservations</dt>
+                                    <dt class="truncate text-xs font-medium text-gray-500 sm:text-sm">Accepté</dt>
                                     <dd class="text-base font-medium text-gray-900 sm:text-lg">{{ stats.total_reservations }}</dd>
                                 </dl>
                             </div>
@@ -88,16 +88,6 @@
                 <div class="border-b border-gray-200">
                     <div class="-mb-px flex space-x-4 sm:space-x-8">
                         <button
-                            @click="activeTab = 'candidatures'"
-                            :class="{
-                                'border-primary text-primary': activeTab === 'candidatures',
-                                'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'candidatures',
-                            }"
-                            class="border-b-2 px-1 py-2 text-xs font-medium sm:text-sm"
-                        >
-                            Mes candidatures ({{ applications.length }})
-                        </button>
-                        <button
                             @click="activeTab = 'reservations'"
                             :class="{
                                 'border-primary text-primary': activeTab === 'reservations',
@@ -105,7 +95,17 @@
                             }"
                             class="border-b-2 px-1 py-2 text-xs font-medium sm:text-sm"
                         >
-                            Mes réservations ({{ reservations.length }})
+                            Mes réservations ({{ sortedReservations.length }})
+                        </button>
+                        <button
+                            @click="activeTab = 'candidatures'"
+                            :class="{
+                                'border-primary text-primary': activeTab === 'candidatures',
+                                'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700': activeTab !== 'candidatures',
+                            }"
+                            class="border-b-2 px-1 py-2 text-xs font-medium sm:text-sm"
+                        >
+                            Mes candidatures ({{ sortedApplications.length }})
                         </button>
                     </div>
                 </div>
@@ -158,11 +158,93 @@
             </div>
 
             <!-- Contenu des onglets -->
-            <div v-if="activeTab === 'candidatures'">
-                <!-- Liste des candidatures -->
-                <div v-if="applications.length > 0" class="space-y-6">
+            <div v-if="activeTab === 'reservations'">
+                <!-- Liste des réservations -->
+                <div v-if="sortedReservations.length > 0" class="space-y-6">
                     <div
-                        v-for="application in applications"
+                        v-for="reservation in sortedReservations"
+                        :key="reservation.id"
+                        class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                    >
+                        <div class="p-6">
+                            <!-- En-tête de la réservation -->
+                            <div class="mb-4 flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-gray-900">
+                                        {{ reservation.ad.title }}
+                                    </h3>
+                                    <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
+                                        <Calendar class="h-4 w-4" />
+                                        {{ formatDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
+                                        {{ formatTime(reservation.service_end_at) }}
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span
+                                        :class="getReservationStatusColor(reservation.status).badge"
+                                        class="rounded-full px-2 py-1 text-xs font-medium"
+                                    >
+                                        {{ getStatusText('reservation', reservation.status) }}
+                                    </span>
+                                    <div class="text-right">
+                                        <div class="text-primary text-lg font-bold">
+                                            {{ reservation.hourly_rate }}€/h
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Informations parent -->
+                            <div class="mb-4 flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                                <img
+                                    :src="reservation.parent.avatar || '/storage/default-avatar.png'"
+                                    :alt="reservation.parent.name"
+                                    class="h-10 w-10 rounded-full object-cover"
+                                />
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-900">{{ reservation.parent.name }}</p>
+                                    <p class="text-sm text-gray-600">Parent</p>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex items-center gap-3">
+                                <button v-if="!isServicePast(reservation)" @click="viewMessaging" class="action-button action-button-view">
+                                    <MessageCircle class="h-4 w-4" />
+                                    Message
+                                </button>
+
+                                <button
+                                    v-if="reservation.can_review"
+                                    @click="leaveReview(reservation.id)"
+                                    class="action-button action-button-warning"
+                                >
+                                    <Star class="h-4 w-4" />
+                                    Laisser un avis
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="py-12 text-center">
+                    <Calendar class="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                    <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune réservation</h3>
+                    <p class="mb-4 text-gray-600">Vos réservations de garde apparaîtront ici</p>
+                    <a
+                        href="/annonces"
+                        class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+                    >
+                        <Search class="h-4 w-4" />
+                        Parcourir les annonces
+                    </a>
+                </div>
+            </div>
+
+            <div v-else-if="activeTab === 'candidatures'">
+                <!-- Liste des candidatures -->
+                <div v-if="sortedApplications.length > 0" class="space-y-6">
+                    <div
+                        v-for="application in sortedApplications"
                         :key="application.id"
                         class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
                     >
@@ -238,7 +320,7 @@
                     </button>
                 </div>
                 
-                <div v-else-if="reservations.length === 0" class="py-12 text-center">
+                <div v-else class="py-12 text-center">
                     <Briefcase class="mx-auto mb-4 h-12 w-12 text-gray-300" />
                     <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune candidature</h3>
                     <p class="mb-4 text-gray-600">Vous n'avez encore postulé à aucune annonce</p>
@@ -252,90 +334,6 @@
                 </div>
             </div>
 
-            <div v-else-if="activeTab === 'reservations'">
-                <!-- Liste des réservations -->
-                <div v-if="reservations.length > 0" class="space-y-6">
-                    <div
-                        v-for="reservation in reservations"
-                        :key="reservation.id"
-                        class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
-                    >
-                        <div class="p-6">
-                            <!-- En-tête de la réservation -->
-                            <div class="mb-4 flex items-start justify-between">
-                                <div class="flex-1">
-                                    <h3 class="text-lg font-semibold text-gray-900">
-                                        {{ reservation.ad.title }}
-                                    </h3>
-                                    <p class="mt-1 flex items-center gap-1 text-sm text-gray-600">
-                                        <Calendar class="h-4 w-4" />
-                                        {{ formatDate(reservation.service_start_at) }} de {{ formatTime(reservation.service_start_at) }} à
-                                        {{ formatTime(reservation.service_end_at) }}
-                                    </p>
-                                    <p v-if="reservation.ad.address" class="mt-1 flex items-center gap-1 text-sm text-gray-600">
-                                        <MapPin class="h-4 w-4" />
-                                        {{ reservation.ad.address.address }}, {{ reservation.ad.address.postal_code }}
-                                    </p>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span
-                                        :class="getReservationStatusColor(reservation.status).badge"
-                                        class="rounded-full px-2 py-1 text-xs font-medium"
-                                    >
-                                        {{ getStatusText('reservation', reservation.status) }}
-                                    </span>
-                                    <div class="text-right">
-                                        <div class="text-lg font-bold text-gray-900">{{ formatAmount(reservation.babysitter_amount) }}€</div>
-                                        <div class="text-sm text-gray-600">{{ reservation.hourly_rate }}€/h</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Informations parent -->
-                            <div class="mb-4 flex items-center gap-3 rounded-lg bg-gray-50 p-3">
-                                <img
-                                    :src="reservation.parent.avatar || '/default-avatar.png'"
-                                    :alt="reservation.parent.name"
-                                    class="h-10 w-10 rounded-full object-cover"
-                                />
-                                <div class="flex-1">
-                                    <p class="font-medium text-gray-900">{{ reservation.parent.name }}</p>
-                                    <p class="text-sm text-gray-600">Parent</p>
-                                </div>
-                            </div>
-
-                            <!-- Actions -->
-                            <div class="flex items-center gap-3">
-                                <button v-if="!isServicePast(reservation)" @click="viewMessaging" class="action-button action-button-view">
-                                    <MessageCircle class="h-4 w-4" />
-                                    Message
-                                </button>
-
-                                <button
-                                    v-if="reservation.can_review"
-                                    @click="leaveReview(reservation.id)"
-                                    class="action-button action-button-warning"
-                                >
-                                    <Star class="h-4 w-4" />
-                                    Laisser un avis
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div v-else class="py-12 text-center">
-                    <Calendar class="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                    <h3 class="mb-2 text-lg font-medium text-gray-900">Aucune réservation</h3>
-                    <p class="mb-4 text-gray-600">Vos réservations de garde apparaîtront ici</p>
-                    <a
-                        href="/annonces"
-                        class="bg-primary hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
-                    >
-                        <Search class="h-4 w-4" />
-                        Parcourir les annonces
-                    </a>
-                </div>
-            </div>
         </div>
     </DashboardLayout>
 </template>
@@ -384,7 +382,6 @@ const { getApplicationStatusColor, getReservationStatusColor, getStatusText } = 
 const applicationStatusOptions = [
     { value: 'all', label: 'Tous les statuts' },
     { value: 'pending', label: 'En attente' },
-    { value: 'counter_offered', label: 'Contre-offre' },
     { value: 'accepted', label: 'Acceptée' },
     { value: 'declined', label: 'Refusée' },
     { value: 'cancelled', label: 'Annulée' },
@@ -407,13 +404,33 @@ const dateFilterOptions = [
     { value: 'all', label: 'Toutes les périodes' },
 ];
 
-// État local
-const activeTab = ref<'candidatures' | 'reservations'>('candidatures');
+// État local - Inverser les tabs : réservations en premier
+const activeTab = ref<'candidatures' | 'reservations'>('reservations');
 
 // Filtres simples pour les onglets
 const selectedDateFilter = ref(props.filters.date_filter || 'upcoming');
 const selectedApplicationStatus = ref(props.filters.application_status || 'all');
 const selectedReservationStatus = ref(props.filters.reservation_status || 'all');
+
+// Computed pour trier les candidatures par date (plus proches en premier)
+const sortedApplications = computed(() => {
+    return [...props.applications].sort((a, b) => {
+        // Trier par date de début d'annonce (plus proche = plus prioritaire)
+        const dateA = new Date(a.ad.date_start);
+        const dateB = new Date(b.ad.date_start);
+        return dateA - dateB; // Ordre croissant (plus proche = plus petit timestamp)
+    });
+});
+
+// Computed pour trier les réservations par date (plus proches en premier)
+const sortedReservations = computed(() => {
+    return [...props.reservations].sort((a, b) => {
+        // Trier par date de début de service (plus proche = plus prioritaire)
+        const dateA = new Date(a.service_start_at);
+        const dateB = new Date(b.service_start_at);
+        return dateA - dateB; // Ordre croissant (plus proche = plus petit timestamp)
+    });
+});
 
 // Toast
 const { showSuccess, showError } = useToast();
@@ -446,8 +463,38 @@ const viewMessaging = () => {
     router.visit('/messagerie');
 };
 
+// Fonction pour créer le slug de l'annonce (identique à ConversationHeader.vue)
+function createAdSlug(ad: any) {
+    if (!ad || !ad.id) {
+        console.error('❌ Ad invalide pour slug:', ad);
+        return 'annonce-inconnue';
+    }
+
+    // Reproduire exactement l'algorithme PHP
+    let date = 'date-inconnue';
+    if (ad.date_start) {
+        try {
+            // PHP: $ad->date_start->format('Y-m-d');
+            date = new Date(ad.date_start).toISOString().split('T')[0]; // YYYY-MM-DD
+        } catch (e) {
+            console.error('❌ Erreur parsing date:', ad.date_start);
+        }
+    }
+
+    // PHP: strtolower(preg_replace('/[^a-z0-9]/i', '-', $ad->title))
+    const title = ad.title ? ad.title.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'annonce';
+
+    // PHP: trim($date . '-' . $title . '-' . $ad->id, '-')
+    const slug = (date + '-' + title + '-' + ad.id).replace(/^-+|-+$/g, '');
+    // PHP: preg_replace('/-+/', '-', $slug)
+    const finalSlug = slug.replace(/-+/g, '-');
+
+    return finalSlug;
+}
+
 const viewDetails = (application: Application) => {
-    window.open(`/annonce/${application.ad.id}`, '_blank');
+    const slug = createAdSlug(application.ad);
+    window.open(`/annonce/${slug}`, '_blank');
 };
 
 const leaveReview = (reservationId: number) => {

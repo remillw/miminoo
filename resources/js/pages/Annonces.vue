@@ -161,15 +161,44 @@ const searchWithDelay = (() => {
     };
 })();
 
-// Application automatique des filtres quand ils changent
+// Application automatique des filtres quand ils changent (sans fermer les filtres)
 const applyFiltersWithDelay = (() => {
     let timeout: number;
     return () => {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
-            // Appliquer les filtres sans fermer le panneau
-            applyFilters();
-        }, 500); // Délai réduit pour une expérience plus fluide
+            // Appliquer les filtres sans fermer le panneau (showFilters reste inchangé)
+            const params: any = {};
+
+            if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
+            if (tarif.value > 10) params.min_rate = tarif.value;
+            if (age.value) params.age_range = age.value;
+            if (date.value) params.date = date.value;
+            if (lieu.value.trim()) params.location = lieu.value.trim();
+
+            // Si géolocalisation activée ET coordonnées pas envoyées récemment
+            const now = Date.now();
+            if (isGeolocationEnabled.value && userPosition.value && now - lastLocationSent.value > LOCATION_CACHE_DURATION) {
+                fetch('/api/set-user-location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    },
+                    body: JSON.stringify({
+                        latitude: userPosition.value.latitude,
+                        longitude: userPosition.value.longitude,
+                    }),
+                }).catch(error => console.warn('Impossible de définir la position utilisateur:', error));
+                lastLocationSent.value = now;
+            }
+
+            // Faire la requête sans réinitialiser showFilters
+            router.get(route('announcements.index'), params, {
+                preserveState: true, // Garder l'état local (showFilters)
+                preserveScroll: false,
+            });
+        }, 500);
     };
 })();
 

@@ -376,8 +376,44 @@ const formatTimeAgo = (dateString) => {
 
 // Fonctions de statut maintenant dans useStatusColors
 
+// Fonction pour créer le slug de l'annonce (identique aux autres fichiers)
+function createAdSlug(ad) {
+    if (!ad || !ad.id) {
+        console.error('❌ Ad invalide pour slug:', ad);
+        return 'annonce-inconnue';
+    }
+
+    // Reproduire exactement l'algorithme PHP
+    let date = 'date-inconnue';
+    if (ad.date_start) {
+        try {
+            // PHP: $ad->date_start->format('Y-m-d');
+            date = new Date(ad.date_start).toISOString().split('T')[0]; // YYYY-MM-DD
+        } catch (e) {
+            console.error('❌ Erreur parsing date:', ad.date_start);
+        }
+    }
+
+    // PHP: strtolower(preg_replace('/[^a-z0-9]/i', '-', $ad->title))
+    const title = ad.title ? ad.title.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'annonce';
+
+    // PHP: trim($date . '-' . $title . '-' . $ad->id, '-')
+    const slug = (date + '-' + title + '-' + ad.id).replace(/^-+|-+$/g, '');
+    // PHP: preg_replace('/-+/', '-', $slug)
+    const finalSlug = slug.replace(/-+/g, '-');
+
+    return finalSlug;
+}
+
 const viewReservationDetails = (id) => {
-    router.visit('/messagerie');
+    // Chercher l'annonce associée à cette réservation
+    if (props.nextReservation && props.nextReservation.ad) {
+        const slug = createAdSlug(props.nextReservation.ad);
+        window.open(`/annonce/${slug}`, '_blank');
+    } else {
+        // Fallback vers la messagerie si pas d'annonce
+        router.visit('/messagerie');
+    }
 };
 
 const viewAdDetails = (id) => {
