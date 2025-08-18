@@ -26,36 +26,39 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center gap-2">
+            <div :class="mobile ? 'flex flex-wrap gap-2' : 'flex items-center gap-2'">
                 <!-- Lien vers profil -->
                 <button
                     @click="openProfileUrl()"
+                    :class="mobile ? 'flex-shrink-0' : ''"
                     class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
                     :title="userRole === 'parent' ? 'Voir le profil de la babysitter' : 'Voir le profil du parent'"
                 >
                     <User class="h-4 w-4" />
-                    Profil
+                    <span :class="mobile ? 'hidden sm:inline' : ''">Profil</span>
                 </button>
 
                 <!-- Lien vers annonce -->
                 <button
                     @click="openAdUrl()"
+                    :class="mobile ? 'flex-shrink-0' : ''"
                     class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
                     :title="userRole === 'parent' ? 'Voir votre annonce' : 'Voir l\'annonce du parent'"
                 >
                     <FileText class="h-4 w-4" />
-                    Annonce
+                    <span :class="mobile ? 'hidden sm:inline' : ''">Annonce</span>
                 </button>
 
                 <!-- Bouton téléphone - visible seulement avec réservation active -->
                 <button
                     v-if="canShowPhoneNumber"
                     @click="callPhoneNumber()"
+                    :class="mobile ? 'flex-shrink-0' : ''"
                     class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-green-100 hover:text-green-800"
                     :title="`Appeler ${conversation.other_user.name}`"
                 >
                     <Phone class="h-4 w-4" />
-                    Appeler
+                    <span :class="mobile ? 'hidden sm:inline' : ''">Appeler</span>
                 </button>
 
 
@@ -97,9 +100,10 @@
         </div>
 
         <!-- Section Actions principales pour conversations annulées -->
-        <div v-if="conversation.status === 'cancelled' || (reservation && (reservation.status === 'cancelled_by_parent' || reservation.status === 'cancelled_by_babysitter'))" class="mt-3 flex items-center gap-3">
+        <div v-if="conversation.status === 'cancelled' || (reservation && (reservation.status === 'cancelled_by_parent' || reservation.status === 'cancelled_by_babysitter'))" :class="mobile ? 'mt-3 space-y-2' : 'mt-3 flex items-center gap-3'">
             <button
                 @click="showArchiveModal = true"
+                :class="[mobile ? 'w-full justify-center' : '']"
                 class="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
                 title="Archiver cette conversation"
             >
@@ -140,6 +144,7 @@ const props = defineProps({
     conversation: Object,
     userRole: String,
     reservation: Object,
+    mobile: Boolean,
 });
 
 const emit = defineEmits(['reservation-updated', 'conversation-archived']);
@@ -475,8 +480,10 @@ function callPhoneNumber() {
 }
 
 function handleArchiveConfirm() {
-    // Appel Inertia avec router.patch directement
-    router.patch(route('conversations.archive', { conversation: props.conversation.id }), {}, {
+    // Utilisation de router.post avec _method: 'PATCH' pour contourner les problèmes serveur
+    router.post(route('conversations.archive', { conversation: props.conversation.id }), {
+        _method: 'PATCH'
+    }, {
         onSuccess: () => {
             showArchiveModal.value = false;
             showSuccess('Conversation archivée', 'La conversation a été archivée avec succès');
