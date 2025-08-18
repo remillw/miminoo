@@ -59,15 +59,6 @@
                 </button>
 
 
-                <!-- Bouton Archiver pour conversations/réservations annulées -->
-                <button
-                    v-if="conversation.status === 'cancelled' || (reservation && (reservation.status === 'cancelled_by_parent' || reservation.status === 'cancelled_by_babysitter'))"
-                    class="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
-                    title="Archiver cette conversation"
-                >
-                    <Archive class="h-4 w-4" />
-                    Archiver la conversation
-                </button>
 
                 <!-- Statut de réservation - seulement si payé -->
                 <div v-if="reservation && reservation.status !== 'pending_payment'" class="flex items-center gap-2">
@@ -105,6 +96,25 @@
             </div>
         </div>
 
+        <!-- Section Actions principales pour conversations annulées -->
+        <div v-if="conversation.status === 'cancelled' || (reservation && (reservation.status === 'cancelled_by_parent' || reservation.status === 'cancelled_by_babysitter'))" class="mt-3 flex items-center gap-3">
+            <button
+                @click="showArchiveModal = true"
+                class="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
+                title="Archiver cette conversation"
+            >
+                <Archive class="h-4 w-4" />
+                Archiver la conversation
+            </button>
+        </div>
+
+        <!-- Modal archivage -->
+        <ArchiveConfirmationModal
+            :open="showArchiveModal"
+            @update:open="showArchiveModal = $event"
+            @confirm="handleArchiveConfirm"
+            @cancel="showArchiveModal = false"
+        />
 
         <!-- Modal annulation -->
         <CancelReservationModal
@@ -123,6 +133,7 @@ import { useToast } from '@/composables/useToast';
 import { router } from '@inertiajs/vue3';
 import { Archive, Calendar, CheckCircle, Clock, CreditCard, FileText, Phone, User } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import ArchiveConfirmationModal from '@/components/ui/archive-confirmation-modal.vue';
 import CancelReservationModal from './CancelReservationModal.vue';
 
 const props = defineProps({
@@ -131,10 +142,11 @@ const props = defineProps({
     reservation: Object,
 });
 
-const emit = defineEmits(['reservation-updated']);
+const emit = defineEmits(['reservation-updated', 'conversation-archived']);
 
 // État local
 const showCancelModal = ref(false);
+const showArchiveModal = ref(false);
 
 // Toast et composables
 const { showSuccess, showError } = useToast();
@@ -462,4 +474,20 @@ function callPhoneNumber() {
     window.open(`tel:${cleanPhone}`, '_self');
 }
 
+function handleArchiveConfirm() {
+    // Appel Inertia avec router.post et méthode spécifiée
+    router.post(route('conversations.archive', { conversation: props.conversation.id }), {}, {
+        method: 'PATCH',
+        onSuccess: () => {
+            showArchiveModal.value = false;
+            showSuccess('Conversation archivée', 'La conversation a été archivée avec succès');
+            // Émettre un événement pour informer le parent de la mise à jour
+            emit('conversation-archived', props.conversation.id);
+        },
+        onError: () => {
+            showArchiveModal.value = false;
+            showError('Erreur', 'Impossible d\'archiver la conversation');
+        }
+    });
+}
 </script>
