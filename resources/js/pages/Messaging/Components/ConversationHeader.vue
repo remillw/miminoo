@@ -58,15 +58,15 @@
                     Appeler
                 </button>
 
-                <!-- Bouton archiver - visible pour conversations cancelled ou réservations annulées -->
+
+                <!-- Bouton Archiver pour conversations/réservations annulées -->
                 <button
                     v-if="conversation.status === 'cancelled' || (reservation && (reservation.status === 'cancelled_by_parent' || reservation.status === 'cancelled_by_babysitter'))"
-                    @click="archiveConversation()"
-                    class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
+                    class="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
                     title="Archiver cette conversation"
                 >
                     <Archive class="h-4 w-4" />
-                    Archiver
+                    Archiver la conversation
                 </button>
 
                 <!-- Statut de réservation - seulement si payé -->
@@ -105,6 +105,7 @@
             </div>
         </div>
 
+
         <!-- Modal annulation -->
         <CancelReservationModal
             :show="showCancelModal"
@@ -130,7 +131,7 @@ const props = defineProps({
     reservation: Object,
 });
 
-const emit = defineEmits(['reservation-updated', 'conversation-archived']);
+const emit = defineEmits(['reservation-updated']);
 
 // État local
 const showCancelModal = ref(false);
@@ -461,18 +462,4 @@ function callPhoneNumber() {
     window.open(`tel:${cleanPhone}`, '_self');
 }
 
-function archiveConversation() {
-    // Appel Inertia avec router.post et méthode spécifiée
-    router.post(route('conversations.archive', { conversation: props.conversation.id }), {}, {
-        method: 'PATCH',
-        onSuccess: () => {
-            showSuccess('Conversation archivée', 'La conversation a été archivée avec succès');
-            // Émettre un événement pour informer le parent de la mise à jour
-            emit('conversation-archived', props.conversation.id);
-        },
-        onError: () => {
-            showError('Erreur', 'Impossible d\'archiver la conversation');
-        }
-    });
-}
 </script>
